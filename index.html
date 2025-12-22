@@ -1242,6 +1242,9 @@
         let isUserInteracting = false; // เช็คว่า user กำลังลากของหรือพิมพ์อยู่ไหม
         let realTimeInterval = null; // ตัวแปรเก็บ Loop
 
+        // ✅ [เพิ่มตัวแปรนี้] เช็คสถานะกำลังบันทึก
+        let isSaving = false;
+
         // --- สถาปะนะสถานะเริ่มต้น ---
         let simEnemyTeam = [null, null, null];
         let simAttackTeams = [[null,null,null], [null,null,null], [null,null,null]];
@@ -1533,19 +1536,21 @@
         function pushData() {
             if(!USE_CLOUD) return Promise.resolve();
 
+            // 1. เริ่มกระบวนการบันทึก -> ล็อคการ Sync ทันที
+            isSaving = true;
+
             // สร้าง Timestamp ปัจจุบัน
             const now = Date.now();
             lastServerTimestamp = now; // อัปเดตของตัวเองทันที จะได้ไม่ต้องโหลดซ้ำ
 
             const payload = { 
+                timestamp: now,
                 teams: teamsDB, 
-                // logs: logsDB, 
                 heroes: heroesDB, 
                 pets: petsDB, 
                 rings: ringsDB,
                 affiliations: affiliationsDB, 
                 tierLists: tierListsDB, 
-                // myTeams: myTeamsDB, 
                 battleHistory: battleHistoryDB,
                 seasonInfo: currentSeason, 
                 archivedSeasons: archivedSeasons,
@@ -1553,10 +1558,29 @@
                 heroSets: heroSetsDB,
                 items: itemsDB, 
                 knownEnemies: knownEnemies,
-                timestamp: now,
             }; 
             // ใช้ no-cors เพื่อความชัวร์ในการส่ง (แต่จะไม่รู้ response)
-            return fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            return fetch(SCRIPT_URL, { 
+                method: 'POST', 
+                mode: 'no-cors', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify(payload) 
+            })
+            .then(() => {
+                console.log("Save sent successfully.");
+            })
+            .catch(err => {
+                console.error("Save failed:", err);
+            })
+            .finally(() => {
+                // 2. เมื่อส่งข้อมูลเสร็จ (ไม่ว่าจะผ่านหรือพัง)
+                // ให้รอ 10 วินาที ค่อยอนุญาตให้ Sync ใหม่ (เพื่อให้ Google Sheet เขียนข้อมูลทัน)
+                console.log("Cooldown sync for 10 seconds...");
+                setTimeout(() => {
+                    isSaving = false; 
+                    console.log("Sync unlocked.");
+                }, 10000); 
+            });
         }
         function updateSyncStatus() { const b = document.getElementById('sync-status'); const t = document.getElementById('status-text'); const s = document.getElementById('setting-status-display'); if(!USE_CLOUD) { b.className = 'sync-badge offline'; t.innerText = 'NO SETUP'; if(s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`; } }
 
@@ -6113,13 +6137,13 @@
             realTimeInterval = setInterval(() => {
                 
                 // 🛑 ถ้า User กำลังพิมพ์หรือลากของอยู่ -> ข้ามรอบนี้ไปเลย
-                if (isUserInteracting) {
-                    console.log("User busy, skipping sync...");
+                if (isUserInteracting || isSaving) {
+                    console.log("User busy or Saving, skipping sync...");
                     return; 
                 }
 
                 // 🟢 ถ้าว่าง -> แอบไปเช็คข้อมูล (Silent Fetch)
-                fetchCloudData(false); 
+                fetchCloudData(false);
 
             }, 10000); 
         }
