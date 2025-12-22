@@ -783,12 +783,18 @@
             <div class="flex h-full overflow-hidden bg-[#0d1117]">
                 
                 <div class="w-80 border-r border-gray-800 bg-[#111827] flex flex-col">
-                    <div class="p-3 bg-[#1f2937] border-b border-gray-700 font-bold text-gray-300 text-xs uppercase tracking-wider flex justify-between items-center">
-                        <span>👥 Member List (30)</span>
-                        <span class="text-[10px] text-gray-500">Click to Edit Teams</span>
-                    </div>
-                    <div id="guild-member-list" class="overflow-y-auto flex-1 p-2 space-y-1 custom-scroll">
+                    <div class="p-3 bg-[#1f2937] border-b border-gray-700 flex flex-col gap-2">
+                        <div class="font-bold text-gray-300 text-xs uppercase tracking-wider flex justify-between items-center">
+                            <span>👥 Member List (30)</span>
                         </div>
+                        <div class="relative">
+                            <span class="absolute left-2 top-1.5 text-gray-500 text-xs">🔍</span>
+                            <input type="text" onkeyup="filterGuildMemberUI(this.value)" placeholder="Find member..." class="w-full bg-[#0d1117] border border-gray-600 rounded pl-7 pr-2 py-1 text-xs text-white outline-none focus:border-blue-500 transition">
+                        </div>
+                    </div>
+                    
+                    <div id="guild-member-list" class="overflow-y-auto flex-1 p-2 space-y-1 custom-scroll">
+                    </div>
                 </div>
 
                 <div class="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -1932,10 +1938,11 @@
                     }
                 }
 
+                document.getElementById('userModal').style.display = 'none';
+
                 // *** Sync ขึ้น Google Sheets ***
                 await pushData();
-
-                document.getElementById('userModal').style.display = 'none';
+                
                 renderUserManager();
                 alert("บันทึกเรียบร้อย!");
                 
@@ -2116,52 +2123,56 @@
         function pushData() {
             if(!USE_CLOUD) return Promise.resolve();
 
-            // 1. เริ่มกระบวนการบันทึก -> ล็อคการ Sync ทันที
-            isSaving = true;
+            if (realTimeInterval) clearInterval(realTimeInterval);
 
-            // สร้าง Timestamp ปัจจุบัน
+            isSaving = true;
             const now = Date.now();
             lastServerTimestamp = now; // อัปเดตของตัวเองทันที จะได้ไม่ต้องโหลดซ้ำ
 
+            const badge = document.getElementById('sync-status');
+            const statusText = document.getElementById('status-text');
+            if(badge) { 
+                badge.className = 'sync-badge loading'; 
+                if(statusText) statusText.innerText = 'Saving...';
+            }
+
             const payload = { 
                 timestamp: now,
-                teams: teamsDB, 
-                heroes: heroesDB, 
-                pets: petsDB, 
-                rings: ringsDB,
-                affiliations: affiliationsDB, 
-                // tierLists: tierListsDB, 
-                battleHistory: battleHistoryDB,
-                seasonInfo: currentSeason, 
-                archivedSeasons: archivedSeasons,
-                guildMembers: guildMembersDB,
-                heroSets: heroSetsDB,
-                items: itemsDB, 
-                auditLogs: auditLogsDB,
-                knownEnemies: knownEnemies,
-                users: systemUsersDB,
-            }; 
-            // ใช้ no-cors เพื่อความชัวร์ในการส่ง (แต่จะไม่รู้ response)
+                teams: teamsDB, heroes: heroesDB, pets: petsDB, rings: ringsDB,
+                guildMembers: guildMembersDB, heroSets: heroSetsDB, items: itemsDB,
+                auditLogs: auditLogsDB, users: systemUsersDB, knownEnemies: knownEnemies,
+                affiliations: affiliationsDB, battleHistory: battleHistoryDB,
+                seasonInfo: currentSeason, archivedSeasons: archivedSeasons
+            };
+           
             return fetch(SCRIPT_URL, { 
-                method: 'POST', 
-                mode: 'no-cors', 
+                method: 'POST', mode: 'no-cors', 
                 headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify(payload) 
             })
             .then(() => {
-                console.log("Save sent successfully.");
+                console.log("✅ Save Sent.");
+                if(badge) { 
+                    badge.className = 'sync-badge sync-cloud'; 
+                    if(statusText) statusText.innerText = 'SAVED';
+                }
             })
             .catch(err => {
-                console.error("Save failed:", err);
+                console.error("Save Error:", err);
+                if(statusText) statusText.innerText = 'Error';
             })
             .finally(() => {
-                // 2. เมื่อส่งข้อมูลเสร็จ (ไม่ว่าจะผ่านหรือพัง)
-                // ให้รอ 10 วินาที ค่อยอนุญาตให้ Sync ใหม่ (เพื่อให้ Google Sheet เขียนข้อมูลทัน)
-                console.log("Cooldown sync for 10 seconds...");
+                // 2. [สำคัญ] เมื่อส่งเสร็จ (ไม่ว่าจะผ่านหรือพัง) ให้ปลดล็อค
+                isSaving = false;
+
+                // 3. เริ่ม Cooldown: รอ 5 วินาทีก่อน แล้วค่อยเริ่มระบบ Auto-Sync ใหม่
+                // เพื่อให้แน่ใจว่า Google Sheet ประมวลผลเสร็จแล้ว และเราจะไม่ดึงข้อมูลมาทับตัวเอง
+                console.log("⏳ Cooldown 5s before resuming sync...");
+                
                 setTimeout(() => {
-                    isSaving = false; 
-                    console.log("Sync unlocked.");
-                }, 10000); 
+                    if(statusText) statusText.innerText = 'ONLINE';
+                    startRealTimeSync(); // <--- เริ่มนับ 10 วิใหม่ตรงนี้
+                }, 5000); 
             });
         }
         function updateSyncStatus() { const b = document.getElementById('sync-status'); const t = document.getElementById('status-text'); const s = document.getElementById('setting-status-display'); if(!USE_CLOUD) { b.className = 'sync-badge offline'; t.innerText = 'NO SETUP'; if(s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`; } }
@@ -2561,6 +2572,8 @@
         async function confirmBattleResult(result) {
             if (!selectedAttacker) return;
 
+            console.log("*** confirmBattleResult", result);
+
             const { memIdx, teamIdx } = selectedAttacker;
             const myTeam = guildMembersDB[memIdx].teams[teamIdx];
             const enemyTeam = getTeam(activeBattleSlot);
@@ -2571,13 +2584,20 @@
 
             // --- MAIN LOGIC ---
             if (result === 'Lose') {
-                // 1. แพ้: ทีมบุกตาย (isDead = true)
+                // 1. แพ้: ทีมบุกตาย
                 myTeam.isDead = true; 
-                alert(`บันทึกผล: แพ้ 💀\n- ทีม ${myTeam.name} ของ ${guildMembersDB[memIdx].name} จะไม่สามารถใช้งานได้อีกในรอบนี้`);
+                
+                // [ใหม่] เพิ่มแต้มการป้องกันให้ศัตรู
+                enemyTeam.defensiveWins = (enemyTeam.defensiveWins || 0) + 1;
+
+                alert(`บันทึกผล: แพ้ 💀\n- ทีม ${myTeam.name} ถูกล็อค\n- ศัตรูทีมนี้ป้องกันสำเร็จ ${enemyTeam.defensiveWins} ครั้ง`);
             } 
             else if (result === 'Win') {
                 // 1. ชนะ: ศัตรูตาย
                 enemyTeam.isCleared = true;
+                // (Optional) จะรีเซ็ตแต้มชนะไหม? ปกติจะเก็บไว้ดูสถิติว่าโหดแค่ไหนก่อนตาย
+                // enemyTeam.defensiveWins = 0; 
+
                 addLog(currentCastle, activeBattleSlot, enemyTeam.player, 'Defeated');
                 alert(`บันทึกผล: ชนะ 🏆\n- ศัตรูถูกกำจัดเรียบร้อย!`);
             }
@@ -2589,7 +2609,12 @@
             for(let i=0; i<5; i++) {
                 const s = myTeam.slots[i];
                 if(s) {
-                    playerData.push({ id: s.id, star: s.star || 0 });
+                    const h = heroesDB.find(x => x.id === s.id);
+                    playerData.push({ 
+                        id: s.id, 
+                        star: s.star || 0,
+                        type: h ? h.type : 'Unknown', // ✅ เก็บ Type ลงใน Log เลย
+                    });
                     playerIds.push(s.id);
                 }
             }
@@ -2599,7 +2624,12 @@
             for(let i=0; i<5; i++) {
                 const s = enemyTeam.slots[i];
                 if(s) {
-                    enemyData.push({ id: s.id, star: s.star || 0 });
+                    const h = heroesDB.find(x => x.id === s.id);
+                    enemyData.push({ 
+                        id: s.id, 
+                        star: s.star || 0,
+                        type: h ? h.type : 'Unknown' // ✅ เก็บ Type ลงใน Log เลย
+                    });
                     enemyIds.push(s.id);
                 }
             }
@@ -2622,6 +2652,7 @@
                 enemySignature: enemyIds.sort().join(','),
                 
                 skillQueue: myTeam.skillQueue || [],
+                enemySkillQueue: enemyTeam.skills || enemyTeam.skillQueue || [],
                 
                 enemyName: enemyTeam.player || 'Enemy',
                 status: result,
@@ -2646,6 +2677,8 @@
         function closeBattleModal() { document.getElementById('battleModal').style.display = 'none'; activeBattleSlot = null; }
 
         async function recordBattle(result) {
+
+            console.log("*** recordBattle", result);
             const memIdx = document.getElementById('battle-member-select').value;
             const teamIdx = document.getElementById('battle-team-select').value;
             
@@ -2730,15 +2763,15 @@
             renderDashboard(); 
             closeBattleModal();
 
-            showLoading("กำลังบันทึกผลการต่อสู้...");
-            try {
-                await pushData();
-                // alert("บันทึกเรียบร้อย!");
-            } catch(e) {
-                alert("Error: " + e.message);
-            } finally {
-                hideLoading();
-            }
+            // showLoading("กำลังบันทึกผลการต่อสู้...");
+            // try {
+            //     await triggerAutoSave();
+            //     // alert("บันทึกเรียบร้อย!");
+            // } catch(e) {
+            //     alert("Error: " + e.message);
+            // } finally {
+            //     hideLoading();
+            // }
         }
 
         function checkHistory(enemySlotIdx) {
@@ -2875,16 +2908,16 @@
                 return;
             }
 
-            // 2. สร้าง HTML Header (ลบปุ่ม Clear ออกแล้ว)
+            // 2. สร้าง HTML Header
             let html = `
                 <div class="max-w-4xl mx-auto">
                     <div class="flex justify-between items-center mb-6">
                         <div class="text-gray-400 text-xs">Showing recent ${battleHistoryDB.length} matches</div>
-                        </div>
+                    </div>
                     <div class="space-y-4">
             `;
 
-            // 3. วนลูปสร้าง Card ทีละใบ (เหมือนเดิม)
+            // 3. วนลูปสร้าง Card ทีละใบ
             html += battleHistoryDB.map(log => {
                 const isWin = log.result === 'Win' || log.status === 'Win';
                 
@@ -2920,10 +2953,10 @@
                         </div>` : '';
                 }).join('');
 
-                // --- Helper: สร้าง Skill Queue ---
-                let queueHTML = '<span class="text-gray-600 text-xs">- No Queue -</span>';
+                // --- Helper: สร้าง Skill Queue (My Team) ---
+                let myQueueHTML = '<span class="text-gray-600 text-xs">- No Queue -</span>';
                 if (log.skillQueue && log.skillQueue.length > 0) {
-                    queueHTML = `<div class="flex gap-2">`;
+                    myQueueHTML = `<div class="flex gap-2">`;
                     log.skillQueue.forEach((q, idx) => {
                         const [sIdx, sNum] = q.split('-');
                         let heroId = null;
@@ -2934,20 +2967,47 @@
                         const label = sNum === '1' ? 'ล่าง' : 'บน';
                         
                         if(h) {
-                            queueHTML += `
-                                <div class="relative w-8 h-8 rounded border border-yellow-600/50 bg-black group" title="Skill ${idx+1}">
+                            myQueueHTML += `
+                                <div class="relative w-8 h-8 rounded border border-yellow-600/50 bg-black group" title="My Skill ${idx+1}">
                                     <img src="${h.img}" class="w-full h-full object-cover opacity-80">
-                                    <div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[8px] font-bold px-1 leading-none shadow">${label}</div>
+                                    <div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[8px] font-bold px-1 leading-none shadow rounded-tl">${label}</div>
                                     <div class="absolute top-0 left-0 bg-yellow-600 text-black text-[8px] font-bold px-1 leading-none rounded-br">${idx+1}</div>
                                 </div>
                             `;
                         }
                     });
-                    queueHTML += `</div>`;
+                    myQueueHTML += `</div>`;
+                }
+
+                // --- [NEW] Helper: สร้าง Skill Queue (Enemy Team) ---
+                let enemyQueueHTML = '<span class="text-gray-600 text-xs">- No Queue -</span>';
+                if (log.enemySkillQueue && log.enemySkillQueue.length > 0) {
+                    enemyQueueHTML = `<div class="flex gap-2 justify-end">`;
+                    log.enemySkillQueue.forEach((q, idx) => {
+                        const [sIdx, sNum] = q.split('-');
+                        let heroId = null;
+                        if (log.enemyData && log.enemyData[sIdx]) heroId = log.enemyData[sIdx].id;
+                        else if (log.enemyIds && log.enemyIds[sIdx]) heroId = log.enemyIds[sIdx];
+
+                        const h = heroesDB.find(x => x.id === heroId);
+                        const label = sNum === '1' ? 'ล่าง' : 'บน';
+                        
+                        if(h) {
+                            enemyQueueHTML += `
+                                <div class="relative w-8 h-8 rounded border border-red-900/50 bg-black group" title="Enemy Skill ${idx+1}">
+                                    <img src="${h.img}" class="w-full h-full object-cover opacity-80 grayscale-[0.3]">
+                                    <div class="absolute bottom-0 right-0 bg-red-600 text-white text-[8px] font-bold px-1 leading-none shadow rounded-tl">${label}</div>
+                                    <div class="absolute top-0 left-0 bg-gray-500 text-white text-[8px] font-bold px-1 leading-none rounded-br">${idx+1}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                    enemyQueueHTML += `</div>`;
                 }
 
                 return `
                     <div class="${bgClass} ${borderClass} rounded-r-xl p-4 shadow-lg flex flex-col gap-4 relative overflow-hidden group hover:bg-[#1f2937] transition">
+                        
                         <div class="flex justify-between items-start border-b border-gray-700/50 pb-2">
                             <div>
                                 <div class="text-sm font-bold text-gray-300 flex items-center gap-2">
@@ -2959,6 +3019,7 @@
                             </div>
                             <div>${resultText}</div>
                         </div>
+
                         <div class="flex items-center justify-between gap-2">
                             <div class="flex-1 flex flex-col gap-2">
                                 <div class="flex justify-between items-center">
@@ -2967,9 +3028,11 @@
                                 </div>
                                 <div class="flex gap-1 flex-wrap">${myHeroes}</div>
                             </div>
+
                             <div class="flex flex-col items-center justify-center px-2">
                                 <span class="text-2xl font-black text-gray-700 italic">VS</span>
                             </div>
+
                             <div class="flex-1 flex flex-col gap-2 items-end text-right">
                                 <div class="flex justify-between items-center w-full flex-row-reverse">
                                     <span class="text-xs font-bold text-red-400 truncate">${log.enemyName || 'Enemy'}</span>
@@ -2978,9 +3041,19 @@
                                 <div class="flex gap-1 flex-wrap justify-end">${enemyHeroes}</div>
                             </div>
                         </div>
-                        <div class="bg-black/20 rounded p-2 flex items-center gap-3 border border-gray-700/30">
-                            <span class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider">Skill Queue:</span>
-                            ${queueHTML}
+
+                        <div class="px-3 py-2 bg-black/20 rounded border border-gray-700/30 grid grid-cols-2 gap-4">
+                            
+                            <div class="flex flex-col gap-1 border-r border-gray-700/50 pr-2">
+                                <span class="text-[9px] text-yellow-500 font-bold uppercase tracking-wider">My Queue:</span>
+                                ${myQueueHTML}
+                            </div>
+
+                            <div class="flex flex-col gap-1 items-end text-right pl-2">
+                                <span class="text-[9px] text-red-400 font-bold uppercase tracking-wider">Enemy Queue:</span>
+                                ${enemyQueueHTML}
+                            </div>
+
                         </div>
                     </div>
                 `;
@@ -3953,9 +4026,9 @@
                                 ${getStarsHTML(s.star, false)}
                                 <div class="ring-trigger ${rCls}" onclick="openSelector(${i},${p},'ring',event)">${ring||'💍'}</div>
                                 <div class="skill-bar" onclick="event.stopPropagation()">
-                                    <div onclick="toggleSkill(${i},${p},1)" class="skill-btn ${s1}">ล่าง</div>
                                     <div onclick="toggleSkill(${i},${p},2)" class="skill-btn ${s2}">บน</div>
-                                </div>
+                                    <div onclick="toggleSkill(${i},${p},1)" class="skill-btn ${s1}">ล่าง</div>
+                                </div>  
                             `;
                         }
                         h += `<div class="slot ${hData?'filled':''} interactive-area" onclick="handleSlotClick(${i},${p})" oncontextmenu="openContextMenu(event,${i},${p})" ondragover="allowDrop(event)" ondrop="drop(event,${i},${p})" draggable="true" ondragstart="dragStart(event,${i},${p})">${inner}</div>`;
@@ -3964,16 +4037,39 @@
                 const petD = team.pet ? petsDB.find(p=>p.id==team.pet.id) : null;
                 const queueHtml = team.skills.map((s, index) => {
                     const [pos, skillNum] = s.split('-'); const slot = team.slots[pos]; if (!slot) return ''; const hero = heroesDB.find(h => h.id == slot.id); if (!hero) return '';
-                    return `<div class="relative w-14 h-14 border border-gray-600 rounded bg-black flex-shrink-0"><img src="${hero.img}" class="w-full h-full object-cover rounded opacity-70"><div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-1.5 rounded-tl">S${skillNum}</div><div class="absolute top-0 left-0 bg-yellow-500 text-black text-[10px] font-bold px-1.5 rounded-br leading-none">${index+1}</div></div>`;
+                    return `<div class="relative w-14 h-14 border border-gray-600 rounded bg-black flex-shrink-0"><img src="${hero.img}" class="w-full h-full object-cover rounded opacity-70"><div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-1.5 rounded-tl">${skillNum == '1' ? 'ล่าง' : 'บน'}</div><div class="absolute top-0 left-0 bg-yellow-500 text-black text-[10px] font-bold px-1.5 rounded-br leading-none">${index+1}</div></div>`;
                 }).join('');
                 const emptyHtml = Array(3 - team.skills.length).fill('<div class="w-14 h-14 border border-dashed border-gray-700 rounded bg-[#0d1117] flex items-center justify-center text-gray-700 text-xs flex-shrink-0">?</div>').join('');
-                container.insertAdjacentHTML('beforeend', `<div class="team-row ${team.isCleared?'cleared':''}"><div class="w-48 flex flex-col gap-3 justify-center flex-shrink-0"><div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500">SLOT #${i+1}</span><div class="flex gap-1"><button onclick="checkHistory(${i})" class="text-gray-500 hover:text-white" title="History">📜</button><button onclick="openBattleModal(${i})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded font-bold">⚔️ BATTLE</button></div></div><input type="number" value="${team.speed}" onchange="updateTeam(${i},'speed',this.value)" class="w-20 bg-[#0d1117] border border-gray-600 text-blue-400 font-bold text-sm rounded px-2 outline-none" placeholder="SPD"><input type="text" 
-                           value="${team.player}" 
-                           list="enemy-names-list" 
-                           onchange="handleEnemyNameChange(${i}, this.value)" 
-                           class="w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded outline-none placeholder-gray-600 focus:border-yellow-500 transition" 
-                           placeholder="ชื่อศัตรู (Name)..."
-                           autocomplete="off"><div class="grid grid-cols-2 gap-2 mt-1">${fmts}</div><button onclick="openLoadSetModal('warRoom', ${i}, null)" class="w-full mt-2 bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-700 text-[10px] py-1 rounded font-bold">📂 LOAD SET</button></div><div class="flex-1 flex items-center border-x border-gray-700 px-2 bg-[#0d1117]/30 rounded-lg mx-2"><div class="flex flex-col gap-2 items-center justify-center w-20 mr-2 border-r border-dashed border-gray-700 pr-2 py-2 flex-shrink-0"><span class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider">Queue</span><div class="flex flex-col gap-1 items-center">${queueHtml}${emptyHtml}</div></div><div class="flex-1 flex flex-col gap-3 justify-center items-center">${genRow(layout.b,'BACK')}<div class="w-full h-px bg-gray-700/50"></div>${genRow(layout.f,'FRONT')}</div><div class="w-px h-32 bg-gray-700 mx-4 border-l border-dashed border-gray-600"></div><div class="flex flex-col gap-2 items-center justify-center w-20 flex-shrink-0"><span class="text-[10px] text-purple-400 font-bold uppercase">Pet</span><div class="pet-slot ${petD?'filled':''}" onclick="openSelector(${i},'pet','pet')" oncontextmenu="openContextMenu(event,${i},'pet')">${petD?`<img src="${petD.img}">`:'<span class="text-xl">+</span>'}</div></div></div><div class="w-24 flex flex-col items-center justify-center gap-3 flex-shrink-0"><button onclick="toggleStatus(${i})" class="w-full py-2 border rounded font-bold text-[10px] transition ${team.isCleared?"bg-red-900/20 text-red-500 border-red-900":"bg-green-900/20 text-green-500 border-green-900 hover:bg-green-800"}">${team.isCleared?"💀 DEFEATED":"🟢 ACTIVE"}</button><button onclick="resetSlot(${i})" class="text-xs text-gray-500 hover:text-white interactive-area border border-transparent hover:border-gray-600 px-3 py-1 rounded">Reset</button></div></div>`);
+                container.insertAdjacentHTML('beforeend', `<div class="team-row ${team.isCleared?'cleared':''}">
+                    <div class="w-48 flex flex-col gap-3 justify-center flex-shrink-0"><div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500">SLOT #${i+1}</span><div class="flex gap-1"><button onclick="checkHistory(${i})" class="text-gray-500 hover:text-white" title="History">📜</button><button onclick="openBattleModal(${i})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded font-bold">⚔️ BATTLE</button></div></div>
+                <input type="number" value="${team.speed}" onchange="updateTeam(${i},'speed',this.value)" class="w-full bg-[#0d1117] border border-gray-600 text-blue-400 font-bold text-sm rounded px-2 outline-none" placeholder="ความเร็วมากกว่า">
+                <input type="text" 
+                value="${team.player}" 
+                list="enemy-names-list" 
+                onchange="handleEnemyNameChange(${i}, this.value)" 
+                class="w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded outline-none placeholder-gray-600 focus:border-yellow-500 transition" 
+                placeholder="ชื่อศัตรู (Name)..."
+                autocomplete="off">
+                <div class="grid grid-cols-2 gap-2 mt-1">${fmts}</div>
+                <button onclick="openLoadSetModal('warRoom', ${i}, null)" class="w-full mt-2 bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-700 text-[10px] py-1 rounded font-bold">📂 LOAD SET</button></div><div class="flex-1 flex items-center border-x border-gray-700 px-2 bg-[#0d1117]/30 rounded-lg mx-2"><div class="flex flex-col gap-2 items-center justify-center w-20 mr-2 border-r border-dashed border-gray-700 pr-2 py-2 flex-shrink-0"><span class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider">Queue</span><div class="flex flex-col gap-1 items-center">${queueHtml}${emptyHtml}</div></div><div class="flex-1 flex flex-col gap-3 justify-center items-center">${genRow(layout.b,'BACK')}<div class="w-full h-px bg-gray-700/50"></div>${genRow(layout.f,'FRONT')}</div><div class="w-px h-32 bg-gray-700 mx-4 border-l border-dashed border-gray-600"></div><div class="flex flex-col gap-2 items-center justify-center w-20 flex-shrink-0"><span class="text-[10px] text-purple-400 font-bold uppercase">Pet</span><div class="pet-slot ${petD?'filled':''}" onclick="openSelector(${i},'pet','pet')" oncontextmenu="openContextMenu(event,${i},'pet')">${petD?`<img src="${petD.img}">`:'<span class="text-xl">+</span>'}</div></div></div>
+                <div class="w-24 flex flex-col items-center justify-center gap-3 flex-shrink-0">
+                
+                    <div class="w-full mb-2 transform hover:scale-110 transition duration-300 cursor-help" title="ศัตรูทีมนี้ป้องกันสำเร็จ ${team.defensiveWins || 0} ครั้งแล้ว!">
+                        <div class="bg-gradient-to-br from-red-600 via-red-700 to-red-900 border-2 border-red-400 rounded-xl py-2 shadow-[0_0_15px_rgba(239,68,68,0.6)] flex flex-col items-center justify-center relative overflow-hidden">
+                            
+                            <div class="absolute inset-0 bg-white/10 animate-pulse"></div>
+                            
+                            <span class="text-[9px] font-bold text-red-200 uppercase tracking-widest z-10 relative" style="text-shadow: 0 1px 2px black;">DEFENDED</span>
+                            
+                            <div class="flex items-end gap-1 z-10 relative mt-[-2px]">
+                                <span class="text-sm mb-1 filter drop-shadow-lg">🛡️</span>
+                                <span class="text-3xl font-black text-yellow-400 leading-none filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">${team.defensiveWins || 0}</span>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                <button onclick="toggleStatus(${i})" class="w-full py-2 border rounded font-bold text-[10px] transition ${team.isCleared?"bg-red-900/20 text-red-500 border-red-900":"bg-green-900/20 text-green-500 border-green-900 hover:bg-green-800"}">${team.isCleared?"💀 DEFEATED":"🟢 ACTIVE"}</button><button onclick="resetSlot(${i})" class="text-xs text-gray-500 hover:text-white interactive-area border border-transparent hover:border-gray-600 px-3 py-1 rounded">Reset</button></div></div>`);
 
                 renderCastleMenu();
             }
@@ -4098,6 +4194,13 @@
             // Logic for War Room vs My Teams
 
             let t = getTeam(i);
+
+            if (typeof i === 'string' && i.startsWith('G-')) {
+                const parts = i.split('-');
+                const team = guildMembersDB[parseInt(parts[1])].teams[parseInt(parts[2])];
+                if (team && team.isDead) return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว");
+            }
+
             if (typeof i !== 'string' && t.isCleared) return;
 
             // if (currentView === 'my-teams') {
@@ -5503,18 +5606,21 @@
         function renderGuildTeamCard(container, team, slotIdx) {
             const layout = { 'basic': {b:3,f:2}, 'balanced':{b:2,f:3}, 'attack':{b:4,f:1}, 'defense':{b:1,f:4} }[team.formation] || {b:3,f:2};
             let sc = 0;
-            
             if (!team.skillQueue) team.skillQueue = [];
-
-            // สร้าง Unique ID ให้การ์ด เพื่อให้ html2canvas อ้างอิงถูก
             const cardId = `guild-team-card-${currentMemberIdx}-${slotIdx}`;
+            
+            // --- [NEW] LOCK LOGIC ---
+            const isLocked = team.isDead === true; // เช็คสถานะ
+            // สร้าง Class สำหรับปิดการกด (Pointer Events) และลดความทึบ (Opacity)
+            const lockClass = isLocked ? 'opacity-60 pointer-events-none grayscale-[0.8]' : '';
+            const lockOverlay = isLocked ? `<div class="absolute top-2 right-2 z-50 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg border border-red-400">🔒 BATTLE ENDED</div>` : '';
+            // ------------------------
 
-            // 1. Queue Display (เหมือนเดิม)
+            // 1. Queue Display
             const renderQueueDisplay = () => {
-                let html = '<div class="flex flex-col gap-2 items-center justify-center w-20 border-r border-dashed border-gray-700 pr-2 mr-2 flex-shrink-0">';
+                let html = '<div class="flex flex-col gap-2 items-center justify-center w-20 border-r border-dashed border-gray-700 pr-2 mr-2 flex-shrink-0 pt-4">';
                 html += '<span class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider">QUEUE</span>';
-                html += '<div class="flex flex-col gap-2 items-center">'; 
-                
+                html += '<div class="flex flex-col gap-2 items-center">';
                 for(let i=0; i<3; i++) {
                     const skillKey = team.skillQueue[i];
                     if(skillKey) {
@@ -5522,14 +5628,7 @@
                         const hero = heroesDB.find(h => h.id == team.slots[sIdx]?.id);
                         const img = hero ? hero.img : '';
                         const skillLabel = sNum === '1' ? 'ล่าง' : 'บน';
-
-                        html += `
-                            <div class="relative w-12 h-12 border border-yellow-600 rounded bg-black flex-shrink-0 shadow-md">
-                                <img src="${img}" class="w-full h-full object-cover opacity-80">
-                                <div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-1.5 leading-none shadow">${skillLabel}</div>
-                                <div class="absolute top-0 left-0 bg-black/50 text-yellow-500 text-[8px] font-bold px-1 rounded-br">${i+1}</div>
-                            </div>
-                        `;
+                        html += `<div class="relative w-12 h-12 border border-yellow-600 rounded bg-black flex-shrink-0 shadow-md"><img src="${img}" class="w-full h-full object-cover opacity-80"><div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-1.5 leading-none shadow">${skillLabel}</div><div class="absolute top-0 left-0 bg-black/50 text-yellow-500 text-[8px] font-bold px-1 rounded-br">${i+1}</div></div>`;
                     } else {
                         html += `<div class="w-12 h-12 border border-dashed border-gray-700 rounded flex items-center justify-center text-xs text-gray-600 flex-shrink-0 font-bold">${i+1}</div>`;
                     }
@@ -5538,14 +5637,9 @@
                 return html;
             };
 
-            // 2. Row Generator: ย้าย Text ไปไว้ตรงกลาง (Background)
+            // 2. Row Generator
             const genRow = (c, l) => {
-                // [แก้] ใช้ absolute inset-0 เพื่อจัด Text ให้อยู่กึ่งกลางพื้นที่
-                let h = `<div class="flex gap-4 items-center justify-center relative py-6 w-full">
-                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                                <span class="text-5xl font-black text-gray-800/40 uppercase tracking-[0.3em] select-none">${l}</span>
-                            </div>`;
-                
+                let h = `<div class="flex gap-4 items-center justify-center relative py-6 w-full"><div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0"><span class="text-5xl font-black text-gray-800/40 uppercase tracking-[0.3em] select-none">${l}</span></div>`;
                 for(let k=0; k<c; k++) {
                     const p = sc++; const s = team.slots[p]; const hData = s ? heroesDB.find(x=>x.id==s.id) : null;
                     let inner = '', skillControls = '';
@@ -5557,40 +5651,51 @@
                         
                         skillControls = `
                             <div class="absolute -bottom-[26px] inset-x-0 mx-auto w-full flex justify-center gap-0.5 z-20">
-                                <button onclick="toggleGuildSkillQueue(${slotIdx}, ${p}, 2)" class="w-10 h-5 text-[9px] font-bold border rounded-sm ${isS2} transition flex items-center justify-center">บน</button>
-                                <button onclick="toggleGuildSkillQueue(${slotIdx}, ${p}, 1)" class="w-10 h-5 text-[9px] font-bold border rounded-sm ${isS1} transition flex items-center justify-center">ล่าง</button>
+                                <button onclick="toggleGuildSkillQueue(${slotIdx}, ${p}, 2)" class="w-10 h-5 text-[9px] font-bold border rounded-sm ${isS2} transition flex items-center justify-center" ${isLocked ? 'disabled' : ''}>บน</button>
+                                <button onclick="toggleGuildSkillQueue(${slotIdx}, ${p}, 1)" class="w-10 h-5 text-[9px] font-bold border rounded-sm ${isS1} transition flex items-center justify-center" ${isLocked ? 'disabled' : ''}>ล่าง</button>
                             </div>
                         `;
-                        
-                        inner = `<img src="${hData.img}">${getStarsHTML(s.star, false)}<div class="ring-trigger ${rCls} w-8 h-8 text-sm" onclick="openSelector('G-${currentMemberIdx}-${slotIdx}',${p},'ring',event)">${ring||'💍'}</div>`;
+                        // เพิ่ม pointer-events-auto ให้ปุ่มดูรายละเอียด (ถ้าอยากให้ดูได้แต่แก้ไม่ได้)
+                        // แต่ถ้าเอา lockClass ครอบ parent แล้ว มันจะกดไม่ได้เลย 
+                        // ถ้าอยากให้ดูรายละเอียดได้ ต้องเอา lockClass ไปใส่เฉพาะส่วน input/drag แทน
+                        // ในที่นี้ผมขอ Lock ทั้งก้อน Slot เพื่อความง่ายและปลอดภัยครับ
+                        inner = `<img src="${hData.img}">${getStarsHTML(s.star, false)}<div class="ring-trigger ${rCls} w-8 h-8 text-sm" onclick="!${isLocked} && openSelector('G-${currentMemberIdx}-${slotIdx}',${p},'ring',event)">${ring||'💍'}</div>`;
                     }
                     
-                    // เพิ่ม z-10 เพื่อให้ตัวละครลอยอยู่เหนือ Text
-                    h += `<div class="relative group z-10">
+                    // ใส่ onclick check isLocked
+                    const clickAction = isLocked ? '' : `onclick="openSelector('G-${currentMemberIdx}-${slotIdx}',${p},'hero', event)"`;
+                    const contextAction = isLocked ? '' : `oncontextmenu="openContextMenu(event,'G-${currentMemberIdx}-${slotIdx}',${p})"`;
+                    const dragAttrs = isLocked ? '' : `draggable="true" ondragstart="dragStart(event,'G-${currentMemberIdx}-${slotIdx}',${p})" ondragover="allowDrop(event)" ondrop="drop(event,'G-${currentMemberIdx}-${slotIdx}',${p})"`;
+
+                    h += `<div class="relative group z-10 ${lockClass}">
                             ${skillControls}
-                            <div class="slot ${hData?'filled':''} w-20 h-20 relative shadow-md z-10" onclick="handleSlotClick('G-${currentMemberIdx}-${slotIdx}',${p})" oncontextmenu="openContextMenu(event,'G-${currentMemberIdx}-${slotIdx}',${p})" ondragover="allowDrop(event)" ondrop="drop(event,'G-${currentMemberIdx}-${slotIdx}',${p})" draggable="true" ondragstart="dragStart(event,'G-${currentMemberIdx}-${slotIdx}',${p})">
+                            <div class="slot ${hData?'filled':''} w-20 h-20 relative shadow-md z-10" ${clickAction} ${contextAction} ${dragAttrs}>
                                 ${inner}
                             </div>
-                          </div>`;
+                        </div>`;
                 } return h + `</div>`;
             }
+            
             const petD = team.pet ? petsDB.find(p=>p.id==team.pet.id) : null;
+            const petClick = isLocked ? '' : `onclick="openSelector('G-${currentMemberIdx}-${slotIdx}','pet','pet')"`;
+            const petContext = isLocked ? '' : `oncontextmenu="openContextMenu(event,'G-${currentMemberIdx}-${slotIdx}','pet')"`;
 
             container.insertAdjacentHTML('beforeend', `
-                <div id="${cardId}" class="bg-[#161b22] border border-gray-700 rounded-2xl p-5 shadow-xl relative group hover:border-blue-500/50 transition">
+                <div id="${cardId}" class="bg-[#161b22] border ${isLocked ? 'border-red-900/50 bg-red-900/5' : 'border-gray-700'} rounded-2xl p-5 shadow-xl relative group hover:border-blue-500/50 transition">
+                    ${lockOverlay}
                     <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700">
                         <div class="flex items-center gap-3">
                             <span class="bg-blue-900 text-blue-200 text-xs px-2 py-1 rounded font-bold uppercase tracking-wider">Team ${slotIdx+1}</span>
-                            <input type="text" value="${team.name}" onchange="updateGuildTeam(${slotIdx},'name',this.value)" class="bg-transparent text-lg font-bold text-white w-32 md:w-48 outline-none focus:text-blue-400 border-b border-transparent focus:border-blue-500 transition placeholder-gray-600">
+                            <input type="text" value="${team.name}" ${isLocked ? 'disabled' : ''} onchange="updateGuildTeam(${slotIdx},'name',this.value)" class="bg-transparent text-lg font-bold ${isLocked?'text-gray-500':'text-white'} w-32 md:w-48 outline-none focus:text-blue-400 border-b border-transparent focus:border-blue-500 transition placeholder-gray-600">
                         </div>
-                        <div class="flex items-center">
+                        <div class="flex items-center ${isLocked ? 'opacity-0 pointer-events-none' : ''}">
                             <button onclick="openLoadSetModal('guild', ${currentMemberIdx}, ${slotIdx})" class="text-purple-400 hover:bg-purple-900/30 hover:text-white text-xs border border-purple-900 px-3 py-1 rounded transition mr-2">📂 Load Set</button>
                             <button onclick="deleteGuildTeam(${slotIdx})" class="text-red-500 hover:bg-red-900/30 hover:text-red-300 text-xs border border-red-900 px-3 py-1 rounded transition">Delete</button>
                         </div>
                     </div>
                     
                     <div class="flex gap-4">
-                        <div class="flex flex-col gap-2 w-20 flex-shrink-0 pt-4">
+                        <div class="flex flex-col gap-2 w-20 flex-shrink-0 pt-4 ${lockClass}">
                             <span class="text-[10px] text-gray-500 font-bold uppercase text-center">Formation</span>
                             <div class="flex flex-col gap-1">
                                 ${['basic','balanced','attack','defense'].map(f => `<button onclick="updateGuildTeam(${slotIdx},'formation','${f}')" class="px-2 py-2 text-[9px] rounded border transition ${team.formation===f?'bg-blue-600 border-blue-500 text-white font-bold shadow-lg ring-1 ring-blue-400':'bg-[#0d1117] border-gray-600 text-gray-400 hover:text-white hover:border-gray-400'}">${f.substring(0,3).toUpperCase()}</button>`).join('')}
@@ -5598,7 +5703,7 @@
                         </div>
 
                         <div class="flex-1 flex items-stretch bg-[#0d1117] rounded-xl border border-gray-800 shadow-inner">
-                            ${renderQueueDisplay()}
+                            <div class="${lockClass} flex items-stretch">${renderQueueDisplay()}</div>
 
                             <div class="flex-1 flex flex-col items-center justify-center py-2">
                                 ${genRow(layout.b,'BACK')}
@@ -5606,9 +5711,9 @@
                                 ${genRow(layout.f,'FRONT')}
                             </div>
 
-                            <div class="flex flex-col gap-2 items-center justify-center w-24 border-l border-dashed border-gray-700 pl-2 ml-2 bg-[#111827]/30 rounded-r-xl">
+                            <div class="flex flex-col gap-2 items-center justify-center w-24 border-l border-dashed border-gray-700 pl-2 ml-2 bg-[#111827]/30 rounded-r-xl ${lockClass}">
                                 <span class="text-[10px] text-purple-400 font-bold tracking-widest">PET</span>
-                                <div class="pet-slot w-16 h-16 ${petD?'filled':''} shadow-lg" onclick="openSelector('G-${currentMemberIdx}-${slotIdx}','pet','pet')" oncontextmenu="openContextMenu(event,'G-${currentMemberIdx}-${slotIdx}','pet')">
+                                <div class="pet-slot w-16 h-16 ${petD?'filled':''} shadow-lg" ${petClick} ${petContext}>
                                     ${petD?`<img src="${petD.img}">`:'<span class="text-2xl opacity-50">+</span>'}
                                 </div>
                             </div>
@@ -5620,31 +5725,61 @@
 
         // Actions
         function createNewTeamForMember(slotIdx) {
-            const newTeam = { name: `Team ${slotIdx+1}`, formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null };
+            const newTeam = { 
+                name: `Team ${slotIdx+1}`, 
+                formation: 'basic', 
+                slots: {0:null,1:null,2:null,3:null,4:null}, 
+                pet: null,
+                skillQueue: [] // เพิ่ม array ว่างรอไว้เลย กันบั๊ก
+            };  
             guildMembersDB[currentMemberIdx].teams[slotIdx] = newTeam;
             renderMemberTeamsUI();
             renderMyTeams(); // อัปเดตตัวเลข 3/5 ทางซ้าย
+
+            triggerAutoSave();
         }
 
         function deleteGuildTeam(slotIdx) {
-            if(confirm("ลบทีมนี้?")) {
-                guildMembersDB[currentMemberIdx].teams[slotIdx] = null; // ตั้งเป็น null เพื่อให้ Slot ว่าง
-                // หรือถ้าอยากให้เลื่อนขึ้นมาใช้ splice แต่ใช้ null ดีกว่าจะได้ตำแหน่งเดิม
-                renderMemberTeamsUI();
-                renderMyTeams();
+
+            const team = guildMembersDB[currentMemberIdx].teams[slotIdx];
+            if (team && team.isDead) {
+                return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว ไม่สามารถลบได้ (เพื่อเก็บประวัติ)");
             }
+
+            if(!confirm("ยืนยันที่จะลบทีมนี้?\n(ข้อมูลทีมและการจองสกิลจะหายไป)")) return;
+
+            guildMembersDB[currentMemberIdx].teams[slotIdx] = null;
+
+            renderMemberTeamsUI();
+            renderMyTeams(); // อัปเดตตัวเลขจำนวนทีมด้านซ้าย (เช่น 3/5 -> 2/5)
+
+            // 6. [สำคัญมาก] สั่งบันทึกข้อมูลลง Cloud
+            triggerAutoSave();
         }
 
-        // Guild Team (My Teams)
+        // แก้ไขฟังก์ชัน updateGuildTeam
         function updateGuildTeam(slotIdx, field, val) {
             const team = guildMembersDB[currentMemberIdx].teams[slotIdx];
-            if(team) {
-                team[field] = val;
-                if(field === 'formation') renderMemberTeamsUI();
-                
-                // ✅ [เพิ่มตรงนี้]
-                triggerAutoSave();
+
+            if (!team) return;
+
+            if (team.isDead) {
+                // ถ้าเป็นการแก้ชื่อ input อาจจะเด้งกลับเอง แต่ถ้าเป็นปุ่ม Formation ต้องแจ้งเตือน
+                if (field === 'formation') {
+                    alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว ไม่สามารถเปลี่ยนรูปแบบทัพได้");
+                }
+                return; 
             }
+
+            team[field] = val;
+
+            // 4. ถ้าเป็นการเปลี่ยน Formation ต้องรีเฟรชหน้าจอเพื่อจัดตำแหน่งใหม่
+            if (field === 'formation') {
+                renderMemberTeamsUI();
+            }
+
+            // 5. [สำคัญที่สุด] สั่งบันทึกลง Cloud ทันที
+            triggerAutoSave();
         }
 
         window.updateBattleTeamSelect = function() {
@@ -5777,6 +5912,9 @@
 
         function toggleGuildSkillQueue(teamIdx, slotIdx, skillNum) {
             const team = guildMembersDB[currentMemberIdx].teams[teamIdx];
+
+            if(team.isDead) return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว ไม่สามารถแก้ไขได้");
+
             const skillKey = `${slotIdx}-${skillNum}`; // "0-1"
             
             if (!team.skillQueue) team.skillQueue = [];
@@ -6017,6 +6155,21 @@
             hideLoading();
         }
         function openLoadSetModal(type, id, teamIdx) {
+
+            if (type === 'guild') {
+                const team = guildMembersDB[id].teams[teamIdx];
+                if (team && team.isDead) {
+                    return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว ไม่สามารถโหลดข้อมูลทับได้");
+                }
+            } else {
+                // กรณี War Room (ถ้าเคลียร์แล้วก็ไม่ควรโหลดทับ)
+                const k = `${currentCastle}-${id}`;
+                const team = teamsDB[k];
+                if (team && team.isCleared) {
+                    return alert("⛔ ศัตรูในช่องนี้ถูกกำจัดแล้ว ไม่สามารถแก้ไขได้");
+                }
+            }
+
             targetLoadContext = { type, id, teamIdx };
             const list = document.getElementById('load-set-list');
             list.innerHTML = '';
@@ -6025,7 +6178,7 @@
                 list.innerHTML = '<div class="text-center text-gray-500 py-4">ไม่มีข้อมูล Set<br>กรุณาสร้างในเมนู Database Manager > Team Sets</div>';
             } else {
                 heroSetsDB.forEach((set, i) => {
-                    // Preview Heroes in Set
+                    // Preview Heroes
                     let icons = '';
                     for(let k=0; k<5; k++) {
                         const s = set.slots[k];
@@ -6066,6 +6219,12 @@
                 const k = `${currentCastle}-${id}`;
                 if (!teamsDB[k]) teamsDB[k] = { player: '', speed: '', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skills: [], isCleared: false };
                 targetTeam = teamsDB[k];
+            }
+
+            // 2. เช็คความปลอดภัยซ้ำ (Double Check)
+            if (targetTeam.isDead || targetTeam.isCleared) {
+                closeLoadSetModal();
+                return alert("⛔ ไม่สามารถโหลดข้อมูลทับทีมที่จบการต่อสู้ไปแล้วได้");
             }
 
             if(targetTeam) {
@@ -6949,55 +7108,41 @@
 
         // แก้ไขฟังก์ชันนี้ (ทับของเดิม)
         function startRealTimeSync() {
-            // 1. ฆ่าตัวนับเวลาเก่าทิ้งทันที (ไม่ว่าจะเหลืออีกกี่วินาทีก็ตาม)
+            // 1. ฆ่าตัวเก่าทิ้งก่อนเสมอ (กันการรันซ้อน)
             if (realTimeInterval) clearInterval(realTimeInterval);
 
-            // console.log("⏳ Reset Sync Timer: นับ 1-10 ใหม่..."); 
+            console.log("🔄 Auto-Sync System Started (Every 10s)");
 
-            // 2. เริ่มนับ 10 วินาทีใหม่
+            // 2. เริ่มนับใหม่
             realTimeInterval = setInterval(() => {
-                
-                // เงื่อนไขป้องกัน (เหมือนเดิม)
+                // ถ้ากำลังใช้งาน หรือ กำลังบันทึก -> ข้ามรอบนี้ไปเลย
                 if (isUserInteracting || isSaving) {
-                    console.log("Busy... skipping sync");
-                    return; 
+                    console.log("Skipping sync (User busy or Saving)...");
+                    return;
                 }
-
-                // ดึงข้อมูล
-                fetchCloudData(false); 
-
+                
+                // ดึงข้อมูล (แบบเงียบๆ ไม่โชว์ Loading จอดำ)
+                fetchCloudData(false);
+                
             }, 10000); // 10 วินาที
         }
         // แก้ไขฟังก์ชันนี้ (ทับของเดิม)
         function triggerAutoSave(immediate = false) {
-            // 1. สั่งรีเซ็ตเวลานับถอยหลังการดึงข้อมูล (Sync) ทันที!
-            startRealTimeSync(); 
 
-            // UI Status
             const badge = document.getElementById('sync-status');
             const statusText = document.getElementById('status-text');
             if(badge) { 
                 badge.className = 'sync-badge loading'; 
-                if(statusText) statusText.innerText = 'Saving...';
+                if(statusText) statusText.innerText = 'Pending Save...';
             }
 
             // เคลียร์ Timer เดิมทิ้ง (Debounce)
             if (autoSaveTimer) clearTimeout(autoSaveTimer);
-
-            // ถ้าสั่ง immediate = true ให้บันทึกเลย (delay 0ms)
-            // ถ้าปกติ ให้รอ 2 วินาที (delay 2000ms)
-            const delay = immediate ? 0 : 2000;
+    
+            const delay = immediate ? 0 : 3000; // ถ้าไม่ด่วน รอ 3 วิ
 
             autoSaveTimer = setTimeout(() => {
-                console.log("Auto-saving triggered...");
-                pushData().then(() => {
-                    if(badge) { 
-                        badge.className = 'sync-badge sync-cloud'; 
-                        if(statusText) statusText.innerText = 'SAVED';
-                    }
-                    // คืนค่า ONLINE หลังจาก 3 วิ
-                    setTimeout(() => { if(statusText) statusText.innerText = 'ONLINE'; }, 3000);
-                });
+                pushData(); // เรียก pushData ซึ่งจะจัดการเรื่องหยุด Timer เอง
             }, delay);
         }
         // --- LOCAL TIER LIST SYSTEM ---
@@ -7114,6 +7259,22 @@ function calculateBestCounterTypes(enemyHeroIds) {
 
     // ถ้าไม่มีประวัติเลย ให้คืนค่าว่าง
     return sortedTypes.slice(0, 2); 
+}
+
+function filterGuildMemberUI(text) {
+    const term = text.toLowerCase();
+    const list = document.getElementById('guild-member-list');
+    const items = list.querySelectorAll('div[onclick^="selectGuildMember"]'); // เลือกตัวที่เป็น Row สมาชิก
+
+    items.forEach(el => {
+        // หาชื่อจากใน Element (มันอยู่ใน div class="truncate")
+        const nameEl = el.querySelector('.truncate');
+        if (nameEl) {
+            const name = nameEl.innerText.toLowerCase();
+            // ถ้าชื่อตรงกับคำค้นหา ให้แสดง (flex), ถ้าไม่ตรง ให้ซ่อน (none)
+            el.style.display = name.includes(term) ? 'flex' : 'none';
+        }
+    });
 }
     </script>
 </body>
