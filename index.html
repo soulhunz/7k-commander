@@ -708,23 +708,27 @@
         </div>
         <div class="p-4 flex-1 flex flex-col">
             <div class="menu-section-title">Main</div>
-            <div onclick="switchView('war-room')" class="menu-item active" id="nav-war-room">⚔️ War Room</div>
-            <div onclick="switchView('my-teams')" class="menu-item" id="nav-my-teams">🛡️ Guild Teams (ทีมบุก)</div>
+            <div onclick="switchView('preparation')" class="menu-item text-green-400" id="nav-preparation">🧠 PREPARATION (AI)</div>
             <div onclick="switchView('simulator')" class="menu-item" id="nav-simulator">🎮 Battle Simulator</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ Gallery</div>
             <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🏆 Tier Lists</div>
-            <div onclick="switchView('logs')" class="menu-item" id="nav-logs">📜 Battle Logs</div>
-            <div onclick="switchView('analytics')" class="menu-item" id="nav-analytics">📊 Statistics (สถิติรวม)</div>
 
-            <div class="menu-section-title">Database Manager</div>
-            <div onclick="switchView('hero-manager')" class="menu-item" id="nav-hero-manager">🦸 Heroes</div>
-            <div onclick="switchView('pet-manager')" class="menu-item" id="nav-pet-manager">🐾 Pets</div>
-            <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ Items</div>
-            <div onclick="switchView('ring-manager')" class="menu-item" id="nav-ring-manager">💍 Rings</div>
-            <!-- <div onclick="switchView('tier-manager')" class="menu-item" id="nav-tier-manager">🏆 Tier Manager</div> -->
-            <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ Team Sets</div>
+            <div class="my-4 pt-4 border-t border-gray-800">
+                <div class="menu-section-title">Database Manager</div>
+                <div onclick="switchView('hero-manager')" class="menu-item" id="nav-hero-manager">🦸 Heroes</div>
+                <div onclick="switchView('pet-manager')" class="menu-item" id="nav-pet-manager">🐾 Pets</div>
+                <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ Items</div>
+                <div onclick="switchView('ring-manager')" class="menu-item" id="nav-ring-manager">💍 Rings</div>
+                <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ Team Sets</div>
+            </div>
 
-            <div id="admin-menu-group" style="display: none;">
+            <div class="my-4 pt-4 border-t border-gray-800">
+                <div class="menu-section-title">War Manager</div>
+                <div onclick="switchView('battle-war')" class="menu-item" id="nav-battle-war">⚔️ Battle War</div>
+                <div onclick="switchView('battle-history')" class="menu-item" id="nav-battle-history">📜 Battle History</div>
+            </div>
+
+            <div id="admin-menu-group" class="mt-4 pt-4 border-t border-gray-800" style="display: none;">
                 <div class="menu-section-title text-red-400">Admin Zone</div>
                 <div onclick="switchView('user-manager')" class="menu-item" id="nav-user-manager">👥 User Management</div>
                 <div onclick="switchView('audit-logs')" class="menu-item" id="nav-audit-logs">🕵️ System Audit Logs</div>
@@ -741,6 +745,14 @@
     <main class="flex-1 bg-[#0d1117] h-full overflow-hidden relative">
         <div id="sidebar-floating-btn" onclick="toggleSidebar()" title="เปิดเมนู" style="display: none;">
             ❯
+        </div>
+
+        <div id="view-home" class="flex-col h-full items-center justify-center bg-[#0b0e14] hidden">
+            <div class="text-center opacity-40 select-none">
+                <div class="text-8xl mb-6 filter drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">🛡️</div>
+                <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 tracking-widest">7K COMMANDER</h1>
+                <p class="text-gray-500 text-sm font-mono">System Ready. Select a menu to start.</p>
+            </div>
         </div>
 
         <div id="view-war-room" class="tab-active flex-col relative h-full">
@@ -786,6 +798,58 @@
                 
                 <div id="castle-selector-bar" class="p-3 bg-[#111827] border-b border-gray-800 flex flex-col gap-2 shadow-inner z-10 flex-shrink-0"></div>
                 <div id="dashboard-container" class="p-8 overflow-y-auto no-scroll h-full pb-40"></div>
+            </div>
+        </div>
+
+        <div id="view-preparation" class="flex-col hidden h-full relative bg-[#0b0e14]">
+            <header class="p-4 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg z-20 flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">
+                        🤖 AI BATTLE ANALYZER
+                    </h2>
+                    <div class="text-xs text-gray-500">จำลองการต่อสู้และวิเคราะห์โอกาสชนะ</div>
+                </div>
+                <button onclick="resetPreparation()" class="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-bold border border-gray-600">Reset Board</button>
+            </header>
+
+            <div class="flex-1 flex overflow-hidden">
+                
+                <div class="flex-1 overflow-y-auto custom-scroll p-4 relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                    <div class="flex flex-col items-center gap-6 pb-24 w-full max-w-3xl mx-auto mt-4">
+                        
+                        <div class="w-full relative group">
+                            <div class="absolute -top-3 left-4 z-20 bg-red-900 text-red-100 text-xs font-bold px-3 py-1 rounded border border-red-500 shadow-md">
+                                👹 ENEMY (Target)
+                            </div>
+                            <div id="prep-enemy-area"></div>
+                        </div>
+
+                        <div class="flex items-center justify-center relative -my-2 z-10">
+                            <div class="bg-gradient-to-r from-transparent via-gray-700 to-transparent h-px w-full absolute"></div>
+                            <div class="bg-[#0b0e14] border-2 border-yellow-500 rounded-full w-10 h-10 flex items-center justify-center text-yellow-500 font-black text-sm shadow-[0_0_15px_rgba(234,179,8,0.5)] relative z-10">VS</div>
+                        </div>
+
+                        <div class="w-full relative">
+                            <div class="absolute -top-3 left-4 z-20 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded border border-blue-400 shadow-md">
+                                🛡️ MY SQUAD
+                            </div>
+                            <div id="prep-my-area"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="w-80 xl:w-96 bg-[#111827] border-l border-gray-800 flex flex-col flex-shrink-0 z-20 shadow-2xl">
+                    <div class="p-4 border-b border-gray-800 font-bold text-gray-400 text-xs uppercase tracking-wider bg-[#1f2937]">
+                        📊 Tactical Analysis
+                    </div>
+                    <div id="prep-ai-panel" class="p-4 overflow-y-auto flex-1 custom-scroll">
+                        <div class="flex items-center justify-center h-full text-gray-500 animate-pulse">
+                            Loading AI...
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -972,27 +1036,6 @@
             </div>
         </div>
 
-        <!-- <div id="view-tier-manager" class="flex-col">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg z-10">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-2xl font-bold text-white">Manage Tier List</h2>
-                    <div id="tm-mode-selector" class="flex bg-[#0d1117] rounded-lg p-1 border border-gray-700 ml-4"></div>
-                    <div class="flex bg-[#0d1117] rounded-lg p-1 border border-gray-700 ml-auto">
-                        <button onclick="initTierManager('hero')" id="tm-tab-hero" class="px-4 py-1 rounded text-xs font-bold transition bg-blue-600 text-white">HEROES</button>
-                        <button onclick="initTierManager('pet')" id="tm-tab-pet" class="px-4 py-1 rounded text-xs font-bold text-gray-400 hover:text-white transition">PETS</button>
-                    </div>
-                </div>
-                <button onclick="saveTierList()" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg flex items-center gap-2 transition transform hover:scale-105"><span>💾</span> บันทึก (Save)</button>
-            </header>
-            <div class="flex flex-col h-full overflow-hidden">
-                <div class="flex-1 overflow-y-auto p-6 bg-[#0d1117] space-y-4" id="tier-drop-zones"></div>
-                <div class="h-48 border-t border-gray-700 bg-[#161b22] p-4 flex flex-col shadow-[0_-4px_10px_rgba(0,0,0,0.5)] z-20">
-                    <div class="text-xs font-bold text-gray-500 mb-2 uppercase flex justify-between"><span>Unranked Pool (ลากตัวละครจากที่นี่ขึ้นไปวาง)</span><span id="pool-count">0 items</span></div>
-                    <div class="flex-1 overflow-y-auto flex flex-wrap gap-2 content-start" id="tier-pool"></div>
-                </div>
-            </div>
-        </div> -->
-
         <div id="view-set-manager" class="flex-col hidden h-full"> 
             <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg z-10 flex-shrink-0">
                 <h2 class="text-2xl font-bold text-white">Manage Hero Sets (ทีมสำเร็จรูป)</h2>
@@ -1016,6 +1059,45 @@
                     <button id="btn-save-set" onclick="saveHeroSets()" class="hidden mt-6 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2">
                         <span>💾</span> บันทึกทั้งหมด (Save All)
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-battle-war" class="flex-col hidden h-full bg-[#0b0e14]">
+            <header class="p-4 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0 z-20">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="text-gray-500">⚔️</span> Battle War Recorder
+                    </h2>
+                    <div class="text-xs text-gray-500">เลือก Formation และกดปุ่ม <span class="text-yellow-500">WINNER</span> ในกรอบ</div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto custom-scroll p-6 relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                
+                <div class="max-w-4xl mx-auto flex flex-col gap-8 pb-40">
+                    
+                    <div class="relative w-full transition-all duration-300">
+                        <div class="flex justify-between items-end mb-1 px-1">
+                            <div class="text-xs font-bold text-blue-400 uppercase tracking-widest">🛡️ My Team</div>
+                            <button onclick="clearSimTeam('BW-MY')" class="text-[9px] text-gray-600 hover:text-red-400 transition">Clear</button>
+                        </div>
+                        <div id="bw-my-area"></div>
+                    </div>
+
+                    <div class="flex items-center justify-center relative -my-4 z-10 opacity-20">
+                        <div class="bg-gray-800 h-px w-full absolute"></div>
+                        <div class="bg-[#0b0e14] border border-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-gray-600 font-bold text-[10px] relative z-10 select-none">VS</div>
+                    </div>
+
+                    <div class="relative w-full transition-all duration-300">
+                        <div class="flex justify-between items-end mb-1 px-1">
+                            <div class="text-xs font-bold text-red-400 uppercase tracking-widest">👹 Enemy Team</div>
+                            <button onclick="clearSimTeam('BW-ENEMY')" class="text-[9px] text-gray-600 hover:text-red-400 transition">Clear</button>
+                        </div>
+                        <div id="bw-enemy-area"></div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1226,6 +1308,31 @@
                     </div>
                     
                     <button onclick="saveUserData()" class="bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold mt-2 shadow-lg">💾 บันทึก (Save)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-battle-history" class="flex-col hidden h-full bg-[#0b0e14]">
+            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0 z-20">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <span>📜</span> Battle History
+                    </h2>
+                    <div class="text-xs text-gray-500 mt-1">ประวัติการต่อสู้ทั้งหมด <span id="history-total-count" class="text-blue-400 font-bold ml-1">(0)</span></div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button onclick="downloadBackup()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded border border-gray-600 flex items-center gap-2">
+                        <span>⬇️</span> Backup Data
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto custom-scroll p-6 bg-[#0d1117]">
+                <div class="max-w-5xl mx-auto">
+                    <div id="full-history-list" class="space-y-2">
+                        <div class="text-center text-gray-600 py-20 animate-pulse">Loading logs...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1459,16 +1566,17 @@
         let viewingSeasonMode = 'current'; // 'current' หรือ index ของ archive
         let activeHistoryData = [];
 
+        let prepData = {
+            enemy: { id: 'PREP-ENEMY', name: 'Simulated Enemy', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] },
+            my: { id: 'PREP-MY', name: 'My Draft Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] }
+        };
+
         // --- LOGIN SYSTEM ---
         let CURRENT_USER = null; // เก็บข้อมูลผู้ใช้ปัจจุบัน
         const ALL_MENUS = [
-            { id: 'nav-war-room',     label: '⚔️ War Room',         default: true },
-            { id: 'nav-my-teams',     label: '🛡️ Guild Teams',      default: true },
             { id: 'nav-simulator',    label: '🎮 Simulator',        default: true },
-            { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
             { id: 'nav-tier-viewer',  label: '🏆 Tier List (View)', default: true },
-            { id: 'nav-logs',         label: '📜 Battle Logs',      default: true },
-            { id: 'nav-analytics',    label: '📊 Statistics',       default: true },
+            { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
             { id: 'nav-settings',     label: '⚙️ Settings',         default: true },
             
             // Database Manager
@@ -1476,7 +1584,10 @@
             { id: 'nav-pet-manager',  label: '🐾 Manage Pets',      default: false },
             { id: 'nav-item-manager', label: '⚔️ Manage Items',     default: false },
             { id: 'nav-ring-manager', label: '💍 Manage Rings',     default: false },
-            { id: 'nav-set-manager',  label: '📦 Manage Sets',      default: false },
+            
+            // War Manager
+            { id:'battle-war',      label:'⚔️ Battle War',        default:false},
+            { id:'nav-set-manager',  label: '📦 Manage Sets',      default: false },
 
             // Admin Zone
             { id: 'nav-user-manager', label: '👥 User Manager',     default: false },
@@ -1488,6 +1599,12 @@
 
         let battleActiveMemberIdx = null; // เก็บ Index ของสมาชิกที่ถูกเลือก
         let battleTempTeam = null;
+
+        // --- BATTLE WAR DATA (Manual Log) ---
+        let battleWarData = {
+            enemy: { id: 'BW-ENEMY', name: 'Enemy Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] },
+            my: { id: 'BW-MY', name: 'My Team', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] }
+        };
 
         // --- REAL-TIME VARIABLES ---
         let lastServerTimestamp = 0; // เวลาล่าสุดที่ Server บันทึกไว้
@@ -1845,6 +1962,8 @@
                 startCloudSync(true); // โหลดครั้งแรก
                 startRealTimeSync();  // เริ่มวนลูป Real-time
             }
+
+            switchView('home');
         }
 
         // --- [3] AUDIT LOG SYSTEM ---
@@ -2281,74 +2400,67 @@
         function updateSyncStatus() { const b = document.getElementById('sync-status'); const t = document.getElementById('status-text'); const s = document.getElementById('setting-status-display'); if(!USE_CLOUD) { b.className = 'sync-badge offline'; t.innerText = 'NO SETUP'; if(s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`; } }
 
         function switchView(v) {
-            currentView = v;
+        currentView = v;
 
-            // --- ส่วนที่ 1: จัดการ Sidebar (Active Menu) ---
-            document.querySelectorAll('.sidebar .menu-item').forEach(e => e.classList.remove('active'));
-            const nav = document.getElementById('nav-' + v);
-            if (nav) nav.classList.add('active');
+        // 1. จัดการ Sidebar
+        document.querySelectorAll('.sidebar .menu-item').forEach(e => e.classList.remove('active'));
+        const nav = document.getElementById('nav-' + v);
+        if (nav) nav.classList.add('active');
 
-            // --- ส่วนที่ 2: รวมรายชื่อหน้าจอทั้งหมด (Config) ---
-            // รูปแบบ: 'ชื่อ View': { id: 'ID ของ Div', init: ฟังก์ชันที่จะให้ทำงาน }
-            const viewsConfig = {
-                // กลุ่ม Main Views
-                'war-room':     { id: 'view-war-room',    init: () => { 
-                                    document.getElementById('castle-selector-bar').style.display = 'flex'; 
-                                    checkWarRoomStatus(); 
-                                }},
-                'simulator':    { id: 'view-simulator',   init: initSimulator },
-                'my-teams': { id: 'view-my-teams', init: renderGuildResultMode },
-                // 'my-teams':     { id: 'view-my-teams',    init: renderMyTeams },
-                'gallery':      { id: 'view-gallery',     init: renderGallery },
-                'tier-viewer':  { id: 'view-tier-viewer', init: renderTierViewer },
-                'logs':         { id: 'view-logs',        init: renderLogs },
-                'settings':     { id: 'view-settings',    init: () => {
-                                    document.getElementById('setting-url-input').value = SCRIPT_URL;
-                                    updateSyncStatus();
-                                }},
-                
-                // กลุ่ม Admin & Audit
-                'user-manager': { id: 'view-user-manager', init: renderUserManager },
-                'audit-logs':   { id: 'view-audit-logs',   init: renderAuditLogs },
-
-                // กลุ่ม Database Manager (ใช้หน้าจอเดียวกันคือ view-manager)
-                'hero-manager': { id: 'view-manager',     init: renderManagerUI },
-                'pet-manager':  { id: 'view-manager',     init: renderManagerUI },
-                'item-manager': { id: 'view-manager',     init: renderManagerUI },
-                'ring-manager': { id: 'view-manager',     init: renderManagerUI },
-                
-                // กลุ่ม Team Set (แยกออกมา)
-                'set-manager':  { id: 'view-set-manager', init: renderSetManager }
-            };
-
-            // --- ส่วนที่ 3: Reset (ซ่อนทุกหน้า) ---
-            // ดึง ID ทั้งหมดจาก Config มาซ่อนทีเดียว ไม่ต้องมานั่งพิมพ์ Array เอง
-            Object.values(viewsConfig).forEach(conf => {
-                const el = document.getElementById(conf.id);
-                if (el) {
-                    el.classList.remove('tab-active');
-                    if (!el.classList.contains('hidden')) el.classList.add('hidden');
-                }
-            });
-
-            // --- ส่วนที่ 4: Show & Action (แสดงหน้าเป้าหมาย) ---
-            const target = viewsConfig[v]; // ดึงค่าจาก Config ตามชื่อ v
-            
-            if (target) {
-                const el = document.getElementById(target.id);
-                if (el) {
-                    el.classList.remove('hidden');
-                    el.classList.add('tab-active');
-                    
-                    // เรียกฟังก์ชัน Init ถ้ามี
-                    if (target.init) target.init();
-                }
-            } else {
-                // กรณีหาไม่เจอ (Fallback) ให้ไปหน้า Manager (หรือหน้า Error ก็ได้)
-                console.warn("View not found:", v);
-                // สามารถเลือกให้เด้งไปหน้า Default ได้ถ้าต้องการ
+        // 2. ซ่อนหน้าจอทั้งหมด
+        document.querySelectorAll('main > div').forEach(el => {
+            if (el.id !== 'sidebar-floating-btn') {
+                el.classList.add('hidden');
+                el.classList.remove('tab-active');
             }
+        });
+
+        // 3. กำหนด ID และการทำงาน
+        const targetViewMap = {
+            'home': 'view-home',
+            'war-room': 'view-war-room',
+            'preparation': 'view-preparation',
+            'battle-war': 'view-battle-war',
+            'battle-history': 'view-battle-history',
+            'simulator': 'view-simulator',
+            'gallery': 'view-gallery',
+            'tier-viewer': 'view-tier-viewer',
+            'analytics': 'view-analytics',
+            'settings': 'view-settings',
+            
+            // Database & Admin
+            'hero-manager': 'view-manager',
+            'pet-manager': 'view-manager',
+            'item-manager': 'view-manager',
+            'ring-manager': 'view-manager',
+            'set-manager': 'view-set-manager',
+            'user-manager': 'view-user-manager',
+            'audit-logs': 'view-audit-logs'
+        };
+
+        const targetId = targetViewMap[v];
+        const el = document.getElementById(targetId);
+        
+        if (el) {
+            el.classList.remove('hidden');
+            el.classList.add('tab-active');
+
+            // Init Functions
+            if (v === 'war-room') checkWarRoomStatus();
+            else if (v === 'preparation') renderPreparation();
+            else if (v === 'battle-war') renderBattleWar();
+            else if (v === 'battle-history') renderFullHistory(); // ✅ เรียกฟังก์ชันใหม่
+            else if (v === 'simulator') initSimulator();
+            else if (v === 'tier-viewer') renderTierViewer();
+            else if (v === 'gallery') renderGallery();
+            else if (v === 'analytics') renderAnalytics();
+            else if (v === 'settings') updateSyncStatus();
+            else if (v === 'audit-logs') renderAuditLogs();
+            else if (v === 'user-manager') renderUserManager();
+            else if (v === 'set-manager') renderSetManager();
+            else if (v.includes('manager')) renderManagerUI();
         }
+    }
 
         // --- CASTLE MENU ---
         // --- แก้ไขฟังก์ชันนี้เพื่อปรับสีปุ่มปราสาท ---
@@ -4077,44 +4189,24 @@
 
         // --- DASHBOARD (WAR ROOM) ---
         function getTeam(idx) {
-            // 1. กรณี Simulator
+            if (idx === 'BW-ENEMY') return battleWarData.enemy;
+            if (idx === 'BW-MY') return battleWarData.my;
+            if (idx === 'PREP-ENEMY') return prepData.enemy;
+            if (idx === 'PREP-MY') return prepData.my;
+            
+            // Sim logic
             if (typeof idx === 'string' && idx.startsWith('SIM-')) {
                 if (idx === 'SIM-ENEMY') return simData.enemy;
-                if (idx.startsWith('SIM-ATK-')) {
-                    const i = parseInt(idx.split('-')[2]);
-                    return simData.attack[i];
-                }
+                if (idx.startsWith('SIM-ATK-')) return simData.attack[parseInt(idx.split('-')[2])];
             }
-
-            // 2. กรณี Guild Team (G-x-x)
-            if (typeof idx === 'string' && idx.startsWith('G-')) {
-                const parts = idx.split('-');
-                return guildMembersDB[parseInt(parts[1])].teams[parseInt(parts[2])];
-            }
-
-            // 3. กรณี Hero Set (S-x)
-            if (typeof idx === 'string' && idx.startsWith('S-')) {
-                const setIndex = parseInt(idx.split('-')[1]);
-                return heroSetsDB[setIndex];
-            }
-
-            // 4. [NEW] กรณี Battle Temp Team (ทีมที่กำลังจัดหน้างาน)
+            // Guild & Set logic
+            if (typeof idx === 'string' && idx.startsWith('G-')) return guildMembersDB[parseInt(idx.split('-')[1])].teams[parseInt(idx.split('-')[2])];
+            if (typeof idx === 'string' && idx.startsWith('S-')) return heroSetsDB[parseInt(idx.split('-')[1])];
             if (idx === 'BATTLE-TEMP') {
-                // ถ้ายังไม่มี ให้สร้างใหม่รอไว้เลย
-                if (!battleTempTeam) {
-                    battleTempTeam = { 
-                        id: 'BATTLE-TEMP', 
-                        name: 'Battle Squad', 
-                        formation: 'basic', 
-                        slots: {0:null,1:null,2:null,3:null,4:null}, 
-                        pet: null, 
-                        skillQueue: [] 
-                    };
-                }
+                if (!battleTempTeam) battleTempTeam = { id: 'BATTLE-TEMP', name: 'Battle Squad', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] };
                 return battleTempTeam;
             }
-
-            // 5. กรณี War Room (0, 1, 2...)
+            // War Room fallback
             const k = `${currentCastle}-${idx}`;
             if (!teamsDB[k]) teamsDB[k] = { player: '', speed: '', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skills: [], isCleared: false };
             return teamsDB[k];
@@ -4132,51 +4224,28 @@
                 hideLoading(); // ปิด Loading
             } 
         }
+        // ✅ [แทนที่] selectItem ให้รองรับการเลือกตัวละครในหน้า Battle War
         function selectItem(id) {
-            const t = getTeam(editContext.i);
+            let t = getTeam(editContext.i);
             const p = editContext.p;
 
             if (t) {
                 if (editContext.type === 'hero') {
-                    // --- 🛡️ เช็คตัวซ้ำ (Duplicate Check) ---
-                    if (id !== null) {
-                        for (let k = 0; k < 5; k++) {
-                            if (parseInt(k) === parseInt(p)) continue;
-                            if (t.slots[k] && t.slots[k].id === id) {
-                                alert("❌ ไม่สามารถเลือกได้: ตัวละครนี้มีอยู่ในทีมแล้ว");
-                                closeSelector();
-                                return;
-                            }
-                        }
-                    }
-                    // ----------------------------------------
-
-                    if (id === null) {
-                        t.slots[p] = null;
-                    } else {
-                        t.slots[p] = { id: id, star: 0, ring: null };
-                    }
-                }
-                else if (editContext.type === 'pet') {
+                    if (id === null) t.slots[p] = null;
+                    else t.slots[p] = { id: id, star: 0, ring: null };
+                } else if (editContext.type === 'pet') {
                     if (id === null) t.pet = null;
                     else t.pet = { id: id, star: 0 };
-                }
-                else {
-                    // Ring
+                } else { // Ring
                     if (t.slots[p]) t.slots[p].ring = id;
                 }
 
-                // --- 🔴 จุดที่แก้ไข: สั่ง Render ให้ถูกหน้าจอ ---
-                if (editContext.i === 'BATTLE-TEMP') {
-                    renderBattleBuilder(); // <--- บังคับรีเฟรชหน้าจัดทีมบุก
-                } 
-                else if (typeof editContext.i === 'string' && editContext.i.startsWith('SIM-')) {
-                    renderSimulatorTeams();
-                } 
-                else {
-                    updateCurrentViewUI();
-                    triggerAutoSave();
-                }
+                // *** REFRESH LOGIC ***
+                if (editContext.i === 'BW-ENEMY' || editContext.i === 'BW-MY') renderBattleWar();
+                else if (editContext.i === 'PREP-ENEMY' || editContext.i === 'PREP-MY') renderPreparation();
+                else if (editContext.i === 'BATTLE-TEMP') renderBattleBuilder();
+                else if (typeof editContext.i === 'string' && editContext.i.startsWith('SIM-')) renderSimulatorTeams();
+                else { updateCurrentViewUI(); triggerAutoSave(); }
             }
             closeSelector();
         }
@@ -4215,11 +4284,19 @@
                     if(t.slots[contextTarget.p]) t.slots[contextTarget.p].star = l;
                 }
 
-                // --- 🟢 จุดที่แก้ไข: เช็คว่าถ้าเป็นหน้าจัดทีมบุก ให้รีเฟรชหน้านั้นทันที ---
-                if (contextTarget.i === 'BATTLE-TEMP') {
-                    renderBattleBuilder(); // บังคับรีเฟรชหน้าจัดทีม
-                } else {
-                    // กรณีปกติ (War Room / Guild Team / Simulator)
+                if (contextTarget.i === 'PREP-ENEMY' || contextTarget.i === 'PREP-MY') {
+                    renderPreparation();
+                }
+                else if (contextTarget.i === 'BATTLE-TEMP') {
+                    renderBattleBuilder();
+                } 
+                else if (typeof contextTarget.i === 'string' && contextTarget.i.startsWith('SIM-')) {
+                    renderSimulatorTeams();
+                }
+                else if (contextTarget.i === 'BW-ENEMY' || contextTarget.i === 'BW-MY') {
+                    renderBattleWar(); 
+                }
+                else {
                     updateCurrentViewUI();
                     triggerAutoSave();
                 }
@@ -4228,18 +4305,28 @@
         }
 
         function setRing(id) { 
-            if (currentView === 'my-teams') {
-                const t = myTeamsDB.find(x => x.id === contextTarget.i);
-                if (t && contextTarget.p !== 'pet' && t.slots[contextTarget.p]) {
-                    t.slots[contextTarget.p].ring = id;
-                    renderGuildResultMode();
-                    triggerAutoSave();
+            if (!contextTarget) return;
+            
+            const team = getTeam(contextTarget.i);
+            
+            if (contextTarget.p !== 'pet' && team && team.slots[contextTarget.p]) { 
+                team.slots[contextTarget.p].ring = id; 
+                
+                if (contextTarget.i === 'PREP-ENEMY' || contextTarget.i === 'PREP-MY') {
+                    renderPreparation();
                 }
-            } else {
-                const team = getTeam(contextTarget.i);
-                if (contextTarget.p !== 'pet' && team.slots[contextTarget.p]) { 
-                    team.slots[contextTarget.p].ring = id; 
-                    renderDashboard();
+                else if (contextTarget.i === 'BATTLE-TEMP') {
+                    renderBattleBuilder();
+                }
+                else if (typeof contextTarget.i === 'string' && contextTarget.i.startsWith('SIM-')) {
+                    renderSimulatorTeams();
+                }
+                else {
+                    // กรณี Guild Team หรือ War Room
+                    if(currentView === 'my-teams') renderMyTeams();
+                    else renderDashboard();
+                    
+                    triggerAutoSave();
                 }
             }
             closeContextMenu(); 
@@ -4269,6 +4356,9 @@
                     else if (typeof detailTarget.i === 'string' && detailTarget.i.startsWith('SIM-')) {
                         renderSimulatorTeams();
                     }
+                    else if (detailTarget.i === 'BW-ENEMY' || detailTarget.i === 'BW-MY') {
+                        renderBattleWar();
+                    }
                     else {
                         updateCurrentViewUI();
                         triggerAutoSave();
@@ -4288,26 +4378,26 @@
                 else { 
                     t.slots[contextTarget.p] = null; 
                     
-                    // ลบออกจาก Skill Queue ด้วย (ถ้ามีค้างอยู่)
                     if (t.skillQueue) {
                         t.skillQueue = t.skillQueue.filter(s => !s.startsWith(`${contextTarget.p}-`));
                     }
-                    // รองรับระบบเก่า (War Room)
                     if (t.skills) {
                         t.skills = t.skills.filter(s => !s.startsWith(`${contextTarget.p}-`));
                     }
                 }
 
-                // --- 🟢 จุดที่แก้ไข: สั่งรีเฟรชหน้าจอให้ถูกจุด ---
-                if (contextTarget.i === 'BATTLE-TEMP') {
-                    renderBattleBuilder(); // <--- บังคับรีเฟรชหน้าจัดทีมบุก
+                if (contextTarget.i === 'PREP-ENEMY' || contextTarget.i === 'PREP-MY') {
+                    renderPreparation(); 
+                } 
+                else if (contextTarget.i === 'BATTLE-TEMP') {
+                    renderBattleBuilder(); 
                 } 
                 else if (typeof contextTarget.i === 'string' && contextTarget.i.startsWith('SIM-')) {
-                    renderSimulatorTeams(); // รีเฟรชหน้า Simulator
+                    renderSimulatorTeams(); 
                 }
                 else {
-                    updateCurrentViewUI(); // รีเฟรชหน้าหลัก (War Room / Guild Team)
-                    triggerAutoSave();
+                    updateCurrentViewUI(); 
+                    triggerAutoSave(); 
                 }
             }
 
@@ -4441,78 +4531,36 @@
         function allowDrop(e){e.preventDefault();}
         function drop(e, i, p) {
             e.preventDefault();
-            const t = getTeam(i); // ทีมปลายทาง
-
+            const t = getTeam(i);
             if (!t) return;
 
-            // --- 1. ตรวจสอบว่าลากมาจากไหน ---
             let droppedHeroId = null;
-            if (dragSrc.i === 'POOL') {
-                droppedHeroId = dragSrc.heroId;
-            } else {
+            if (dragSrc.i === 'POOL') droppedHeroId = dragSrc.heroId;
+            else {
                 const srcTeam = getTeam(dragSrc.i);
-                if (srcTeam && srcTeam.slots[dragSrc.p]) {
-                    droppedHeroId = srcTeam.slots[dragSrc.p].id;
-                }
+                if (srcTeam && srcTeam.slots[dragSrc.p]) droppedHeroId = srcTeam.slots[dragSrc.p].id;
             }
 
-            // --- 2. เช็คตัวซ้ำ (Duplicate Check) ---
-            if (droppedHeroId) {
-                let isDuplicate = false;
-                for (let k = 0; k < 5; k++) {
-                    const slot = t.slots[k];
-                    // เช็คว่ามี ID นี้ในช่องอื่นไหม (ยกเว้นช่องที่กำลังจะวาง หรือช่องเดิมของตัวเอง)
-                    if (slot && slot.id === droppedHeroId) {
-                        // ถ้าไม่ใช่การลากสลับที่เดิม ให้ถือว่าซ้ำ
-                        if (!(dragSrc.i === i && parseInt(dragSrc.p) === k)) {
-                            isDuplicate = true;
-                            break;
-                        }
-                    }
-                }
-                if (isDuplicate) {
-                    alert("❌ ตัวละครนี้มีอยู่ในทีมแล้ว");
-                    return;
-                }
-            }
-
-            // --- 3. ดำเนินการวาง (Drop Logic) ---
-            
-            // กรณี A: ลากจาก Pool (ตัวใหม่)
+            // Drop Logic
             if (dragSrc.i === 'POOL') {
                 t.slots[p] = { id: dragSrc.heroId, star: 0, ring: null };
-            } 
-            // กรณี B: ลากสลับตำแหน่ง (Swap/Move)
-            else if (dragSrc && dragSrc.p !== p) {
+            } else if (dragSrc && dragSrc.p !== p) {
                 const srcTeam = getTeam(dragSrc.i);
-                
-                // สลับข้อมูล
                 const temp = srcTeam.slots[dragSrc.p];
-                srcTeam.slots[dragSrc.p] = t.slots[p]; // เอาตัวเก่าไปแทนที่ต้นทาง
-                t.slots[p] = temp; // เอาตัวใหม่มาใส่ปลายทาง
-
-                // ล้างคิวสกิลกันบั๊ก (เพราะตำแหน่งเปลี่ยน)
+                srcTeam.slots[dragSrc.p] = t.slots[p];
+                t.slots[p] = temp;
                 if (t.skillQueue) t.skillQueue = [];
                 if (srcTeam.skillQueue) srcTeam.skillQueue = [];
             }
 
-            // --- 4. 🟢 จุดที่แก้ไข: สั่งรีเฟรชหน้าจอให้ถูกต้อง ---
-            
-            // ถ้าปลายทาง หรือ ต้นทาง เป็นหน้าจัดทีม (BATTLE-TEMP) ให้รีเฟรชหน้านั้น
-            if (i === 'BATTLE-TEMP' || (dragSrc && dragSrc.i === 'BATTLE-TEMP')) {
-                renderBattleBuilder(); 
-            }
-            // ถ้าเป็น Simulator
-            else if (typeof i === 'string' && i.startsWith('SIM-')) {
-                renderSimulatorTeams();
-            } 
-            // ถ้าเป็นหน้าหลัก (Guild Team / War Room)
-            else {
-                updateCurrentViewUI();
-                triggerAutoSave(); // เซฟเฉพาะหน้าหลัก
-            }
+            // *** REFRESH LOGIC ***
+            if (i === 'BW-ENEMY' || i === 'BW-MY' || (dragSrc && (dragSrc.i === 'BW-ENEMY' || dragSrc.i === 'BW-MY'))) renderBattleWar();
+            else if (i === 'PREP-ENEMY' || i === 'PREP-MY' || (dragSrc && (dragSrc.i === 'PREP-ENEMY' || dragSrc.i === 'PREP-MY'))) renderPreparation();
+            else if (i === 'BATTLE-TEMP' || (dragSrc && dragSrc.i === 'BATTLE-TEMP')) renderBattleBuilder();
+            else if (typeof i === 'string' && i.startsWith('SIM-')) renderSimulatorTeams();
+            else { updateCurrentViewUI(); triggerAutoSave(); }
 
-            dragSrc = null; // ล้างค่า
+            dragSrc = null;
         }
         
         // ค้นหาฟังก์ชัน openSelector เดิม แล้วแก้เป็นแบบนี้ครับ
@@ -4520,8 +4568,13 @@
         function openSelector(i, p, type, e) { 
             if(e) e.stopPropagation(); 
             
-            // 1. Validation (เช็คสถานะทีม)
-            let t = getTeam(i);
+            let t = null;
+
+            if (i === 'PREP-ENEMY') t = prepData.enemy;
+            else if (i === 'PREP-MY') t = prepData.my;
+            else if (i === 'BATTLE-TEMP') t = battleTempTeam; // (เผื่อไว้)
+            else t = getTeam(i);
+
             if (typeof i === 'string' && i.startsWith('G-')) {
                 const parts = i.split('-');
                 const team = guildMembersDB[parseInt(parts[1])].teams[parseInt(parts[2])];
@@ -4530,13 +4583,11 @@
             if (typeof i !== 'string' && t.isCleared) return;
             if(type==='ring'&&!t.slots[p])return; 
 
-            // 🟢 2. เช็ค Type ก่อนหน้า (เพื่อดูว่าต้อง Reset Tab ไหม)
             const prevType = editContext ? editContext.type : null;
 
             // 3. ตั้งค่า Context ใหม่
             editContext={i,p,type}; 
 
-            // 🟢 4. Logic การจำค่า Tab Filter
             // ถ้าเปลี่ยนประเภท (เช่น Hero -> Pet) ให้รีเซ็ตเป็น 'All'
             // แต่ถ้าเป็นประเภทเดิม (Hero -> Hero) ให้คงค่าเดิมไว้
             if (prevType !== type) {
@@ -6353,22 +6404,65 @@
             
             list.innerHTML = '';
             
+            if (heroSetsDB.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-500 mt-4 text-xs">No sets created yet.</div>';
+            }
+
             heroSetsDB.forEach((set, i) => {
-                const active = i === currentSetIdx ? 'active' : '';
-                // ใช้ Layout เดียวกับ Manager Item (มี icon formation แทนรูป)
+                const active = i === currentSetIdx ? 'active bg-blue-900/40 border-blue-500' : 'hover:bg-[#1f2937] border-transparent';
+                
+                // 1. สร้าง HTML รูปไอคอนตัวละคร 5 ตัว
+                let iconsHtml = '';
+                for(let k=0; k<5; k++) {
+                    const s = set.slots[k];
+                    if(s && s.id) {
+                        const h = heroesDB.find(x => x.id == s.id);
+                        if(h) {
+                            iconsHtml += `<img src="${h.img}" class="w-6 h-6 rounded border border-gray-600 bg-black object-cover" title="${h.name}">`;
+                        } else {
+                            // กรณีไม่เจอรูป (ข้อมูลเก่า)
+                            iconsHtml += `<div class="w-6 h-6 rounded border border-gray-700 bg-[#111] flex items-center justify-center text-[8px] text-gray-500">?</div>`;
+                        }
+                    } else {
+                        // ช่องว่าง
+                        iconsHtml += `<div class="w-6 h-6 rounded border border-gray-800 bg-[#0d1117]"></div>`;
+                    }
+                }
+
+                // 2. สร้าง HTML สัตว์เลี้ยง (ถ้ามี)
+                let petHtml = '';
+                if(set.pet && set.pet.id) {
+                    const p = petsDB.find(x => x.id == set.pet.id);
+                    if(p) {
+                        petHtml = `<div class="w-6 h-6 rounded-full border border-purple-500/50 ml-2 shadow-sm relative" title="${p.name}"><img src="${p.img}" class="w-full h-full rounded-full object-cover"></div>`;
+                    }
+                }
+
+                // 3. สีป้าย Formation
+                const fmtColor = set.formation === 'basic' ? 'text-gray-400 border-gray-600' :
+                                set.formation === 'attack' ? 'text-red-400 border-red-600' :
+                                set.formation === 'defense' ? 'text-blue-400 border-blue-600' : 'text-yellow-400 border-yellow-600';
+
+                // 4. Render Item
                 list.innerHTML += `
-                    <div onclick="selectHeroSet(${i})" class="manager-list-item ${active}">
-                        <div class="w-10 h-10 rounded bg-[#0d1117] border border-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-500 uppercase flex-shrink-0 shadow-inner">
-                            ${set.formation.substring(0,2)}
+                    <div onclick="selectHeroSet(${i})" class="cursor-pointer p-3 rounded-lg border mb-1 transition flex flex-col gap-2 ${active}">
+                        
+                        <div class="flex justify-between items-center w-full">
+                            <div class="font-bold text-gray-200 text-sm truncate flex-1 mr-2">${set.name || 'Unnamed Set'}</div>
+                            <span class="text-[9px] uppercase px-1.5 py-0.5 rounded border bg-black/20 ${fmtColor}">${set.formation.substring(0,3)}</span>
                         </div>
-                        <div class="overflow-hidden w-full">
-                            <div class="font-bold text-gray-200 text-sm truncate">${set.name}</div>
-                            <div class="text-[10px] text-gray-500 uppercase tracking-wider">${set.formation}</div>
+
+                        <div class="flex items-center">
+                            <div class="flex gap-1 bg-black/20 p-1 rounded border border-gray-700/50">
+                                ${iconsHtml}
+                            </div>
+                            ${petHtml}
                         </div>
                     </div>
                 `;
             });
 
+            // จัดการหน้าจอขวา (Editor)
             if (currentSetIdx > -1 && heroSetsDB[currentSetIdx]) {
                 editor.classList.remove('hidden');
                 empty.classList.add('hidden');
@@ -6528,23 +6622,28 @@
             await pushData();
             hideLoading();
         }
+        
         function openLoadSetModal(type, id, teamIdx) {
+            // เก็บ Context ไว้ใช้งานตอนกดเลือก Set
+            targetLoadContext = { type, id, teamIdx };
 
+            // --- 1. Validation Checks (ตรวจสอบสิทธิ์การโหลดทับ) ---
             if (type === 'guild') {
                 const team = guildMembersDB[id].teams[teamIdx];
-                if (team && team.isDead) {
-                    return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว ไม่สามารถโหลดข้อมูลทับได้");
-                }
-            } else {
-                // กรณี War Room (ถ้าเคลียร์แล้วก็ไม่ควรโหลดทับ)
+                if (team && team.isDead) return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว ไม่สามารถโหลดข้อมูลทับได้");
+            } 
+            else if (type === 'BW-ENEMY' || type === 'BW-MY' || type === 'BATTLE-TEMP' || type.startsWith('PREP-')) {
+                // ✅ Case: Battle War / Preparation / Temp
+                // อนุญาตให้โหลดได้เลย ไม่ต้องเช็คปราสาทแตก
+            }
+            else {
+                // Case: War Room (Check isCleared)
                 const k = `${currentCastle}-${id}`;
                 const team = teamsDB[k];
-                if (team && team.isCleared) {
-                    return alert("⛔ ศัตรูในช่องนี้ถูกกำจัดแล้ว ไม่สามารถแก้ไขได้");
-                }
+                if (team && team.isCleared) return alert("⛔ ศัตรูในช่องนี้ถูกกำจัดแล้ว ไม่สามารถแก้ไขได้");
             }
 
-            targetLoadContext = { type, id, teamIdx };
+            // --- 2. Render List ---
             const list = document.getElementById('load-set-list');
             list.innerHTML = '';
             
@@ -6552,18 +6651,17 @@
                 list.innerHTML = '<div class="text-center text-gray-500 py-4">ไม่มีข้อมูล Set<br>กรุณาสร้างในเมนู Database Manager > Team Sets</div>';
             } else {
                 heroSetsDB.forEach((set, i) => {
-                    // Preview Heroes
                     let icons = '';
                     for(let k=0; k<5; k++) {
                         const s = set.slots[k];
                         if(s) {
                             const h = heroesDB.find(x => x.id == s.id);
-                            if(h) icons += `<img src="${h.img}" class="w-6 h-6 rounded bg-black border border-gray-600">`;
+                            if(h) icons += `<img src="${h.img}" class="w-6 h-6 rounded bg-black border border-gray-700">`;
                         }
                     }
                     
                     list.innerHTML += `
-                        <div onclick="applyHeroSet(${i})" class="bg-[#161b22] border border-gray-700 hover:border-blue-500 p-3 rounded flex justify-between items-center cursor-pointer transition group">
+                        <div onclick="applyHeroSet(${i})" class="bg-[#161b22] border border-gray-700 hover:border-blue-500 p-3 rounded flex justify-between items-center cursor-pointer transition group mb-2">
                             <div>
                                 <div class="font-bold text-white group-hover:text-blue-400">${set.name}</div>
                                 <div class="text-xs text-gray-500 capitalize">${set.formation} Formation</div>
@@ -6586,63 +6684,52 @@
             let targetTeam = null;
 
             // --- 1. หา Target Team (ปลายทางที่จะเอาข้อมูลไปใส่) ---
-            if (type === 'BATTLE-TEMP') {
-                // [NEW] กรณีโหลดลงหน้าจัดทีม Battle Preparation
-                // เรียก getTeam เพื่อให้มั่นใจว่าได้ Object ทีมชั่วคราวมาใช้งาน
-                targetTeam = getTeam('BATTLE-TEMP');
+            if (type === 'guild') {
+                targetTeam = guildMembersDB[id].teams[teamIdx];
             } 
-            else if (type === 'guild') {
-                // กรณีโหลดลงทีมของ Guild Member
-                targetTeam = guildMembersDB[id].teams[teamIdx]; // id = memIdx
-            } 
+            else if (type === 'BW-ENEMY' || type === 'BW-MY' || type === 'BATTLE-TEMP' || type.startsWith('PREP-')) {
+                // ✅ Case: Battle War ใช้ getTeam ดึง Object มาตรงๆ ได้เลย
+                targetTeam = getTeam(type);
+            }
             else {
-                // War Room: id = slotIdx (0-9)
+                // Case: War Room
                 const k = `${currentCastle}-${id}`;
-                if (!teamsDB[k]) {
-                    teamsDB[k] = { player: '', speed: '', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skills: [], isCleared: false };
-                }
+                if (!teamsDB[k]) teamsDB[k] = { player: '', speed: '', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skills: [], isCleared: false };
                 targetTeam = teamsDB[k];
             }
 
-            // --- 2. เช็คความปลอดภัยซ้ำ (Double Check) ---
-            // ถ้าเป็น BATTLE-TEMP ไม่ต้องเช็ค isDead เพราะเป็นทีมร่างที่กำลังจัดใหม่
-            if (type !== 'BATTLE-TEMP' && (targetTeam.isDead || targetTeam.isCleared)) {
-                closeLoadSetModal();
-                return alert("⛔ ไม่สามารถโหลดข้อมูลทับทีมที่จบการต่อสู้ไปแล้วได้");
-            }
-
             if (targetTeam) {
-                // --- 3. คัดลอกข้อมูล (Deep Copy เพื่อป้องกันข้อมูลเชื่อมโยงกัน) ---
+                // --- 2. Copy Data ---
                 targetTeam.formation = set.formation;
                 targetTeam.pet = set.pet ? JSON.parse(JSON.stringify(set.pet)) : null;
                 targetTeam.slots = JSON.parse(JSON.stringify(set.slots));
                 
-                // คัดลอก Skill Queue
                 if (set.skillQueue && Array.isArray(set.skillQueue)) {
                     targetTeam.skillQueue = JSON.parse(JSON.stringify(set.skillQueue));
-                    
-                    // สำหรับหน้า War Room (ใช้ตัวแปรชื่อ .skills ในการแสดงคิวรูปภาพ)
+                    // War Room Compatibility
                     targetTeam.skills = JSON.parse(JSON.stringify(set.skillQueue));
                 } else {
-                    // ถ้าต้นทางไม่มีคิว ให้ล้างคิวปลายทางด้วย
                     targetTeam.skillQueue = [];
                     targetTeam.skills = [];
                 }
                 
-                // --- 4. รีเฟรชหน้าจอตามประเภทที่โหลด (UI Refresh) ---
-                if (type === 'BATTLE-TEMP') {
-                    // [NEW] รีเฟรชหน้าจัดทีมด้านขวา
+                // --- 3. Refresh UI ---
+                if (type === 'BW-ENEMY' || type === 'BW-MY') {
+                    renderBattleWar(); // ✅ รีเฟรชหน้า Battle War
+                }
+                else if (type.startsWith('PREP-')) {
+                    renderPreparation();
+                }
+                else if (type === 'BATTLE-TEMP') {
                     renderBattleBuilder(); 
                 } 
-                // else if (type === 'guild') {
-                //     renderMemberTeamsUI();
-
-                // } 
+                else if (type === 'guild') {
+                    renderGuildResultMode(); // หรือ renderMemberTeamsUI แล้วแต่หน้า
+                }
                 else {
-                    renderDashboard();
+                    renderDashboard(); // War Room
                 }
 
-                // สั่งบันทึกข้อมูล (ถ้าเป็น BATTLE-TEMP อาจจะไม่ต้อง Save ทันทีก็ได้ แต่ Save ไว้กันเหนียวก็ดี)
                 triggerAutoSave();
             }
 
@@ -6720,24 +6807,24 @@
             reader.readAsText(file);
         }
 
-                // --- SET MANAGER SKILL LOGIC ---
-                function toggleSetSkillQueue(setIdx, slotIdx, skillNum) {
-                    const set = heroSetsDB[setIdx];
-                    const skillKey = `${slotIdx}-${skillNum}`; // "0-1"
-                    
-                    if (!set.skillQueue) set.skillQueue = [];
+        // --- SET MANAGER SKILL LOGIC ---
+        function toggleSetSkillQueue(setIdx, slotIdx, skillNum) {
+            const set = heroSetsDB[setIdx];
+            const skillKey = `${slotIdx}-${skillNum}`; // "0-1"
+            
+            if (!set.skillQueue) set.skillQueue = [];
 
-                    const existIdx = set.skillQueue.indexOf(skillKey);
-                    if (existIdx > -1) {
-                        set.skillQueue.splice(existIdx, 1); // ลบออกถ้ามีแล้ว
-                    } else {
-                        if (set.skillQueue.length < 3) {
-                            set.skillQueue.push(skillKey); // เพิ่มถ้ายังไม่เต็ม 3
-                        }
-                    }
-                    renderSetManager(); // รีเฟรชหน้าจอ
+            const existIdx = set.skillQueue.indexOf(skillKey);
+            if (existIdx > -1) {
+                set.skillQueue.splice(existIdx, 1); // ลบออกถ้ามีแล้ว
+            } else {
+                if (set.skillQueue.length < 3) {
+                    set.skillQueue.push(skillKey); // เพิ่มถ้ายังไม่เต็ม 3
                 }
-                // --- GUILD ANALYTICS ENGINE ---
+            }
+            renderSetManager(); // รีเฟรชหน้าจอ
+        }
+        // --- GUILD ANALYTICS ENGINE ---
 
         function getGlobalAnalytics() {
             let heroStats = {}; // { heroId: { wins: 0, total: 0, teams: { teamId: wins } } }
@@ -6812,6 +6899,7 @@
             // ในที่นี้ผมแนะนำให้สร้าง <div> Modal เปล่าๆ ไว้ใน HTML แล้วสั่งเปิด
             alert(`MVP Heroes:\n${data.topHeroes.slice(0,3).map(h => h.id + ": " + h.wr.toFixed(0) + "%").join('\n')}`);
         }
+        
         // ฟังก์ชันคำนวณผลรวมดาวของทั้งทีม (0-60 ดาว)
         // คิดจาก 5 ตัวละคร ตัวละครละสูงสุด 12 ดาว (6 ฟ้า + 6 แดง)
         function calculateTotalTeamStars(team) {
@@ -7058,7 +7146,7 @@
             }
         }
 
-        // Helper สร้างการ์ด (Modified: No Pet)
+        // Helper สร้างการ์ด (Updated: Increased Spacing)
         function generateSimCardHTML(team, teamId, isAttack, readOnly = false) {
             if (!team) {
                 team = { name: 'Empty Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] };
@@ -7075,23 +7163,59 @@
                 { border: 'border-red-900/50', bg: 'bg-red-900/10', text: 'text-red-200', hl: 'text-red-500', slotBorder: 'border-red-800', slotBg: 'bg-black' } : 
                 { border: 'border-gray-700', bg: 'bg-[#161b22]/90', text: 'text-blue-100', hl: 'text-blue-400', slotBorder: 'border-blue-600', slotBg: 'bg-[#0d1117]' };
 
-            // 1. Formation Buttons
+            // 1. Formation Buttons Logic
             let formationHtml = '';
+            
             if (readOnly) {
                 formationHtml = `
-                    <div class="flex flex-col justify-center items-center w-20 border-r border-dashed border-red-800/30 pr-2 mr-2">
-                        <span class="text-[8px] text-red-400 uppercase font-bold">Formation</span>
-                        <span class="text-xs font-black text-red-200 uppercase tracking-widest">${fmt.substring(0,3)}</span>
+                    <div class="flex flex-col justify-center items-center w-24 border-r border-dashed border-red-800/30 pr-2 mr-2">
+                        <span class="text-[8px] text-red-400 uppercase font-bold mb-1">Formation</span>
+                        <span class="text-xs font-black text-red-200 uppercase tracking-widest bg-red-900/40 px-2 py-1 rounded">${fmt.substring(0,3)}</span>
                     </div>`;
             } else {
+                // ปุ่มเลือกแผน (Grid 2x2)
                 const formationBtns = ['basic','balanced','attack','defense'].map(f => {
                     const isActive = fmt === f;
                     const activeClass = isActive 
-                        ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_8px_rgba(59,130,246,0.6)] z-10 font-bold ring-1 ring-blue-300' 
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-sm z-10 font-bold ring-1 ring-blue-300' 
                         : 'bg-[#0d1117] border-gray-600 text-gray-500 hover:text-gray-300 hover:border-gray-400';
-                    return `<button onclick="updateSimFormation('${teamId}','${f}')" class="px-2 py-1 text-[9px] uppercase tracking-wider rounded border transition transform ${activeClass}">${f.substring(0,3)}</button>`;
+                    return `<button onclick="updateSimFormation('${teamId}','${f}')" class="w-full py-1 text-[8px] uppercase tracking-wider rounded border transition ${activeClass}">${f.substring(0,3)}</button>`;
                 }).join('');
-                formationHtml = `<div class="flex flex-col gap-1 w-24 border-r border-dashed border-gray-700/50 pr-2 mr-2 flex-shrink-0 justify-center"><span class="text-[8px] text-gray-500 font-bold uppercase text-center mb-0.5">Formation</span><div class="flex gap-1 flex-wrap justify-center">${formationBtns}</div></div>`;
+
+                // ปุ่ม WINNER (ใช้ Style สีทองเหมือนกันทั้ง 2 ฝั่ง)
+                let winnerBtn = '';
+                // เพิ่ม h-8 เพื่อให้ปุ่มสูงขึ้นอีกนิด กดง่ายขึ้น
+                const winStyle = "w-full h-8 bg-[#1f2937] hover:bg-yellow-900/20 text-yellow-600 hover:text-yellow-400 border border-gray-700 hover:border-yellow-500 rounded py-1 text-[9px] font-bold uppercase tracking-widest transition flex items-center justify-center gap-2 group shadow-inner";
+
+                if (teamId === 'BW-MY') {
+                    winnerBtn = `
+                        <button onclick="recordBattleWarResult('Win')" class="${winStyle}">
+                            <span class="text-xs group-hover:scale-125 transition">🏆</span> WINNER
+                        </button>`;
+                } else if (teamId === 'BW-ENEMY') {
+                    winnerBtn = `
+                        <button onclick="recordBattleWarResult('Lose')" class="${winStyle}">
+                            <span class="text-xs group-hover:scale-125 transition">🏆</span> WINNER
+                        </button>`;
+                }
+
+                // รวมร่าง (เพิ่ม mt-4 เพื่อดันให้ห่าง)
+                formationHtml = `
+                    <div class="flex flex-col w-28 border-r border-dashed border-gray-700/50 pr-3 mr-2 flex-shrink-0 justify-center items-center py-1">
+                        
+                        <span class="text-[8px] text-gray-500 font-bold uppercase text-center mb-1.5">Formation</span>
+                        
+                        <div class="grid grid-cols-2 gap-1 w-full">
+                            ${formationBtns}
+                        </div>
+
+                        ${winnerBtn ? `
+                            <div class="w-full h-px bg-gray-700/50 mt-4 mb-3 border-t border-dashed border-gray-800"></div>
+                            
+                            ${winnerBtn}
+                        ` : ''}
+
+                    </div>`;
             }
 
             // 2. Queue (เหมือนเดิม)
@@ -7157,16 +7281,7 @@
                         <div class="flex items-center gap-3">
                             <span class="${readOnly?'bg-red-900 text-red-200':'bg-gradient-to-r from-blue-900 to-blue-800 text-blue-100'} text-[10px] px-3 py-0.5 rounded font-bold uppercase tracking-wider shadow-inner">${team.name || (readOnly?'Enemy Team':'My Team')}</span>
                         </div>
-                        
-                        ${!readOnly ? `
-                        <div class="flex items-center gap-2">
-                            <button onclick="openLoadSetModal('${teamId}', 0, 0)" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white border border-purple-400 px-3 py-0.5 rounded transition font-bold uppercase shadow-lg flex items-center gap-1">
-                                📂 Preset
-                            </button>
-                            <button onclick="clearSimTeam('${teamId}')" class="text-[10px] text-red-400 hover:text-white border border-red-900 px-2 py-0.5 rounded hover:bg-red-900/50 transition">
-                                Clear
-                            </button>
-                        </div>` : ''}
+                        ${!readOnly ? `<div class="flex items-center gap-2"><button onclick="openLoadSetModal('${teamId}', 0, 0)" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white border border-purple-400 px-3 py-0.5 rounded transition font-bold uppercase shadow-lg flex items-center gap-1">📂 Preset</button><button onclick="clearSimTeam('${teamId}')" class="text-[10px] text-red-400 hover:text-white border border-red-900 px-2 py-0.5 rounded hover:bg-red-900/50 transition">Clear</button></div>` : ''}
                     </div>
                     
                     <div class="flex flex-1 items-stretch justify-center">
@@ -7190,8 +7305,10 @@
             if(team) {
                 team.formation = fmt;
                 // เช็คว่ากำลังแก้หน้าไหน
-                if (teamId === 'BATTLE-TEMP') renderBattleBuilder();
-                else renderSimulatorTeams(); 
+                if (teamId === 'PREP-ENEMY' || teamId === 'PREP-MY') renderPreparation();
+                else if (teamId === 'BATTLE-TEMP') renderBattleBuilder();
+                else if (teamId === 'BW-ENEMY' || teamId === 'BW-MY') renderBattleWar();
+                else renderSimulatorTeams();
             }
         }
 
@@ -7238,20 +7355,25 @@
             if(existIdx > -1) team.skillQueue.splice(existIdx, 1);
             else if(team.skillQueue.length < 3) team.skillQueue.push(skillKey);
             
-            if (teamId === 'BATTLE-TEMP') renderBattleBuilder();
+           // 🟢 เช็ค ID เพื่อรีเฟรชให้ถูกหน้า
+            if (teamId === 'PREP-ENEMY' || teamId === 'PREP-MY') renderPreparation();
+            else if (teamId === 'BATTLE-TEMP') renderBattleBuilder();
+            else if (teamId === 'BW-ENEMY' || teamId === 'BW-MY') renderBattleWar();
             else renderSimulatorTeams();
         }
 
         // Action เมื่อเคลียร์ทีม
         function clearSimTeam(teamId) {
-        if(!confirm("Clear this team?")) return;
+        // if(!confirm("Clear this team?")) return;
         const team = getTeam(teamId);
         if(team) {
             team.slots = {0:null,1:null,2:null,3:null,4:null};
             team.pet = null;
             team.skillQueue = [];
             
-            if (teamId === 'BATTLE-TEMP') renderBattleBuilder();
+            if (teamId === 'PREP-ENEMY' || teamId === 'PREP-MY') renderPreparation();
+            else if (teamId === 'BATTLE-TEMP') renderBattleBuilder();
+            else if (teamId === 'BW-ENEMY' || teamId === 'BW-MY') renderBattleWar(); // ✅ เพิ่มบรรทัดนี้
             else renderSimulatorTeams();
         }
     }
@@ -7962,6 +8084,624 @@
                 `;
             }).join('');
         }
+
+    // แทนที่ฟังก์ชัน renderPreparation เดิม
+    function renderPreparation() {
+        // 1. Render Enemy (แก้ไขได้ = true)
+        // param สุดท้าย false = ไม่ใช่ ReadOnly (คือแก้ไขได้)
+        const enemyHTML = generateSimCardHTML(prepData.enemy, 'PREP-ENEMY', false, false);
+        document.getElementById('prep-enemy-area').innerHTML = enemyHTML;
+
+        // 2. Render My Team (แก้ไขได้ = true)
+        const myHTML = generateSimCardHTML(prepData.my, 'PREP-MY', true, false);
+        document.getElementById('prep-my-area').innerHTML = myHTML;
+
+        // 3. เรียก AI
+        analyzePreparationBattle();
+    }
+
+    // 3. ฟังก์ชัน AI วิเคราะห์ (Unified Logic: Who beat this team?)
+    function analyzePreparationBattle() {
+        const panel = document.getElementById('prep-ai-panel');
+        
+        // 1. ดึง ID ของศัตรู (Target Team)
+        const targetIds = [];
+        for(let i=0; i<5; i++) {
+            if(prepData.enemy.slots[i]) targetIds.push(prepData.enemy.slots[i].id);
+        }
+        
+        // 2. ดึง ID ของทีมเรา (Drafting Team)
+        const myDraftIds = [];
+        for(let i=0; i<5; i++) if(prepData.my.slots[i]) myDraftIds.push(prepData.my.slots[i].id);
+
+        if (targetIds.length === 0) {
+            panel.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-64 text-gray-500 opacity-60">
+                    <span class="text-6xl mb-4">🕵️</span>
+                    <div class="text-sm font-bold">Waiting for Enemy Data...</div>
+                    <div class="text-xs">ใส่ตัวละครฝั่งศัตรูเพื่อเริ่มวิเคราะห์</div>
+                </div>`;
+            return;
+        }
+
+        // =========================================================
+        // 🧠 AI PROCESSING (UNIFIED LOGIC)
+        // =========================================================
+        
+        let totalRelevantLogs = 0;
+        
+        // Stats Containers
+        let counterStats = {};          // ตัวละครที่ชนะ Target บ่อยสุด
+        let skillPreference = {};       // สกิลแรกที่ผู้ชนะใช้
+        let teamSequenceStats = {};     // คอมโบของผู้ชนะ
+        let specificCounterStats = {};  // Target ตัวนี้ แพ้ให้ใครบ่อยสุด
+
+        // Init Specific Stats
+        targetIds.forEach(eid => specificCounterStats[eid] = {});
+
+        // --- Analyze Logs ---
+        battleHistoryDB.forEach(log => {
+            let winnerIds = [];
+            let loserIds = [];
+            let winnerSkillQueue = [];
+            let winnerData = []; // เก็บ playerData หรือ enemyData ของผู้ชนะ
+
+            // 1. แยกแยะผู้ชนะ/ผู้แพ้
+            if (log.result === 'Win') {
+                // เราชนะ
+                winnerIds = log.playerIds || [];
+                loserIds = log.enemyIds || [];
+                winnerSkillQueue = log.skillQueue || [];
+                winnerData = log.playerData || [];
+            } else {
+                // ศัตรูชนะ (เราแพ้)
+                winnerIds = log.enemyIds || [];
+                loserIds = log.playerIds || [];
+                winnerSkillQueue = log.enemySkillQueue || []; // ต้องมี field นี้ใน log ใหม่ๆ
+                winnerData = log.enemyData || [];
+            }
+
+            // 2. เช็คว่า "ทีมแพ้" มีตัวละครที่เราสนใจ (Target) หรือไม่?
+            // (นับว่าเจอ ถ้ามี Target อยู่ในทีมแพ้อย่างน้อย 1 ตัว)
+            const targetInLoser = targetIds.some(tid => loserIds.includes(tid));
+
+            if (targetInLoser) {
+                totalRelevantLogs++;
+
+                // --- 🟢 เก็บสถิติ "ผู้ชนะ" (The Counter Team) ---
+                
+                // A. เก็บสถิติ Hero (Global & Specific Counter)
+                winnerIds.forEach(wId => {
+                    // Global Stats
+                    if (!counterStats[wId]) counterStats[wId] = { wins: 0 };
+                    counterStats[wId].wins++;
+
+                    // Specific Stats: ตัวนี้ชนะ Target ตัวไหนบ้างในแมตช์นี้
+                    loserIds.forEach(lId => {
+                        if (targetIds.includes(lId)) { // ถ้าผู้แพ้คือหนึ่งในเป้าหมาย
+                            if (!specificCounterStats[lId]) specificCounterStats[lId] = {};
+                            if (!specificCounterStats[lId][wId]) specificCounterStats[lId][wId] = 0;
+                            specificCounterStats[lId][wId]++;
+                        }
+                    });
+                });
+
+                // B. เก็บสถิติ Skill & Sequence ของผู้ชนะ
+                // ต้อง Map จาก Slot -> HeroID ให้ถูกต้องตามฝั่งที่ชนะ
+                if (winnerSkillQueue && winnerSkillQueue.length > 0) {
+                    let extractedMoves = [];
+
+                    winnerSkillQueue.forEach(sq => {
+                        const [sIdx, sNum] = sq.split('-');
+                        
+                        // หา Hero ID ของผู้ชนะจาก Slot Index
+                        // (ต้องระวัง: winnerData อาจจะไม่เรียง 0-4 ถ้าเก็บแบบ Compact)
+                        // สมมติว่า winnerData เก็บ object {id, star} ตามลำดับ slot หรือมี id
+                        
+                        let hId = null;
+                        // พยายามหา ID จาก winnerData (ถ้ามี) หรือ winnerIds
+                        if (winnerData[sIdx] && winnerData[sIdx].id) hId = winnerData[sIdx].id;
+                        else if (winnerIds[sIdx]) hId = winnerIds[sIdx];
+
+                        if (hId) {
+                            // 1. Skill Preference (เก็บเฉพาะตัวที่เรากำลัง Draft อยู่ เพื่อแนะนำ)
+                            if (myDraftIds.includes(hId)) {
+                                if (!skillPreference[hId]) skillPreference[hId] = { s1: 0, s2: 0 };
+                                if (sNum === '1') skillPreference[hId].s1++; else skillPreference[hId].s2++;
+                            }
+                            
+                            // 2. เก็บลง Sequence รวม (เฉพาะตัวที่เรา Draft)
+                            if (myDraftIds.includes(hId)) {
+                                extractedMoves.push(`${hId}:${sNum}`);
+                            }
+                        }
+                    });
+
+                    // Smart Combo (เฉพาะตัวที่เราเลือก)
+                    if (extractedMoves.length > 0) {
+                        const finalSeqStr = extractedMoves.slice(0, 3).join('|');
+                        if (!teamSequenceStats[finalSeqStr]) teamSequenceStats[finalSeqStr] = 0;
+                        teamSequenceStats[finalSeqStr]++;
+                    }
+                }
+            }
+        });
+
+        // =========================================================
+        // 📊 DISPLAY GENERATION
+        // =========================================================
+
+        // 1. Guild Win Rate (ในบริบทนี้คือ "อัตราความสำเร็จในการหาข้อมูล")
+        // เนื่องจากเราดู "แมตช์ที่ Target แพ้" เท่านั้น ดังนั้น Win Rate จึงเป็น 100% ของ Dataset นี้
+        // แต่เพื่อความสวยงาม เราอาจจะโชว์จำนวนครั้งที่ Target แพ้แทน
+        const totalDefeats = totalRelevantLogs;
+        
+        // 🏆 Best Counters (Top 5 Heroes ที่ชนะ Target บ่อยสุด ไม่ว่าจะอยู่ฝั่งไหน)
+        const bestHeroesHTML = Object.keys(counterStats)
+            .map(id => ({ id, ...counterStats[id] }))
+            .sort((a,b) => b.wins - a.wins)
+            .slice(0, 5)
+            .map(h => {
+                const hero = heroesDB.find(x => x.id === h.id);
+                // คำนวณ % ว่าชนะบ่อยแค่ไหนเทียบกับการแพ้ทั้งหมดของ Target
+                const winRate = ((h.wins / totalDefeats) * 100).toFixed(0);
+                
+                return hero ? `
+                    <div class="flex flex-col items-center group relative min-w-[50px]">
+                        <div class="relative">
+                            <img src="${hero.img}" class="w-10 h-10 rounded-lg border border-green-500/50 bg-black object-cover cursor-help">
+                            <div class="absolute -top-2 -right-2 bg-green-900 text-green-100 text-[8px] px-1 rounded-full border border-green-600 font-bold">${h.wins}</div>
+                        </div>
+                        <span class="text-[9px] text-green-300 font-bold mt-1">${winRate}% Freq</span>
+                        <div class="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded border border-gray-600 whitespace-nowrap z-50 shadow-xl">
+                            ${hero.name}<br>Found in winning team ${h.wins} times
+                        </div>
+                    </div>` : '';
+            }).join('');
+
+        // ⚡ Weakness Analysis (Specific Counters)
+        let breakdownHTML = `<div class="space-y-1 mt-2 max-h-56 overflow-y-auto custom-scroll pr-1">`;
+        targetIds.forEach(eId => {
+            const enemyHero = heroesDB.find(x => x.id === eId);
+            const lostToStats = specificCounterStats[eId];
+            if (!lostToStats || Object.keys(lostToStats).length === 0) return;
+            const topKillerId = Object.keys(lostToStats).sort((a,b) => lostToStats[b] - lostToStats[a])[0];
+            const topKiller = heroesDB.find(x => x.id === topKillerId);
+            const killCount = lostToStats[topKillerId];
+            if (topKiller) {
+                breakdownHTML += `
+                    <div class="flex justify-between items-center bg-[#1f2937] p-2 rounded border border-gray-700/50 text-[10px]">
+                        <div class="flex items-center gap-2">
+                            <img src="${enemyHero?.img}" class="w-10 h-10 rounded border border-red-500/50 opacity-80 object-cover">
+                            <span class="text-red-300 w-16 truncate">${enemyHero?.name}</span>
+                        </div>
+                        <div class="text-gray-600 font-bold text-xs">แพ้ให้</div>
+                        <div class="flex items-center gap-2 justify-end">
+                            <span class="text-green-300 w-16 truncate text-right">${topKiller.name}</span>
+                            <div class="relative">
+                                <img src="${topKiller.img}" class="w-10 h-10 rounded border border-green-500/50 object-cover">
+                                <div class="absolute -top-1 -right-1 bg-green-900 text-[8px] px-1.5 rounded-full text-white border border-green-700 font-bold shadow-sm">${killCount}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        breakdownHTML += `</div>`;
+
+        // 🟢 4. SMART COMBO (Winning Sequence from Combined Data)
+        let comboHTML = '';
+        if (myDraftIds.length > 0) {
+            const sortedSeqs = Object.entries(teamSequenceStats).sort((a,b) => b[1] - a[1]);
+            
+            if (sortedSeqs.length > 0) {
+                const bestSeqStr = sortedSeqs[0][0]; 
+                const winCount = sortedSeqs[0][1];
+                
+                const stepsHTML = bestSeqStr.split('|').map((step, idx) => {
+                    const [hid, sNum] = step.split(':');
+                    const hero = heroesDB.find(h => h.id === hid);
+                    const label = sNum === '1' ? 'ล่าง' : 'บน';
+                    const colorClass = sNum === '1' ? 'bg-blue-600' : 'bg-yellow-500 text-black';
+                    return `
+                        <div class="flex flex-col items-center relative group mx-1">
+                            <div class="absolute -top-2 -left-2 bg-gray-800 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-gray-500 font-bold z-20 shadow-md">${idx+1}</div>
+                            <div class="relative w-12 h-12 rounded-xl border-2 border-gray-600 bg-black shadow-lg overflow-hidden">
+                                <img src="${hero?.img}" class="w-full h-full object-cover opacity-90">
+                            </div>
+                            <div class="${colorClass} text-[9px] font-bold px-2 py-0.5 rounded -mt-2.5 z-10 shadow-lg border uppercase tracking-wider relative">${label}</div>
+                        </div>
+                    `;
+                }).join('<div class="text-gray-500 mx-1 text-xl font-bold">➜</div>');
+
+                comboHTML = `
+                    <div class="bg-gradient-to-r from-blue-900/20 to-purple-900/20 p-4 rounded-2xl border border-blue-500/30 mt-4 shadow-inner">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg">💎</span>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] text-blue-300 font-bold uppercase tracking-widest leading-none">Best Winning Sequence</span>
+                                    <span class="text-[8px] text-gray-400 leading-none mt-0.5">Top 3 skills form ${winCount} successful matches</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center bg-[#0b0e14]/60 p-3 rounded-xl border border-gray-700/50">
+                            ${stepsHTML}
+                        </div>
+                    </div>
+                `;
+            } else {
+                comboHTML = `<div class="text-center text-[10px] text-gray-600 mt-4 py-3 border-2 border-dashed border-gray-800 rounded-xl">No combined history found for this draft</div>`;
+            }
+        } else {
+            comboHTML = `<div class="text-center text-[10px] text-gray-500 mt-4 py-2">เลือกตัวละครเพื่อดู Combo</div>`;
+        }
+
+        // 5. INDIVIDUAL SKILL (Skill Priority from Combined Data)
+        let skillRecHTML = '';
+        if (myDraftIds.length > 0) {
+            const listItems = myDraftIds.map(mid => {
+                const pref = skillPreference[mid];
+                const hero = heroesDB.find(h => h.id === mid);
+                
+                if (!pref || (pref.s1 === 0 && pref.s2 === 0)) return null;
+
+                const total = pref.s1 + pref.s2;
+                const s1Per = (pref.s1 / total) * 100;
+                const isS1Better = s1Per >= 50;
+                const label = isS1Better ? 'ล่าง' : 'บน';
+                const percent = isS1Better ? s1Per : (100 - s1Per);
+                const color = isS1Better ? 'bg-blue-600' : 'bg-yellow-500 text-black';
+
+                return `
+                    <div class="flex items-center justify-between bg-[#1f2937] p-2 rounded border border-gray-700 mb-1">
+                        <div class="flex items-center gap-2">
+                            <img src="${hero.img}" class="w-10 h-10 rounded border border-gray-600 bg-black object-cover">
+                            <span class="text-[10px] text-gray-300 font-bold">${hero.name}</span>
+                        </div>
+                        <div class="${color} text-[8px] font-bold px-2 py-1 rounded shadow min-w-[50px] text-center">
+                            ${label} ${percent.toFixed(0)}%
+                        </div>
+                    </div>
+                `;
+            }).filter(x=>x).join('');
+
+            if (listItems) {
+                skillRecHTML = `
+                    <div class="mt-4">
+                        <div class="text-[10px] text-purple-400 font-bold uppercase mb-2">⚡ Individual Priority (รวมทุกแมตช์)</div>
+                        <div class="space-y-1 max-h-48 overflow-y-auto custom-scroll pr-1">${listItems}</div>
+                    </div>
+                `;
+            }
+        }
+
+        // --- RENDER FINAL ---
+        panel.innerHTML = `
+            <div class="flex items-center gap-3 mb-4 pb-3 border-b border-gray-700">
+                <div class="bg-indigo-900/20 p-2 rounded-full border border-indigo-500/50">
+                    <span class="text-2xl">🌍</span>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Unified Analysis</div>
+                    <div class="text-[10px] text-gray-400">Merged data from ${totalRelevantLogs} target defeats</div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                
+                <div class="flex justify-between items-center bg-[#0d1117] p-3 rounded-xl border border-gray-700">
+                    <span class="text-xs text-gray-400 uppercase">Target Defeats</span>
+                    <div class="text-right">
+                        <span class="text-2xl font-black text-white">${totalDefeats}</span>
+                        <span class="text-[9px] text-gray-500 block">times recorded</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-[10px] text-blue-400 font-bold uppercase mb-2">🏆 Top Winners (ใครชนะทีมนี้บ่อยสุด)</div>
+                    <div class="flex gap-2 bg-[#0d1117] p-2 rounded-lg border border-gray-700 overflow-x-auto min-h-[60px] items-center custom-scroll">
+                        ${bestHeroesHTML || '<span class="text-[10px] text-gray-600 w-full text-center">No Data</span>'}
+                    </div>
+                </div>
+
+                ${comboHTML}
+
+                ${skillRecHTML}
+
+                <div>
+                    <div class="text-[10px] text-orange-400 font-bold uppercase border-b border-gray-700 pb-1 flex justify-between mt-4">
+                        <span>⚡ Weakness Analysis</span>
+                    </div>
+                    ${breakdownHTML}
+                </div>
+            </div>
+        `;
+    }
+
+    // 4. Reset
+    function resetPreparation() {
+        if(confirm("ล้างข้อมูลจำลองทั้งหมด?")) {
+            prepData.enemy = { id: 'PREP-ENEMY', name: 'Simulated Enemy', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] };
+            prepData.my = { id: 'PREP-MY', name: 'My Draft Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] };
+            renderPreparation();
+        }
+    }
+
+    // ==========================================
+    // ⚔️ BATTLE WAR (MANUAL RECORDER) LOGIC
+    // ==========================================
+
+    function renderBattleWar() {
+        // 1. Render Enemy (ใช้ generateSimCardHTML เดิม)
+        const enemyHTML = generateSimCardHTML(battleWarData.enemy, 'BW-ENEMY', false, false); // false, false = ไม่ใช่ฝ่ายบุก, แก้ไขได้
+        document.getElementById('bw-enemy-area').innerHTML = enemyHTML;
+
+        // 2. Render My Team
+        const myHTML = generateSimCardHTML(battleWarData.my, 'BW-MY', true, false); // true, false = ฝ่ายบุก, แก้ไขได้
+        document.getElementById('bw-my-area').innerHTML = myHTML;
+    }
+
+    async function recordBattleWarResult(result) {
+        const myTeam = battleWarData.my;
+        const enemyTeam = battleWarData.enemy;
+        
+        // 1. Validation Checks
+        const hasMy = Object.values(myTeam.slots).some(s=>s!==null);
+        const hasEnemy = Object.values(enemyTeam.slots).some(s=>s!==null);
+        if(!hasMy || !hasEnemy) return alert("⚠️ กรุณาจัดทีมให้ครบทั้ง 2 ฝั่ง");
+
+        if(!confirm(`บันทึกผล: ${result}?`)) return;
+        showLoading("Saving...");
+
+        // 2. Create Record Data
+        const createLogData = (teamSource) => {
+            let data=[], ids=[];
+            for(let i=0; i<5; i++) {
+                const s = teamSource.slots[i];
+                if(s) {
+                    const h = heroesDB.find(x=>x.id===s.id);
+                    data.push({ id:s.id, star:s.star||0, type: h?h.type:'Unknown', ring:s.ring||null });
+                    ids.push(s.id);
+                }
+            }
+            return {data, ids};
+        };
+        const myLog = createLogData(myTeam);
+        const enemyLog = createLogData(enemyTeam);
+
+        const record = {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            date: new Date().toLocaleString('th-TH'),
+            castle: 'Manual', castleSlot: '-', castleKey: 'MANUAL',
+            myTeamId: 'MANUAL-MY', myTeamName: myTeam.name,
+            playerData: myLog.data, enemyData: enemyLog.data,
+            playerIds: myLog.ids, enemyIds: enemyLog.ids,
+            enemySignature: enemyLog.ids.sort().join(','),
+            myTeamStars: calculateTotalTeamStars(myTeam),
+            enemyTeamStars: calculateTotalTeamStars(enemyTeam),
+            skillQueue: myTeam.skillQueue||[], enemySkillQueue: enemyTeam.skillQueue||[],
+            enemyName: (enemyTeam.name && enemyTeam.name.trim()!=='') ? enemyTeam.name : "Unknown Enemy",
+            status: result, result: result
+        };
+
+        // 3. Save to History
+        battleHistoryDB.unshift(record);
+        if(battleHistoryDB.length > 500) battleHistoryDB.pop();
+
+        await pushData();
+
+        // 4. Update Logs UI
+        renderBattleWarLogs();
+
+        // ✅ [เพิ่มส่วนนี้] 5. Clear Battle War Data (Reset Forms)
+        battleWarData.enemy = { 
+            id: 'BW-ENEMY', 
+            name: 'Enemy Team', 
+            formation: 'basic', 
+            slots: {0:null,1:null,2:null,3:null,4:null}, 
+            pet: null, 
+            skillQueue: [] 
+        };
+        
+        battleWarData.my = { 
+            id: 'BW-MY', 
+            name: 'My Team', 
+            formation: 'basic', 
+            slots: {0:null,1:null,2:null,3:null,4:null}, 
+            pet: null, 
+            skillQueue: [] 
+        };
+
+        // สั่งวาดหน้าจอใหม่ (จะเห็นเป็นหน้าโล่งๆ)
+        renderBattleWar();
+
+        hideLoading();
+    }
+
+    function renderBattleWar() {
+        const enemyHTML = generateSimCardHTML(battleWarData.enemy, 'BW-ENEMY', false, false);
+        document.getElementById('bw-enemy-area').innerHTML = enemyHTML;
+
+        const myHTML = generateSimCardHTML(battleWarData.my, 'BW-MY', true, false);
+        document.getElementById('bw-my-area').innerHTML = myHTML;
+
+        renderBattleWarLogs(); // เรียก Log มาแสดงด้วย
+    }
+
+    function renderBattleWarLogs() {
+        const container = document.getElementById('bw-logs-list');
+        const countLabel = document.getElementById('bw-log-count');
+        if (!container) return;
+
+        if(countLabel) countLabel.innerText = `(${battleHistoryDB.length})`;
+
+        if (battleHistoryDB.length === 0) {
+            container.innerHTML = `<div class="text-center text-gray-600 py-8 border-2 border-dashed border-gray-800 rounded-xl">ยังไม่มีข้อมูลประวัติการต่อสู้</div>`;
+            return;
+        }
+
+        const html = battleHistoryDB.map(log => {
+            const isWin = log.result === 'Win' || log.status === 'Win';
+            const statusColor = isWin ? 'border-green-900/50 bg-green-900/5' : 'border-red-900/50 bg-red-900/5';
+            const badge = isWin ? '🏆 WIN' : '💀 LOSE';
+            
+            const genIcons = (data, gray) => {
+                if(!data) return '';
+                return data.map(p => {
+                    const h = heroesDB.find(x => x.id === p.id);
+                    return h ? `<img src="${h.img}" class="w-6 h-6 rounded border border-gray-700 bg-black ${gray?'grayscale opacity-70':''}">` : '';
+                }).join('');
+            };
+
+            return `
+                <div class="flex items-center justify-between p-3 rounded-lg border ${statusColor} bg-[#161b22] mb-2">
+                    <div class="flex flex-col w-20 flex-shrink-0">
+                        <span class="text-[10px] text-gray-500">${log.date.split(' ')[1] || log.date}</span>
+                        <span class="${isWin?'text-green-400':'text-red-400'} font-bold text-xs">${badge}</span>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center gap-4 px-2">
+                        <div class="flex gap-0.5">${genIcons(log.playerData, false)}</div>
+                        <span class="text-gray-700 text-xs font-bold">VS</span>
+                        <div class="flex gap-0.5">${genIcons(log.enemyData, true)}</div>
+                    </div>
+                    <div class="w-24 text-right flex flex-col justify-center">
+                        <span class="text-xs text-gray-300 font-bold truncate">${log.enemyName || 'Unknown'}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        container.innerHTML = html;
+    }
+
+    async function recordBattleWarResult(result) {
+        const myTeam = battleWarData.my;
+        const enemyTeam = battleWarData.enemy;
+        
+        // Check Heroes
+        const hasMy = Object.values(myTeam.slots).some(s=>s!==null);
+        const hasEnemy = Object.values(enemyTeam.slots).some(s=>s!==null);
+        if(!hasMy || !hasEnemy) return alert("⚠️ กรุณาจัดทีมให้ครบทั้ง 2 ฝั่ง");
+
+        if(!confirm(`บันทึกผล: ${result}?`)) return;
+        showLoading("Saving...");
+
+        // Create Record
+        const createLogData = (teamSource) => {
+            let data=[], ids=[];
+            for(let i=0; i<5; i++) {
+                const s = teamSource.slots[i];
+                if(s) {
+                    const h = heroesDB.find(x=>x.id===s.id);
+                    data.push({ id:s.id, star:s.star||0, type: h?h.type:'Unknown', ring:s.ring||null });
+                    ids.push(s.id);
+                }
+            }
+            return {data, ids};
+        };
+        const myLog = createLogData(myTeam);
+        const enemyLog = createLogData(enemyTeam);
+
+        const record = {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            date: new Date().toLocaleString('th-TH'),
+            castle: 'Manual', castleSlot: '-', castleKey: 'MANUAL',
+            myTeamId: 'MANUAL-MY', myTeamName: myTeam.name,
+            playerData: myLog.data, enemyData: enemyLog.data,
+            playerIds: myLog.ids, enemyIds: enemyLog.ids,
+            enemySignature: enemyLog.ids.sort().join(','),
+            myTeamStars: calculateTotalTeamStars(myTeam),
+            enemyTeamStars: calculateTotalTeamStars(enemyTeam),
+            skillQueue: myTeam.skillQueue||[], enemySkillQueue: enemyTeam.skillQueue||[],
+            enemyName: (enemyTeam.name && enemyTeam.name.trim()!=='') ? enemyTeam.name : "Unknown Enemy",
+            status: result, result: result
+        };
+
+        battleHistoryDB.unshift(record);
+        if(battleHistoryDB.length > 500) battleHistoryDB.pop();
+
+        await pushData();
+        renderBattleWarLogs();
+        hideLoading();
+    }
+
+    function renderFullHistory() {
+        const container = document.getElementById('full-history-list');
+        const countLabel = document.getElementById('history-total-count');
+        
+        if (!container) return;
+        if (countLabel) countLabel.innerText = `(${battleHistoryDB.length})`;
+
+        if (battleHistoryDB.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-20 text-gray-600 border-2 border-dashed border-gray-800 rounded-xl bg-[#111827]/50">
+                    <span class="text-4xl mb-4 opacity-30">📭</span>
+                    <span class="text-lg">ยังไม่มีข้อมูลประวัติการต่อสู้</span>
+                    <span class="text-xs mt-2">ไปที่เมนู "Battle War" เพื่อบันทึกข้อมูล</span>
+                </div>`;
+            return;
+        }
+
+        // Generate HTML
+        const html = battleHistoryDB.map((log, index) => {
+            const isWin = log.result === 'Win' || log.status === 'Win';
+            const statusColor = isWin ? 'border-l-4 border-l-green-500 border-gray-700' : 'border-l-4 border-l-red-500 border-gray-700';
+            const badgeClass = isWin ? 'text-green-400 bg-green-900/20 border-green-800' : 'text-red-400 bg-red-900/20 border-red-800';
+            const badgeText = isWin ? 'VICTORY' : 'DEFEAT';
+
+            // Helper: Icon
+            const genIcons = (data, isGray) => {
+                if(!data) return '';
+                return data.map(p => {
+                    const h = heroesDB.find(x => x.id === p.id);
+                    // ใส่ดาวด้วย
+                    const starBadge = p.star > 0 ? `<div class="absolute -bottom-1 -right-1 bg-black text-yellow-500 text-[8px] px-1 rounded border border-gray-700 font-bold leading-none z-10">${p.star}</div>` : '';
+                    
+                    return h ? `
+                        <div class="relative w-8 h-8 rounded border border-gray-600 bg-black group/icon" title="${h.name}">
+                            <img src="${h.img}" class="w-full h-full object-cover opacity-90 ${isGray?'grayscale-[0.5]':''}">
+                            ${starBadge}
+                        </div>` : '';
+                }).join('');
+            };
+
+            return `
+                <div class="bg-[#161b22] rounded-lg border ${statusColor} p-4 shadow-md hover:bg-[#1f2937] transition relative group">
+                    <div class="flex flex-col md:flex-row items-center gap-4">
+                        
+                        <div class="flex flex-col items-center md:items-start w-24 flex-shrink-0">
+                            <span class="text-[10px] text-gray-500 font-mono mb-1">${log.date}</span>
+                            <span class="px-2 py-0.5 rounded border text-[10px] font-bold tracking-wider ${badgeClass}">${badgeText}</span>
+                        </div>
+
+                        <div class="flex-1 flex items-center justify-center gap-4 bg-[#0d1117]/50 p-2 rounded-lg border border-white/5 w-full md:w-auto">
+                            <div class="flex items-center gap-1">
+                                ${genIcons(log.playerData, false)}
+                            </div>
+                            
+                            <div class="text-gray-600 font-black text-lg italic px-2">VS</div>
+                            
+                            <div class="flex items-center gap-1">
+                                ${genIcons(log.enemyData, true)}
+                            </div>
+                        </div>
+
+                        <div class="w-32 text-center md:text-right flex-shrink-0">
+                            <div class="text-xs text-gray-400 font-bold uppercase mb-1">Opponent</div>
+                            <div class="text-sm text-white font-bold truncate">${log.enemyName || 'Unknown'}</div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="absolute top-1 right-2 text-[9px] text-gray-700 opacity-0 group-hover:opacity-100 transition">#${index+1}</div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+    }
     </script>
 </body>
 </html>
