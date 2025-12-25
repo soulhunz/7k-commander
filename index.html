@@ -12,6 +12,8 @@
         .no-scroll::-webkit-scrollbar { width: 6px; }
         .no-scroll::-webkit-scrollbar-track { background: #111827; }
         .no-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+        .writing-vertical { writing-mode: vertical-rl; text-orientation: mixed; }
         
         /* Sidebar */
         .sidebar { background: #111827; border-right: 1px solid #1f2937; }
@@ -1546,6 +1548,64 @@
         </div>
     </div>
 
+    <div class="fixed bottom-8 right-8 z-50">
+        <button onclick="openRecorder()" class="bg-gradient-to-br from-indigo-600 to-violet-700 hover:scale-110 text-white shadow-2xl shadow-indigo-900/50 rounded-full w-20 h-20 flex items-center justify-center text-4xl transition-all border-2 border-white/20">
+            📝
+        </button>
+    </div>
+
+    <div id="recorderModal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex flex-col">
+        
+        <div class="px-8 py-5 border-b border-gray-800 bg-gray-900 flex justify-between items-center shadow-lg flex-shrink-0">
+            <div class="flex items-center gap-6">
+                <h2 class="text-3xl font-bold text-white flex items-center gap-3">
+                    <span class="text-indigo-400">⚡</span> Battle Recorder <span class="text-xs bg-indigo-900 text-indigo-300 px-3 py-1 rounded-full border border-indigo-700">V8 Split Queue</span>
+                </h2>
+                <button onclick="addNewRow()" class="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-5 py-2.5 rounded-lg border border-green-400/30 transition-all shadow-lg hover:shadow-green-900/40">
+                    <span class="text-lg">+</span> เพิ่มแถวใหม่
+                </button>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="saveAllMatches()" class="px-8 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 text-base flex items-center gap-3 transition-transform active:scale-95">
+                    💾 บันทึกทั้งหมด (<span id="rowCountBadge">0</span>)
+                </button>
+                <button onclick="closeRecorder()" class="text-gray-500 hover:text-white text-4xl w-10 h-10 flex items-center justify-center">&times;</button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-auto p-6 bg-[#0b0e14]">
+            <table class="w-full border-collapse border-spacing-0">
+                <thead class="sticky top-0 bg-[#0b0e14] z-10 shadow-md">
+                    <tr class="text-sm uppercase tracking-wider text-center font-bold">
+                        <th class="w-8 py-4 text-gray-600">#</th>
+                        
+                        <th class="w-12 text-green-500/50 text-[10px]">My Q<br>(Max 3)</th>
+
+                        <th class="w-[35%] text-right pr-4 bg-gradient-to-r from-transparent to-green-900/20 border-b-2 border-green-600 text-green-400">
+                            <span class="mr-2 text-lg">🏆</span> My Team (WINNER)
+                        </th>
+                        
+                        <th class="w-8"></th>
+                        
+                        <th class="w-[35%] text-left pl-4 bg-gradient-to-l from-transparent to-red-900/10 border-b-2 border-red-800/50 text-red-400/70">
+                            Enemy Team (DEFEATED) <span class="ml-2 text-lg">💀</span>
+                        </th>
+                        
+                        <th class="w-12 text-red-500/50 text-[10px]">Enemy Q<br>(Max 3)</th>
+
+                        <th class="w-10"></th>
+                    </tr>
+                </thead>
+                <tbody id="recorderRows" class="space-y-4">
+                    </tbody>
+            </table>
+            
+            <div id="emptyState" class="text-center py-24 text-gray-500 hidden">
+                <p class="text-xl">กดปุ่ม "+ เพิ่มแถวใหม่" ด้านบนเพื่อเริ่มกรอกข้อมูล</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
@@ -1570,6 +1630,16 @@
             enemy: { id: 'PREP-ENEMY', name: 'Simulated Enemy', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] },
             my: { id: 'PREP-MY', name: 'My Draft Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] }
         };
+
+        let pendingMatches = []; // Array to store row data objects
+
+        // Formations Options
+        const formations = [
+            { id: "Basic", name: "B3/F2" },
+            { id: "Balance", name: "B2/F3" },
+            { id: "Attack", name: "B4/F1" },
+            { id: "Defensive", name: "B1/F4" }
+        ];
 
         // --- LOGIN SYSTEM ---
         let CURRENT_USER = null; // เก็บข้อมูลผู้ใช้ปัจจุบัน
@@ -8701,6 +8771,286 @@
         }).join('');
 
         container.innerHTML = html;
+    }
+
+   function openRecorder() {
+        document.getElementById('recorderModal').classList.remove('hidden');
+        if (pendingMatches.length === 0) addNewRow();
+    }
+
+    function closeRecorder() {
+        document.getElementById('recorderModal').classList.add('hidden');
+    }
+
+    function addNewRow() {
+        const rowId = Date.now() + Math.random().toString(36).substr(2, 5);
+        pendingMatches.push({
+            rowId: rowId,
+            myFormation: "Back-2_Front-1",
+            enemyFormation: "Back-2_Front-1",
+            myHeroes: [null, null, null],
+            enemyHeroes: [null, null, null],
+            myPet: null,
+            enemyPet: null,
+            skillQueue: []
+        });
+        renderRows();
+    }
+
+    function removeRow(rowId) {
+        pendingMatches = pendingMatches.filter(m => m.rowId !== rowId);
+        renderRows();
+    }
+
+    function updateFormation(rowId, team, value) {
+        const match = pendingMatches.find(m => m.rowId === rowId);
+        if (match) match[`${team}Formation`] = value;
+    }
+
+    // --- RENDER LOGIC ---
+
+    function renderRows() {
+        const container = document.getElementById('recorderRows');
+        document.getElementById('rowCountBadge').innerText = pendingMatches.length;
+
+        if (pendingMatches.length === 0) {
+            container.innerHTML = '';
+            document.getElementById('emptyState').classList.remove('hidden');
+            return;
+        }
+        document.getElementById('emptyState').classList.add('hidden');
+
+        container.innerHTML = pendingMatches.map((match, idx) => `
+            <tr class="group border-b border-gray-800 hover:bg-gray-900/30 transition-colors">
+                <td class="text-center text-gray-600 font-mono text-lg font-bold py-6">${idx + 1}</td>
+
+                <td class="py-2 px-1 align-middle border-r border-gray-800 bg-green-900/5">
+                    <div class="flex flex-col gap-2 items-center min-h-[60px] w-full">
+                        ${renderTeamQueue(match, 'my')}
+                    </div>
+                </td>
+
+                <td class="py-4 pr-4 bg-green-900/5 relative">
+                     <div class="absolute inset-y-0 right-0 w-1 bg-green-500/30"></div>
+                    <div class="flex items-center justify-end gap-3">
+                         <select onchange="updateFormation('${match.rowId}', 'my', this.value)" class="bg-transparent text-green-300/70 text-[11px] border border-green-800/30 rounded h-[85px] w-6 px-0.5 appearance-none text-center focus:outline-none hover:bg-green-900/20 cursor-pointer writing-vertical font-semibold transition-colors">
+                            ${formations.map(f => `<option value="${f.id}" ${match.myFormation === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}
+                        </select>
+                        ${[0, 1, 2].map(i => renderHeroSlot(match, 'my', i, 'winner')).join('')}
+                        ${renderPetSlot(match, 'my', 'winner')}
+                    </div>
+                </td>
+
+                <td class="py-4 px-0 text-center relative z-20">
+                    <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center mx-auto shadow-lg">
+                        <span class="text-[10px] text-gray-400 font-bold">VS</span>
+                    </div>
+                </td>
+
+                <td class="py-4 pl-4 bg-red-900/5 relative">
+                     <div class="absolute inset-y-0 left-0 w-1 bg-red-800/20"></div>
+                    <div class="flex items-center justify-start gap-3">
+                        ${[0, 1, 2].map(i => renderHeroSlot(match, 'enemy', i, 'loser')).join('')}
+                        ${renderPetSlot(match, 'enemy', 'loser')}
+                         <select onchange="updateFormation('${match.rowId}', 'enemy', this.value)" class="bg-transparent text-red-300/50 text-[11px] border border-red-900/30 rounded h-[85px] w-6 px-0.5 appearance-none text-center focus:outline-none hover:bg-red-900/20 cursor-pointer writing-vertical font-semibold transition-colors">
+                            ${formations.map(f => `<option value="${f.id}" ${match.enemyFormation === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}
+                        </select>
+                    </div>
+                </td>
+
+                <td class="py-2 px-1 align-middle border-l border-gray-800 bg-red-900/5">
+                    <div class="flex flex-col gap-2 items-center min-h-[60px] w-full">
+                        ${renderTeamQueue(match, 'enemy')}
+                    </div>
+                </td>
+
+                <td class="text-center">
+                    <button onclick="removeRow('${match.rowId}')" class="text-gray-700 hover:text-red-500 transition-colors p-2 text-2xl">&times;</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // --- RENDER QUEUE (SPLIT) ---
+
+    function renderTeamQueue(match, team) {
+        // Filter skills for this team only
+        const teamSkills = match.skillQueue
+            .map((code, originalIdx) => ({ code, originalIdx }))
+            .filter(item => item.code.startsWith(team + '-'));
+
+        if (teamSkills.length === 0) {
+            return `<div class="w-8 h-8 rounded-full border border-dashed border-gray-700 flex items-center justify-center opacity-30 text-[9px] text-gray-500">1</div>
+                    <div class="w-8 h-8 rounded-full border border-dashed border-gray-700 flex items-center justify-center opacity-20 text-[9px] text-gray-500">2</div>
+                    <div class="w-8 h-8 rounded-full border border-dashed border-gray-700 flex items-center justify-center opacity-10 text-[9px] text-gray-500">3</div>`;
+        }
+
+        return teamSkills.map((item, idx) => {
+            const parts = item.code.split('-'); // team-slot-skill
+            const slot = parseInt(parts[1]);
+            const skill = parts[2];
+            const hero = team === 'my' ? match.myHeroes[slot] : match.enemyHeroes[slot];
+            const ringColor = team === 'my' ? 'ring-green-500' : 'ring-red-500';
+            const shadowColor = team === 'my' ? 'shadow-green-500/20' : 'shadow-red-500/20';
+
+            return `
+                <div onclick="removeSkill('${match.rowId}', ${item.originalIdx})" class="cursor-pointer relative w-8 h-8 rounded-full border border-black overflow-hidden shadow-lg ${shadowColor} hover:scale-110 transition-transform ring-2 ${ringColor}" title="Remove S${skill}">
+                    <img src="${hero ? hero.img : ''}" class="w-full h-full object-cover opacity-80">
+                    <div class="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold bg-black/40 backdrop-blur-[1px]">
+                        ${skill === '1' ? '▲' : '▼'}
+                    </div>
+                    <div class="absolute -top-1 -right-1 w-3 h-3 bg-black rounded-full flex items-center justify-center text-[7px] text-gray-300 border border-gray-600">
+                        ${idx + 1}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // --- COMPONENTS (HERO & PET) ---
+
+    function renderPetSlot(match, team, style) {
+        const pet = team === 'my' ? match.myPet : match.enemyPet;
+        const borderColor = style === 'winner' ? 'border-yellow-600/60' : 'border-red-900/40';
+        const ringColor = style === 'winner' ? 'ring-yellow-500/20' : 'ring-red-900/10';
+        const inputId = `pet-input-${match.rowId}-${team}`;
+        const listId = `pet-list-${match.rowId}-${team}`;
+
+        return `
+            <div class="relative w-[90px] h-[90px] flex-shrink-0 flex flex-col items-center justify-center group">
+                <div class="w-16 h-16 rounded-full border-2 ${borderColor} bg-gray-900 overflow-hidden relative shadow-lg ring-4 ${ringColor} transition-transform group-hover:scale-105">
+                    ${pet ? `<img src="${pet.img}" class="w-full h-full object-cover opacity-90 group-hover:opacity-50 transition-opacity">` : `<span class="absolute inset-0 flex items-center justify-center text-2xl text-gray-700 opacity-50">🐾</span>`}
+                    <input type="text" id="${inputId}" class="absolute inset-0 w-full h-full bg-transparent text-center text-xs text-white placeholder-transparent focus:placeholder-gray-500 focus:bg-black/80 focus:outline-none z-10 font-bold" placeholder="Pet" autocomplete="off" value="${pet ? pet.name : ''}" oninput="handlePetSearch(this, '${match.rowId}', '${team}')" onkeydown="handlePetKeyNav(event, '${match.rowId}', '${team}')" onfocus="this.select()">
+                </div>
+                <span class="text-[10px] ${style === 'winner' ? 'text-yellow-500/70' : 'text-gray-600'} mt-2 truncate max-w-full font-medium tracking-wide">${pet ? pet.name : 'Pet'}</span>
+                <div id="${listId}" class="absolute top-16 left-0 w-32 bg-gray-800 border border-gray-600 rounded-lg mt-2 max-h-40 overflow-y-auto hidden z-50 shadow-2xl"></div>
+            </div>
+        `;
+    }
+
+    function renderHeroSlot(match, team, index, style) {
+        const hero = team === 'my' ? match.myHeroes[index] : match.enemyHeroes[index];
+        const borderColor = style === 'winner' ? 'border-green-600/40' : 'border-red-900/30';
+        const bgColor = style === 'winner' ? 'bg-green-900/10' : 'bg-red-900/5';
+        const textColor = style === 'winner' ? 'text-green-100' : 'text-red-100/70';
+        const inputId = `input-${match.rowId}-${team}-${index}`;
+        const listId = `list-${match.rowId}-${team}-${index}`;
+
+        return `
+            <div class="relative w-[90px] flex-shrink-0 flex flex-col gap-1 ${bgColor} p-1.5 rounded-lg border ${borderColor} hover:border-opacity-100 transition-colors shadow-sm">
+                <div class="w-full h-[60px] bg-black rounded overflow-hidden relative border border-gray-700 group/img shadow-inner">
+                    ${hero ? `<img src="${hero.img}" class="w-full h-full object-cover opacity-80">` : `<span class="absolute inset-0 flex items-center justify-center text-gray-800 text-sm font-bold">${index+1}</span>`}
+                    <input type="text" id="${inputId}" value="${hero ? hero.name : ''}" class="absolute bottom-0 left-0 w-full bg-black/70 text-center ${textColor} text-[11px] h-6 focus:h-full focus:bg-gray-900 transition-all focus:outline-none placeholder-gray-600 border-none font-medium" placeholder="Hero..." autocomplete="off" oninput="handleHeroSearch(this, '${match.rowId}', '${team}', ${index})" onkeydown="handleKeyNav(event, '${match.rowId}', '${team}', ${index})" onfocus="this.select()">
+                </div>
+                <div id="${listId}" class="absolute top-16 left-0 w-40 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl z-50 hidden max-h-48 overflow-y-auto"></div>
+                <div class="flex gap-0.5 ${!hero ? 'opacity-20 pointer-events-none' : ''}">
+                    <button onclick="addSkill('${match.rowId}', '${team}', ${index}, 1)" class="flex-1 bg-gray-800 hover:bg-gray-600 text-[10px] h-5 rounded-l text-gray-400 hover:text-white border border-gray-700 transition-colors font-bold">▲</button>
+                    <button onclick="addSkill('${match.rowId}', '${team}', ${index}, 2)" class="flex-1 bg-gray-800 hover:bg-gray-600 text-[10px] h-5 rounded-r text-gray-400 hover:text-white border border-gray-700 transition-colors font-bold">▼</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- SEARCH & NAV ---
+    function handleHeroSearch(input, rowId, team, index) {
+        const query = input.value.toLowerCase();
+        const listEl = document.getElementById(`list-${rowId}-${team}-${index}`);
+        if (query.length < 1) { listEl.classList.add('hidden'); return; }
+        const matches = heroesDB.filter(h => h.name.toLowerCase().includes(query)).slice(0, 5);
+        if (matches.length > 0) {
+            listEl.innerHTML = matches.map(h => `<div class="p-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3 border-b border-gray-700/50 last:border-0" onclick="selectHero('${rowId}', '${team}', ${index}, '${h.id}')"><img src="${h.img}" class="w-8 h-8 rounded-md object-cover bg-black"><span class="text-sm text-gray-200 font-medium">${h.name}</span></div>`).join('');
+            listEl.classList.remove('hidden');
+        } else { listEl.classList.add('hidden'); }
+    }
+    function handlePetSearch(input, rowId, team) {
+        const query = input.value.toLowerCase();
+        const listEl = document.getElementById(`pet-list-${rowId}-${team}`);
+        if (query.length < 1) { listEl.classList.add('hidden'); return; }
+        const matches = petsDB.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3);
+        if (matches.length > 0) {
+            listEl.innerHTML = matches.map(p => `<div class="p-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3 border-b border-gray-700/50 last:border-0" onclick="selectPet('${rowId}', '${team}', '${p.id}')"><img src="${p.img}" class="w-8 h-8 rounded-full object-cover bg-black border border-gray-600"><span class="text-sm text-gray-200 font-medium">${p.name}</span></div>`).join('');
+            listEl.classList.remove('hidden');
+        } else { listEl.classList.add('hidden'); }
+    }
+    function selectHero(rowId, team, index, heroId) {
+        const match = pendingMatches.find(m => m.rowId === rowId);
+        const hero = heroesDB.find(h => h.id == heroId);
+        if (match && hero) { team === 'my' ? match.myHeroes[index] = hero : match.enemyHeroes[index] = hero; }
+        renderRows();
+        setTimeout(() => { document.getElementById(index < 2 ? `input-${rowId}-${team}-${index+1}` : `pet-input-${rowId}-${team}`)?.focus(); }, 50);
+    }
+    function selectPet(rowId, team, petId) {
+        const match = pendingMatches.find(m => m.rowId === rowId);
+        const pet = petsDB.find(p => p.id == petId);
+        if (match && pet) { team === 'my' ? match.myPet = pet : match.enemyPet = pet; }
+        renderRows();
+        setTimeout(() => { if (team === 'my') document.getElementById(`input-${rowId}-enemy-0`)?.focus(); }, 50);
+    }
+    function handleKeyNav(e, rowId, team, index) { if (e.key === 'Enter') document.getElementById(`list-${rowId}-${team}-${index}`)?.children[0]?.click(); }
+    function handlePetKeyNav(e, rowId, team) { if (e.key === 'Enter') document.getElementById(`pet-list-${rowId}-${team}`)?.children[0]?.click(); }
+
+    // --- SKILL LOGIC (LIMIT 3) ---
+    function addSkill(rowId, team, slot, skillNum) {
+        const match = pendingMatches.find(m => m.rowId === rowId);
+        // Check current count for this team
+        const currentCount = match.skillQueue.filter(s => s.startsWith(team + '-')).length;
+        
+        if (currentCount >= 3) {
+            // Visual feedback could be added here (e.g., shake animation)
+            return; // Block adding
+        }
+
+        match.skillQueue.push(`${team}-${slot}-${skillNum}`);
+        renderRows();
+    }
+    function removeSkill(rowId, idx) {
+        const match = pendingMatches.find(m => m.rowId === rowId);
+        match.skillQueue.splice(idx, 1);
+        renderRows();
+    }
+
+    // --- SAVE LOGIC ---
+    function saveAllMatches() {
+        if (pendingMatches.length === 0) return;
+        const timestampStart = Date.now();
+        const newHistoryItems = pendingMatches.map((match, idx) => {
+            const myTeamClean = match.myHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {});
+            const enemyTeamClean = match.enemyHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {});
+            const myPetData = match.myPet ? { id: match.myPet.id, name: match.myPet.name } : null;
+            const enemyPetData = match.enemyPet ? { id: match.enemyPet.id, name: match.enemyPet.name } : null;
+            const myQ = match.skillQueue.filter(c => c.startsWith('my-')).map(c => `${c.split('-')[1]}-${c.split('-')[2]}`);
+            const enemyQ = match.skillQueue.filter(c => c.startsWith('enemy-')).map(c => `${c.split('-')[1]}-${c.split('-')[2]}`);
+
+            return {
+                id: (timestampStart + idx).toString(),
+                timestamp: timestampStart + idx,
+                date: new Date().toLocaleString('th-TH'),
+                castle: "Manual Record",
+                castleSlot: "-",
+                castleKey: "MANUAL",
+                myTeamId: "REC-MY",
+                myTeamName: match.myFormation,
+                playerData: myTeamClean,
+                enemyData: enemyTeamClean,
+                myPet: myPetData,
+                enemyPet: enemyPetData,
+                playerIds: match.myHeroes.map(h => h ? h.id : null),
+                enemyIds: match.enemyHeroes.map(h => h ? h.id : null),
+                skillQueue: myQ,
+                enemySkillQueue: enemyQ,
+                enemyName: "Enemy Team",
+                status: "Win",
+                result: "Win"
+            };
+        });
+
+        if (typeof historyData !== 'undefined') {
+            historyData.unshift(...newHistoryItems.reverse());
+            alert(`บันทึกเรียบร้อย ${newHistoryItems.length} รายการ!`);
+            pendingMatches = [];
+            closeRecorder();
+            location.reload(); 
+        } else { console.error("historyData not found"); }
     }
     </script>
 </body>
