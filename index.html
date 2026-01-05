@@ -13,8 +13,6 @@
         .no-scroll::-webkit-scrollbar-track { background: #111827; }
         .no-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
 
-        .writing-vertical { writing-mode: vertical-rl; text-orientation: mixed; }
-        
         /* Sidebar */
         .sidebar { background: #111827; border-right: 1px solid #1f2937; }
         .menu-item { cursor: pointer; padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; color: #9ca3af; transition: 0.2s; margin-bottom: 2px; display: flex; align-items: center; gap: 10px; }
@@ -203,6 +201,24 @@
         .text-red { color: #ef4444 !important; font-weight: bold; }
         .dmg-fire { color: #fca5a5; font-weight: bold; text-shadow: 0 0 5px rgba(252, 165, 165, 0.5); }
         .dmg-ice { color: #7dd3fc; font-weight: bold; text-shadow: 0 0 5px rgba(125, 211, 252, 0.5); }
+
+        /* --- BATTLE RECORDER STYLES --- */
+        .recorder-table th { font-size: 10px; color: #6b7280; text-transform: uppercase; padding: 4px; }
+        .recorder-input { 
+            width: 100%; background: #0d1117; border: 1px solid #374151; 
+            border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; outline: none;
+        }
+        .recorder-input:focus { border-color: #3b82f6; background: #1f2937; }
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; width: 100%; 
+            background: #1f2937; border: 1px solid #374151; border-radius: 4px; 
+            max-height: 150px; overflow-y: auto; z-index: 50; display: none;
+        }
+        .autocomplete-item {
+            padding: 6px 8px; font-size: 11px; cursor: pointer; color: #d1d5db; display: flex; align-items: center; gap: 8px;
+        }
+        .autocomplete-item:hover, .autocomplete-item.selected { background: #3b82f6; color: white; }
+        .autocomplete-item img { width: 20px; height: 20px; border-radius: 4px; background: black; }
 
         /* ใส่ใน <style> */
         .item-level-badge {
@@ -656,6 +672,55 @@
         .battle-scroll::-webkit-scrollbar { width: 6px; }
         .battle-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
 
+
+        /* --- BATTLE RECORDER: BIG & CENTERED --- */
+        .rec-slot-container {
+            width: 80px;  /* 🟢 ขยายขนาด */
+            height: 80px; /* 🟢 ขยายขนาด */
+            position: relative;
+            background-color: #0d1117;
+            border: 1px solid #374151;
+            border-radius: 12px 12px 0 0; /* โค้งมนขึ้น */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .rec-slot-container:hover { border-color: #3b82f6; transform: translateY(-2px); }
+
+        /* ปุ่มสกิลด้านล่าง */
+        .skill-btn-group {
+            width: 80px; /* 🟢 กว้างเท่ากล่อง */
+            display: flex;
+            border: 1px solid #374151;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+            height: 24px; /* 🟢 สูงขึ้นกดง่าย */
+        }
+
+        .rec-slot-img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; border-radius: 10px 10px 0 0; opacity: 0.8; pointer-events: none;
+        }
+
+        .rec-slot-input {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            background: transparent; border: none; outline: none;
+            text-align: center; color: white; font-weight: bold; font-size: 12px; /* 🟢 ตัวใหญ่ขึ้น */
+            z-index: 10; text-shadow: 0 1px 3px black;
+        }
+        .rec-slot-input:focus { background: rgba(0, 0, 0, 0.85); color: #fbbf24; border-radius: 10px 10px 0 0;}
+        .rec-slot-input::placeholder { color: #6b7280; font-weight: normal; font-size: 11px; }
+
+        /* List รายชื่อใหญ่ขึ้น */
+        .autocomplete-list {
+            top: 85px !important;
+            width: 160px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+        }
     </style>
 </head>
 <body class="flex" onclick="closeContextMenu(); closeTextContextMenu();">
@@ -719,16 +784,17 @@
                 <div class="menu-section-title">Database Manager</div>
                 <div onclick="switchView('hero-manager')" class="menu-item" id="nav-hero-manager">🦸 Heroes</div>
                 <div onclick="switchView('pet-manager')" class="menu-item" id="nav-pet-manager">🐾 Pets</div>
-                <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ Items</div>
+                <!-- <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ Items</div> -->
                 <div onclick="switchView('ring-manager')" class="menu-item" id="nav-ring-manager">💍 Rings</div>
-                <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ Team Sets</div>
+                <!-- <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ Team Sets</div> -->
             </div>
 
-            <div class="my-4 pt-4 border-t border-gray-800">
+            <!-- <div class="my-4 pt-4 border-t border-gray-800">
                 <div class="menu-section-title">War Manager</div>
                 <div onclick="switchView('battle-war')" class="menu-item" id="nav-battle-war">⚔️ Battle War</div>
+                <div onclick="openRecorder()" class="menu-item text-indigo-400" id="nav-battle-record">📝 Battle Record (Multi)</div>
                 <div onclick="switchView('battle-history')" class="menu-item" id="nav-battle-history">📜 Battle History</div>
-            </div>
+            </div> -->
 
             <div id="admin-menu-group" class="mt-4 pt-4 border-t border-gray-800" style="display: none;">
                 <div class="menu-section-title text-red-400">Admin Zone</div>
@@ -1338,6 +1404,43 @@
                 </div>
             </div>
         </div>
+
+        <div id="recorderModal" class="fixed inset-0 bg-[#0b0e14] z-[100] hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg shrink-0">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="text-indigo-400">📝</span> Battle Multi-Recorder
+                    </h2>
+                    <button onclick="addNewRow()" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1">
+                        <span>+</span> เพิ่มแถว (Add Row)
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="saveAllMatches()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-1.5 rounded text-sm font-bold shadow-lg flex items-center gap-2">
+                        <span>💾</span> บันทึกทั้งหมด (<span id="rowCountBadge">0</span>)
+                    </button>
+                    <button onclick="closeRecorder()" class="text-gray-400 hover:text-white font-bold px-4">✕</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-auto p-4 custom-scroll">
+                <table class="w-full border-collapse">
+                    <thead class="sticky top-0 bg-[#0b0e14] z-10 shadow-sm">
+                        <tr>
+                            <th class="w-8">#</th>
+                            <th class="w-20">Format</th>
+                            <th class="bg-blue-900/10 border-b-2 border-blue-600/50" colspan="6">🛡️ My Team (Heroes & Pet)</th>
+                            <th class="w-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recorderRows" class="space-y-2"></tbody>
+                </table>
+                
+                <div id="emptyState" class="text-center py-20 text-gray-600 hidden">
+                    กดปุ่ม "+ เพิ่มแถว" ด้านบนเพื่อเริ่มบันทึกข้อมูล
+                </div>
+            </div>
+        </div>
         
     </main>
     
@@ -1548,64 +1651,6 @@
         </div>
     </div>
 
-    <div class="fixed bottom-8 right-8 z-50">
-        <button onclick="openRecorder()" class="bg-gradient-to-br from-indigo-600 to-violet-700 hover:scale-110 text-white shadow-2xl shadow-indigo-900/50 rounded-full w-20 h-20 flex items-center justify-center text-4xl transition-all border-2 border-white/20">
-            📝
-        </button>
-    </div>
-
-    <div id="recorderModal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] hidden flex flex-col">
-        
-        <div class="px-8 py-5 border-b border-gray-800 bg-gray-900 flex justify-between items-center shadow-lg flex-shrink-0">
-            <div class="flex items-center gap-6">
-                <h2 class="text-3xl font-bold text-white flex items-center gap-3">
-                    <span class="text-indigo-400">⚡</span> Battle Recorder <span class="text-xs bg-indigo-900 text-indigo-300 px-3 py-1 rounded-full border border-indigo-700">V8 Split Queue</span>
-                </h2>
-                <button onclick="addNewRow()" class="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold px-5 py-2.5 rounded-lg border border-green-400/30 transition-all shadow-lg hover:shadow-green-900/40">
-                    <span class="text-lg">+</span> เพิ่มแถวใหม่
-                </button>
-            </div>
-            <div class="flex gap-4">
-                <button onclick="saveAllMatches()" class="px-8 py-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-900/20 text-base flex items-center gap-3 transition-transform active:scale-95">
-                    💾 บันทึกทั้งหมด (<span id="rowCountBadge">0</span>)
-                </button>
-                <button onclick="closeRecorder()" class="text-gray-500 hover:text-white text-4xl w-10 h-10 flex items-center justify-center">&times;</button>
-            </div>
-        </div>
-
-        <div class="flex-1 overflow-auto p-6 bg-[#0b0e14]">
-            <table class="w-full border-collapse border-spacing-0">
-                <thead class="sticky top-0 bg-[#0b0e14] z-10 shadow-md">
-                    <tr class="text-sm uppercase tracking-wider text-center font-bold">
-                        <th class="w-8 py-4 text-gray-600">#</th>
-                        
-                        <th class="w-12 text-green-500/50 text-[10px]">My Q<br>(Max 3)</th>
-
-                        <th class="w-[35%] text-right pr-4 bg-gradient-to-r from-transparent to-green-900/20 border-b-2 border-green-600 text-green-400">
-                            <span class="mr-2 text-lg">🏆</span> My Team (WINNER)
-                        </th>
-                        
-                        <th class="w-8"></th>
-                        
-                        <th class="w-[35%] text-left pl-4 bg-gradient-to-l from-transparent to-red-900/10 border-b-2 border-red-800/50 text-red-400/70">
-                            Enemy Team (DEFEATED) <span class="ml-2 text-lg">💀</span>
-                        </th>
-                        
-                        <th class="w-12 text-red-500/50 text-[10px]">Enemy Q<br>(Max 3)</th>
-
-                        <th class="w-10"></th>
-                    </tr>
-                </thead>
-                <tbody id="recorderRows" class="space-y-4">
-                    </tbody>
-            </table>
-            
-            <div id="emptyState" class="text-center py-24 text-gray-500 hidden">
-                <p class="text-xl">กดปุ่ม "+ เพิ่มแถวใหม่" ด้านบนเพื่อเริ่มกรอกข้อมูล</p>
-            </div>
-        </div>
-    </div>
-
     <script>
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
@@ -1623,6 +1668,15 @@
         let auditLogsDB = []; // เก็บ Log การแก้ไข
         let systemUsersDB = [];
 
+        const formations = [
+            { id: "basic", name: "Basic (B3/F2)" },
+            { id: "balanced", name: "Balance (B2/F3)" },
+            { id: "attack", name: "Attack (B4/F1)" },
+            { id: "defense", name: "Defense (B1/F4)" }
+        ];
+        let pendingMatches = []; // เก็บข้อมูลที่กำลังกรอก
+        let formationOptionsHTML = formations.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+
         let viewingSeasonMode = 'current'; // 'current' หรือ index ของ archive
         let activeHistoryData = [];
 
@@ -1630,16 +1684,6 @@
             enemy: { id: 'PREP-ENEMY', name: 'Simulated Enemy', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] },
             my: { id: 'PREP-MY', name: 'My Draft Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] }
         };
-
-        let pendingMatches = []; // Array to store row data objects
-
-        // Formations Options
-        const formations = [
-            { id: "Basic", name: "B3/F2" },
-            { id: "Balance", name: "B2/F3" },
-            { id: "Attack", name: "B4/F1" },
-            { id: "Defensive", name: "B1/F4" }
-        ];
 
         // --- LOGIN SYSTEM ---
         let CURRENT_USER = null; // เก็บข้อมูลผู้ใช้ปัจจุบัน
@@ -2030,7 +2074,7 @@
             initInteractionDetectors(); // เริ่มระบบจับการเคลื่อนไหว
             if(USE_CLOUD) {
                 startCloudSync(true); // โหลดครั้งแรก
-                startRealTimeSync();  // เริ่มวนลูป Real-time
+                // startRealTimeSync();  // เริ่มวนลูป Real-time
             }
 
             switchView('home');
@@ -8773,253 +8817,338 @@
         container.innerHTML = html;
     }
 
-   function openRecorder() {
+    // New Function 25/12/2568
+    // --- 1. OPEN / CLOSE / ADD ROW ---
+    function openRecorder() {
         document.getElementById('recorderModal').classList.remove('hidden');
         if (pendingMatches.length === 0) addNewRow();
     }
 
     function closeRecorder() {
+        if(pendingMatches.length > 0 && !confirm("ข้อมูลยังไม่ถูกบันทึก ต้องการปิดหรือไม่?")) return;
         document.getElementById('recorderModal').classList.add('hidden');
     }
 
     function addNewRow() {
-        const rowId = Date.now() + Math.random().toString(36).substr(2, 5);
-        pendingMatches.push({
+        const rowId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        
+        // สร้าง Data Structure เปล่าๆ
+        const newMatch = {
             rowId: rowId,
-            myFormation: "Back-2_Front-1",
-            enemyFormation: "Back-2_Front-1",
-            myHeroes: [null, null, null],
-            enemyHeroes: [null, null, null],
+            myFormation: 'basic',
+            enemyFormation: 'basic',
+            myHeroes: [null, null, null, null, null], // 5 slots
+            enemyHeroes: [null, null, null, null, null],
             myPet: null,
             enemyPet: null,
-            skillQueue: []
-        });
-        renderRows();
+            skillQueue: [], // เก็บ string เช่น "my-0-1" (ทีม-ช่อง-สกิล)
+            result: 'Win'
+        };
+
+        pendingMatches.push(newMatch);
+        renderRecorderRows();
+        
+        // Focus ช่องแรกของแถวใหม่
+        setTimeout(() => {
+            const firstInput = document.getElementById(`input-my-0-${rowId}`);
+            if(firstInput) firstInput.focus();
+        }, 100);
     }
 
-    function removeRow(rowId) {
+    function deleteRow(rowId) {
         pendingMatches = pendingMatches.filter(m => m.rowId !== rowId);
-        renderRows();
+        renderRecorderRows();
     }
 
-    function updateFormation(rowId, team, value) {
-        const match = pendingMatches.find(m => m.rowId === rowId);
-        if (match) match[`${team}Formation`] = value;
-    }
-
-    // --- RENDER LOGIC ---
-
-    function renderRows() {
+    function renderRecorderRows() {
         const container = document.getElementById('recorderRows');
-        document.getElementById('rowCountBadge').innerText = pendingMatches.length;
-
-        if (pendingMatches.length === 0) {
+        const countBadge = document.getElementById('rowCountBadge');
+        const emptyState = document.getElementById('emptyState');
+        
+        countBadge.innerText = pendingMatches.length;
+        if(pendingMatches.length === 0) {
             container.innerHTML = '';
-            document.getElementById('emptyState').classList.remove('hidden');
+            emptyState.classList.remove('hidden');
             return;
         }
-        document.getElementById('emptyState').classList.add('hidden');
+        emptyState.classList.add('hidden');
 
-        container.innerHTML = pendingMatches.map((match, idx) => `
-            <tr class="group border-b border-gray-800 hover:bg-gray-900/30 transition-colors">
-                <td class="text-center text-gray-600 font-mono text-lg font-bold py-6">${idx + 1}</td>
+        // ชื่อย่อ Formation
+        const formLabels = { "basic": "B3/F2", "balanced": "B2/F3", "attack": "B4/F1", "defense": "B1/F4" };
 
-                <td class="py-2 px-1 align-middle border-r border-gray-800 bg-green-900/5">
-                    <div class="flex flex-col gap-2 items-center min-h-[60px] w-full">
-                        ${renderTeamQueue(match, 'my')}
-                    </div>
-                </td>
-
-                <td class="py-4 pr-4 bg-green-900/5 relative">
-                     <div class="absolute inset-y-0 right-0 w-1 bg-green-500/30"></div>
-                    <div class="flex items-center justify-end gap-3">
-                         <select onchange="updateFormation('${match.rowId}', 'my', this.value)" class="bg-transparent text-green-300/70 text-[11px] border border-green-800/30 rounded h-[85px] w-6 px-0.5 appearance-none text-center focus:outline-none hover:bg-green-900/20 cursor-pointer writing-vertical font-semibold transition-colors">
-                            ${formations.map(f => `<option value="${f.id}" ${match.myFormation === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}
-                        </select>
-                        ${[0, 1, 2].map(i => renderHeroSlot(match, 'my', i, 'winner')).join('')}
-                        ${renderPetSlot(match, 'my', 'winner')}
-                    </div>
-                </td>
-
-                <td class="py-4 px-0 text-center relative z-20">
-                    <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center mx-auto shadow-lg">
-                        <span class="text-[10px] text-gray-400 font-bold">VS</span>
-                    </div>
-                </td>
-
-                <td class="py-4 pl-4 bg-red-900/5 relative">
-                     <div class="absolute inset-y-0 left-0 w-1 bg-red-800/20"></div>
-                    <div class="flex items-center justify-start gap-3">
-                        ${[0, 1, 2].map(i => renderHeroSlot(match, 'enemy', i, 'loser')).join('')}
-                        ${renderPetSlot(match, 'enemy', 'loser')}
-                         <select onchange="updateFormation('${match.rowId}', 'enemy', this.value)" class="bg-transparent text-red-300/50 text-[11px] border border-red-900/30 rounded h-[85px] w-6 px-0.5 appearance-none text-center focus:outline-none hover:bg-red-900/20 cursor-pointer writing-vertical font-semibold transition-colors">
-                            ${formations.map(f => `<option value="${f.id}" ${match.enemyFormation === f.id ? 'selected' : ''}>${f.name}</option>`).join('')}
-                        </select>
-                    </div>
-                </td>
-
-                <td class="py-2 px-1 align-middle border-l border-gray-800 bg-red-900/5">
-                    <div class="flex flex-col gap-2 items-center min-h-[60px] w-full">
-                        ${renderTeamQueue(match, 'enemy')}
-                    </div>
-                </td>
-
-                <td class="text-center">
-                    <button onclick="removeRow('${match.rowId}')" class="text-gray-700 hover:text-red-500 transition-colors p-2 text-2xl">&times;</button>
-                </td>
-            </tr>
-        `).join('');
-    }
-
-    // --- RENDER QUEUE (SPLIT) ---
-
-    function renderTeamQueue(match, team) {
-        // Filter skills for this team only
-        const teamSkills = match.skillQueue
-            .map((code, originalIdx) => ({ code, originalIdx }))
-            .filter(item => item.code.startsWith(team + '-'));
-
-        if (teamSkills.length === 0) {
-            return `<div class="w-8 h-8 rounded-full border border-dashed border-gray-700 flex items-center justify-center opacity-30 text-[9px] text-gray-500">1</div>
-                    <div class="w-8 h-8 rounded-full border border-dashed border-gray-700 flex items-center justify-center opacity-20 text-[9px] text-gray-500">2</div>
-                    <div class="w-8 h-8 rounded-full border border-dashed border-gray-700 flex items-center justify-center opacity-10 text-[9px] text-gray-500">3</div>`;
-        }
-
-        return teamSkills.map((item, idx) => {
-            const parts = item.code.split('-'); // team-slot-skill
-            const slot = parseInt(parts[1]);
-            const skill = parts[2];
-            const hero = team === 'my' ? match.myHeroes[slot] : match.enemyHeroes[slot];
-            const ringColor = team === 'my' ? 'ring-green-500' : 'ring-red-500';
-            const shadowColor = team === 'my' ? 'shadow-green-500/20' : 'shadow-red-500/20';
-
+        container.innerHTML = pendingMatches.map((match, idx) => {
             return `
-                <div onclick="removeSkill('${match.rowId}', ${item.originalIdx})" class="cursor-pointer relative w-8 h-8 rounded-full border border-black overflow-hidden shadow-lg ${shadowColor} hover:scale-110 transition-transform ring-2 ${ringColor}" title="Remove S${skill}">
-                    <img src="${hero ? hero.img : ''}" class="w-full h-full object-cover opacity-80">
-                    <div class="absolute inset-0 flex items-center justify-center text-[10px] text-white font-bold bg-black/40 backdrop-blur-[1px]">
-                        ${skill === '1' ? '▲' : '▼'}
+            <tr class="border-b border-gray-800 hover:bg-[#111827] transition group">
+                <td class="text-center text-gray-500 font-mono align-middle text-lg border-r border-gray-800 w-10 font-bold">${idx + 1}</td>
+                
+                <td class="align-middle px-2 w-20">
+                   <select class="bg-[#0d1117] border border-green-900 text-green-200 rounded-lg text-xs w-full text-center outline-none py-2 font-bold cursor-pointer hover:border-green-500 transition" onchange="updateRecVal('${match.rowId}', 'myFormation', this.value)">
+                        ${formations.map(f => `<option value="${f.id}" ${match.myFormation===f.id?'selected':''}>${formLabels[f.id] || f.name}</option>`).join('')}
+                   </select>
+                </td>
+
+                <td class="align-middle px-0">
+                    <div class="flex justify-center items-end gap-2 px-2 w-full">
+                        ${[0,1,2].map(i => renderRecSlot(match, 'my', i)).join('')}
+                        ${renderRecPetSlot(match, 'my')}
                     </div>
-                    <div class="absolute -top-1 -right-1 w-3 h-3 bg-black rounded-full flex items-center justify-center text-[7px] text-gray-300 border border-gray-600">
-                        ${idx + 1}
+                </td>
+
+                <td class="text-center align-middle px-0 w-12">
+                    <button onclick="swapRowTeams('${match.rowId}')" class="w-8 h-8 rounded-full bg-gray-800 border border-gray-600 text-gray-400 hover:text-white hover:bg-blue-600 hover:border-blue-400 transition flex items-center justify-center shadow-lg mx-auto" title="สลับฝั่ง">
+                        <span class="text-sm font-bold">⇄</span>
+                    </button>
+                </td>
+
+                <td class="align-middle px-0">
+                    <div class="flex justify-center items-end gap-2 px-2 w-full">
+                         ${renderRecPetSlot(match, 'enemy')}
+                        ${[0,1,2].map(i => renderRecSlot(match, 'enemy', i)).join('')}
                     </div>
-                </div>
-            `;
+                </td>
+
+                <td class="align-middle px-2 w-20">
+                   <select class="bg-[#0d1117] border border-red-900 text-red-200 rounded-lg text-xs w-full text-center outline-none py-2 font-bold cursor-pointer hover:border-red-500 transition" onchange="updateRecVal('${match.rowId}', 'enemyFormation', this.value)">
+                        ${formations.map(f => `<option value="${f.id}" ${match.enemyFormation===f.id?'selected':''}>${formLabels[f.id] || f.name}</option>`).join('')}
+                   </select>
+                </td>
+
+                <td class="text-center align-middle pl-1 w-10">
+                    <button onclick="deleteRow('${match.rowId}')" class="text-gray-600 hover:text-red-500 font-bold text-2xl px-2">×</button>
+                </td>
+            </tr>`;
         }).join('');
     }
 
-    // --- COMPONENTS (HERO & PET) ---
-
-    function renderPetSlot(match, team, style) {
-        const pet = team === 'my' ? match.myPet : match.enemyPet;
-        const borderColor = style === 'winner' ? 'border-yellow-600/60' : 'border-red-900/40';
-        const ringColor = style === 'winner' ? 'ring-yellow-500/20' : 'ring-red-900/10';
-        const inputId = `pet-input-${match.rowId}-${team}`;
-        const listId = `pet-list-${match.rowId}-${team}`;
-
-        return `
-            <div class="relative w-[90px] h-[90px] flex-shrink-0 flex flex-col items-center justify-center group">
-                <div class="w-16 h-16 rounded-full border-2 ${borderColor} bg-gray-900 overflow-hidden relative shadow-lg ring-4 ${ringColor} transition-transform group-hover:scale-105">
-                    ${pet ? `<img src="${pet.img}" class="w-full h-full object-cover opacity-90 group-hover:opacity-50 transition-opacity">` : `<span class="absolute inset-0 flex items-center justify-center text-2xl text-gray-700 opacity-50">🐾</span>`}
-                    <input type="text" id="${inputId}" class="absolute inset-0 w-full h-full bg-transparent text-center text-xs text-white placeholder-transparent focus:placeholder-gray-500 focus:bg-black/80 focus:outline-none z-10 font-bold" placeholder="Pet" autocomplete="off" value="${pet ? pet.name : ''}" oninput="handlePetSearch(this, '${match.rowId}', '${team}')" onkeydown="handlePetKeyNav(event, '${match.rowId}', '${team}')" onfocus="this.select()">
-                </div>
-                <span class="text-[10px] ${style === 'winner' ? 'text-yellow-500/70' : 'text-gray-600'} mt-2 truncate max-w-full font-medium tracking-wide">${pet ? pet.name : 'Pet'}</span>
-                <div id="${listId}" class="absolute top-16 left-0 w-32 bg-gray-800 border border-gray-600 rounded-lg mt-2 max-h-40 overflow-y-auto hidden z-50 shadow-2xl"></div>
-            </div>
-        `;
-    }
-
-    function renderHeroSlot(match, team, index, style) {
-        const hero = team === 'my' ? match.myHeroes[index] : match.enemyHeroes[index];
-        const borderColor = style === 'winner' ? 'border-green-600/40' : 'border-red-900/30';
-        const bgColor = style === 'winner' ? 'bg-green-900/10' : 'bg-red-900/5';
-        const textColor = style === 'winner' ? 'text-green-100' : 'text-red-100/70';
-        const inputId = `input-${match.rowId}-${team}-${index}`;
-        const listId = `list-${match.rowId}-${team}-${index}`;
-
-        return `
-            <div class="relative w-[90px] flex-shrink-0 flex flex-col gap-1 ${bgColor} p-1.5 rounded-lg border ${borderColor} hover:border-opacity-100 transition-colors shadow-sm">
-                <div class="w-full h-[60px] bg-black rounded overflow-hidden relative border border-gray-700 group/img shadow-inner">
-                    ${hero ? `<img src="${hero.img}" class="w-full h-full object-cover opacity-80">` : `<span class="absolute inset-0 flex items-center justify-center text-gray-800 text-sm font-bold">${index+1}</span>`}
-                    <input type="text" id="${inputId}" value="${hero ? hero.name : ''}" class="absolute bottom-0 left-0 w-full bg-black/70 text-center ${textColor} text-[11px] h-6 focus:h-full focus:bg-gray-900 transition-all focus:outline-none placeholder-gray-600 border-none font-medium" placeholder="Hero..." autocomplete="off" oninput="handleHeroSearch(this, '${match.rowId}', '${team}', ${index})" onkeydown="handleKeyNav(event, '${match.rowId}', '${team}', ${index})" onfocus="this.select()">
-                </div>
-                <div id="${listId}" class="absolute top-16 left-0 w-40 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl z-50 hidden max-h-48 overflow-y-auto"></div>
-                <div class="flex gap-0.5 ${!hero ? 'opacity-20 pointer-events-none' : ''}">
-                    <button onclick="addSkill('${match.rowId}', '${team}', ${index}, 1)" class="flex-1 bg-gray-800 hover:bg-gray-600 text-[10px] h-5 rounded-l text-gray-400 hover:text-white border border-gray-700 transition-colors font-bold">▲</button>
-                    <button onclick="addSkill('${match.rowId}', '${team}', ${index}, 2)" class="flex-1 bg-gray-800 hover:bg-gray-600 text-[10px] h-5 rounded-r text-gray-400 hover:text-white border border-gray-700 transition-colors font-bold">▼</button>
-                </div>
-            </div>
-        `;
-    }
-
-    // --- SEARCH & NAV ---
-    function handleHeroSearch(input, rowId, team, index) {
-        const query = input.value.toLowerCase();
-        const listEl = document.getElementById(`list-${rowId}-${team}-${index}`);
-        if (query.length < 1) { listEl.classList.add('hidden'); return; }
-        const matches = heroesDB.filter(h => h.name.toLowerCase().includes(query)).slice(0, 5);
-        if (matches.length > 0) {
-            listEl.innerHTML = matches.map(h => `<div class="p-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3 border-b border-gray-700/50 last:border-0" onclick="selectHero('${rowId}', '${team}', ${index}, '${h.id}')"><img src="${h.img}" class="w-8 h-8 rounded-md object-cover bg-black"><span class="text-sm text-gray-200 font-medium">${h.name}</span></div>`).join('');
-            listEl.classList.remove('hidden');
-        } else { listEl.classList.add('hidden'); }
-    }
-    function handlePetSearch(input, rowId, team) {
-        const query = input.value.toLowerCase();
-        const listEl = document.getElementById(`pet-list-${rowId}-${team}`);
-        if (query.length < 1) { listEl.classList.add('hidden'); return; }
-        const matches = petsDB.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3);
-        if (matches.length > 0) {
-            listEl.innerHTML = matches.map(p => `<div class="p-2 hover:bg-gray-700 cursor-pointer flex items-center gap-3 border-b border-gray-700/50 last:border-0" onclick="selectPet('${rowId}', '${team}', '${p.id}')"><img src="${p.img}" class="w-8 h-8 rounded-full object-cover bg-black border border-gray-600"><span class="text-sm text-gray-200 font-medium">${p.name}</span></div>`).join('');
-            listEl.classList.remove('hidden');
-        } else { listEl.classList.add('hidden'); }
-    }
-    function selectHero(rowId, team, index, heroId) {
-        const match = pendingMatches.find(m => m.rowId === rowId);
-        const hero = heroesDB.find(h => h.id == heroId);
-        if (match && hero) { team === 'my' ? match.myHeroes[index] = hero : match.enemyHeroes[index] = hero; }
-        renderRows();
-        setTimeout(() => { document.getElementById(index < 2 ? `input-${rowId}-${team}-${index+1}` : `pet-input-${rowId}-${team}`)?.focus(); }, 50);
-    }
-    function selectPet(rowId, team, petId) {
-        const match = pendingMatches.find(m => m.rowId === rowId);
-        const pet = petsDB.find(p => p.id == petId);
-        if (match && pet) { team === 'my' ? match.myPet = pet : match.enemyPet = pet; }
-        renderRows();
-        setTimeout(() => { if (team === 'my') document.getElementById(`input-${rowId}-enemy-0`)?.focus(); }, 50);
-    }
-    function handleKeyNav(e, rowId, team, index) { if (e.key === 'Enter') document.getElementById(`list-${rowId}-${team}-${index}`)?.children[0]?.click(); }
-    function handlePetKeyNav(e, rowId, team) { if (e.key === 'Enter') document.getElementById(`pet-list-${rowId}-${team}`)?.children[0]?.click(); }
-
-    // --- SKILL LOGIC (LIMIT 3) ---
-    function addSkill(rowId, team, slot, skillNum) {
-        const match = pendingMatches.find(m => m.rowId === rowId);
-        // Check current count for this team
-        const currentCount = match.skillQueue.filter(s => s.startsWith(team + '-')).length;
+    function renderRecSlot(match, team, slotIdx) {
+        const hero = team === 'my' ? match.myHeroes[slotIdx] : match.enemyHeroes[slotIdx];
+        const val = hero ? hero.name : '';
+        const inputId = `input-${team}-${slotIdx}-${match.rowId}`;
         
-        if (currentCount >= 3) {
-            // Visual feedback could be added here (e.g., shake animation)
-            return; // Block adding
+        const s1Key = `${team}-${slotIdx}-1`;
+        const s2Key = `${team}-${slotIdx}-2`;
+        
+        const s1Index = match.skillQueue.indexOf(s1Key);
+        const s2Index = match.skillQueue.indexOf(s2Key);
+        const hasS1 = s1Index > -1;
+        const hasS2 = s2Index > -1;
+
+        const labelS1 = hasS1 ? (s1Index + 1) : 'ล่าง';
+        const labelS2 = hasS2 ? (s2Index + 1) : 'บน';
+
+        const activeStyle = 'bg-blue-600 text-white font-black hover:bg-blue-500';
+        const activeStyle2 = 'bg-yellow-500 text-black font-black hover:bg-yellow-400';
+        const inactiveStyle = 'bg-[#1f2937] text-gray-400 hover:text-white hover:bg-gray-700';
+
+        const borderColor = team === 'my' ? (hero ? 'border-blue-500/50' : 'border-gray-700') : (hero ? 'border-red-500/50' : 'border-gray-700');
+
+        return `
+            <div class="flex flex-col items-center">
+                
+                <div class="rec-slot-container ${borderColor} group/slot">
+                    ${hero ? `<img src="${hero.img}" class="rec-slot-img">` : `<span class="text-3xl text-gray-800 select-none font-bold">+</span>`}
+                    
+                    <input type="text" id="${inputId}" value="${val}" 
+                        class="rec-slot-input"
+                        placeholder="Hero"
+                        oninput="handleRecSearch(this, '${match.rowId}', '${team}', ${slotIdx})"
+                        onkeydown="handleRecNav(event, '${match.rowId}', '${team}', ${slotIdx})"
+                        onfocus="this.select()" autocomplete="off">
+                        
+                    <div id="list-${inputId}" class="autocomplete-list shadow-2xl"></div>
+                </div>
+                
+                <div class="skill-btn-group">
+                    <button onclick="toggleRecSkill('${match.rowId}', '${s1Key}')" 
+                        class="flex-1 text-[10px] py-1 border-r border-gray-700 transition ${hasS1 ? activeStyle : inactiveStyle}">
+                        ${labelS1}
+                    </button>
+                    <button onclick="toggleRecSkill('${match.rowId}', '${s2Key}')" 
+                        class="flex-1 text-[10px] py-1 transition ${hasS2 ? activeStyle2 : inactiveStyle}">
+                        ${labelS2}
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+    function renderRecPetSlot(match, team) {
+        const pet = team === 'my' ? match.myPet : match.enemyPet;
+        const val = pet ? pet.name : '';
+        const inputId = `input-pet-${team}-${match.rowId}`;
+        const borderClass = team === 'my' ? 'border-purple-500/50' : 'border-orange-500/50';
+
+        // ปรับขนาด Pet ให้เป็น 65x65 (เล็กกว่า Hero นิดหน่อยเพื่อให้ดูเป็น Pet)
+        return `
+             <div class="rec-slot-container ${borderClass} rounded-full !w-[65px] !h-[65px] mx-1 relative z-10 shadow-lg bg-[#0d1117] self-center" style="border-radius: 50%; margin-bottom: 24px;">
+                ${pet ? `<img src="${pet.img}" class="rec-slot-img rounded-full">` : `<span class="text-xl text-gray-800">🐾</span>`}
+                <input type="text" id="${inputId}" value="${val}" 
+                    class="rec-slot-input rounded-full"
+                    placeholder="Pet"
+                    oninput="handleRecPetSearch(this, '${match.rowId}', '${team}')"
+                    onkeydown="handleRecPetNav(event, '${match.rowId}', '${team}')"
+                    onfocus="this.select()" autocomplete="off">
+                <div id="list-${inputId}" class="autocomplete-list shadow-2xl"></div>
+            </div>
+        `;
+    }
+
+    // --- 3. LOGIC & EVENTS ---
+
+    function updateRecVal(rowId, field, val) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        if(m) { 
+            m[field] = val; 
+            if(field==='result') renderRecorderRows(); // Refresh color
         }
-
-        match.skillQueue.push(`${team}-${slot}-${skillNum}`);
-        renderRows();
-    }
-    function removeSkill(rowId, idx) {
-        const match = pendingMatches.find(m => m.rowId === rowId);
-        match.skillQueue.splice(idx, 1);
-        renderRows();
     }
 
-    // --- SAVE LOGIC ---
-    function saveAllMatches() {
+    function toggleRecSkill(rowId, key) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        if(m) {
+            if(m.skillQueue.includes(key)) {
+                m.skillQueue = m.skillQueue.filter(k => k !== key);
+            } else {
+                // Max 3 check
+                const teamPrefix = key.split('-')[0]; // 'my' or 'enemy'
+                const count = m.skillQueue.filter(k => k.startsWith(teamPrefix)).length;
+                if(count < 3) m.skillQueue.push(key);
+            }
+            renderRecorderRows();
+        }
+    }
+
+    // --- 4. SEARCH & AUTOCOMPLETE ENGINE ---
+
+    function handleRecSearch(input, rowId, team, slotIdx) {
+        const query = input.value.toLowerCase();
+        const listId = `list-${input.id}`;
+        const listEl = document.getElementById(listId);
+        
+        if (query.length < 1) { listEl.style.display = 'none'; return; }
+
+        const matches = heroesDB.filter(h => h.name.toLowerCase().includes(query)).slice(0, 5);
+        
+        if (matches.length > 0) {
+            listEl.innerHTML = matches.map((h, i) => `
+                <div class="autocomplete-item ${i===0?'selected':''}" onclick="selectRecHero('${rowId}', '${team}', ${slotIdx}, '${h.id}')">
+                    <img src="${h.img}"> <span>${h.name}</span>
+                </div>
+            `).join('');
+            listEl.style.display = 'block';
+        } else {
+            listEl.style.display = 'none';
+        }
+    }
+
+    function selectRecHero(rowId, team, slotIdx, heroId) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        const hero = heroesDB.find(h => h.id === heroId);
+        if (m && hero) {
+            if (team === 'my') m.myHeroes[slotIdx] = hero;
+            else m.enemyHeroes[slotIdx] = hero;
+            renderRecorderRows(); // Re-render to show image/color
+            
+            // Move Focus to Next Slot
+            setTimeout(() => {
+                let nextId = '';
+                if(slotIdx < 4) nextId = `input-${team}-${slotIdx+1}-${rowId}`;
+                else nextId = `input-pet-${team}-${rowId}`; // End of heroes -> go to Pet
+                
+                const nextInput = document.getElementById(nextId);
+                if(nextInput) nextInput.focus();
+            }, 50);
+        }
+    }
+
+    function handleRecNav(e, rowId, team, slotIdx) {
+        const listId = `list-${e.target.id}`;
+        const listEl = document.getElementById(listId);
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If list visible, select top item
+            if (listEl.style.display === 'block' && listEl.children.length > 0) {
+                listEl.children[0].click();
+            } else {
+                // If typed exact name or moving manually, just move focus? 
+                // For now, assume selection via list is mandatory or text must match exactly.
+                // Simple version: just move next if not selecting
+                 let nextId = '';
+                if(slotIdx < 4) nextId = `input-${team}-${slotIdx+1}-${rowId}`;
+                else nextId = `input-pet-${team}-${rowId}`;
+                document.getElementById(nextId)?.focus();
+            }
+        }
+        // Add Up/Down arrow navigation logic here if desired
+    }
+
+    // --- PET SEARCH LOGIC (Similar structure) ---
+    function handleRecPetSearch(input, rowId, team) {
+        const query = input.value.toLowerCase();
+        const listEl = document.getElementById(`list-${input.id}`);
+        if(query.length < 1) { listEl.style.display = 'none'; return; }
+
+        const matches = petsDB.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3);
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map((p, i) => `
+                <div class="autocomplete-item ${i===0?'selected':''}" onclick="selectRecPet('${rowId}', '${team}', '${p.id}')">
+                    <img src="${p.img}"> <span>${p.name}</span>
+                </div>
+            `).join('');
+            listEl.style.display = 'block';
+        } else listEl.style.display = 'none';
+    }
+
+    function selectRecPet(rowId, team, petId) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        const pet = petsDB.find(p => p.id === petId);
+        if(m && pet) {
+            if(team === 'my') m.myPet = pet; else m.enemyPet = pet;
+            renderRecorderRows();
+            // Move Focus: My Pet -> Enemy Hero 0 | Enemy Pet -> New Row?
+            setTimeout(() => {
+                if(team === 'my') document.getElementById(`input-enemy-0-${rowId}`)?.focus();
+                else {
+                   // End of row? Maybe add new row automatically?
+                   // For now, focus Save button or stay
+                }
+            }, 50);
+        }
+    }
+    
+    function handleRecPetNav(e, rowId, team) {
+         if (e.key === 'Enter') {
+            e.preventDefault();
+            const listEl = document.getElementById(`list-${e.target.id}`);
+            if (listEl.style.display === 'block' && listEl.children.length > 0) {
+                listEl.children[0].click();
+            } else {
+                 if(team === 'my') document.getElementById(`input-enemy-0-${rowId}`)?.focus();
+            }
+        }
+    }
+
+
+    async function saveAllMatches() {
         if (pendingMatches.length === 0) return;
+        
         const timestampStart = Date.now();
+
         const newHistoryItems = pendingMatches.map((match, idx) => {
-            const myTeamClean = match.myHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {});
+            // ... (โค้ดส่วนเตรียมข้อมูล myTeamClean, enemyTeamClean ฯลฯ เหมือนเดิม) ...
+            const myTeamClean = match.myHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {}); 
             const enemyTeamClean = match.enemyHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {});
+            
             const myPetData = match.myPet ? { id: match.myPet.id, name: match.myPet.name } : null;
             const enemyPetData = match.enemyPet ? { id: match.enemyPet.id, name: match.enemyPet.name } : null;
+            
             const myQ = match.skillQueue.filter(c => c.startsWith('my-')).map(c => `${c.split('-')[1]}-${c.split('-')[2]}`);
             const enemyQ = match.skillQueue.filter(c => c.startsWith('enemy-')).map(c => `${c.split('-')[1]}-${c.split('-')[2]}`);
+            
+            const myFormName = formations.find(f => f.id === match.myFormation)?.name || match.myFormation;
+            const enemyFormName = formations.find(f => f.id === match.enemyFormation)?.name || match.enemyFormation;
 
             return {
                 id: (timestampStart + idx).toString(),
@@ -9028,8 +9157,10 @@
                 castle: "Manual Record",
                 castleSlot: "-",
                 castleKey: "MANUAL",
+                myFormation: match.myFormation,
+                enemyFormation: match.enemyFormation,
                 myTeamId: "REC-MY",
-                myTeamName: match.myFormation,
+                myTeamName: `My Team (${myFormName})`,
                 playerData: myTeamClean,
                 enemyData: enemyTeamClean,
                 myPet: myPetData,
@@ -9038,19 +9169,96 @@
                 enemyIds: match.enemyHeroes.map(h => h ? h.id : null),
                 skillQueue: myQ,
                 enemySkillQueue: enemyQ,
-                enemyName: "Enemy Team",
-                status: "Win",
-                result: "Win"
+                enemyName: `Enemy (${enemyFormName})`,
+                
+                // ✅ แก้ไขตรงนี้: บังคับให้เป็น Win เสมอ เพราะเรายึดฝั่งซ้ายชนะ
+                status: "Win", 
+                result: "Win"  
             };
         });
 
-        if (typeof historyData !== 'undefined') {
-            historyData.unshift(...newHistoryItems.reverse());
-            alert(`บันทึกเรียบร้อย ${newHistoryItems.length} รายการ!`);
-            pendingMatches = [];
-            closeRecorder();
-            location.reload(); 
-        } else { console.error("historyData not found"); }
+        // ... (ส่วนบันทึกลง DB เหมือนเดิม) ...
+        if (typeof battleHistoryDB !== 'undefined') {
+             battleHistoryDB.unshift(...newHistoryItems.reverse());
+             if(battleHistoryDB.length > 500) battleHistoryDB.pop();
+
+             showLoading("Saving Records...");
+             try {
+                 await pushData();
+                 alert(`บันทึกเรียบร้อย ${newHistoryItems.length} รายการ!`);
+                 pendingMatches = [];
+                 renderRecorderRows();
+                 // closeRecorder(); // เปิดไว้ถ้าอยากให้ปิดอัตโนมัติ
+                 if(typeof renderFullHistory === 'function') renderFullHistory();
+             } catch(err) {
+                 alert("Save Error: " + err.message);
+             } finally {
+                 hideLoading();
+             }
+        } else {
+             alert("Error: Database not found");
+        }
+    }
+
+    function swapRowTeams(rowId) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        if(!m) return;
+
+        // 1. Swap Heroes Array
+        const tempHeroes = [...m.myHeroes];
+        m.myHeroes = [...m.enemyHeroes];
+        m.enemyHeroes = tempHeroes;
+
+        // 2. Swap Pet
+        const tempPet = m.myPet;
+        m.myPet = m.enemyPet;
+        m.enemyPet = tempPet;
+
+        // 3. Swap Formation
+        const tempForm = m.myFormation;
+        m.myFormation = m.enemyFormation;
+        m.enemyFormation = tempForm;
+
+        // 4. Swap Skill Queue (Complex part)
+        // ต้องเปลี่ยน string จาก 'my-...' เป็น 'enemy-...' และกลับกัน
+        m.skillQueue = m.skillQueue.map(sq => {
+            if (sq.startsWith('my-')) {
+                return sq.replace('my-', 'enemy-');
+            } else if (sq.startsWith('enemy-')) {
+                return sq.replace('enemy-', 'my-');
+            }
+            return sq;
+        });
+
+        // Re-render
+        renderRecorderRows();
+    }
+    function renderSkillListText(match, team) {
+        // กรองเฉพาะสกิลของทีมนี้
+        const queue = match.skillQueue.filter(q => q.startsWith(team + '-'));
+        
+        if (queue.length === 0) return '<span class="text-[9px] text-gray-600 text-center">- No Skill -</span>';
+
+        return queue.map((q, i) => {
+            const [_, slotIdx, sNum] = q.split('-');
+            const heroes = team === 'my' ? match.myHeroes : match.enemyHeroes;
+            const hero = heroes[slotIdx];
+            const name = hero ? hero.name : `Hero ${parseInt(slotIdx)+1}`;
+            
+            // สีข้อความ
+            const numClass = "text-gray-400 font-mono mr-1";
+            const nameClass = team === 'my' ? "text-green-300" : "text-red-300";
+            const skillLabel = sNum === '1' ? 'ล่าง' : 'บน';
+            const skillClass = sNum === '1' ? 'text-blue-400' : 'text-yellow-500';
+
+            return `
+                <div class="text-[9px] truncate" title="${name} (${skillLabel})">
+                    <span class="${numClass}">${i+1}.</span>
+                    <span class="${nameClass} font-bold">${name.substring(0, 6)}..</span>
+                    <span class="${skillClass}">[${skillLabel}]</span>
+                </div>
+            `;
+        }).join('');
     }
     </script>
 </body>
