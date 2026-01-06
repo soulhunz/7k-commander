@@ -12,7 +12,7 @@
         .no-scroll::-webkit-scrollbar { width: 6px; }
         .no-scroll::-webkit-scrollbar-track { background: #111827; }
         .no-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
-        
+
         /* Sidebar */
         .sidebar { background: #111827; border-right: 1px solid #1f2937; }
         .menu-item { cursor: pointer; padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; color: #9ca3af; transition: 0.2s; margin-bottom: 2px; display: flex; align-items: center; gap: 10px; }
@@ -201,6 +201,24 @@
         .text-red { color: #ef4444 !important; font-weight: bold; }
         .dmg-fire { color: #fca5a5; font-weight: bold; text-shadow: 0 0 5px rgba(252, 165, 165, 0.5); }
         .dmg-ice { color: #7dd3fc; font-weight: bold; text-shadow: 0 0 5px rgba(125, 211, 252, 0.5); }
+
+        /* --- BATTLE RECORDER STYLES --- */
+        .recorder-table th { font-size: 10px; color: #6b7280; text-transform: uppercase; padding: 4px; }
+        .recorder-input { 
+            width: 100%; background: #0d1117; border: 1px solid #374151; 
+            border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; outline: none;
+        }
+        .recorder-input:focus { border-color: #3b82f6; background: #1f2937; }
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; width: 100%; 
+            background: #1f2937; border: 1px solid #374151; border-radius: 4px; 
+            max-height: 150px; overflow-y: auto; z-index: 50; display: none;
+        }
+        .autocomplete-item {
+            padding: 6px 8px; font-size: 11px; cursor: pointer; color: #d1d5db; display: flex; align-items: center; gap: 8px;
+        }
+        .autocomplete-item:hover, .autocomplete-item.selected { background: #3b82f6; color: white; }
+        .autocomplete-item img { width: 20px; height: 20px; border-radius: 4px; background: black; }
 
         /* ใส่ใน <style> */
         .item-level-badge {
@@ -524,6 +542,7 @@
 
         /* --- CSS FIX FOR POOL FOOTER --- */
         #tier-pool-footer {
+            height: 350px;
             pointer-events: auto !important; /* บังคับให้รับการคลิก */
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* เอฟเฟกต์เลื่อนนุ่มๆ */
             background: rgba(11, 14, 20, 0.95);
@@ -654,6 +673,160 @@
         .battle-scroll::-webkit-scrollbar { width: 6px; }
         .battle-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
 
+
+        /* --- BATTLE RECORDER: BIG & CENTERED --- */
+        .rec-slot-container {
+            width: 80px;  /* 🟢 ขยายขนาด */
+            height: 80px; /* 🟢 ขยายขนาด */
+            position: relative;
+            background-color: #0d1117;
+            border: 1px solid #374151;
+            border-radius: 12px 12px 0 0; /* โค้งมนขึ้น */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .rec-slot-container:hover { border-color: #3b82f6; transform: translateY(-2px); }
+
+        /* ปุ่มสกิลด้านล่าง */
+        .skill-btn-group {
+            width: 80px; /* 🟢 กว้างเท่ากล่อง */
+            display: flex;
+            border: 1px solid #374151;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+            height: 24px; /* 🟢 สูงขึ้นกดง่าย */
+        }
+
+        .rec-slot-img {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            object-fit: cover; border-radius: 10px 10px 0 0; opacity: 0.8; pointer-events: none;
+        }
+
+        .rec-slot-input {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            background: transparent; border: none; outline: none;
+            text-align: center; color: white; font-weight: bold; font-size: 12px; /* 🟢 ตัวใหญ่ขึ้น */
+            z-index: 10; text-shadow: 0 1px 3px black;
+        }
+        .rec-slot-input:focus { background: rgba(0, 0, 0, 0.85); color: #fbbf24; border-radius: 10px 10px 0 0;}
+        .rec-slot-input::placeholder { color: #6b7280; font-weight: normal; font-size: 11px; }
+
+        /* List รายชื่อใหญ่ขึ้น */
+        .autocomplete-list {
+            top: 85px !important;
+            width: 160px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+        }
+
+        /* Floating Text Style (กล่องข้อความบน Tier List) */
+        .floating-label {
+            position: absolute;
+            cursor: move;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fbbf24;
+            padding: 4px 12px;
+            border: 1px dashed #fbbf24;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 1000;
+            min-width: 50px;
+            text-align: center;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+
+            /* Properties สำหรับรูปพื้นหลัง */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+        }
+
+        .floating-label:focus {
+            background-color: rgba(0, 0, 0, 0.9);
+            border: 1px solid #fff;
+            color: #fff;
+            cursor: text;
+            outline: none;
+        }
+
+        #tier-canvas {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* ซ่อนส่วนเกิน ถ้าอยากให้ Scroll ได้ให้แก้เป็น auto */
+            background-size: cover;
+            background-position: center;
+            cursor: grab; /* สามารถลากพื้นหลังเพื่อแพนกล้องได้ (อนาคต) */
+        }
+
+        /* แถว Tier (แปลงร่างเป็น Object ลอยได้) */
+        .tier-row-modern {
+            position: absolute !important; /* บังคับลอยตัว */
+            display: flex;
+            min-height: 80px;
+            width: auto;
+            min-width: 300px; /* ความกว้างต่ำสุด */
+            
+            /* Design เดิม */
+            background-color: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden; /* ซ่อนส่วนเกิน */
+            
+            /* การควบคุม */
+            transform-origin: top left; /* จุดหมุนอยู่มุมซ้ายบน */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            user-select: none;
+            transition: box-shadow 0.2s, border-color 0.2s; /* ไม่ใส่ transition transform เพื่อความลื่นตอนลาก */
+        }
+
+        /* ตอนกำลังลากแถว */
+        .tier-row-modern.dragging {
+            z-index: 1000 !important; /* อยู่บนสุด */
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+            border-color: #3b82f6;
+            cursor: grabbing;
+        }
+
+        /* ส่วนหัว (ที่ใช้จับลาก) */
+        .tier-header-modern {
+            width: 80px;
+            flex-shrink: 0;
+            cursor: move; /* เมาส์เป็นรูปย้าย */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* ส่วนเนื้อหา (ที่วางตัวละคร) */
+        .tier-content {
+            flex: 1;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+            min-height: 80px;
+            min-width: 200px;
+        }
+
+        /* เส้นไกด์ไลน์เวลาจะจอยกัน (Snapping Line) - Optional */
+        .snap-guide {
+            position: absolute;
+            height: 2px;
+            background-color: #3b82f6;
+            width: 100%;
+            z-index: 900;
+            display: none;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="flex" onclick="closeContextMenu(); closeTextContextMenu();">
@@ -663,13 +836,27 @@
         <div id="loading-text" class="loading-text">กำลังทำการเชื่อมต่อข้อมูล...</div>
     </div>
 
+    <div id="update-notification" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[300] hidden">
+        <div class="bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border border-blue-400 animate-bounce">
+            <span class="text-xl">🔔</span>
+            <div class="flex flex-col">
+                <span class="text-xs font-bold text-blue-200 uppercase">New Data Available</span>
+                <span class="text-sm font-bold">ข้อมูลมีการเปลี่ยนแปลง</span>
+            </div>
+            <button onclick="applyPendingUpdate()" class="bg-white text-blue-700 px-4 py-1 rounded-full font-bold text-xs hover:bg-blue-50 transition shadow-md border border-blue-200">
+                ↻ Refresh Data
+            </button>
+            <button onclick="dismissUpdate()" class="text-blue-300 hover:text-white text-lg font-bold ml-2">✕</button>
+        </div>
+    </div>
+
     <div id="login-screen" class="fixed inset-0 z-[200] bg-[#0b0e14] flex flex-col items-center justify-center font-['Kanit']">
         <div class="bg-[#161b22] p-8 rounded-2xl border border-gray-700 shadow-[0_0_50px_rgba(59,130,246,0.2)] w-full max-w-sm text-center relative overflow-hidden">
             
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600"></div>
 
             <div class="text-4xl mb-2">🛡️</div>
-            <h1 class="text-2xl font-bold text-white tracking-wider mb-1">7K COMMANDER</h1>
+            <h1 class="text-2xl font-bold text-white tracking-wider mb-1">7K Seven Deadly Sins</h1>
             <p class="text-xs text-gray-500 mb-8">Guild Management System</p>
 
             <form onsubmit="event.preventDefault(); doLogin();" class="space-y-4">
@@ -710,6 +897,7 @@
             <div class="menu-section-title">Main</div>
             <div onclick="switchView('preparation')" class="menu-item text-green-400" id="nav-preparation">🧠 PREPARATION (AI)</div>
             <div onclick="switchView('simulator')" class="menu-item" id="nav-simulator">🎮 Battle Simulator</div>
+            <div onclick="switchView('hero-lists')" class="menu-item">📋 Hero Lists & Usage</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ Gallery</div>
             <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🏆 Tier Lists</div>
 
@@ -717,16 +905,17 @@
                 <div class="menu-section-title">Database Manager</div>
                 <div onclick="switchView('hero-manager')" class="menu-item" id="nav-hero-manager">🦸 Heroes</div>
                 <div onclick="switchView('pet-manager')" class="menu-item" id="nav-pet-manager">🐾 Pets</div>
-                <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ Items</div>
+                <!-- <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ Items</div> -->
                 <div onclick="switchView('ring-manager')" class="menu-item" id="nav-ring-manager">💍 Rings</div>
-                <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ Team Sets</div>
+                <!-- <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ Team Sets</div> -->
             </div>
 
-            <div class="my-4 pt-4 border-t border-gray-800">
+            <!-- <div class="my-4 pt-4 border-t border-gray-800">
                 <div class="menu-section-title">War Manager</div>
                 <div onclick="switchView('battle-war')" class="menu-item" id="nav-battle-war">⚔️ Battle War</div>
+                <div onclick="openRecorder()" class="menu-item text-indigo-400" id="nav-battle-record">📝 Battle Record (Multi)</div>
                 <div onclick="switchView('battle-history')" class="menu-item" id="nav-battle-history">📜 Battle History</div>
-            </div>
+            </div> -->
 
             <div id="admin-menu-group" class="mt-4 pt-4 border-t border-gray-800" style="display: none;">
                 <div class="menu-section-title text-red-400">Admin Zone</div>
@@ -750,7 +939,7 @@
         <div id="view-home" class="flex-col h-full items-center justify-center bg-[#0b0e14] hidden">
             <div class="text-center opacity-40 select-none">
                 <div class="text-8xl mb-6 filter drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">🛡️</div>
-                <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 tracking-widest">7K COMMANDER</h1>
+                <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 tracking-widest">7K Seven Deadly Sins</h1>
                 <p class="text-gray-500 text-sm font-mono">System Ready. Select a menu to start.</p>
             </div>
         </div>
@@ -940,60 +1129,57 @@
                 <header class="p-4 flex justify-between items-center pointer-events-auto relative z-50">
                     <div class="flex items-center gap-4">
                         <div id="tv-mode-selector" class="flex bg-black/60 backdrop-blur rounded-lg p-1 border border-white/10"></div>
-                        <div class="flex bg-black/60 backdrop-blur rounded-lg p-1 border border-white/10">
-                            <button onclick="switchTierTab('hero')" id="tv-tab-hero" class="px-4 py-1 text-xs font-bold transition rounded">HEROES</button>
-                            <button onclick="switchTierTab('pet')" id="tv-tab-pet" class="px-4 py-1 text-xs font-bold transition rounded">PETS</button>
-                        </div>
                     </div>
+                    
                     <div class="flex gap-2 relative">
-                        <button onclick="saveTierListToDB()" class="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 border border-green-400">
-                            <span>💾</span> Save Data
-                        </button>
                         <button onclick="togglePreviewMode()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 border border-indigo-400"><span>👁️</span> Full Screen</button>
+                        
                         <div class="relative">
                             <button onclick="toggleTierSettings()" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 border border-gray-600"><span>🎨</span> Customize</button>
                             <div id="tier-settings-menu" class="hidden absolute right-0 top-12 w-72 bg-[#161b22] border border-gray-600 rounded-xl shadow-2xl p-4 animate-fade-in z-[100]">
-                                <div class="text-[10px] text-blue-400 font-bold uppercase mb-2">Add Rank</div>
-                                <button onclick="addNewRank()" class="w-full text-left px-2 py-1.5 hover:bg-green-900/30 text-green-400 rounded text-xs flex items-center gap-2 mb-3"><span>➕</span>แทรก Rank ใหม่ (Add Rank)</button>
                                 <div class="text-[10px] text-blue-400 font-bold uppercase mb-2">Change Background</div>
                                 <input type="text" placeholder="BG Image URL..." class="w-full bg-black/50 border border-gray-600 rounded px-2 py-1.5 text-xs text-white outline-none mb-3" onchange="setTierBg(this.value)">
-                                <div class="text-[10px] text-yellow-500 font-bold uppercase mb-2">Stickers</div>
-                                <div class="flex gap-2 mb-3">
-                                    <input type="text" id="sticker-url-input" placeholder="Image URL..." class="flex-1 bg-black/50 border border-gray-600 rounded px-2 py-1.5 text-xs text-white outline-none">
-                                    <button onclick="addStickerFromInput()" class="bg-yellow-600 hover:bg-yellow-500 text-white px-3 rounded font-bold">+</button>
                                 </div>
-                                <button onclick="resetTierNames()" class="w-full text-left px-2 py-1.5 hover:bg-red-900/30 text-red-300 rounded text-xs flex items-center gap-2"><span>↺</span> Reset Default Ranks</button>
-                            </div>
                         </div>
                     </div>
                 </header>
 
-                <div class="flex-1 overflow-y-auto px-8 pb-40 custom-scroll pointer-events-auto" id="tier-rows-container"></div>
+                <div class="flex-1 overflow-y-auto px-8 pb-40 custom-scroll pointer-events-auto relative" id="tier-canvas" oncontextmenu="openTierContextMenu(event)">
+                    <div id="snap-line-top" class="snap-guide"></div>
+                    <div id="snap-line-bottom" class="snap-guide"></div>
+                </div>
             </div>
 
-            <div id="tier-pool-footer" class="absolute bottom-0 left-0 right-0 h-50 z-[60] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                <div id="pool-toggle-btn" onclick="toggleTierPool()" class="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-1 rounded-t-xl hover:bg-gray-700 font-bold text-xs border-t border-x border-gray-600 flex items-center gap-2 shadow-lg">
-                    <span id="pool-toggle-icon">▼</span> UNRANKED POOL
+            <div id="tier-pool-footer" class="absolute bottom-0 left-0 right-0 h-64 z-[60] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)] transition-transform duration-300 translate-y-full">
+                <div id="pool-toggle-btn" onclick="toggleTierPool()" class="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-1.5 rounded-t-xl hover:bg-gray-700 font-bold text-xs border-t border-x border-gray-600 flex items-center gap-2 shadow-lg cursor-pointer h-8">
+                    <span id="pool-toggle-icon">▲</span> UNRANKED POOL (<span id="pool-count">0</span>)
                 </div>
-                <div class="flex-1 p-4 overflow-y-auto flex flex-wrap gap-2 content-start" id="tier-pool-content" ondragover="tierAllowDrop(event)" ondrop="tierDrop(event, 'pool')"></div>
+
+                <div class="bg-gray-900 border-b border-gray-700 px-4 py-2 flex justify-center items-center gap-2 shadow-md shrink-0">
+                    <button onclick="switchTierTab('hero')" id="pool-tab-hero" class="px-6 py-1 rounded text-xs font-bold transition border border-transparent hover:border-blue-500 bg-blue-600 text-white shadow-lg">
+                        🦸 HEROES
+                    </button>
+                    <button onclick="switchTierTab('pet')" id="pool-tab-pet" class="px-6 py-1 rounded text-xs font-bold transition border border-gray-600 text-gray-400 hover:text-white hover:bg-gray-700">
+                        🐾 PETS
+                    </button>
+                </div>
+
+                <div class="flex-1 p-4 overflow-y-auto flex flex-wrap gap-2 content-start bg-[#0b0e14]/95 backdrop-blur-md" id="tier-pool-content" ondragover="tierAllowDrop(event)" ondrop="tierDrop(event, 'pool')"></div>
             </div>
 
             <div id="exit-preview-btn" onclick="togglePreviewMode()">❌ EXIT</div>
 
-            <div id="rank-context-menu" class="custom-ctx-menu w-64" onclick="event.stopPropagation()">
+            <div id="rank-context-menu" class="custom-ctx-menu w-64 fixed hidden z-[2000]">
                 <div class="p-3 border-b border-gray-700 bg-gray-800/90 rounded-t-lg backdrop-blur relative">
-                    
                     <button onclick="closeCtxMenus()" class="absolute top-2 right-2 text-gray-400 hover:text-white font-bold text-xs">✕</button>
-
                     <div class="text-[10px] text-gray-400 font-bold uppercase mb-2">🎨 Style & Appearance</div>
                     
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-xs text-gray-300">สีตัวอักษร (Text)</span>
                         <input type="color" id="ctx-rank-color" class="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0" oninput="updateRankStyle('color', this.value)">
                     </div>
-
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs text-gray-300">สีพื้นหลังหัวข้อ (Header BG)</span>
+                        <span class="text-xs text-gray-300">สีหัวข้อ (Header BG)</span>
                         <div class="flex gap-2">
                             <button onclick="updateRankStyle('headerBg', '')" class="text-[10px] bg-gray-600 px-1 rounded text-white" title="ใช้สี Default">Auto</button>
                             <input type="color" id="ctx-header-bg" class="w-6 h-6 rounded cursor-pointer bg-transparent border-none p-0" oninput="updateRankStyle('headerBg', this.value)">
@@ -1002,38 +1188,60 @@
 
                     <div class="mb-2">
                         <div class="flex justify-between text-xs text-gray-300 mb-1">
-                            <span>ความทึบแสงแถว (Row Opacity)</span>
+                            <span>ความทึบแสงแถว (Opacity)</span>
                             <span id="ctx-opacity-val">60%</span>
                         </div>
                         <input type="range" id="ctx-rank-opacity" min="0" max="100" class="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer" oninput="updateRankStyle('opacity', this.value)">
                     </div>
 
                     <div class="mb-1">
-                        <span class="text-xs text-gray-300 block mb-1">รูปพื้นหลังแถว (Row Image URL)</span>
+                        <span class="text-xs text-gray-300 block mb-1">รูปพื้นหลังแถว (URL)</span>
                         <input type="text" id="ctx-rank-bg" placeholder="Paste Image URL..." class="w-full bg-black/50 border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none" onchange="updateRankStyle('bg', this.value)">
                     </div>
                 </div>
-
-                <div class="p-1">
-                    <div onclick="addNewRank()" class="ctx-option text-green-400">➕ แทรก Rank ใหม่</div>
+                
+                <div class="p-1 bg-gray-800 rounded-b-lg border border-t-0 border-gray-600">
+                    <div onclick="addNewRank()" class="ctx-option text-green-400 hover:bg-gray-700 p-2 rounded cursor-pointer flex gap-2 text-xs">➕ แทรก Rank ใหม่</div>
                     <div class="h-px bg-gray-700 my-1"></div>
-                    <div onclick="moveRank(-1)" class="ctx-option">⬆️ เลื่อนขึ้น</div>
-                    <div onclick="moveRank(1)" class="ctx-option">⬇️ เลื่อนลง</div>
+                    <div onclick="moveRank(-1)" class="ctx-option hover:bg-gray-700 p-2 rounded cursor-pointer flex gap-2 text-xs text-gray-300">⬆️ เลื่อนขึ้น</div>
+                    <div onclick="moveRank(1)" class="ctx-option hover:bg-gray-700 p-2 rounded cursor-pointer flex gap-2 text-xs text-gray-300">⬇️ เลื่อนลง</div>
                     <div class="h-px bg-gray-700 my-1"></div>
-                    <div onclick="deleteRank()" class="ctx-option delete">🗑️ ลบแถวนี้</div>
+                    <div onclick="deleteRank()" class="ctx-option delete hover:bg-red-900/50 text-red-400 p-2 rounded cursor-pointer flex gap-2 text-xs">🗑️ ลบแถวนี้</div>
                 </div>
             </div>
             
-            <div id="item-context-menu" class="custom-ctx-menu">
-                <div onclick="convertItemToSticker()" class="ctx-option">🎈 แปลงเป็นสติ๊กเกอร์ (Float)</div>
-                <div onclick="removeItemFromTier()" class="ctx-option delete">⬇️ เอาลง Pool</div>
+            <div id="item-context-menu" class="custom-ctx-menu fixed hidden bg-gray-800 border border-gray-600 rounded p-1 z-[2000]">
+                <div onclick="convertItemToSticker()" class="ctx-option hover:bg-gray-700 p-2 rounded cursor-pointer text-gray-300 text-xs">🎈 แปลงเป็นสติ๊กเกอร์ (Float)</div>
+                <div onclick="removeItemFromTier()" class="ctx-option delete hover:bg-red-900/50 text-red-400 p-2 rounded cursor-pointer text-xs">⬇️ เอาลง Pool</div>
             </div>
 
-             <div id="sticker-context-menu" class="custom-ctx-menu">
-                <div onclick="resetSticker()" class="ctx-option text-yellow-400">↺ รีเซ็ตขนาด/มุม (Reset)</div>
+            <div id="sticker-context-menu" class="custom-ctx-menu fixed hidden bg-gray-800 border border-gray-600 rounded p-1 z-[2000]">
+                <div onclick="resetSticker()" class="ctx-option text-yellow-400 hover:bg-gray-700 p-2 rounded cursor-pointer text-xs">↺ รีเซ็ตขนาด (Reset)</div>
                 <div class="h-px bg-gray-700 my-1"></div>
-                <div onclick="deleteSticker()" class="ctx-option delete">🗑️ ลบสติ๊กเกอร์ (Delete)</div>
+                <div onclick="deleteSticker()" class="ctx-option delete hover:bg-red-900/50 text-red-400 p-2 rounded cursor-pointer text-xs">🗑️ ลบรูป (Delete)</div>
             </div>
+
+            <div id="tier-context-menu" class="fixed hidden bg-gray-800 border border-gray-600 shadow-xl rounded-lg py-1 z-[2000] w-40 font-['Kanit']">
+                <div onclick="addTextAtContextLocation()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm flex items-center gap-2 transition">
+                    <span>✎</span> เพิ่มข้อความ
+                </div>
+                <div onclick="resetTierList()" class="px-4 py-2 hover:bg-red-900/50 hover:text-red-200 cursor-pointer text-gray-300 text-sm flex items-center gap-2 border-t border-gray-700 mt-1 transition">
+                    <span>🗑️</span> Reset ทั้งหมด
+                </div>
+            </div>
+
+            <div id="tier-text-menu" class="fixed hidden bg-gray-800 border border-gray-600 shadow-xl rounded-lg py-1 z-[2000] w-48 font-['Kanit']">
+                <div onclick="setTextBackground()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm flex items-center gap-2 transition">
+                    <span>🌄</span> ใส่รูปพื้นหลัง (Set BG)
+                </div>
+                <div onclick="clearTextBackground()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-gray-300 text-sm flex items-center gap-2 transition">
+                    <span>🎨</span> ลบพื้นหลัง (Clear BG)
+                </div>
+                <div onclick="deleteFloatingText()" class="px-4 py-2 hover:bg-red-900/50 hover:text-red-200 cursor-pointer text-red-400 text-sm flex items-center gap-2 border-t border-gray-700 transition mt-1">
+                    <span>🗑️</span> ลบข้อความ (Delete)
+                </div>
+            </div>
+
         </div>
 
         <div id="view-set-manager" class="flex-col hidden h-full"> 
@@ -1232,6 +1440,55 @@
             </div>
         </div>
 
+        <div id="view-hero-lists" class="hidden h-full flex flex-col p-6 space-y-6 overflow-hidden">
+            <div class="flex justify-between items-center pb-4 border-b border-gray-800">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <span class="text-purple-400">📋</span> Hero Checklist
+                        <span class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded ml-2">Temporary Mode</span>
+                    </h2>
+                    <p class="text-gray-400 text-sm">สร้างรายการเพื่อเช็คจำนวนการใช้ Hero (ข้อมูลจะหายไปเมื่อรีเฟรช)</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="resetAllHeroLists()" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-lg flex items-center gap-2 transition">
+                        <span>🗑️ Reset All</span>
+                    </button>
+                    <button onclick="createNewHeroList()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg transition">
+                        <span>+ เพิ่มรายการ</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
+                
+                <div class="col-span-8 flex flex-col bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div class="p-3 bg-gray-800 border-b border-gray-700 font-bold text-gray-300">My Lists</div>
+                    <div id="hero-lists-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        </div>
+                </div>
+
+                <div class="col-span-4 flex flex-col bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+                    <div class="p-3 bg-gray-800 border-b border-gray-700 font-bold text-yellow-400 flex justify-between">
+                        <span>📊 Hero Usage Count</span>
+                        <span class="text-xs font-normal text-gray-400 self-center">Session Only</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-0">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-800 text-xs text-gray-400 uppercase sticky top-0">
+                                <tr>
+                                    <th class="p-3">Hero</th>
+                                    <th class="p-3 text-center">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hero-usage-table-body" class="divide-y divide-gray-800 text-sm">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <div id="view-user-manager" class="flex-col hidden h-full">
             <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0">
                 <h2 class="text-2xl font-bold text-white">👥 User Management</h2>
@@ -1333,6 +1590,43 @@
                     <div id="full-history-list" class="space-y-2">
                         <div class="text-center text-gray-600 py-20 animate-pulse">Loading logs...</div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="recorderModal" class="fixed inset-0 bg-[#0b0e14] z-[100] hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg shrink-0">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="text-indigo-400">📝</span> Battle Multi-Recorder
+                    </h2>
+                    <button onclick="addNewRow()" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1">
+                        <span>+</span> เพิ่มแถว (Add Row)
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="saveAllMatches()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-1.5 rounded text-sm font-bold shadow-lg flex items-center gap-2">
+                        <span>💾</span> บันทึกทั้งหมด (<span id="rowCountBadge">0</span>)
+                    </button>
+                    <button onclick="closeRecorder()" class="text-gray-400 hover:text-white font-bold px-4">✕</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-auto p-4 custom-scroll">
+                <table class="w-full border-collapse">
+                    <thead class="sticky top-0 bg-[#0b0e14] z-10 shadow-sm">
+                        <tr>
+                            <th class="w-8">#</th>
+                            <th class="w-20">Format</th>
+                            <th class="bg-blue-900/10 border-b-2 border-blue-600/50" colspan="6">🛡️ My Team (Heroes & Pet)</th>
+                            <th class="w-4"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recorderRows" class="space-y-2"></tbody>
+                </table>
+                
+                <div id="emptyState" class="text-center py-20 text-gray-600 hidden">
+                    กดปุ่ม "+ เพิ่มแถว" ด้านบนเพื่อเริ่มบันทึกข้อมูล
                 </div>
             </div>
         </div>
@@ -1562,6 +1856,31 @@
         // --- [1] GLOBAL VARIABLES UPDATES ---
         let auditLogsDB = []; // เก็บ Log การแก้ไข
         let systemUsersDB = [];
+        let tempHeroLists = [];
+
+        var contextMenuPos = { x: 0, y: 0 }; 
+        var activeFloatingText = null;
+
+        let manualUsageOffsets = {}; // เก็บค่าที่กด +/- เพิ่มเอง { "heroID": 5 }
+        let currentTargetListId = null; // เก็บว่าตอนนี้กำลังเลือก Hero ให้ List ไหน
+
+        let isRowDragging = false;
+        let isRowResizing = false;
+        let currentRowId = null;
+        let dragOffset = { x: 0, y: 0 };
+        let startResize = { x: 0, y: 0, w: 0 };
+        let activeDragGroupId = null; // ID ของตัวที่เราเอาเมาส์กด
+        let activeDragGroup = [];     // รายชื่อแถวทั้งหมดที่ติดกัน [ {id, startX, startY} ]
+        let dragStartMouse = { x: 0, y: 0 };
+
+        const formations = [
+            { id: "basic", name: "Basic (B3/F2)" },
+            { id: "balanced", name: "Balance (B2/F3)" },
+            { id: "attack", name: "Attack (B4/F1)" },
+            { id: "defense", name: "Defense (B1/F4)" }
+        ];
+        let pendingMatches = []; // เก็บข้อมูลที่กำลังกรอก
+        let formationOptionsHTML = formations.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
 
         let viewingSeasonMode = 'current'; // 'current' หรือ index ของ archive
         let activeHistoryData = [];
@@ -1610,6 +1929,8 @@
         let lastServerTimestamp = 0; // เวลาล่าสุดที่ Server บันทึกไว้
         let isUserInteracting = false; // เช็คว่า user กำลังลากของหรือพิมพ์อยู่ไหม
         let realTimeInterval = null; // ตัวแปรเก็บ Loop
+        let pendingUpdateData = null; // ตัวแปรพักข้อมูลรอการอัปเดต
+        let updateCheckInterval = null;
 
         // ✅ [เพิ่มตัวแปรนี้] เช็คสถานะกำลังบันทึก
         let isSaving = false;
@@ -1729,7 +2050,7 @@
 
         // --- TIER LIST SYSTEM CONFIG ---
         // เก็บชื่อ Rank ที่ตั้งเอง { S: "GOD", A: "GOOD" }
-        let isPoolOpen = true;
+        let isPoolOpen = false;
 
         let contextStickerTarget = null;
 
@@ -1956,11 +2277,13 @@
             renderCastleMenu(); 
             changeCastle('นอก 1', 10); 
             updateSyncStatus();
+            loadTierListFull();
             
             initInteractionDetectors(); // เริ่มระบบจับการเคลื่อนไหว
             if(USE_CLOUD) {
                 startCloudSync(true); // โหลดครั้งแรก
-                startRealTimeSync();  // เริ่มวนลูป Real-time
+                // startRealTimeSync();  // เริ่มวนลูป Real-time
+                // startUpdateChecker();
             }
 
             switchView('home');
@@ -2400,67 +2723,73 @@
         function updateSyncStatus() { const b = document.getElementById('sync-status'); const t = document.getElementById('status-text'); const s = document.getElementById('setting-status-display'); if(!USE_CLOUD) { b.className = 'sync-badge offline'; t.innerText = 'NO SETUP'; if(s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`; } }
 
         function switchView(v) {
-        currentView = v;
+            currentView = v;
 
-        // 1. จัดการ Sidebar
-        document.querySelectorAll('.sidebar .menu-item').forEach(e => e.classList.remove('active'));
-        const nav = document.getElementById('nav-' + v);
-        if (nav) nav.classList.add('active');
+            // 1. จัดการ Sidebar (เหมือนเดิม)
+            document.querySelectorAll('.sidebar .menu-item').forEach(e => e.classList.remove('active'));
+            const nav = document.getElementById('nav-' + v);
+            if (nav) nav.classList.add('active');
 
-        // 2. ซ่อนหน้าจอทั้งหมด
-        document.querySelectorAll('main > div').forEach(el => {
-            if (el.id !== 'sidebar-floating-btn') {
-                el.classList.add('hidden');
-                el.classList.remove('tab-active');
-            }
-        });
+            // 2. ซ่อนหน้าจอทั้งหมด (เหมือนเดิม)
+            document.querySelectorAll('main > div').forEach(el => {
+                if (el.id !== 'sidebar-floating-btn') {
+                    el.classList.add('hidden');
+                    el.classList.remove('tab-active');
+                }
+            });
 
-        // 3. กำหนด ID และการทำงาน
-        const targetViewMap = {
-            'home': 'view-home',
-            'war-room': 'view-war-room',
-            'preparation': 'view-preparation',
-            'battle-war': 'view-battle-war',
-            'battle-history': 'view-battle-history',
-            'simulator': 'view-simulator',
-            'gallery': 'view-gallery',
-            'tier-viewer': 'view-tier-viewer',
-            'analytics': 'view-analytics',
-            'settings': 'view-settings',
+            // 3. กำหนด ID และการทำงาน
+            const targetViewMap = {
+                'home': 'view-home',
+                'war-room': 'view-war-room',
+                'preparation': 'view-preparation',
+                'battle-war': 'view-battle-war',
+                'battle-history': 'view-battle-history',
+                'simulator': 'view-simulator',
+                'gallery': 'view-gallery',
+                'tier-viewer': 'view-tier-viewer',
+                'analytics': 'view-analytics',
+                'settings': 'view-settings',
+                
+                // Database & Admin
+                'hero-manager': 'view-manager',
+                'pet-manager': 'view-manager',
+                'item-manager': 'view-manager',
+                'ring-manager': 'view-manager',
+                'set-manager': 'view-set-manager',
+                'user-manager': 'view-user-manager',
+                'audit-logs': 'view-audit-logs',
+
+                // ✅ [ส่วนที่ต้องเพิ่ม]
+                'hero-lists': 'view-hero-lists' // <--- เพิ่มบรรทัดนี้ครับ
+            };
+
+            const targetId = targetViewMap[v];
+            const el = document.getElementById(targetId);
             
-            // Database & Admin
-            'hero-manager': 'view-manager',
-            'pet-manager': 'view-manager',
-            'item-manager': 'view-manager',
-            'ring-manager': 'view-manager',
-            'set-manager': 'view-set-manager',
-            'user-manager': 'view-user-manager',
-            'audit-logs': 'view-audit-logs'
-        };
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('tab-active');
 
-        const targetId = targetViewMap[v];
-        const el = document.getElementById(targetId);
-        
-        if (el) {
-            el.classList.remove('hidden');
-            el.classList.add('tab-active');
+                // Init Functions (สั่งให้ทำงานเมื่อเปิดหน้า)
+                if (v === 'war-room') checkWarRoomStatus();
+                else if (v === 'preparation') renderPreparation();
+                else if (v === 'battle-war') renderBattleWar();
+                else if (v === 'battle-history') renderFullHistory();
+                else if (v === 'simulator') initSimulator();
+                else if (v === 'tier-viewer') renderTierViewer();
+                else if (v === 'gallery') renderGallery();
+                else if (v === 'analytics') renderAnalytics();
+                else if (v === 'settings') updateSyncStatus();
+                else if (v === 'audit-logs') renderAuditLogs();
+                else if (v === 'user-manager') renderUserManager();
+                else if (v === 'set-manager') renderSetManager();
+                else if (v.includes('manager')) renderManagerUI();
 
-            // Init Functions
-            if (v === 'war-room') checkWarRoomStatus();
-            else if (v === 'preparation') renderPreparation();
-            else if (v === 'battle-war') renderBattleWar();
-            else if (v === 'battle-history') renderFullHistory(); // ✅ เรียกฟังก์ชันใหม่
-            else if (v === 'simulator') initSimulator();
-            else if (v === 'tier-viewer') renderTierViewer();
-            else if (v === 'gallery') renderGallery();
-            else if (v === 'analytics') renderAnalytics();
-            else if (v === 'settings') updateSyncStatus();
-            else if (v === 'audit-logs') renderAuditLogs();
-            else if (v === 'user-manager') renderUserManager();
-            else if (v === 'set-manager') renderSetManager();
-            else if (v.includes('manager')) renderManagerUI();
+                // ✅ [ส่วนที่ต้องเพิ่ม]
+                else if (v === 'hero-lists') renderHeroListsView(); // <--- เพิ่มบรรทัดนี้ครับ
+            }
         }
-    }
 
         // --- CASTLE MENU ---
         // --- แก้ไขฟังก์ชันนี้เพื่อปรับสีปุ่มปราสาท ---
@@ -3493,8 +3822,23 @@
         }
 
         function switchTierTab(t) { 
-            tierViewTab = t; 
-            renderTierViewer(); 
+            tierViewTab = t;
+
+            // อัปเดตสีปุ่มใน Pool Footer
+            const btnHero = document.getElementById('pool-tab-hero');
+            const btnPet = document.getElementById('pool-tab-pet');
+
+            if (t === 'hero') {
+                // Hero Active
+                btnHero.className = "px-6 py-1 rounded text-xs font-bold transition border border-transparent bg-blue-600 text-white shadow-lg transform scale-105";
+                btnPet.className = "px-6 py-1 rounded text-xs font-bold transition border border-gray-600 text-gray-400 hover:text-white hover:bg-gray-700";
+            } else {
+                // Pet Active
+                btnHero.className = "px-6 py-1 rounded text-xs font-bold transition border border-gray-600 text-gray-400 hover:text-white hover:bg-gray-700";
+                btnPet.className = "px-6 py-1 rounded text-xs font-bold transition border border-transparent bg-purple-600 text-white shadow-lg transform scale-105";
+            }
+
+            renderTierViewer();
         }
         function switchTierViewMode(m) { currentTierMode = m; renderTierViewer(); }
         function renderTierModeSelectors(containerId, callbackName) {
@@ -3504,133 +3848,88 @@
         // --- RENDER FUNCTION ---
         function renderTierViewer() {
             renderTierModeSelectors('tv-mode-selector', 'switchTierViewMode');
-            const container = document.getElementById('tier-rows-container');
+            const container = document.getElementById('tier-canvas');
             const poolContainer = document.getElementById('tier-pool-content');
             const db = tierViewTab === 'hero' ? heroesDB : petsDB;
-            
-            if (!tierListsDB[tierViewTab]) tierListsDB[tierViewTab] = {};
-            if (!tierListsDB[tierViewTab][currentTierMode]) tierListsDB[tierViewTab][currentTierMode] = {};
             const currentTiers = tierListsDB[tierViewTab][currentTierMode];
 
-            let rowsHtml = '';
+            // Clear ของเก่า (เฉพาะที่เป็น tier-row)
+            // เราจะไม่ innerHTML='' ทั้งหมด เพราะจะทำให้ snap-guide หาย
+            container.querySelectorAll('.tier-row-modern').forEach(e => e.remove());
 
-            // สี Gradient เริ่มต้น (ถ้าไม่ได้ตั้งค่าสีเอง)
-            const getRankColorClass = (rank) => {
-                if(rank==='S') return 'from-red-600 to-red-900 border-red-500/50';
-                if(rank==='A') return 'from-orange-500 to-orange-800 border-orange-500/50';
-                if(rank==='B') return 'from-yellow-500 to-yellow-800 border-yellow-500/50';
-                if(rank==='C') return 'from-green-500 to-green-800 border-green-500/50';
-                if(rank==='D') return 'from-gray-500 to-gray-800 border-gray-500/50';
-                return 'from-blue-600 to-blue-900 border-blue-500/50'; 
-            };
-            
-            // สี Gradient สุ่มตาม Index หรือ Hash
-            const getRankColor = (rank) => {
-                if(rank==='S') return 'from-red-600 to-red-900 border-red-500/50';
-                if(rank==='A') return 'from-orange-500 to-orange-800 border-orange-500/50';
-                if(rank==='B') return 'from-yellow-500 to-yellow-800 border-yellow-500/50';
-                if(rank==='C') return 'from-green-500 to-green-800 border-green-500/50';
-                if(rank==='D') return 'from-gray-500 to-gray-800 border-gray-500/50';
-                return 'from-blue-600 to-blue-900 border-blue-500/50'; 
-            };
-
-            activeTiers.forEach(rank => {
+            activeTiers.forEach((rank, index) => {
+                sanitizeRankConfig(rank); // ตรวจสอบค่าพิกัด
+                const conf = tierRankConfigs[rank];
                 const ids = currentTiers[rank] || [];
-                
-                // ดึง Config หรือใช้ Default
-                const conf = tierRankConfigs[rank] || { name: rank, color: '#ffffff', headerBg: '', opacity: 60, bg: '' };
-                
-                // 1. จัดการ Background Image ของแถว (Inline Style)
-                let rowStyle = '';
-                if(conf.bg) {
-                    rowStyle = `background-image: url('${conf.bg}'); background-size: cover; background-position: center;`;
+
+                // Style พื้นหลังและสี
+                let headerStyle = conf.headerBg ? `background: ${conf.headerBg};` : `background: linear-gradient(135deg, #333, #000);`;
+                // สี Default ตามชื่อ Rank ถ้าไม่ได้ตั้งค่า
+                if (!conf.headerBg) {
+                    if(rank==='S') headerStyle = 'background: linear-gradient(135deg, #ef4444, #7f1d1d);';
+                    else if(rank==='A') headerStyle = 'background: linear-gradient(135deg, #f97316, #c2410c);';
+                    else if(rank==='B') headerStyle = 'background: linear-gradient(135deg, #eab308, #a16207);';
+                    else if(rank==='C') headerStyle = 'background: linear-gradient(135deg, #22c55e, #14532d);';
+                    else if(rank==='D') headerStyle = 'background: linear-gradient(135deg, #64748b, #334155);';
                 }
 
-                // 2. จัดการ Header Background
-                let headerClass = "tier-header-modern relative z-10 ";
-                let headerStyle = "";
-                
-                if (conf.headerBg) {
-                    // ถ้ามีสีที่ตั้งเอง -> ใช้สีนั้น
-                    headerStyle = `background: ${conf.headerBg}; border-color: rgba(255,255,255,0.2);`;
-                    headerClass += "border-r"; // เพิ่มขอบขวานิดนึง
-                } else {
-                    // ถ้าไม่มี -> ใช้ Class Gradient เดิม
-                    headerClass += `bg-gradient-to-br ${getRankColorClass(rank)}`;
-                }
-
-                // 3. จัดการ Overlay สีพื้นหลัง (Row Opacity)
-                // ถ้ามีรูป BG -> Overlay จะทับรูป
-                // ถ้าไม่มีรูป -> Overlay จะทำหน้าที่เป็นสีพื้นหลัง
                 const overlayColor = `rgba(17, 24, 39, ${conf.opacity / 100})`;
+                const rowBgImg = conf.bg ? `background-image: url('${conf.bg}'); background-size: cover;` : '';
 
-                rowsHtml += `
-                    <div class="tier-row-modern group relative transition-all" 
-                         ondragover="tierAllowDrop(event)" ondrop="tierDrop(event, '${rank}')"
-                         style="${rowStyle}">
-                        
-                        <div class="absolute inset-0 z-0 pointer-events-none" style="background-color: ${overlayColor};"></div>
+                // สร้าง Element
+                const row = document.createElement('div');
+                row.className = 'tier-row-modern group';
+                row.id = `tier-row-${rank}`;
+                
+                // กำหนดพิกัดและการหมุน
+                row.style.left = conf.x + 'px';
+                row.style.top = conf.y + 'px';
+                row.style.width = (conf.width || 800) + 'px'; // ความกว้าง
+                row.style.transform = `scale(${conf.scale}) rotate(${conf.rot}deg)`;
+                row.style.cssText += rowBgImg; // เพิ่ม BG Image
 
-                        <div class="${headerClass}" 
-                             style="${headerStyle}"
-                             oncontextmenu="openRankContextMenu(event, '${rank}')">
-                            <input type="text" value="${conf.name}" 
-                                class="rank-name-input" 
-                                style="color: ${conf.color} !important;" 
-                                oninput="updateRankNameLocal('${rank}', this.value)" 
-                                onchange="saveTierConfig()"
-                                onclick="this.select()">
-                        </div>
+                // Events สำหรับลากของเข้า
+                row.ondragover = tierAllowDrop;
+                row.ondrop = (e) => tierDrop(e, rank);
+
+                // HTML ภายใน
+                row.innerHTML = `
+                    <div class="absolute inset-0 z-0 pointer-events-none" style="background-color: ${overlayColor};"></div>
+                    
+                    <div class="tier-header-modern relative z-10" style="${headerStyle}" 
+                        onmousedown="rowDragStart(event, '${rank}')"
+                        onwheel="rowWheel(event, '${rank}')"
+                        oncontextmenu="openRankContextMenu(event, '${rank}')">
                         
-                        <div class="flex-1 p-3 flex flex-wrap gap-2 content-start min-h-[100px] transition bg-black/10 relative z-10">
-                            ${ids.map(id => {
-                                const item = db.find(x => x.id === id);
-                                if(!item) return '';
-                                return `
-                                    <div class="w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 relative cursor-grab active:cursor-grabbing hover:scale-110 transition shadow-lg bg-[#0d1117] group"
-                                         draggable="true" 
-                                         ondragstart="tierDragStart(event, '${item.id}', '${rank}')"
-                                         oncontextmenu="openItemContextMenu(event, '${item.id}', '${rank}')"
-                                         title="${item.name}">
-                                        <img src="${item.img}" class="w-full h-full object-cover pointer-events-none">
-                                    </div>`;
-                            }).join('')}
-                        </div>
+                        <input type="text" value="${conf.name}" 
+                            class="rank-name-input pointer-events-auto" 
+                            style="color: ${conf.color} !important;" 
+                            oninput="updateRankNameLocal('${rank}', this.value)"
+                            onclick="event.stopPropagation()"> </div>
+                    
+                    <div class="tier-content relative z-10">
+                        ${ids.map(id => {
+                            const item = db.find(x => x.id === id);
+                            if(!item) return '';
+                            return `
+                                <div class="w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 relative cursor-grab active:cursor-grabbing hover:scale-110 transition shadow-lg bg-[#0d1117] group/item"
+                                    draggable="true" 
+                                    ondragstart="tierDragStart(event, '${item.id}', '${rank}')"
+                                    oncontextmenu="openItemContextMenu(event, '${item.id}', '${rank}')">
+                                    <img src="${item.img}" class="w-full h-full object-cover pointer-events-none">
+                                </div>`;
+                        }).join('')}
                     </div>
+
+                    <div class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-20 hover:bg-white/20 rounded-tl"
+                        onmousedown="rowResizeStart(event, '${rank}')"></div>
                 `;
+
+                container.appendChild(row);
             });
-            container.innerHTML = rowsHtml;
 
             // Render Pool (เหมือนเดิม)
             renderTierPoolContent(poolContainer, db, currentTiers);
-
-            // // 2. Render Unranked Pool (Footer)
-            // let rankedIds = [];
-            // Object.values(currentTiers).forEach(arr => rankedIds.push(...arr));
-            // let unranked = db.filter(item => !rankedIds.includes(item.id));
-            
-            // if(tierViewTab==='hero') unranked.sort((a,b) => RARITY_OPTS.indexOf(a.rarity) - RARITY_OPTS.indexOf(b.rarity)); 
-            // else unranked.sort((a,b) => a.name.localeCompare(b.name, 'th'));
-
-            // // Update UI status
-            // const toggleIcon = document.getElementById('pool-toggle-icon');
-            // if(toggleIcon) toggleIcon.innerText = isPoolOpen ? '▼' : '▲';
-            // const footer = document.getElementById('tier-pool-footer');
-            // if(footer) footer.style.transform = isPoolOpen ? "translateY(0%)" : "translateY(85%)";
-
-            // // [จุดที่แก้ไข] เพิ่ม oncontextmenu ให้กับ item ใน pool
-            // poolContainer.innerHTML = unranked.map(item => `
-            //     <div class="w-16 h-16 rounded-lg overflow-hidden border border-gray-600 relative cursor-grab active:cursor-grabbing hover:scale-110 transition bg-[#0d1117] group"
-            //          draggable="true" 
-            //          ondragstart="tierDragStart(event, '${item.id}', 'pool')"
-            //          oncontextmenu="openItemContextMenu(event, '${item.id}', 'pool')"
-            //          title="${item.name}">
-            //         <img src="${item.img}" class="w-full h-full object-cover pointer-events-none">
-            //         <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10"></div>
-            //     </div>
-            // `).join('');
-
-            // renderTierPoolContent(poolContainer, db, currentTiers);
         }
 
         // Helper แยก Pool Render (เพื่อให้โค้ดอ่านง่าย)
@@ -3644,10 +3943,10 @@
             const icon = document.getElementById('pool-toggle-icon');
             if(icon) icon.innerText = isPoolOpen ? '▼' : '▲';
             const footer = document.getElementById('tier-pool-footer');
-            if(footer) footer.style.transform = isPoolOpen ? "translateY(0%)" : "translateY(85%)";
+            if(footer) footer.style.transform = isPoolOpen ? "translateY(0%)" : "translateY(100%)";
 
             container.innerHTML = unranked.map(item => `
-                <div class="w-16 h-16 rounded-lg overflow-hidden border border-gray-600 relative cursor-grab active:cursor-grabbing hover:scale-110 transition bg-[#0d1117] group"
+                <div class="w-20 h-20 rounded-lg overflow-hidden border border-gray-600 relative cursor-grab active:cursor-grabbing hover:scale-110 transition bg-[#0d1117] group"
                      draggable="true" 
                      ondragstart="tierDragStart(event, '${item.id}', 'pool')"
                      oncontextmenu="openItemContextMenu(event, '${item.id}', 'pool')"
@@ -3755,8 +4054,8 @@
             if(item) addSticker(item.img); 
 
             saveLocalTierData();
-    renderTierViewer();
-    closeCtxMenus();
+            renderTierViewer();
+            closeCtxMenus();
         }
 
         function removeItemFromTier() {
@@ -3768,15 +4067,51 @@
             
              saveLocalTierData();
              renderTierViewer();
+             autoSaveTierList();
              closeCtxMenus();
         }
 
         // Close menus on click
-        document.addEventListener('click', closeCtxMenus);
+        document.addEventListener('click', function(e) {
+            const target = e.target;
+            
+            // ตรวจสอบปุ่มเปิด Settings (ยกเว้นปุ่มนี้ไว้ปุ่มนึง)
+            const settingsBtn = document.querySelector('button[onclick="toggleTierSettings()"]');
+            if (settingsBtn && settingsBtn.contains(target)) return;
+
+            // ตรวจสอบว่าคลิก "ภายใน" เมนูใดเมนูหนึ่งหรือไม่?
+            const isClickInside = 
+                target.closest('#tier-context-menu') ||
+                target.closest('#tier-text-menu') ||
+                target.closest('#rank-context-menu') ||
+                target.closest('#item-context-menu') ||
+                target.closest('#sticker-context-menu') ||
+                target.closest('#tier-settings-menu');
+
+            // ถ้า "ไม่โดนเมนูเลย" -> ปิดทิ้งให้หมด
+            if (!isClickInside) {
+                closeCtxMenus();
+            }
+        });
+
+        // ฟังก์ชันปิดเมนูคลิกขวาทุกชนิด (รวมอันใหม่และอันเก่า)
         function closeCtxMenus() {
-            document.getElementById('rank-context-menu').style.display = 'none';
-            document.getElementById('item-context-menu').style.display = 'none';
-            document.getElementById('bg-context-menu')?.classList.add('hidden'); // ถ้ามีอันเก่า
+            const menuIds = [
+                'tier-context-menu',    // เมนูหลัก
+                'tier-text-menu',       // เมนูข้อความ
+                'rank-context-menu',    // เมนู Rank
+                'item-context-menu',    // เมนู Hero
+                'sticker-context-menu', // เมนู Sticker
+                'tier-settings-menu'    // เมนูตั้งค่าขวาบน
+            ];
+
+            menuIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.display = 'none';   // ซ่อนแบบ Inline
+                    el.classList.add('hidden');  // ซ่อนแบบ Class
+                }
+            });
         }
 
         // Action: Add Rank (เพิ่มจาก Context Menu)
@@ -3796,6 +4131,7 @@
                 activeTiers = activeTiers.filter(r => r !== contextRankTarget);
                 // ข้อมูล item ใน db[rank] ยังอยู่ แต่จะไม่ถูก render (เสมือนลง Pool) หรือจะลบ key ทิ้งก็ได้
                 saveTierConfig();
+                autoSaveTierList();
                 renderTierViewer();
             }
             closeCtxMenus();
@@ -3825,10 +4161,12 @@
         }
 
         function resetTierNames() {
-            if(confirm("Reset Structure to Default (S, A, B, C, D)?")) {
-                activeTiers = ['S', 'A', 'B', 'C', 'D'];
-                tierRankNames = { S:'S', A:'A', B:'B', C:'C', D:'D' };
-                saveTierConfig();
+            if(confirm("ล้างกระดานทั้งหมดให้โล่ง (Clear All)?\n(ไอเท็มจะกลับลง Pool)")) {
+                // ✅ กำหนดให้เป็นค่าว่าง
+                activeTiers = [];
+                tierRankConfigs = {};
+                
+                autoSaveTierList();
                 renderTierViewer();
             }
         }
@@ -3918,6 +4256,7 @@
             tierDragSrc = null;
             saveLocalTierData();
             renderTierViewer();
+            autoSaveTierList();
             // pushData(); // Auto Save
         }
         function updateRankName(rankKey, newName) {
@@ -3938,23 +4277,20 @@
 
         // --- POOL TOGGLE LOGIC (FIXED) ---
         function toggleTierPool() {
-            // 1. สลับสถานะ
             isPoolOpen = !isPoolOpen;
-            
-            // 2. ดึง Element มาจัดการโดยตรง
             const footer = document.getElementById('tier-pool-footer');
             const icon = document.getElementById('pool-toggle-icon');
             
             if(!footer) return;
 
-            // 3. สั่ง Animation ด้วย CSS Transform
             if (isPoolOpen) {
-                // เปิด: เลื่อนกลับมาที่เดิม (0%)
+                // เปิดขึ้นมา (Show)
                 footer.style.transform = "translateY(0%)";
                 if(icon) icon.innerText = "▼";
             } else {
-                // ปิด: เลื่อนลงไปข้างล่าง (85% เพื่อให้เหลือแต่หัวโผล่มา)
-                footer.style.transform = "translateY(85%)";
+                // ปิดลงไป (Hide)
+                // เนื่องจาก CSS เราตั้ง h-64 เราจึงเลื่อนลง 100% คือหายไปทั้งก้อน เหลือแต่ติ่งปุ่ม
+                footer.style.transform = "translateY(100%)";
                 if(icon) icon.innerText = "▲";
             }
         }
@@ -4080,16 +4416,9 @@
         function deleteSticker() {
             if (contextStickerTarget) {
                 contextStickerTarget.remove();
+                autoSaveTierList(); // ✅ บันทึกทันทีหลังจากลบ
             }
             closeCtxMenus();
-        }
-
-        // อัปเดตฟังก์ชันปิดเมนูรวม (เพิ่ม sticker menu เข้าไป)
-        function closeCtxMenus() {
-            document.getElementById('rank-context-menu').style.display = 'none';
-            document.getElementById('item-context-menu').style.display = 'none';
-            document.getElementById('sticker-context-menu').style.display = 'none'; // [NEW]
-            document.getElementById('bg-context-menu')?.classList.add('hidden');
         }
 
         // อัปเดต Drag Logic ให้รองรับ Transform
@@ -4124,11 +4453,12 @@
             function closeDragElement() {
                 document.onmouseup = null;
                 document.onmousemove = null;
+                autoSaveTierList();
             }
         }
 
         // --- 2. BACKGROUND LOGIC (ปรับให้ชัด 100%) ---
-        function setTierBg(url) {
+        function setTierBg(url, shouldSave = true) {
             const container = document.getElementById('tier-bg-container');
             const overlay = document.getElementById('tier-bg-overlay');
             
@@ -4147,6 +4477,8 @@
                 
                 localStorage.setItem('7k_tier_bg', url);
             }
+
+            if(shouldSave) autoSaveTierList();
         }
 
         // Toggle Menu
@@ -4155,14 +4487,6 @@
             if (menu.classList.contains('hidden')) menu.classList.remove('hidden');
             else menu.classList.add('hidden');
         }
-        // ปิดเมนูเมื่อคลิกที่อื่น
-        document.addEventListener('click', function(e) {
-            const menu = document.getElementById('tier-settings-menu');
-            const btn = document.querySelector('button[onclick="toggleTierSettings()"]');
-            if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
-                menu.classList.add('hidden');
-            }
-        });
 
         // --- STICKER LOGIC ---
         function updateSticker(text) {
@@ -4226,6 +4550,16 @@
         }
         // ✅ [แทนที่] selectItem ให้รองรับการเลือกตัวละครในหน้า Battle War
         function selectItem(id) {
+            if (editContext && editContext.i === 'HERO-LIST') {
+                if (id) {
+                    // เรียกฟังก์ชันเพิ่ม Hero (ที่เราสร้างไว้รอบก่อน)
+                    // editContext.p คือ listId ที่เราฝากไว้ตอน openSelector
+                    addHeroByIdToHelper(editContext.p, id);
+                }
+                closeSelector();
+                return;
+            }
+            
             let t = getTeam(editContext.i);
             const p = editContext.p;
 
@@ -4259,6 +4593,8 @@
                 renderSimulatorTeams(); // 
             } else if (currentView === 'set-manager') {
                 renderSetManager();    // 
+            } else if(currentView === 'hero-lists') {
+                renderHeroListsView();
             } else {
                 renderDashboard();     // อัปเดตหน้า War Room
             }
@@ -4567,9 +4903,28 @@
         // --- 🟢 ฟังก์ชันเปิดหน้าต่างเลือก (แก้ไข: จำค่า Filter + ซ่อนตัวซ้ำ) ---
         function openSelector(i, p, type, e) { 
             if(e) e.stopPropagation(); 
-            
-            let t = null;
 
+            if (i === 'HERO-LIST') {
+                editContext = { i, p, type }; // ในที่นี้ p จะเก็บค่า listId แทน
+                selectorActiveCategory = 'All';
+                
+                // กรองตัวที่เลือกไปแล้วออก (Optional)
+                selectorExcludedIds = []; 
+                // ถ้าต้องการซ่อนตัวที่เลือกไปแล้ว ให้ uncomment บรรทัดล่างนี้ (ต้องมีตัวแปร tempHeroLists)
+                // const list = tempHeroLists.find(l => l.id === p);
+                // if (list) selectorExcludedIds = list.heroIds;
+
+                document.getElementById('selector-title').innerText = 'เพิ่ม Hero ลงรายการ';
+                document.getElementById('selector-search').value = '';
+                renderSelectorTabs();
+                
+                selectorCurrentData = [...heroesDB]; // โหลดข้อมูล Hero
+                document.getElementById('selectorModal').style.display = 'flex';
+                filterSelector('');
+                return; // จบการทำงาน ไม่ไปทำ Logic ของ War Room ต่อ
+            }
+
+            let t = null;
             if (i === 'PREP-ENEMY') t = prepData.enemy;
             else if (i === 'PREP-MY') t = prepData.my;
             else if (i === 'BATTLE-TEMP') t = battleTempTeam; // (เผื่อไว้)
@@ -5717,6 +6072,53 @@
             closeTextContextMenu();
             activeTextarea.dispatchEvent(new Event('change'));
         }
+        
+        function setTextBackground() {
+            if(!activeFloatingText) return;
+            
+            const url = prompt("กรุณาวางลิงก์รูปภาพ (Image URL):\n(แนะนำรูปแนวนอน / Banner)");
+            if(url) {
+                activeFloatingText.style.backgroundImage = `url('${url}')`;
+                // ปรับแต่งให้สวยงามเมื่อมีรูป
+                activeFloatingText.style.backgroundColor = 'transparent';
+                activeFloatingText.style.border = 'none'; // ซ่อนเส้นประ
+                activeFloatingText.style.color = '#ffffff'; 
+                
+                // ขยายกล่องหน่อยถ้ามันเล็กไป
+                if(activeFloatingText.offsetWidth < 120) {
+                    activeFloatingText.style.minWidth = '150px';
+                    activeFloatingText.style.minHeight = '60px';
+                    activeFloatingText.style.display = 'flex';
+                    activeFloatingText.style.alignItems = 'center';
+                    activeFloatingText.style.justifyContent = 'center';
+                }
+            }
+            closeTierTextMenu();
+        }
+
+        function clearTextBackground() {
+            if(!activeFloatingText) return;
+            activeFloatingText.style.backgroundImage = '';
+            activeFloatingText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            activeFloatingText.style.border = '1px dashed #fbbf24';
+            activeFloatingText.style.color = '#fbbf24';
+            activeFloatingText.style.minWidth = '50px';
+            activeFloatingText.style.minHeight = 'auto';
+            closeTierTextMenu();
+        }
+
+        function deleteFloatingText() {
+            if(activeFloatingText) {
+                activeFloatingText.remove(); // ลบออกจากหน้าจอ
+                autoSaveTierList();          // ✅ บันทึกทันทีหลังจากลบ
+            }
+            closeCtxMenus();
+        }
+
+        function closeTierTextMenu() {
+            document.getElementById('tier-text-menu').classList.add('hidden');
+        }
+        
         // ฟังก์ชันแปลงชื่อย่อเป็นชื่อเต็ม
         function getFullCastleName(shortName) {
             if (!shortName) return '-';
@@ -7724,14 +8126,20 @@
             const localConf = localStorage.getItem('7k_local_tier_conf');
 
             if (localDB) tierListsDB = JSON.parse(localDB);
-            // ถ้าไม่มีในเครื่อง ให้ใช้ค่าว่างเริ่มต้น
             else tierListsDB = { hero: { pvp: {}, pve: {}, farming: {} }, pet: { pvp: {}, pve: {}, farming: {} } };
 
-            if (localStruct) activeTiers = JSON.parse(localStruct);
-            else activeTiers = ['S', 'A', 'B', 'C', 'D'];
+            if (localStruct) {
+                activeTiers = JSON.parse(localStruct);
+            } else {
+                // ✅ แก้ตรงนี้: เปลี่ยนจาก ['S', 'A'...] เป็น [] (ว่างเปล่า)
+                activeTiers = []; 
+            }
 
-            if (localConf) tierRankConfigs = JSON.parse(localConf);
-            // Configs จะมีค่า Default อยู่แล้วถ้าโหลดไม่เจอ
+            if (localConf) {
+                tierRankConfigs = JSON.parse(localConf);
+            } else {
+                tierRankConfigs = {};
+            }
         }
         // --- 4. Render Checkbox Logic ---
         function renderPermissionCheckboxes(userPerms = []) {
@@ -8702,6 +9110,1331 @@
 
         container.innerHTML = html;
     }
+
+    // New Function 25/12/2568
+    // --- 1. OPEN / CLOSE / ADD ROW ---
+    function openRecorder() {
+        document.getElementById('recorderModal').classList.remove('hidden');
+        if (pendingMatches.length === 0) addNewRow();
+    }
+
+    function closeRecorder() {
+        if(pendingMatches.length > 0 && !confirm("ข้อมูลยังไม่ถูกบันทึก ต้องการปิดหรือไม่?")) return;
+        document.getElementById('recorderModal').classList.add('hidden');
+    }
+
+    function addNewRow() {
+        const rowId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        
+        // สร้าง Data Structure เปล่าๆ
+        const newMatch = {
+            rowId: rowId,
+            myFormation: 'basic',
+            enemyFormation: 'basic',
+            myHeroes: [null, null, null, null, null], // 5 slots
+            enemyHeroes: [null, null, null, null, null],
+            myPet: null,
+            enemyPet: null,
+            skillQueue: [], // เก็บ string เช่น "my-0-1" (ทีม-ช่อง-สกิล)
+            result: 'Win'
+        };
+
+        pendingMatches.push(newMatch);
+        renderRecorderRows();
+        
+        // Focus ช่องแรกของแถวใหม่
+        setTimeout(() => {
+            const firstInput = document.getElementById(`input-my-0-${rowId}`);
+            if(firstInput) firstInput.focus();
+        }, 100);
+    }
+
+    function deleteRow(rowId) {
+        pendingMatches = pendingMatches.filter(m => m.rowId !== rowId);
+        renderRecorderRows();
+    }
+
+    function renderRecorderRows() {
+        const container = document.getElementById('recorderRows');
+        const countBadge = document.getElementById('rowCountBadge');
+        const emptyState = document.getElementById('emptyState');
+        
+        countBadge.innerText = pendingMatches.length;
+        if(pendingMatches.length === 0) {
+            container.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+        emptyState.classList.add('hidden');
+
+        // ชื่อย่อ Formation
+        const formLabels = { "basic": "B3/F2", "balanced": "B2/F3", "attack": "B4/F1", "defense": "B1/F4" };
+
+        container.innerHTML = pendingMatches.map((match, idx) => {
+            return `
+            <tr class="border-b border-gray-800 hover:bg-[#111827] transition group">
+                <td class="text-center text-gray-500 font-mono align-middle text-lg border-r border-gray-800 w-10 font-bold">${idx + 1}</td>
+                
+                <td class="align-middle px-2 w-20">
+                   <select class="bg-[#0d1117] border border-green-900 text-green-200 rounded-lg text-xs w-full text-center outline-none py-2 font-bold cursor-pointer hover:border-green-500 transition" onchange="updateRecVal('${match.rowId}', 'myFormation', this.value)">
+                        ${formations.map(f => `<option value="${f.id}" ${match.myFormation===f.id?'selected':''}>${formLabels[f.id] || f.name}</option>`).join('')}
+                   </select>
+                </td>
+
+                <td class="align-middle px-0">
+                    <div class="flex justify-center items-end gap-2 px-2 w-full">
+                        ${[0,1,2].map(i => renderRecSlot(match, 'my', i)).join('')}
+                        ${renderRecPetSlot(match, 'my')}
+                    </div>
+                </td>
+
+                <td class="text-center align-middle px-0 w-12">
+                    <button onclick="swapRowTeams('${match.rowId}')" class="w-8 h-8 rounded-full bg-gray-800 border border-gray-600 text-gray-400 hover:text-white hover:bg-blue-600 hover:border-blue-400 transition flex items-center justify-center shadow-lg mx-auto" title="สลับฝั่ง">
+                        <span class="text-sm font-bold">⇄</span>
+                    </button>
+                </td>
+
+                <td class="align-middle px-0">
+                    <div class="flex justify-center items-end gap-2 px-2 w-full">
+                         ${renderRecPetSlot(match, 'enemy')}
+                        ${[0,1,2].map(i => renderRecSlot(match, 'enemy', i)).join('')}
+                    </div>
+                </td>
+
+                <td class="align-middle px-2 w-20">
+                   <select class="bg-[#0d1117] border border-red-900 text-red-200 rounded-lg text-xs w-full text-center outline-none py-2 font-bold cursor-pointer hover:border-red-500 transition" onchange="updateRecVal('${match.rowId}', 'enemyFormation', this.value)">
+                        ${formations.map(f => `<option value="${f.id}" ${match.enemyFormation===f.id?'selected':''}>${formLabels[f.id] || f.name}</option>`).join('')}
+                   </select>
+                </td>
+
+                <td class="text-center align-middle pl-1 w-10">
+                    <button onclick="deleteRow('${match.rowId}')" class="text-gray-600 hover:text-red-500 font-bold text-2xl px-2">×</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function renderRecSlot(match, team, slotIdx) {
+        const hero = team === 'my' ? match.myHeroes[slotIdx] : match.enemyHeroes[slotIdx];
+        const val = hero ? hero.name : '';
+        const inputId = `input-${team}-${slotIdx}-${match.rowId}`;
+        
+        const s1Key = `${team}-${slotIdx}-1`;
+        const s2Key = `${team}-${slotIdx}-2`;
+        
+        const s1Index = match.skillQueue.indexOf(s1Key);
+        const s2Index = match.skillQueue.indexOf(s2Key);
+        const hasS1 = s1Index > -1;
+        const hasS2 = s2Index > -1;
+
+        const labelS1 = hasS1 ? (s1Index + 1) : 'ล่าง';
+        const labelS2 = hasS2 ? (s2Index + 1) : 'บน';
+
+        const activeStyle = 'bg-blue-600 text-white font-black hover:bg-blue-500';
+        const activeStyle2 = 'bg-yellow-500 text-black font-black hover:bg-yellow-400';
+        const inactiveStyle = 'bg-[#1f2937] text-gray-400 hover:text-white hover:bg-gray-700';
+
+        const borderColor = team === 'my' ? (hero ? 'border-blue-500/50' : 'border-gray-700') : (hero ? 'border-red-500/50' : 'border-gray-700');
+
+        return `
+            <div class="flex flex-col items-center">
+                
+                <div class="rec-slot-container ${borderColor} group/slot">
+                    ${hero ? `<img src="${hero.img}" class="rec-slot-img">` : `<span class="text-3xl text-gray-800 select-none font-bold">+</span>`}
+                    
+                    <input type="text" id="${inputId}" value="${val}" 
+                        class="rec-slot-input"
+                        placeholder="Hero"
+                        oninput="handleRecSearch(this, '${match.rowId}', '${team}', ${slotIdx})"
+                        onkeydown="handleRecNav(event, '${match.rowId}', '${team}', ${slotIdx})"
+                        onfocus="this.select()" autocomplete="off">
+                        
+                    <div id="list-${inputId}" class="autocomplete-list shadow-2xl"></div>
+                </div>
+                
+                <div class="skill-btn-group">
+                    <button onclick="toggleRecSkill('${match.rowId}', '${s1Key}')" 
+                        class="flex-1 text-[10px] py-1 border-r border-gray-700 transition ${hasS1 ? activeStyle : inactiveStyle}">
+                        ${labelS1}
+                    </button>
+                    <button onclick="toggleRecSkill('${match.rowId}', '${s2Key}')" 
+                        class="flex-1 text-[10px] py-1 transition ${hasS2 ? activeStyle2 : inactiveStyle}">
+                        ${labelS2}
+                    </button>
+                </div>
+
+            </div>
+        `;
+    }
+
+    function renderRecPetSlot(match, team) {
+        const pet = team === 'my' ? match.myPet : match.enemyPet;
+        const val = pet ? pet.name : '';
+        const inputId = `input-pet-${team}-${match.rowId}`;
+        const borderClass = team === 'my' ? 'border-purple-500/50' : 'border-orange-500/50';
+
+        // ปรับขนาด Pet ให้เป็น 65x65 (เล็กกว่า Hero นิดหน่อยเพื่อให้ดูเป็น Pet)
+        return `
+             <div class="rec-slot-container ${borderClass} rounded-full !w-[65px] !h-[65px] mx-1 relative z-10 shadow-lg bg-[#0d1117] self-center" style="border-radius: 50%; margin-bottom: 24px;">
+                ${pet ? `<img src="${pet.img}" class="rec-slot-img rounded-full">` : `<span class="text-xl text-gray-800">🐾</span>`}
+                <input type="text" id="${inputId}" value="${val}" 
+                    class="rec-slot-input rounded-full"
+                    placeholder="Pet"
+                    oninput="handleRecPetSearch(this, '${match.rowId}', '${team}')"
+                    onkeydown="handleRecPetNav(event, '${match.rowId}', '${team}')"
+                    onfocus="this.select()" autocomplete="off">
+                <div id="list-${inputId}" class="autocomplete-list shadow-2xl"></div>
+            </div>
+        `;
+    }
+
+    // --- 3. LOGIC & EVENTS ---
+
+    function updateRecVal(rowId, field, val) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        if(m) { 
+            m[field] = val; 
+            if(field==='result') renderRecorderRows(); // Refresh color
+        }
+    }
+
+    function toggleRecSkill(rowId, key) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        if(m) {
+            if(m.skillQueue.includes(key)) {
+                m.skillQueue = m.skillQueue.filter(k => k !== key);
+            } else {
+                // Max 3 check
+                const teamPrefix = key.split('-')[0]; // 'my' or 'enemy'
+                const count = m.skillQueue.filter(k => k.startsWith(teamPrefix)).length;
+                if(count < 3) m.skillQueue.push(key);
+            }
+            renderRecorderRows();
+        }
+    }
+
+    // --- 4. SEARCH & AUTOCOMPLETE ENGINE ---
+
+    function handleRecSearch(input, rowId, team, slotIdx) {
+        const query = input.value.toLowerCase();
+        const listId = `list-${input.id}`;
+        const listEl = document.getElementById(listId);
+        
+        if (query.length < 1) { listEl.style.display = 'none'; return; }
+
+        const matches = heroesDB.filter(h => h.name.toLowerCase().includes(query)).slice(0, 5);
+        
+        if (matches.length > 0) {
+            listEl.innerHTML = matches.map((h, i) => `
+                <div class="autocomplete-item ${i===0?'selected':''}" onclick="selectRecHero('${rowId}', '${team}', ${slotIdx}, '${h.id}')">
+                    <img src="${h.img}"> <span>${h.name}</span>
+                </div>
+            `).join('');
+            listEl.style.display = 'block';
+        } else {
+            listEl.style.display = 'none';
+        }
+    }
+
+    function selectRecHero(rowId, team, slotIdx, heroId) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        const hero = heroesDB.find(h => h.id === heroId);
+        if (m && hero) {
+            if (team === 'my') m.myHeroes[slotIdx] = hero;
+            else m.enemyHeroes[slotIdx] = hero;
+            renderRecorderRows(); // Re-render to show image/color
+            
+            // Move Focus to Next Slot
+            setTimeout(() => {
+                let nextId = '';
+                if(slotIdx < 4) nextId = `input-${team}-${slotIdx+1}-${rowId}`;
+                else nextId = `input-pet-${team}-${rowId}`; // End of heroes -> go to Pet
+                
+                const nextInput = document.getElementById(nextId);
+                if(nextInput) nextInput.focus();
+            }, 50);
+        }
+    }
+
+    function handleRecNav(e, rowId, team, slotIdx) {
+        const listId = `list-${e.target.id}`;
+        const listEl = document.getElementById(listId);
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            // If list visible, select top item
+            if (listEl.style.display === 'block' && listEl.children.length > 0) {
+                listEl.children[0].click();
+            } else {
+                // If typed exact name or moving manually, just move focus? 
+                // For now, assume selection via list is mandatory or text must match exactly.
+                // Simple version: just move next if not selecting
+                 let nextId = '';
+                if(slotIdx < 4) nextId = `input-${team}-${slotIdx+1}-${rowId}`;
+                else nextId = `input-pet-${team}-${rowId}`;
+                document.getElementById(nextId)?.focus();
+            }
+        }
+        // Add Up/Down arrow navigation logic here if desired
+    }
+
+    // --- PET SEARCH LOGIC (Similar structure) ---
+    function handleRecPetSearch(input, rowId, team) {
+        const query = input.value.toLowerCase();
+        const listEl = document.getElementById(`list-${input.id}`);
+        if(query.length < 1) { listEl.style.display = 'none'; return; }
+
+        const matches = petsDB.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3);
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map((p, i) => `
+                <div class="autocomplete-item ${i===0?'selected':''}" onclick="selectRecPet('${rowId}', '${team}', '${p.id}')">
+                    <img src="${p.img}"> <span>${p.name}</span>
+                </div>
+            `).join('');
+            listEl.style.display = 'block';
+        } else listEl.style.display = 'none';
+    }
+
+    function selectRecPet(rowId, team, petId) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        const pet = petsDB.find(p => p.id === petId);
+        if(m && pet) {
+            if(team === 'my') m.myPet = pet; else m.enemyPet = pet;
+            renderRecorderRows();
+            // Move Focus: My Pet -> Enemy Hero 0 | Enemy Pet -> New Row?
+            setTimeout(() => {
+                if(team === 'my') document.getElementById(`input-enemy-0-${rowId}`)?.focus();
+                else {
+                   // End of row? Maybe add new row automatically?
+                   // For now, focus Save button or stay
+                }
+            }, 50);
+        }
+    }
+    
+    function handleRecPetNav(e, rowId, team) {
+         if (e.key === 'Enter') {
+            e.preventDefault();
+            const listEl = document.getElementById(`list-${e.target.id}`);
+            if (listEl.style.display === 'block' && listEl.children.length > 0) {
+                listEl.children[0].click();
+            } else {
+                 if(team === 'my') document.getElementById(`input-enemy-0-${rowId}`)?.focus();
+            }
+        }
+    }
+
+
+    async function saveAllMatches() {
+        if (pendingMatches.length === 0) return;
+        
+        const timestampStart = Date.now();
+
+        const newHistoryItems = pendingMatches.map((match, idx) => {
+            // ... (โค้ดส่วนเตรียมข้อมูล myTeamClean, enemyTeamClean ฯลฯ เหมือนเดิม) ...
+            const myTeamClean = match.myHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {}); 
+            const enemyTeamClean = match.enemyHeroes.map(h => h ? { id: h.id, star: 10, type: h.type, ring: null } : {});
+            
+            const myPetData = match.myPet ? { id: match.myPet.id, name: match.myPet.name } : null;
+            const enemyPetData = match.enemyPet ? { id: match.enemyPet.id, name: match.enemyPet.name } : null;
+            
+            const myQ = match.skillQueue.filter(c => c.startsWith('my-')).map(c => `${c.split('-')[1]}-${c.split('-')[2]}`);
+            const enemyQ = match.skillQueue.filter(c => c.startsWith('enemy-')).map(c => `${c.split('-')[1]}-${c.split('-')[2]}`);
+            
+            const myFormName = formations.find(f => f.id === match.myFormation)?.name || match.myFormation;
+            const enemyFormName = formations.find(f => f.id === match.enemyFormation)?.name || match.enemyFormation;
+
+            return {
+                id: (timestampStart + idx).toString(),
+                timestamp: timestampStart + idx,
+                date: new Date().toLocaleString('th-TH'),
+                castle: "Manual Record",
+                castleSlot: "-",
+                castleKey: "MANUAL",
+                myFormation: match.myFormation,
+                enemyFormation: match.enemyFormation,
+                myTeamId: "REC-MY",
+                myTeamName: `My Team (${myFormName})`,
+                playerData: myTeamClean,
+                enemyData: enemyTeamClean,
+                myPet: myPetData,
+                enemyPet: enemyPetData,
+                playerIds: match.myHeroes.map(h => h ? h.id : null),
+                enemyIds: match.enemyHeroes.map(h => h ? h.id : null),
+                skillQueue: myQ,
+                enemySkillQueue: enemyQ,
+                enemyName: `Enemy (${enemyFormName})`,
+                
+                // ✅ แก้ไขตรงนี้: บังคับให้เป็น Win เสมอ เพราะเรายึดฝั่งซ้ายชนะ
+                status: "Win", 
+                result: "Win"  
+            };
+        });
+
+        // ... (ส่วนบันทึกลง DB เหมือนเดิม) ...
+        if (typeof battleHistoryDB !== 'undefined') {
+             battleHistoryDB.unshift(...newHistoryItems.reverse());
+             if(battleHistoryDB.length > 500) battleHistoryDB.pop();
+
+             showLoading("Saving Records...");
+             try {
+                 await pushData();
+                 alert(`บันทึกเรียบร้อย ${newHistoryItems.length} รายการ!`);
+                 pendingMatches = [];
+                 renderRecorderRows();
+                 // closeRecorder(); // เปิดไว้ถ้าอยากให้ปิดอัตโนมัติ
+                 if(typeof renderFullHistory === 'function') renderFullHistory();
+             } catch(err) {
+                 alert("Save Error: " + err.message);
+             } finally {
+                 hideLoading();
+             }
+        } else {
+             alert("Error: Database not found");
+        }
+    }
+
+    function swapRowTeams(rowId) {
+        const m = pendingMatches.find(x => x.rowId === rowId);
+        if(!m) return;
+
+        // 1. Swap Heroes Array
+        const tempHeroes = [...m.myHeroes];
+        m.myHeroes = [...m.enemyHeroes];
+        m.enemyHeroes = tempHeroes;
+
+        // 2. Swap Pet
+        const tempPet = m.myPet;
+        m.myPet = m.enemyPet;
+        m.enemyPet = tempPet;
+
+        // 3. Swap Formation
+        const tempForm = m.myFormation;
+        m.myFormation = m.enemyFormation;
+        m.enemyFormation = tempForm;
+
+        // 4. Swap Skill Queue (Complex part)
+        // ต้องเปลี่ยน string จาก 'my-...' เป็น 'enemy-...' และกลับกัน
+        m.skillQueue = m.skillQueue.map(sq => {
+            if (sq.startsWith('my-')) {
+                return sq.replace('my-', 'enemy-');
+            } else if (sq.startsWith('enemy-')) {
+                return sq.replace('enemy-', 'my-');
+            }
+            return sq;
+        });
+
+        // Re-render
+        renderRecorderRows();
+    }
+    function renderSkillListText(match, team) {
+        // กรองเฉพาะสกิลของทีมนี้
+        const queue = match.skillQueue.filter(q => q.startsWith(team + '-'));
+        
+        if (queue.length === 0) return '<span class="text-[9px] text-gray-600 text-center">- No Skill -</span>';
+
+        return queue.map((q, i) => {
+            const [_, slotIdx, sNum] = q.split('-');
+            const heroes = team === 'my' ? match.myHeroes : match.enemyHeroes;
+            const hero = heroes[slotIdx];
+            const name = hero ? hero.name : `Hero ${parseInt(slotIdx)+1}`;
+            
+            // สีข้อความ
+            const numClass = "text-gray-400 font-mono mr-1";
+            const nameClass = team === 'my' ? "text-green-300" : "text-red-300";
+            const skillLabel = sNum === '1' ? 'ล่าง' : 'บน';
+            const skillClass = sNum === '1' ? 'text-blue-400' : 'text-yellow-500';
+
+            return `
+                <div class="text-[9px] truncate" title="${name} (${skillLabel})">
+                    <span class="${numClass}">${i+1}.</span>
+                    <span class="${nameClass} font-bold">${name.substring(0, 6)}..</span>
+                    <span class="${skillClass}">[${skillLabel}]</span>
+                </div>
+            `;
+        }).join('');
+    }
+    // --- NEW UPDATE SYSTEM ---
+
+    // 1. เริ่มระบบเช็คเวอร์ชัน (แทน startRealTimeSync เดิม)
+    function startUpdateChecker() {
+        if (updateCheckInterval) clearInterval(updateCheckInterval);
+        console.log("📡 Background Update Checker Started (Every 30s)");
+        
+        // เช็คทุก 30 วินาที (ปรับเวลาได้ตามต้องการ)
+        updateCheckInterval = setInterval(() => {
+            // ถ้ากำลัง Save หรือมีข้อมูลรออัปเดตค้างอยู่แล้ว ไม่ต้องเช็คซ้ำ
+            if (isSaving || isPendingSave || pendingUpdateData) return;
+            
+            checkForUpdates();
+        }, 30000); 
+    }
+
+    // 2. ฟังก์ชันเช็คข้อมูลเบื้องหลัง (ไม่กระทบหน้าจอ)
+    function checkForUpdates() {
+        const badge = document.getElementById('sync-status');
+        // โชว์สถานะเล็กๆ ว่ากำลังเช็ค (Option)
+        if(badge && !badge.classList.contains('offline')) {
+            document.getElementById('status-text').innerText = 'Checking...';
+        }
+
+        fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+            // คืนสถานะ Online ปกติ
+            if(badge) document.getElementById('status-text').innerText = 'ONLINE';
+
+            // เปรียบเทียบ Timestamp
+            if (data.timestamp && data.timestamp > lastServerTimestamp) {
+                console.log("🔔 New update found!");
+                
+                // พักข้อมูลไว้ในตัวแปร ยังไม่เอาขึ้นหน้าจอ
+                pendingUpdateData = data;
+                
+                // แสดงแถบแจ้งเตือน
+                document.getElementById('update-notification').classList.remove('hidden');
+                document.getElementById('update-notification').classList.add('flex');
+            } else {
+                console.log("✅ System is up to date.");
+            }
+        })
+        .catch(err => {
+            console.error("Check Update Error:", err);
+            if(badge) document.getElementById('status-text').innerText = 'OFFLINE';
+        });
+    }
+
+    // 3. ฟังก์ชันเมื่อผู้ใช้กดปุ่ม Refresh (Apply Data)
+    function applyPendingUpdate() {
+        if (!pendingUpdateData) return;
+
+        showLoading("🔄 Refreshing Data...");
+
+        const data = pendingUpdateData;
+        lastServerTimestamp = data.timestamp;
+
+        // --- Process Data (เหมือน fetchCloudData เดิม) ---
+        // 1. Users
+        if (data.users && Array.isArray(data.users)) systemUsersDB = data.users;
+        
+        // 2. Main DB
+        heroesDB = data.heroes || []; 
+        petsDB = data.pets || []; 
+        ringsDB = data.rings || [];
+        if(data.affiliations) affiliationsDB = data.affiliations;
+        
+        // 3. Tier List & Teams
+        loadLocalTierData(); // (หรือใช้ data.tierLists ถ้าต้องการ sync)
+        if(data.teams) { 
+            if(data.teams.teams) teamsDB = data.teams.teams; else teamsDB = data.teams; 
+            if(data.teams.logs) logsDB = data.teams.logs; 
+        }
+
+        // 4. Guild & Others
+        if (data.guildMembers && data.guildMembers.length === 30) guildMembersDB = data.guildMembers;
+        if (data.knownEnemies) knownEnemies = data.knownEnemies;
+        if (data.battleHistory) battleHistoryDB = data.battleHistory;
+        if (data.seasonInfo) currentSeason = data.seasonInfo;
+        if (data.archivedSeasons) archivedSeasons = data.archivedSeasons;
+        if (data.heroSets) heroSetsDB = data.heroSets;
+
+        // --- Update UI ---
+        syncWarRoomFromHistory();
+        updateGuildWarUI();
+        updateCurrentViewUI(); // รีเฟรชเฉพาะหน้าจอที่เปิดอยู่ (SPA Style)
+
+        // Clear Pending State
+        pendingUpdateData = null;
+        dismissUpdate(); // ซ่อนแถบแจ้งเตือน
+        
+        setTimeout(hideLoading, 500); // ปิด Loading
+    }
+
+    // 4. ปุ่มปิดแจ้งเตือน (กรณีไม่อยากอัปเดตตอนนี้)
+    function dismissUpdate() {
+        document.getElementById('update-notification').classList.add('hidden');
+        document.getElementById('update-notification').classList.remove('flex');
+    }
+
+    // 1. สร้างรายการใหม่
+    function createNewHeroList() {
+        const newList = {
+            id: Date.now().toString(),
+            name: "List " + (tempHeroLists.length + 1),
+            note: "",
+            heroIds: []
+        };
+        tempHeroLists.push(newList);
+        renderHeroListsView();
+    }
+
+    // 2. ลบรายการเดียว
+    function deleteHeroList(id) {
+        tempHeroLists = tempHeroLists.filter(l => l.id !== id);
+        renderHeroListsView();
+    }
+
+    // 3. ล้างทั้งหมด (Reset)
+    function resetAllHeroLists() {
+        if(tempHeroLists.length === 0 && Object.keys(manualUsageOffsets).length === 0) return;
+        if(!confirm("ล้างข้อมูล Checklist และ Counter ทั้งหมดใช่ไหม?")) return;
+        
+        tempHeroLists = [];
+        manualUsageOffsets = {}; // <--- เพิ่มบรรทัดนี้
+        
+        renderHeroListsView();
+    }
+
+    // 4. แก้ไขชื่อ/Note
+    function updateHeroListInfo(id, field, value) {
+        const list = tempHeroLists.find(l => l.id === id);
+        if(list) {
+            list[field] = value;
+            // ไม่มีการ Save
+        }
+    }
+
+    // 5. ลบ Hero ออกจาก List
+    function removeHeroFromList(listId, heroId) {
+        const list = tempHeroLists.find(l => l.id === listId);
+        if(list) {
+            list.heroIds = list.heroIds.filter(id => id !== heroId);
+            renderHeroListsView();
+        }
+    }
+
+    // 6. เพิ่ม Hero (Helper เรียกจาก Dropdown)
+    function addHeroByIdToHelper(listId, heroId) {
+        const list = tempHeroLists.find(l => l.id === listId);
+        if(list && !list.heroIds.includes(heroId)) {
+            list.heroIds.push(heroId);
+            renderHeroListsView();
+        }
+    }
+
+    // --- MAIN RENDER ---
+    function renderHeroListsView() {
+        const container = document.getElementById('hero-lists-container');
+        container.innerHTML = '';
+
+        if (tempHeroLists.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-gray-600">
+                    <span class="text-4xl mb-2">📝</span>
+                    <p>ยังไม่มีรายการ</p>
+                    <button onclick="createNewHeroList()" class="mt-4 text-purple-400 hover:text-purple-300 underline">สร้างรายการแรก</button>
+                </div>`;
+        }
+
+        // สร้าง Dropdown Option เตรียมไว้ครั้งเดียว เพื่อความเร็ว
+        let heroOptions = `<option value="">+ Add Hero...</option>`;
+        // กรองเอาเฉพาะตัวที่มีรูป หรือเรียงตามชื่อ
+        const sortedHeroes = [...heroesDB].sort((a,b) => a.name.localeCompare(b.name));
+        sortedHeroes.forEach(h => {
+            heroOptions += `<option value="${h.id}">${h.name}</option>`;
+        });
+
+        tempHeroLists.forEach(list => {
+            let heroesHTML = '';
+            list.heroIds.forEach(hid => {
+                const h = heroesDB.find(x => x.id === hid);
+                if(h) {
+                    // 🔥 แก้ไข 1: ปรับเป็น w-20 h-20 (80px)
+                    heroesHTML += `
+                    <div class="relative group inline-block m-1">
+                        <img src="${h.img}" class="w-20 h-20 rounded-lg border border-gray-600 bg-gray-900 object-cover shadow-md transition hover:scale-105" title="${h.name}">
+                        <button onclick="removeHeroFromList('${list.id}', '${hid}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm z-10 hover:bg-red-600">✕</button>
+                    </div>`;
+                }
+            });
+
+            const card = document.createElement('div');
+            card.className = "bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-sm relative animate-fade-in";
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <input type="text" value="${list.name}" oninput="updateHeroListInfo('${list.id}', 'name', this.value)" 
+                        class="bg-transparent text-lg font-bold text-purple-300 border-b border-transparent focus:border-purple-500 outline-none w-2/3 transition" placeholder="List Name">
+                    <button onclick="deleteHeroList('${list.id}')" class="text-gray-600 hover:text-red-400 p-1 rounded hover:bg-gray-700/50 transition">✕</button>
+                </div>
+                
+                <input type="text" value="${list.note}" oninput="updateHeroListInfo('${list.id}', 'note', this.value)" 
+                    class="w-full bg-gray-900/50 text-xs text-gray-400 p-2 rounded border border-gray-700/50 mb-3 outline-none focus:border-gray-600 focus:bg-gray-900 transition" placeholder="Note...">
+                
+                <div class="bg-gray-900 p-3 rounded-lg min-h-[100px] border border-dashed border-gray-700 flex flex-wrap items-center gap-2">
+                    ${heroesHTML}
+                    
+                    <button onclick="openSelector('HERO-LIST', '${list.id}', 'hero', event)" 
+                        class="w-20 h-20 rounded-lg border-2 border-gray-700 border-dashed flex items-center justify-center text-gray-500 hover:text-purple-400 hover:border-purple-500 hover:bg-gray-800/50 transition group">
+                        <span class="text-4xl font-bold group-hover:scale-110 transition">+</span>
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        // Render Stats ด้านขวา
+        renderTempHeroUsageStats();
+    }
+
+    function renderTempHeroUsageStats() {
+        const statsBody = document.getElementById('hero-usage-table-body');
+        const usageMap = {};
+
+        // 1. นับจาก Lists (Auto)
+        tempHeroLists.forEach(list => {
+            list.heroIds.forEach(hid => {
+                usageMap[hid] = (usageMap[hid] || 0) + 1;
+            });
+        });
+
+        // 2. รวมกับ Manual Offsets
+        // ต้อง Loop เอา Hero ทั้งหมดที่ "มีค่า" (ไม่ว่าจะจาก List หรือ Manual)
+        const allRelevantIds = new Set([...Object.keys(usageMap), ...Object.keys(manualUsageOffsets)]);
+        
+        const finalStats = [];
+        allRelevantIds.forEach(hid => {
+            const listCount = usageMap[hid] || 0;
+            const manualCount = manualUsageOffsets[hid] || 0;
+            const total = listCount + manualCount;
+
+            if (total !== 0) { // แสดงเฉพาะตัวที่มีค่าไม่เป็น 0
+                const hero = heroesDB.find(h => h.id === hid);
+                if (hero) {
+                    finalStats.push({
+                        id: hid,
+                        name: hero.name,
+                        img: hero.img,
+                        total: total,
+                        listCount: listCount,   // เก็บไว้ดู debug หรือแสดงแยกก็ได้
+                        manualCount: manualCount
+                    });
+                }
+            }
+        });
+
+        // เรียงลำดับ มาก -> น้อย
+        finalStats.sort((a, b) => b.total - a.total);
+
+        // Render HTML
+        statsBody.innerHTML = finalStats.map((item, index) => `
+            <tr class="hover:bg-gray-700/50 transition group border-b border-gray-800/50 last:border-0">
+                <td class="p-2 flex items-center gap-3">
+                    <span class="text-gray-600 font-mono text-xs w-5 text-center">${index+1}</span>
+                    
+                    <img src="${item.img}" class="w-14 h-14 rounded-md bg-gray-900 object-cover border border-gray-700">
+                    
+                    <div class="flex flex-col justify-center">
+                        <span class="text-gray-200 font-medium text-sm truncate w-28 leading-tight">${item.name}</span>
+                        ${item.manualCount !== 0 ? `<span class="text-[10px] text-gray-500">Manual: ${item.manualCount > 0 ? '+' : ''}${item.manualCount}</span>` : ''}
+                    </div>
+                </td>
+                <td class="p-2 text-right align-middle">
+                    <div class="flex items-center justify-end gap-2">
+                        <button onclick="adjustUsageCount('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-gray-800 text-gray-400 hover:bg-red-900/50 hover:text-red-300 rounded text-base border border-gray-600 opacity-0 group-hover:opacity-100 transition shadow-sm">-</button>
+                        
+                        <span class="inline-flex items-center justify-center bg-purple-900/40 text-purple-200 text-lg font-bold w-10 h-8 rounded border border-purple-500/30 shadow-inner">
+                            ${item.total}
+                        </span>
+                        
+                        <button onclick="adjustUsageCount('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-gray-800 text-gray-400 hover:bg-green-900/50 hover:text-green-300 rounded text-base border border-gray-600 opacity-0 group-hover:opacity-100 transition shadow-sm">+</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        
+        if(finalStats.length === 0) {
+            statsBody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-gray-600 text-xs">No active usage</td></tr>`;
+        }
+    }
+
+    // --- MODAL FUNCTIONS ---
+
+    function openHeroSelector(listId) {
+        currentTargetListId = listId;
+        const modal = document.getElementById('hero-selector-modal');
+        const grid = document.getElementById('hero-selector-grid');
+        const searchInput = document.getElementById('hero-search-input');
+        
+        // Reset Search
+        searchInput.value = '';
+        
+        // Render Heroes
+        grid.innerHTML = '';
+        // เรียงตามชื่อ หรือ ตามเกรด (แล้วแต่ความชอบ)
+        const sortedHeroes = [...heroesDB].sort((a,b) => a.name.localeCompare(b.name));
+        
+        sortedHeroes.forEach(h => {
+            const div = document.createElement('div');
+            div.className = "hero-item flex flex-col items-center cursor-pointer hover:bg-gray-800 p-2 rounded transition border border-transparent hover:border-purple-500 group";
+            div.onclick = () => selectHeroFromModal(h.id);
+            div.innerHTML = `
+                <div class="relative">
+                    <img src="${h.img}" class="w-14 h-14 rounded-lg bg-gray-950 object-cover border border-gray-700 group-hover:scale-105 transition" loading="lazy">
+                    <div class="absolute inset-0 bg-purple-500/20 hidden group-hover:block rounded-lg"></div>
+                </div>
+                <span class="text-[10px] text-gray-400 mt-1 text-center truncate w-full group-hover:text-white">${h.name}</span>
+            `;
+            // เก็บชื่อไว้สำหรับ Search
+            div.dataset.name = h.name.toLowerCase();
+            grid.appendChild(div);
+        });
+
+        modal.classList.remove('hidden');
+        searchInput.focus();
+    }
+
+    function closeHeroSelector() {
+        document.getElementById('hero-selector-modal').classList.add('hidden');
+        currentTargetListId = null;
+    }
+
+    function selectHeroFromModal(heroId) {
+        if (currentTargetListId) {
+            // เพิ่มลง List
+            addHeroByIdToHelper(currentTargetListId, heroId);
+        }
+        closeHeroSelector();
+    }
+
+    function filterHeroSelector() {
+        const txt = document.getElementById('hero-search-input').value.toLowerCase();
+        const items = document.querySelectorAll('#hero-selector-grid .hero-item');
+        items.forEach(el => {
+            if(el.dataset.name.includes(txt)) el.classList.remove('hidden');
+            else el.classList.add('hidden');
+        });
+    }
+
+    // ฟังก์ชันปรับค่า Manual
+    function adjustUsageCount(heroId, delta) {
+        if (!manualUsageOffsets[heroId]) manualUsageOffsets[heroId] = 0;
+        manualUsageOffsets[heroId] += delta;
+        
+        // ถ้าลบจนเหลือ 0 (และไม่มีใน list) อาจจะต้องจัดการ แต่นี่ปล่อยให้ติดลบได้ หรือค้างไว้ก็ได้
+        // รีเฟรชตาราง
+        renderTempHeroUsageStats();
+    }
+
+    // 4. ฟังก์ชันเปิดเมนูคลิกขวาที่พื้นหลัง (เพื่อกด Add Text)
+    function openTierContextMenu(e) {
+        e.preventDefault();
+        closeCtxMenus(); // ปิดเมนูอื่นก่อนเปิดอันใหม่
+
+        const menu = document.getElementById('tier-context-menu');
+        const canvas = document.getElementById('tier-canvas');
+        
+        if(!menu || !canvas) return;
+
+        // คำนวณตำแหน่งเมาส์เทียบกับ Canvas (เพื่อให้ Text วางตรงจุด)
+        const rect = canvas.getBoundingClientRect();
+        contextMenuPos = {
+            x: e.clientX - rect.left + canvas.scrollLeft, 
+            y: e.clientY - rect.top + canvas.scrollTop
+        };
+
+        // แสดงเมนู
+        menu.style.display = 'block';
+        menu.classList.remove('hidden');
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+    }
+
+    // 5. ฟังก์ชันเพิ่มข้อความ (Add Text Logic)
+    function addTextAtContextLocation() {
+        const canvas = document.getElementById('tier-canvas');
+        if (!canvas) return;
+
+        // สร้างกล่องข้อความ
+        const el = document.createElement('div');
+        el.className = 'floating-label animate-fade-in';
+        el.contentEditable = true;
+        el.innerText = 'Text';
+
+        // วางตำแหน่ง
+        el.style.left = contextMenuPos.x + 'px';
+        el.style.top = contextMenuPos.y + 'px';
+
+        el.oninput = function() {
+            autoSaveTierList(); 
+        };
+
+        // Event: คลิกขวาที่ตัวข้อความ เพื่อเปิดเมนูแก้ไข
+        el.oncontextmenu = function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // กันไม่ให้ทะลุไปโดนพื้นหลัง
+            openTierTextMenu(e, this);
+        };
+
+        // Event: ดับเบิ้ลคลิกเพื่อลบด่วน
+        el.ondblclick = function(e) {
+            e.stopPropagation();
+            if(confirm("ลบข้อความนี้?")) {
+                el.remove();
+                autoSaveTierList(); // ✅ เพิ่มบรรทัดนี้
+            }
+        };
+
+        // ทำให้ลากได้ (ถ้ามีฟังก์ชันนี้อยู่แล้ว)
+        if (typeof makeDraggable === "function") makeDraggable(el);
+        canvas.appendChild(el);
+        
+        // Auto Focus
+        setTimeout(() => {
+            el.focus();
+            document.execCommand('selectAll', false, null);
+        }, 100);
+        
+        closeCtxMenus(); // ปิดเมนูหลังสร้างเสร็จ
+        autoSaveTierList();
+    }
+
+    // 6. ฟังก์ชันเปิดเมนูแก้ไขข้อความ
+    function openTierTextMenu(e, element) {
+        activeFloatingText = element; 
+        closeCtxMenus(); // ปิดเมนูอื่น
+
+        const menu = document.getElementById('tier-text-menu');
+        menu.style.display = 'block';
+        menu.classList.remove('hidden');
+        
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+    }
+
+    // 7. ฟังก์ชันจัดการ Text/Background
+    function setTextBackground() {
+        if(!activeFloatingText) return;
+        const url = prompt("กรุณาวางลิงก์รูปภาพ (Image URL):");
+        if(url) {
+            activeFloatingText.style.backgroundImage = `url('${url}')`;
+            activeFloatingText.style.backgroundColor = 'transparent';
+            activeFloatingText.style.border = 'none'; 
+            activeFloatingText.style.color = '#ffffff'; 
+            
+            if(activeFloatingText.offsetWidth < 100) {
+                activeFloatingText.style.minWidth = '150px';
+                activeFloatingText.style.minHeight = '60px';
+                activeFloatingText.style.display = 'flex';
+                activeFloatingText.style.alignItems = 'center';
+                activeFloatingText.style.justifyContent = 'center';
+            }
+
+            autoSaveTierList();
+        }
+        closeCtxMenus();
+    }
+
+    function clearTextBackground() {
+        if(!activeFloatingText) return;
+        activeFloatingText.style.backgroundImage = '';
+        activeFloatingText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        activeFloatingText.style.border = '1px dashed #fbbf24';
+        activeFloatingText.style.color = '#fbbf24';
+        activeFloatingText.style.minWidth = '50px';
+        activeFloatingText.style.minHeight = 'auto';
+        closeCtxMenus();
+    }
+
+    function deleteFloatingText() {
+        if(activeFloatingText) activeFloatingText.remove();
+        closeCtxMenus();
+    }
+
+    function closeTierTextMenu() {
+        const menu = document.getElementById('tier-text-menu');
+        if(menu) menu.classList.add('hidden');
+    }
+
+    // 4. ระบบลากวาง (Draggable Logic)
+    function makeDraggable(elmnt) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+        elmnt.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            if (document.activeElement === elmnt) return; // ถ้ากำลังพิมพ์ ห้ามลาก
+
+            e.preventDefault();
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    // ฟังก์ชันบันทึกทุกอย่างลงเครื่องทันที
+    function autoSaveTierList() {
+        // 1. บันทึกข้อมูลตาราง (Rank/Hero)
+        localStorage.setItem('7k_local_tier_db', JSON.stringify(tierListsDB));
+        localStorage.setItem('7k_local_tier_struct', JSON.stringify(activeTiers));
+        localStorage.setItem('7k_local_tier_conf', JSON.stringify(tierRankConfigs));
+        
+        // 2. บันทึก Background
+        const bgContainer = document.getElementById('tier-bg-container');
+        if(bgContainer) {
+            localStorage.setItem('7k_tier_bg', bgContainer.style.backgroundImage.slice(5, -2).replace(/"/g, ""));
+        }
+
+        // 3. บันทึก Stickers และ Text (Object Layer)
+        const objects = [];
+        
+        // เก็บข้อมูล Sticker
+        document.querySelectorAll('.sticker-item').forEach(el => {
+            objects.push({
+                type: 'sticker',
+                src: el.src,
+                style: el.getAttribute('style'),
+                rotation: el.dataset.rotation || 0
+            });
+        });
+
+        // เก็บข้อมูล Text
+        document.querySelectorAll('.floating-label').forEach(el => {
+            objects.push({
+                type: 'text',
+                text: el.innerText,
+                style: el.getAttribute('style'),
+                className: el.className // เก็บ class เพื่อรักษา style
+            });
+        });
+
+        localStorage.setItem('7k_tier_objects', JSON.stringify(objects));
+        
+        console.log("✅ Auto-saved to Local Storage");
+    }
+
+    function loadTierListFull() {
+        // 1. โหลดข้อมูลตาราง
+        const localDB = localStorage.getItem('7k_local_tier_db');
+        const localStruct = localStorage.getItem('7k_local_tier_struct');
+        const localConf = localStorage.getItem('7k_local_tier_conf');
+
+        if (localDB) tierListsDB = JSON.parse(localDB);
+        if (localStruct) activeTiers = JSON.parse(localStruct);
+        if (localConf) tierRankConfigs = JSON.parse(localConf);
+
+        renderTierViewer(); // วาดตาราง
+
+        // 2. โหลด Background
+        const savedBg = localStorage.getItem('7k_tier_bg');
+        if(savedBg && savedBg !== 'none') {
+            setTierBg(savedBg, false); // false = ไม่ต้อง save ซ้ำ
+        }
+
+        // 3. โหลด Stickers และ Text
+        const savedObjs = localStorage.getItem('7k_tier_objects');
+        const stickerLayer = document.getElementById('tier-sticker-layer');
+        const canvas = document.getElementById('tier-canvas');
+        
+        if (savedObjs && stickerLayer && canvas) {
+            // เคลียร์ของเก่า (ยกเว้นโครงสร้างตาราง)
+            stickerLayer.innerHTML = '';
+            // ลบเฉพาะ floating-label ใน canvas
+            canvas.querySelectorAll('.floating-label').forEach(e => e.remove());
+
+            const objects = JSON.parse(savedObjs);
+            objects.forEach(obj => {
+                if (obj.type === 'sticker') {
+                    const img = document.createElement('img');
+                    img.src = obj.src;
+                    img.className = "sticker-item pointer-events-auto";
+                    img.setAttribute('style', obj.style);
+                    img.dataset.rotation = obj.rotation;
+                    
+                    // Attach Events
+                    img.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); openStickerContextMenu(e, this); };
+                    img.onwheel = function(e) { 
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            let currentRot = parseFloat(this.dataset.rotation) || 0;
+                            if (e.deltaY < 0) currentRot += 15; else currentRot -= 15;
+                            this.dataset.rotation = currentRot;
+                            this.style.transform = `translate(-50%, -50%) rotate(${currentRot}deg)`;
+                        } else {
+                            const scaleFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                            let newWidth = this.clientWidth * scaleFactor;
+                            if (newWidth > 20) {
+                                this.style.width = newWidth + "px";
+                                this.style.height = "auto";
+                            }
+                        }
+                        autoSaveTierList(); // Save on resize/rotate
+                    };
+                    makeDraggable(img);
+                    stickerLayer.appendChild(img);
+
+                } else if (obj.type === 'text') {
+                    const el = document.createElement('div');
+                    el.className = obj.className;
+                    el.contentEditable = true;
+                    el.innerText = obj.text;
+                    el.setAttribute('style', obj.style);
+
+                    // Attach Events
+                    el.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); openTierTextMenu(e, this); };
+                    el.ondblclick = function(e) { 
+                        e.stopPropagation(); 
+                        if(confirm("ลบข้อความนี้?")) { 
+                            el.remove(); 
+                            autoSaveTierList(); // ✅ เพิ่มบรรทัดนี้
+                        } 
+                    };
+                    el.oninput = autoSaveTierList; // Save when typing
+                    
+                    makeDraggable(el);
+                    canvas.appendChild(el);
+                }
+            });
+        }
+    }
+    function sanitizeRankConfig(rankId) {
+        if (!tierRankConfigs[rankId]) {
+            tierRankConfigs[rankId] = { name: rankId, color: '#ffffff', opacity: 60, bg: '' };
+        }
+        // เพิ่มค่าพิกัด ถ้ายังไม่มี
+        if (tierRankConfigs[rankId].x === undefined) tierRankConfigs[rankId].x = 50; // เริ่มต้นซ้าย
+        if (tierRankConfigs[rankId].y === undefined) tierRankConfigs[rankId].y = activeTiers.indexOf(rankId) * 120 + 50; // เรียงลงมา
+        if (tierRankConfigs[rankId].scale === undefined) tierRankConfigs[rankId].scale = 1;
+        if (tierRankConfigs[rankId].rot === undefined) tierRankConfigs[rankId].rot = 0;
+        if (tierRankConfigs[rankId].width === undefined) tierRankConfigs[rankId].width = 600; // ความกว้างเริ่มต้น
+    }
+
+    // เริ่มลากแถว
+    function rowDragStart(e, rankId) {
+        if (e.target.tagName === 'INPUT') return; // ยอมให้กด Input ได้
+    
+        e.preventDefault();
+        e.stopPropagation();
+        
+        isRowDragging = true;
+        activeDragGroupId = rankId;
+        dragStartMouse = { x: e.clientX, y: e.clientY };
+        activeDragGroup = [];
+
+        // --- LOGIC การจัดกลุ่ม ---
+        let targets = [];
+        
+        // ถ้ากด Shift ค้าง = แยกเดี่ยว (Detach Mode)
+        if (e.shiftKey) {
+            targets = [rankId];
+        } else {
+            // ถ้าไม่กด Shift = หาพวกที่ติดกันไปด้วย
+            targets = findConnectedRows(rankId);
+        }
+
+        // เก็บค่าเริ่มต้นของทุกคนในกลุ่ม
+        targets.forEach(id => {
+            const el = document.getElementById(`tier-row-${id}`);
+            const conf = tierRankConfigs[id];
+            if (el && conf) {
+                el.classList.add('dragging');
+                activeDragGroup.push({
+                    id: id,
+                    startX: conf.x,
+                    startY: conf.y,
+                    elm: el
+                });
+            }
+        });
+
+        document.addEventListener('mousemove', rowDragMove);
+        document.addEventListener('mouseup', rowDragEnd);
+    }
+    function rowDragMove(e) {
+        if (!isRowDragging || activeDragGroup.length === 0) return;
+
+        // 1. คำนวณระยะที่เมาส์ขยับ (Delta)
+        let dx = e.clientX - dragStartMouse.x;
+        let dy = e.clientY - dragStartMouse.y;
+
+        // 2. LOGIC แม่เหล็ก (Snapping)
+        // เราจะใช้ "ตัวหลักที่ลาก" (activeDragGroupId) เป็นตัวเช็คการชน
+        const mainObj = activeDragGroup.find(g => g.id === activeDragGroupId);
+        if (mainObj) {
+            // คำนวณตำแหน่งใหม่สมมติของตัวหลัก
+            let proposedX = mainObj.startX + dx;
+            let proposedY = mainObj.startY + dy;
+            
+            const snapDist = 20; // ระยะดูด
+            let snappedY = false;
+
+            // วนลูปหาแถวอื่นในระบบ ที่ "ไม่ได้" อยู่ในกลุ่มที่กำลังลาก
+            const groupIds = activeDragGroup.map(g => g.id);
+            
+            activeTiers.forEach(otherId => {
+                if (groupIds.includes(otherId)) return; // ข้ามพวกเดียวกันเอง
+
+                const otherConf = tierRankConfigs[otherId];
+                const otherEl = document.getElementById(`tier-row-${otherId}`);
+                if (!otherEl) return;
+
+                // เช็คการดูดแกน Y (ต่อตูด หรือ ต่อหัว)
+                // เอาความสูงจริงจาก DOM
+                const mainHeight = mainObj.elm.offsetHeight; 
+                const otherHeight = otherEl.offsetHeight;
+
+                // Case A: เอาตัวหลัก ไปต่อตูดคนอื่น (Top ตัวหลัก ดูด Bottom คนอื่น)
+                if (Math.abs(proposedY - (otherConf.y + otherHeight)) < snapDist) {
+                    // ปรับ dy ให้เป๊ะ
+                    const targetY = otherConf.y + otherHeight - 1; // -1 ให้เส้นทับกัน
+                    dy = targetY - mainObj.startY; // คำนวณ dy ใหม่
+                    snappedY = true;
+                    
+                    // ถ้า Snap Y แล้ว ให้ Snap X ด้วยถ้าใกล้เคียง
+                    if (Math.abs(proposedX - otherConf.x) < snapDist) {
+                        dx = otherConf.x - mainObj.startX;
+                    }
+                }
+                
+                // Case B: เอาตัวหลัก ไปแปะหัวคนอื่น (Bottom ตัวหลัก ดูด Top คนอื่น)
+                else if (Math.abs((proposedY + mainHeight) - otherConf.y) < snapDist) {
+                    const targetY = otherConf.y - mainHeight + 1;
+                    dy = targetY - mainObj.startY;
+                    snappedY = true;
+
+                    if (Math.abs(proposedX - otherConf.x) < snapDist) {
+                        dx = otherConf.x - mainObj.startX;
+                    }
+                }
+            });
+        }
+
+        // 3. Apply การขยับให้ "ทั้งกลุ่ม" ด้วยค่า dx, dy เดียวกัน
+        activeDragGroup.forEach(item => {
+            const newX = item.startX + dx;
+            const newY = item.startY + dy;
+
+            // อัปเดต UI
+            item.elm.style.left = newX + 'px';
+            item.elm.style.top = newY + 'px';
+
+            // อัปเดต Config (เตรียมเซฟ)
+            tierRankConfigs[item.id].x = newX;
+            tierRankConfigs[item.id].y = newY;
+        });
+    }
+    function rowDragEnd() {
+        isRowDragging = false;
+    
+        // ลบ class dragging ออกจากทุกคน
+        activeDragGroup.forEach(item => {
+            if(item.elm) item.elm.classList.remove('dragging');
+        });
+
+        document.removeEventListener('mousemove', rowDragMove);
+        document.removeEventListener('mouseup', rowDragEnd);
+        
+        activeDragGroupId = null;
+        activeDragGroup = [];
+        
+        autoSaveTierList(); // บันทึก
+    }
+    function rowWheel(e, rankId) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const conf = tierRankConfigs[rankId];
+        const row = document.getElementById(`tier-row-${rankId}`);
+
+        if (e.shiftKey) {
+            // Shift + Scroll = หมุน
+            const step = 15;
+            if (e.deltaY < 0) conf.rot += step; 
+            else conf.rot -= step;
+        } else {
+            // Scroll = ย่อขยาย
+            const step = 0.05;
+            if (e.deltaY < 0) conf.scale += step; 
+            else conf.scale -= step;
+            
+            if (conf.scale < 0.5) conf.scale = 0.5;
+            if (conf.scale > 3.0) conf.scale = 3.0;
+        }
+        // Apply Transform
+        row.style.transform = `scale(${conf.scale}) rotate(${conf.rot}deg)`;
+        autoSaveTierList();
+    }
+    function rowResizeStart(e, rankId) {
+        e.preventDefault();
+        e.stopPropagation();
+        isRowResizing = true;
+        currentRowId = rankId; // ใช้ตัวแปร global ร่วมกัน หรือประกาศใหม่ก็ได้
+        const row = document.getElementById(`tier-row-${rankId}`);
+        startResize = { x: e.clientX, w: row.offsetWidth }; // เก็บความกว้างเริ่มต้น
+        document.addEventListener('mousemove', rowResizeMove);
+        document.addEventListener('mouseup', rowResizeEnd);
+    }
+
+    function rowResizeMove(e) {
+        if (!isRowResizing) return;
+        const conf = tierRankConfigs[currentRowId];
+        const row = document.getElementById(`tier-row-${currentRowId}`);
+        
+        // คำนวณความกว้างใหม่ (หาร scale เพื่อความแม่น)
+        const delta = (e.clientX - startResize.x) / (conf.scale || 1);
+        let newWidth = startResize.w + delta;
+        if (newWidth < 200) newWidth = 200;
+        
+        row.style.width = newWidth + 'px';
+        conf.width = newWidth;
+    }
+
+    function rowResizeEnd() {
+        isRowResizing = false;
+        document.removeEventListener('mousemove', rowResizeMove);
+        document.removeEventListener('mouseup', rowResizeEnd);
+        autoSaveTierList();
+    }
+    function findConnectedRows(startId, found = new Set()) {
+    found.add(startId);
+    
+    const startEl = document.getElementById(`tier-row-${startId}`);
+    if(!startEl) return Array.from(found);
+
+    const startRect = startEl.getBoundingClientRect();
+    const threshold = 5; // ระยะห่างที่ถือว่าติดกัน
+
+    activeTiers.forEach(otherId => {
+        if (found.has(otherId)) return;
+
+        const otherEl = document.getElementById(`tier-row-${otherId}`);
+        if (!otherEl) return;
+        const otherRect = otherEl.getBoundingClientRect();
+
+        // เช็คว่า X ตรงกัน (Alignment)
+        const isAlignedX = Math.abs(startRect.left - otherRect.left) < 20;
+
+        if (isAlignedX) {
+            // เช็คว่า Y ติดกัน (บน หรือ ล่าง)
+            const touchingBottom = Math.abs(startRect.bottom - otherRect.top) < threshold;
+            const touchingTop = Math.abs(startRect.top - otherRect.bottom) < threshold;
+
+            if (touchingBottom || touchingTop) {
+                // ถ้าติดกัน ให้หาเพื่อนของตัวนั้นต่อ (Recursive)
+                findConnectedRows(otherId, found);
+            }
+        }
+    });
+
+    return Array.from(found);
+}
     </script>
 </body>
 </html>
