@@ -1860,6 +1860,7 @@
 
         var contextMenuPos = { x: 0, y: 0 }; 
         var activeFloatingText = null;
+        let viewOnlyMissing = false;
 
         let manualUsageOffsets = {}; // เก็บค่าที่กด +/- เพิ่มเอง { "heroID": 5 }
         let currentTargetListId = null; // เก็บว่าตอนนี้กำลังเลือก Hero ให้ List ไหน
@@ -9704,8 +9705,8 @@
     function removeHeroFromList(listId, heroId) {
         const list = tempHeroLists.find(l => l.id === listId);
         if(list) {
-            list.heroIds = list.heroIds.filter(id => id !== heroId);
-            saveHeroListsToLocal(); // ✅ บันทึก
+            list.heroIds = list.heroIds.filter(h => h.id !== heroId);
+            saveHeroListsToLocal();
             renderHeroListsView();
         }
     }
@@ -9713,9 +9714,10 @@
     // 6. เพิ่ม Hero (Helper เรียกจาก Dropdown)
     function addHeroByIdToHelper(listId, heroId) {
         const list = tempHeroLists.find(l => l.id === listId);
-        if(list && !list.heroIds.includes(heroId)) {
-            list.heroIds.push(heroId);
-            saveHeroListsToLocal(); // ✅ บันทึก
+        // เช็คซ้ำโดยดูที่ .id
+        if(list && !list.heroIds.some(h => h.id === heroId)) {
+            list.heroIds.push({ id: heroId, checked: false });
+            saveHeroListsToLocal();
             renderHeroListsView();
         }
     }
@@ -9723,89 +9725,163 @@
     // --- MAIN RENDER ---
     function renderHeroListsView() {
         const container = document.getElementById('hero-lists-container');
-        container.innerHTML = '';
+        if (!container) return;
 
-        if (tempHeroLists.length === 0) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-600">
-                    <span class="text-4xl mb-2">📝</span>
-                    <p>ยังไม่มีรายการ</p>
-                    <button onclick="createNewHeroList()" class="mt-4 text-purple-400 hover:text-purple-300 underline">สร้างรายการแรก</button>
-                </div>`;
-        }
+        // 1. ส่วนหัว (Header Controls)
+        const btnClass = viewOnlyMissing 
+            ? "bg-orange-600 text-white border-orange-400 shadow-lg shadow-orange-900/50" 
+            : "bg-gray-800 text-gray-400 border-gray-600 hover:text-white";
+        
+        const btnText = viewOnlyMissing ? "👁️ เฉพาะที่ยังไม่มี (Missing Only)" : "👁️ แสดงทั้งหมด (Show All)";
 
-        // สร้าง Dropdown Option เตรียมไว้ครั้งเดียว เพื่อความเร็ว
-        let heroOptions = `<option value="">+ Add Hero...</option>`;
-        // กรองเอาเฉพาะตัวที่มีรูป หรือเรียงตามชื่อ
-        const sortedHeroes = [...heroesDB].sort((a,b) => a.name.localeCompare(b.name));
-        sortedHeroes.forEach(h => {
-            heroOptions += `<option value="${h.id}">${h.name}</option>`;
-        });
-
-        tempHeroLists.forEach(list => {
-            let heroesHTML = '';
-            list.heroIds.forEach(hid => {
-                const h = heroesDB.find(x => x.id === hid);
-                if(h) {
-                    // 🔥 แก้ไข 1: ปรับเป็น w-20 h-20 (80px)
-                    heroesHTML += `
-                    <div class="relative group inline-block m-1">
-                        <img src="${h.img}" class="w-20 h-20 rounded-lg border border-gray-600 bg-gray-900 object-cover shadow-md transition hover:scale-105" title="${h.name}">
-                        <button onclick="removeHeroFromList('${list.id}', '${hid}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm z-10 hover:bg-red-600">✕</button>
-                    </div>`;
-                }
-            });
-
-            const card = document.createElement('div');
-            card.className = "bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-sm relative animate-fade-in";
-            card.innerHTML = `
-                <div class="flex justify-between items-start mb-2">
-                    <input type="text" value="${list.name}" oninput="updateHeroListInfo('${list.id}', 'name', this.value)" 
-                        class="bg-transparent text-lg font-bold text-purple-300 border-b border-transparent focus:border-purple-500 outline-none w-2/3 transition" placeholder="List Name">
-                    <button onclick="deleteHeroList('${list.id}')" class="text-gray-600 hover:text-red-400 p-1 rounded hover:bg-gray-700/50 transition">✕</button>
-                </div>
-                
-                <input type="text" value="${list.note}" oninput="updateHeroListInfo('${list.id}', 'note', this.value)" 
-                    class="w-full bg-gray-900/50 text-xs text-gray-400 p-2 rounded border border-gray-700/50 mb-3 outline-none focus:border-gray-600 focus:bg-gray-900 transition" placeholder="Note...">
-                
-                <div class="bg-gray-900 p-3 rounded-lg min-h-[100px] border border-dashed border-gray-700 flex flex-wrap items-center gap-2">
-                    ${heroesHTML}
-                    
-                    <button onclick="openSelector('HERO-LIST', '${list.id}', 'hero', event)" 
-                        class="w-20 h-20 rounded-lg border-2 border-gray-700 border-dashed flex items-center justify-center text-gray-500 hover:text-purple-400 hover:border-purple-500 hover:bg-gray-800/50 transition group">
-                        <span class="text-4xl font-bold group-hover:scale-110 transition">+</span>
+        let html = `
+            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-800  top-0 bg-[#0b0e14]/95 z-30 backdrop-blur-sm pt-2">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <span>📋</span> Hero Checklists 
+                    <span class="text-xs font-normal text-gray-500">(${tempHeroLists.length} Lists)</span>
+                </h3>
+                <div class="flex gap-2">
+                    <button onclick="toggleMissingView()" class="px-4 py-2 rounded-lg border text-xs font-bold transition flex items-center gap-2 ${btnClass}">
+                        ${btnText}
+                    </button>
+                    <button onclick="createNewHeroList()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-lg transition flex items-center gap-2">
+                        + สร้างลิสต์ใหม่
                     </button>
                 </div>
-            `;
-            container.appendChild(card);
-        });
+            </div>
+            
+            <div class="flex flex-col gap-4 pb-20"> 
+        `;
 
-        // Render Stats ด้านขวา
-        renderTempHeroUsageStats();
+        if (tempHeroLists.length === 0) {
+            html += `<div class="text-center text-gray-600 py-20 border-2 border-dashed border-gray-800 rounded-xl">ยังไม่มีรายการ<br>กดปุ่ม "สร้างลิสต์ใหม่" ด้านบน</div>`;
+        } else {
+            html += tempHeroLists.map(list => {
+                let heroesHTML = '';
+                let visibleCount = 0; 
+                
+                list.heroIds.forEach(item => {
+                    if (viewOnlyMissing && item.checked) return;
+
+                    const h = heroesDB.find(x => x.id === item.id);
+                    if(h) {
+                        visibleCount++;
+                        const isChecked = item.checked;
+                        const borderClass = isChecked ? 'border-green-500 ring-2 ring-green-500/30' : 'border-gray-600 group-hover:border-gray-400';
+                        const opacityClass = isChecked ? 'opacity-100' : 'opacity-100';
+                        
+                        const checkMark = isChecked ? 
+                            `<div class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-lg backdrop-blur-[1px] transition-all">
+                                <span class="text-3xl font-bold text-green-400 drop-shadow-md">✓</span>
+                            </div>` : '';
+
+                        heroesHTML += `
+                        <div class="relative group/item inline-block m-1 cursor-pointer select-none" 
+                            onclick="toggleHeroListCheck('${list.id}', '${item.id}')"
+                            title="${h.name}">
+                            
+                            <div class="relative w-16 h-16">
+                                <img src="${h.img}" class="w-full h-full rounded-lg border-2 ${borderClass} bg-gray-900 object-cover shadow-md transition-all ${opacityClass}">
+                                ${checkMark}
+                            </div>
+
+                            ${!viewOnlyMissing ? `
+                            <button onclick="event.stopPropagation(); removeHeroFromList('${list.id}', '${item.id}')" 
+                                    class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition shadow-sm z-20 hover:bg-red-600">
+                                ✕
+                            </button>` : ''}
+                            
+                            <div class="text-[9px] text-center mt-1 truncate w-16 ${isChecked ? 'text-green-400 font-bold' : 'text-gray-400'}">${h.name}</div>
+                        </div>`;
+                    }
+                });
+
+                if (viewOnlyMissing && visibleCount === 0 && list.heroIds.length > 0) {
+                    heroesHTML = `
+                        <div class="w-full flex flex-col items-center justify-center py-8 text-green-500 gap-2 opacity-80">
+                            <span class="text-4xl">🎉</span>
+                            <span class="text-sm font-bold">ครบแล้ว! (Complete)</span>
+                            <span class="text-[10px] text-gray-500">ไม่มีรายการตกหล่น</span>
+                        </div>
+                    `;
+                } else if (list.heroIds.length === 0) {
+                    heroesHTML = `<div class="w-full text-center text-gray-600 text-xs py-8">ว่างเปล่า (Empty)<br>กด + เพื่อเพิ่มตัวละคร</div>`;
+                }
+
+                return `
+                    <div class="bg-[#161b22] border border-gray-700 rounded-xl p-4 shadow-xl relative group hover:border-gray-500 transition flex flex-col w-full">
+                        <div class="flex justify-between items-start mb-2">
+                            <input type="text" value="${list.name}" oninput="updateHeroListInfo('${list.id}', 'name', this.value)" 
+                                class="bg-transparent text-lg font-bold text-purple-300 border-b border-transparent focus:border-purple-500 outline-none w-2/3 transition placeholder-gray-600" placeholder="List Name">
+                            
+                            <div class="flex items-center gap-1 opacity-100 md:opacity-50 group-hover:opacity-100 transition">
+                                <button onclick="duplicateHeroList('${list.id}')" class="text-gray-500 hover:text-blue-400 p-1.5 rounded hover:bg-gray-700/50 transition" title="Duplicate">
+                                    ❐
+                                </button>
+                                <button onclick="deleteHeroList('${list.id}')" class="text-gray-600 hover:text-red-400 p-1.5 rounded hover:bg-gray-700/50 transition" title="Delete">
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <input type="text" value="${list.note}" oninput="updateHeroListInfo('${list.id}', 'note', this.value)" 
+                            class="w-full bg-gray-900/50 text-xs text-gray-400 p-2 rounded border border-gray-700/50 mb-3 outline-none focus:border-gray-600 focus:bg-gray-900 transition" placeholder="Note / Description...">
+                        
+                        <div class="bg-gray-900/50 p-3 rounded-lg min-h-[120px] border border-dashed border-gray-700 flex flex-wrap items-start content-start gap-1 flex-1 relative">
+                            ${heroesHTML}
+                            
+                            ${!viewOnlyMissing ? `
+                            <button onclick="openSelector('HERO-LIST', '${list.id}', 'hero', event)" 
+                                class="w-16 h-16 rounded-lg border-2 border-gray-800 border-dashed flex items-center justify-center text-gray-600 hover:text-purple-400 hover:border-purple-500 hover:bg-gray-800 transition group m-1 ml-2" title="Add Hero">
+                                <span class="text-2xl font-bold group-hover:scale-110 transition">+</span>
+                            </button>` : ''}
+                        </div>
+
+                        <div class="mt-2 text-[10px] text-right text-gray-600 font-mono">
+                            ${list.heroIds.filter(x => x.checked).length} / ${list.heroIds.length} Checked
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+        
+        // อัปเดตตาราง Usage ทางขวาด้วย
+        renderTempHeroUsageStats(); 
     }
 
     function renderTempHeroUsageStats() {
         const statsBody = document.getElementById('hero-usage-table-body');
+        if (!statsBody) return;
+
         const usageMap = {};
 
-        // 1. นับจาก Lists (Auto)
+        // 1. นับจำนวนจาก Lists ทั้งหมด
         tempHeroLists.forEach(list => {
-            list.heroIds.forEach(hid => {
-                usageMap[hid] = (usageMap[hid] || 0) + 1;
-            });
+            if (Array.isArray(list.heroIds)) {
+                list.heroIds.forEach(item => {
+                    // เช็คว่าเป็น Object {id, checked} หรือเป็น String ID เฉยๆ
+                    const heroId = (typeof item === 'object' && item.id) ? item.id : item;
+                    
+                    if (heroId) {
+                        usageMap[heroId] = (usageMap[heroId] || 0) + 1;
+                    }
+                });
+            }
         });
 
-        // 2. รวมกับ Manual Offsets
-        // ต้อง Loop เอา Hero ทั้งหมดที่ "มีค่า" (ไม่ว่าจะจาก List หรือ Manual)
+        // 2. รวมกับ Manual Usage
         const allRelevantIds = new Set([...Object.keys(usageMap), ...Object.keys(manualUsageOffsets)]);
-        
         const finalStats = [];
+        
         allRelevantIds.forEach(hid => {
             const listCount = usageMap[hid] || 0;
             const manualCount = manualUsageOffsets[hid] || 0;
             const total = listCount + manualCount;
 
-            if (total !== 0) { // แสดงเฉพาะตัวที่มีค่าไม่เป็น 0
+            if (total !== 0) {
                 const hero = heroesDB.find(h => h.id === hid);
                 if (hero) {
                     finalStats.push({
@@ -9813,45 +9889,42 @@
                         name: hero.name,
                         img: hero.img,
                         total: total,
-                        listCount: listCount,   // เก็บไว้ดู debug หรือแสดงแยกก็ได้
                         manualCount: manualCount
                     });
                 }
             }
         });
 
-        // เรียงลำดับ มาก -> น้อย
+        // 3. เรียงลำดับ (มาก -> น้อย)
         finalStats.sort((a, b) => b.total - a.total);
 
-        // Render HTML
-        statsBody.innerHTML = finalStats.map((item, index) => `
-            <tr class="hover:bg-gray-700/50 transition group border-b border-gray-800/50 last:border-0">
-                <td class="p-2 flex items-center gap-3">
-                    <span class="text-gray-600 font-mono text-xs w-5 text-center">${index+1}</span>
-                    
-                    <img src="${item.img}" class="w-14 h-14 rounded-md bg-gray-900 object-cover border border-gray-700">
-                    
-                    <div class="flex flex-col justify-center">
-                        <span class="text-gray-200 font-medium text-sm truncate w-28 leading-tight">${item.name}</span>
-                        ${item.manualCount !== 0 ? `<span class="text-[10px] text-gray-500">Manual: ${item.manualCount > 0 ? '+' : ''}${item.manualCount}</span>` : ''}
-                    </div>
-                </td>
-                <td class="p-2 text-right align-middle">
-                    <div class="flex items-center justify-end gap-2">
-                        <button onclick="adjustUsageCount('${item.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-gray-800 text-gray-400 hover:bg-red-900/50 hover:text-red-300 rounded text-base border border-gray-600 opacity-0 group-hover:opacity-100 transition shadow-sm">-</button>
-                        
-                        <span class="inline-flex items-center justify-center bg-purple-900/40 text-purple-200 text-lg font-bold w-10 h-8 rounded border border-purple-500/30 shadow-inner">
-                            ${item.total}
-                        </span>
-                        
-                        <button onclick="adjustUsageCount('${item.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-gray-800 text-gray-400 hover:bg-green-900/50 hover:text-green-300 rounded text-base border border-gray-600 opacity-0 group-hover:opacity-100 transition shadow-sm">+</button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-        
+        // 4. Render HTML
         if(finalStats.length === 0) {
-            statsBody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-gray-600 text-xs">No active usage</td></tr>`;
+            statsBody.innerHTML = `<tr><td colspan="2" class="p-8 text-center text-gray-600 text-xs">ยังไม่มีข้อมูลการใช้งาน</td></tr>`;
+        } else {
+            statsBody.innerHTML = finalStats.map((item, index) => `
+                <tr class="hover:bg-gray-700/50 transition group border-b border-gray-800/50 last:border-0">
+                    <td class="p-2 flex items-center gap-3">
+                        <span class="text-gray-600 font-mono text-xs w-5 text-center">${index+1}</span>
+                        <div class="relative w-10 h-10 flex-shrink-0">
+                            <img src="${item.img}" class="w-full h-full rounded-md bg-gray-900 object-cover border border-gray-700">
+                        </div>
+                        <div class="flex flex-col justify-center min-w-0">
+                            <span class="text-gray-200 font-medium text-xs truncate w-32 leading-tight">${item.name}</span>
+                            ${item.manualCount !== 0 ? `<span class="text-[9px] ${item.manualCount > 0 ? 'text-green-500' : 'text-red-400'}">Manual: ${item.manualCount > 0 ? '+' : ''}${item.manualCount}</span>` : ''}
+                        </div>
+                    </td>
+                    <td class="p-2 text-right align-middle">
+                        <div class="flex items-center justify-end gap-1">
+                            <button onclick="adjustUsageCount('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-gray-800 text-gray-400 hover:bg-red-900/50 hover:text-red-300 rounded text-sm border border-gray-600 opacity-0 group-hover:opacity-100 transition">-</button>
+                            <span class="inline-flex items-center justify-center bg-purple-900/40 text-purple-200 text-sm font-bold w-8 h-6 rounded border border-purple-500/30 shadow-inner">
+                                ${item.total}
+                            </span>
+                            <button onclick="adjustUsageCount('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-gray-800 text-gray-400 hover:bg-green-900/50 hover:text-green-300 rounded text-sm border border-gray-600 opacity-0 group-hover:opacity-100 transition">+</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
         }
     }
 
@@ -10459,6 +10532,13 @@
 
         if (savedLists) {
             tempHeroLists = JSON.parse(savedLists);
+            
+            // 🔥 Migration: แปลงข้อมูลเก่า (Array of Strings) เป็น (Array of Objects)
+            tempHeroLists.forEach(list => {
+                if (list.heroIds.length > 0 && typeof list.heroIds[0] === 'string') {
+                    list.heroIds = list.heroIds.map(id => ({ id: id, checked: false }));
+                }
+            });
         } else {
             tempHeroLists = [];
         }
@@ -10469,8 +10549,40 @@
             manualUsageOffsets = {};
         }
 
-        // วาดหน้าจอใหม่ทันทีที่โหลดเสร็จ
         renderHeroListsView();
+    }
+    // ฟังก์ชัน Copy (Duplicate) รายการ
+    function duplicateHeroList(id) {
+        const sourceList = tempHeroLists.find(l => l.id === id);
+        if (!sourceList) return;
+
+        const newList = {
+            id: Date.now().toString(),
+            name: sourceList.name + " (Copy)",
+            note: sourceList.note,
+            // ✅ Copy ข้อมูลภายในออกมาเป็นตัวใหม่ ไม่ให้ลิงค์กัน
+            heroIds: sourceList.heroIds.map(item => ({ ...item })) 
+        };
+
+        tempHeroLists.push(newList);
+        saveHeroListsToLocal();
+        renderHeroListsView();
+    }
+    // 5. [NEW] ฟังก์ชันติ๊กถูก (Toggle Check)
+    function toggleHeroListCheck(listId, heroId) {
+        const list = tempHeroLists.find(l => l.id === listId);
+        if (list) {
+            const item = list.heroIds.find(h => h.id === heroId);
+            if (item) {
+                item.checked = !item.checked; // สลับสถานะ
+                saveHeroListsToLocal();
+                renderHeroListsView();
+            }
+        }
+    }
+    function toggleMissingView() {
+        viewOnlyMissing = !viewOnlyMissing; // สลับค่า true/false
+        renderHeroListsView(); // วาดหน้าจอใหม่
     }
     </script>
 </body>
