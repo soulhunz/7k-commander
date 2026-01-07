@@ -1856,7 +1856,7 @@
         // --- [1] GLOBAL VARIABLES UPDATES ---
         let auditLogsDB = []; // เก็บ Log การแก้ไข
         let systemUsersDB = [];
-        let tempHeroLists = [];
+        let tempHeroLists = []; // รายการ Hero Lists
 
         var contextMenuPos = { x: 0, y: 0 }; 
         var activeFloatingText = null;
@@ -2274,6 +2274,7 @@
             }
 
             loadLocalTierData();
+            loadHeroListsFromLocal();
             renderCastleMenu(); 
             changeCastle('นอก 1', 10); 
             updateSyncStatus();
@@ -9665,23 +9666,28 @@
             heroIds: []
         };
         tempHeroLists.push(newList);
+        saveHeroListsToLocal(); // ✅ บันทึก
         renderHeroListsView();
     }
 
     // 2. ลบรายการเดียว
     function deleteHeroList(id) {
-        tempHeroLists = tempHeroLists.filter(l => l.id !== id);
-        renderHeroListsView();
+        if(confirm("ลบรายการนี้?")) {
+            tempHeroLists = tempHeroLists.filter(l => l.id !== id);
+            saveHeroListsToLocal(); // ✅ บันทึก
+            renderHeroListsView();
+        }
     }
 
     // 3. ล้างทั้งหมด (Reset)
     function resetAllHeroLists() {
         if(tempHeroLists.length === 0 && Object.keys(manualUsageOffsets).length === 0) return;
-        if(!confirm("ล้างข้อมูล Checklist และ Counter ทั้งหมดใช่ไหม?")) return;
+        if(!confirm("ล้างข้อมูล Checklist และ Counter ทั้งหมดใช่ไหม? (ไม่สามารถกู้คืนได้)")) return;
         
         tempHeroLists = [];
-        manualUsageOffsets = {}; // <--- เพิ่มบรรทัดนี้
+        manualUsageOffsets = {}; 
         
+        saveHeroListsToLocal(); // ✅ บันทึก
         renderHeroListsView();
     }
 
@@ -9690,7 +9696,7 @@
         const list = tempHeroLists.find(l => l.id === id);
         if(list) {
             list[field] = value;
-            // ไม่มีการ Save
+            saveHeroListsToLocal(); // ✅ บันทึก
         }
     }
 
@@ -9699,6 +9705,7 @@
         const list = tempHeroLists.find(l => l.id === listId);
         if(list) {
             list.heroIds = list.heroIds.filter(id => id !== heroId);
+            saveHeroListsToLocal(); // ✅ บันทึก
             renderHeroListsView();
         }
     }
@@ -9708,6 +9715,7 @@
         const list = tempHeroLists.find(l => l.id === listId);
         if(list && !list.heroIds.includes(heroId)) {
             list.heroIds.push(heroId);
+            saveHeroListsToLocal(); // ✅ บันทึก
             renderHeroListsView();
         }
     }
@@ -9912,6 +9920,7 @@
         
         // ถ้าลบจนเหลือ 0 (และไม่มีใน list) อาจจะต้องจัดการ แต่นี่ปล่อยให้ติดลบได้ หรือค้างไว้ก็ได้
         // รีเฟรชตาราง
+        saveHeroListsToLocal(); // ✅ บันทึก
         renderTempHeroUsageStats();
     }
 
@@ -10403,38 +10412,66 @@
         autoSaveTierList();
     }
     function findConnectedRows(startId, found = new Set()) {
-    found.add(startId);
-    
-    const startEl = document.getElementById(`tier-row-${startId}`);
-    if(!startEl) return Array.from(found);
+        found.add(startId);
+        
+        const startEl = document.getElementById(`tier-row-${startId}`);
+        if(!startEl) return Array.from(found);
 
-    const startRect = startEl.getBoundingClientRect();
-    const threshold = 5; // ระยะห่างที่ถือว่าติดกัน
+        const startRect = startEl.getBoundingClientRect();
+        const threshold = 5; // ระยะห่างที่ถือว่าติดกัน
 
-    activeTiers.forEach(otherId => {
-        if (found.has(otherId)) return;
+        activeTiers.forEach(otherId => {
+            if (found.has(otherId)) return;
 
-        const otherEl = document.getElementById(`tier-row-${otherId}`);
-        if (!otherEl) return;
-        const otherRect = otherEl.getBoundingClientRect();
+            const otherEl = document.getElementById(`tier-row-${otherId}`);
+            if (!otherEl) return;
+            const otherRect = otherEl.getBoundingClientRect();
 
-        // เช็คว่า X ตรงกัน (Alignment)
-        const isAlignedX = Math.abs(startRect.left - otherRect.left) < 20;
+            // เช็คว่า X ตรงกัน (Alignment)
+            const isAlignedX = Math.abs(startRect.left - otherRect.left) < 20;
 
-        if (isAlignedX) {
-            // เช็คว่า Y ติดกัน (บน หรือ ล่าง)
-            const touchingBottom = Math.abs(startRect.bottom - otherRect.top) < threshold;
-            const touchingTop = Math.abs(startRect.top - otherRect.bottom) < threshold;
+            if (isAlignedX) {
+                // เช็คว่า Y ติดกัน (บน หรือ ล่าง)
+                const touchingBottom = Math.abs(startRect.bottom - otherRect.top) < threshold;
+                const touchingTop = Math.abs(startRect.top - otherRect.bottom) < threshold;
 
-            if (touchingBottom || touchingTop) {
-                // ถ้าติดกัน ให้หาเพื่อนของตัวนั้นต่อ (Recursive)
-                findConnectedRows(otherId, found);
+                if (touchingBottom || touchingTop) {
+                    // ถ้าติดกัน ให้หาเพื่อนของตัวนั้นต่อ (Recursive)
+                    findConnectedRows(otherId, found);
+                }
             }
-        }
-    });
+        });
 
-    return Array.from(found);
-}
+        return Array.from(found);
+    }
+
+    // 1. ฟังก์ชันบันทึกข้อมูลลง Local Storage (ทำงานทันทีเมื่อมีการแก้ไข)
+    function saveHeroListsToLocal() {
+        localStorage.setItem('7k_hero_lists_db', JSON.stringify(tempHeroLists));
+        localStorage.setItem('7k_manual_usage_db', JSON.stringify(manualUsageOffsets));
+        // console.log("✅ Hero Lists Auto-Saved to Local Storage");
+    }
+
+    // 2. ฟังก์ชันโหลดข้อมูลกลับมา (เรียกตอนเปิดเว็บ)
+    function loadHeroListsFromLocal() {
+        const savedLists = localStorage.getItem('7k_hero_lists_db');
+        const savedUsage = localStorage.getItem('7k_manual_usage_db');
+
+        if (savedLists) {
+            tempHeroLists = JSON.parse(savedLists);
+        } else {
+            tempHeroLists = [];
+        }
+
+        if (savedUsage) {
+            manualUsageOffsets = JSON.parse(savedUsage);
+        } else {
+            manualUsageOffsets = {};
+        }
+
+        // วาดหน้าจอใหม่ทันทีที่โหลดเสร็จ
+        renderHeroListsView();
+    }
     </script>
 </body>
 </html>
