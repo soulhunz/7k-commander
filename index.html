@@ -9780,7 +9780,7 @@
                             onclick="toggleHeroListCheck('${list.id}', '${item.id}')"
                             title="${h.name}">
                             
-                            <div class="relative w-16 h-16">
+                            <div class="relative w-20 h-20">
                                 <img src="${h.img}" class="w-full h-full rounded-lg border-2 ${borderClass} bg-gray-900 object-cover shadow-md transition-all ${opacityClass}">
                                 ${checkMark}
                             </div>
@@ -9832,7 +9832,7 @@
                             
                             ${!viewOnlyMissing ? `
                             <button onclick="openSelector('HERO-LIST', '${list.id}', 'hero', event)" 
-                                class="w-16 h-16 rounded-lg border-2 border-gray-800 border-dashed flex items-center justify-center text-gray-600 hover:text-purple-400 hover:border-purple-500 hover:bg-gray-800 transition group m-1 ml-2" title="Add Hero">
+                                class="w-20 h-20 rounded-lg border-2 border-gray-800 border-dashed flex items-center justify-center text-gray-600 hover:text-purple-400 hover:border-purple-500 hover:bg-gray-800 transition group m-1 ml-2" title="Add Hero">
                                 <span class="text-2xl font-bold group-hover:scale-110 transition">+</span>
                             </button>` : ''}
                         </div>
