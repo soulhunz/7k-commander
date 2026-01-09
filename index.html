@@ -888,6 +888,10 @@
                 <div class="py-2 mb-2 text-xs text-gray-500">
                     User: <span id="display-username" class="text-blue-400 font-bold">...</span>
                 </div>
+                <div id="sync-status" class="sync-badge sync-cloud">
+                    <div class="w-2 h-2 rounded-full bg-current"></div>
+                    <span id="status-text">OFFLINE</span>
+                </div>
             </div>
             <button onclick="toggleSidebar()" class="text-gray-500 hover:text-white p-1 px-2 rounded hover:bg-gray-800 transition" title="ซ่อนเมนู">
                 ◀
@@ -921,6 +925,7 @@
                 <div class="menu-section-title text-red-400">Admin Zone</div>
                 <div onclick="switchView('user-manager')" class="menu-item" id="nav-user-manager">👥 User Management</div>
                 <div onclick="switchView('audit-logs')" class="menu-item" id="nav-audit-logs">🕵️ System Audit Logs</div>
+                <div onclick="switchView('survey-admin')" class="menu-item" id="nav-survey-admin">📝 Recruitment Form</div>
             </div>
 
             <div class="mt-4 pt-4 border-t border-gray-800">
@@ -941,52 +946,6 @@
                 <div class="text-8xl mb-6 filter drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">🛡️</div>
                 <h1 class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-2 tracking-widest">7K Seven Deadly Sins</h1>
                 <p class="text-gray-500 text-sm font-mono">System Ready. Select a menu to start.</p>
-            </div>
-        </div>
-
-        <div id="view-war-room" class="tab-active flex-col relative h-full">
-            <div id="war-room-empty" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0b0e14]">
-                <div class="text-6xl mb-4 animate-bounce">🏰</div>
-                <h2 class="text-3xl font-bold text-white mb-2">Guild War Room</h2>
-                <p class="text-gray-500 mb-8 text-sm">ระบบวางแผนและจัดการสงครามกิลด์</p>
-                
-                <div class="bg-[#161b22] p-8 rounded-2xl border border-gray-700 shadow-2xl text-center max-w-md w-full">
-                    <div class="text-purple-400 font-bold text-xl mb-6">PREPARATION PHASE</div>
-                    <div class="text-gray-400 text-sm mb-6">
-                        ยังไม่มีการแข่งขันในขณะนี้<br>กดปุ่มด้านล่างเพื่อเริ่ม Season ใหม่
-                    </div>
-                    <button onclick="startNewSeasonInput()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-blue-900/50 transition transform hover:scale-105 flex items-center justify-center gap-3">
-                        <span>⚔️</span> เริ่ม Season ใหม่ (Start)
-                    </button>
-                </div>
-            </div>
-
-            <div id="war-room-interface" class="flex flex-col h-full hidden">
-                <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center flex-shrink-0 shadow-lg z-20">
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-4">
-                            <h2 id="castle-title" class="text-3xl font-bold text-white">ปราสาทนอก 4</h2>
-                            <div id="sync-status" class="sync-badge sync-cloud"><div class="w-2 h-2 rounded-full bg-current"></div><span id="status-text">OFFLINE</span></div>
-                        </div>
-                        <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                            <span class="bg-purple-900 text-purple-200 px-2 py-0.5 rounded border border-purple-700 font-bold" id="gw-season-badge">Season -</span>
-                            <span>VS</span>
-                            <span class="text-red-400 font-bold text-sm" id="gw-opponent-name">Waiting...</span>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center gap-2">
-                        <button id="btn-end-season" onclick="endGuildWarRound()" class="bg-red-900/80 hover:bg-red-800 text-red-200 px-4 py-2 rounded-lg text-xs font-bold border border-red-700 flex items-center gap-2 transition">
-                            <span>🏁</span> จบ Season (End)
-                        </button>
-                        <div class="w-px h-8 bg-gray-700 mx-2"></div>
-                        <button onclick="triggerAutoSave(true)" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-bold border border-blue-400 shadow-lg transition transform hover:scale-105">💾 Save Now</button>
-                        <button id="btn-clear-room" onclick="clearCastle()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-sm font-bold border border-gray-600 transition">🧹 Clear Room</button>
-                    </div>
-                </header>
-                
-                <div id="castle-selector-bar" class="p-3 bg-[#111827] border-b border-gray-800 flex flex-col gap-2 shadow-inner z-10 flex-shrink-0"></div>
-                <div id="dashboard-container" class="p-8 overflow-y-auto no-scroll h-full pb-40"></div>
             </div>
         </div>
 
@@ -1271,56 +1230,6 @@
             </div>
         </div>
 
-        <div id="view-battle-war" class="flex-col hidden h-full bg-[#0b0e14]">
-            <header class="p-4 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0 z-20">
-                <div>
-                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                        <span class="text-gray-500">⚔️</span> Battle War Recorder
-                    </h2>
-                    <div class="text-xs text-gray-500">เลือก Formation และกดปุ่ม <span class="text-yellow-500">WINNER</span> ในกรอบ</div>
-                </div>
-            </header>
-
-            <div class="flex-1 overflow-y-auto custom-scroll p-6 relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                
-                <div class="max-w-4xl mx-auto flex flex-col gap-8 pb-40">
-                    
-                    <div class="relative w-full transition-all duration-300">
-                        <div class="flex justify-between items-end mb-1 px-1">
-                            <div class="text-xs font-bold text-blue-400 uppercase tracking-widest">🛡️ My Team</div>
-                            <button onclick="clearSimTeam('BW-MY')" class="text-[9px] text-gray-600 hover:text-red-400 transition">Clear</button>
-                        </div>
-                        <div id="bw-my-area"></div>
-                    </div>
-
-                    <div class="flex items-center justify-center relative -my-4 z-10 opacity-20">
-                        <div class="bg-gray-800 h-px w-full absolute"></div>
-                        <div class="bg-[#0b0e14] border border-gray-700 rounded-full w-8 h-8 flex items-center justify-center text-gray-600 font-bold text-[10px] relative z-10 select-none">VS</div>
-                    </div>
-
-                    <div class="relative w-full transition-all duration-300">
-                        <div class="flex justify-between items-end mb-1 px-1">
-                            <div class="text-xs font-bold text-red-400 uppercase tracking-widest">👹 Enemy Team</div>
-                            <button onclick="clearSimTeam('BW-ENEMY')" class="text-[9px] text-gray-600 hover:text-red-400 transition">Clear</button>
-                        </div>
-                        <div id="bw-enemy-area"></div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <div id="view-logs" class="flex-col">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center flex-shrink-0 shadow-lg">
-                <h2 class="text-2xl font-bold text-white">Battle Logs</h2>
-                <div class="flex gap-2">
-                    <button onclick="viewArchives()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded border border-gray-500">📂 ดูประวัติเก่า</button>
-                    <button onclick="clearHistoryDB()" class="text-xs text-red-500 hover:text-white border border-red-900 px-3 py-1 rounded">Clear Logs</button>
-                </div>
-            </header>
-            <div class="p-8 overflow-y-auto bg-[#0d1117] h-full"><table class="log-table"><thead><tr><th>Time</th><th>Castle</th><th>Slot</th><th>Player</th><th>Status</th></tr></thead><tbody id="log-list-body"></tbody></table></div>
-        </div>
-
         <div id="archiveModal" class="modal-overlay" style="z-index: 90;">
             <div class="modal-content">
                 <div class="p-4 border-b border-gray-700 bg-[#1f2937] flex justify-between items-center">
@@ -1378,34 +1287,6 @@
                 <div class="flex-1 p-8 overflow-y-auto bg-[#0d1117]">
                     <div id="manager-empty" class="text-center text-gray-500 mt-20 text-lg">เลือกรายการจากด้านซ้ายเพื่อแก้ไข</div>
                     <div id="manager-form" class="hidden max-w-3xl mx-auto bg-[#161b22] p-8 rounded-2xl border border-gray-700"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-analytics" class="flex-col hidden h-full overflow-hidden">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0">
-                <h2 class="text-2xl font-bold text-white flex items-center gap-2"><span>📊</span> Guild Statistics & Meta Analysis</h2>
-                <button onclick="renderAnalytics()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition">🔄 Refresh Stats</button>
-            </header>
-            
-            <div class="p-8 overflow-y-auto no-scroll h-full space-y-8 pb-20">
-                <div id="analytics-summary" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-6 shadow-xl">
-                        <h3 class="text-green-400 font-bold mb-4 flex items-center gap-2">🔥 Top Used Heroes (Most Picked)</h3>
-                        <div id="analytics-top-heroes" class="space-y-3"></div>
-                    </div>
-                    
-                    <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-6 shadow-xl">
-                        <h3 class="text-red-400 font-bold mb-4 flex items-center gap-2">❄️ Unused Heroes (No Pick)</h3>
-                        <div id="analytics-unused-heroes" class="grid grid-cols-4 md:grid-cols-6 gap-2"></div>
-                    </div>
-                </div>
-
-                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-6 shadow-xl">
-                    <h3 class="text-yellow-500 font-bold mb-4 flex items-center gap-2">🤝 Best Synergies (ตัวละครที่มักอยู่ด้วยกัน)</h3>
-                    <div id="analytics-synergy" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                 </div>
             </div>
         </div>
@@ -1511,24 +1392,6 @@
             </div>
         </div>
 
-        <div id="view-audit-logs" class="flex-col hidden h-full">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] shadow-lg flex-shrink-0">
-                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                    🕵️ System Audit Logs <span class="text-xs font-normal text-gray-500 ml-2">(ประวัติการแก้ไขข้อมูล)</span>
-                </h2>
-            </header>
-            <div class="p-8 overflow-y-auto bg-[#0d1117] h-full custom-scroll">
-                <div class="bg-[#161b22] border border-gray-700 rounded-xl overflow-hidden shadow-xl max-w-5xl mx-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-[#1f2937] text-gray-400 text-xs uppercase font-bold border-b border-gray-700">
-                            <tr><th class="p-4 w-48">Time</th><th class="p-4 w-32">User</th><th class="p-4 w-24">Action</th><th class="p-4">Details</th></tr>
-                        </thead>
-                        <tbody id="audit-log-body" class="text-sm text-gray-300 divide-y divide-gray-800 font-mono"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
         <div id="userModal" class="modal-overlay" style="z-index: 100;">
             <div class="modal-content !w-[500px]">
                 <div class="p-4 border-b border-gray-700 bg-[#1f2937] flex justify-between items-center">
@@ -1569,31 +1432,6 @@
             </div>
         </div>
 
-        <div id="view-battle-history" class="flex-col hidden h-full bg-[#0b0e14]">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0 z-20">
-                <div>
-                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-                        <span>📜</span> Battle History
-                    </h2>
-                    <div class="text-xs text-gray-500 mt-1">ประวัติการต่อสู้ทั้งหมด <span id="history-total-count" class="text-blue-400 font-bold ml-1">(0)</span></div>
-                </div>
-                
-                <div class="flex gap-2">
-                    <button onclick="downloadBackup()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded border border-gray-600 flex items-center gap-2">
-                        <span>⬇️</span> Backup Data
-                    </button>
-                </div>
-            </header>
-
-            <div class="flex-1 overflow-y-auto custom-scroll p-6 bg-[#0d1117]">
-                <div class="max-w-5xl mx-auto">
-                    <div id="full-history-list" class="space-y-2">
-                        <div class="text-center text-gray-600 py-20 animate-pulse">Loading logs...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div id="recorderModal" class="fixed inset-0 bg-[#0b0e14] z-[100] hidden flex flex-col">
             <div class="px-4 py-3 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg shrink-0">
                 <div class="flex items-center gap-4">
@@ -1627,6 +1465,93 @@
                 
                 <div id="emptyState" class="text-center py-20 text-gray-600 hidden">
                     กดปุ่ม "+ เพิ่มแถว" ด้านบนเพื่อเริ่มบันทึกข้อมูล
+                </div>
+            </div>
+        </div>
+
+        <div id="view-survey-admin" class="flex-col hidden h-full">
+            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span>📝</span> Recruitment Manager
+                </h2>
+                <div class="flex gap-2">
+                    <button onclick="copyApplicationLink()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-lg flex items-center gap-2">
+                        🔗 Copy Application Link
+                    </button>
+                    <button onclick="saveSurveyConfig()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-lg flex items-center gap-2">
+                        💾 Save Config
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex flex-1 overflow-hidden">
+                <div class="w-1/2 border-r border-gray-800 p-6 overflow-y-auto custom-scroll bg-[#0d1117]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-yellow-500 font-bold uppercase text-sm">🏗️ Form Builder</h3>
+                        <button onclick="addSurveyQuestion()" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded border border-gray-600">+ Add Question</button>
+                    </div>
+                    <div id="survey-builder-container" class="space-y-4"></div>
+                </div>
+
+                <div class="w-1/2 p-6 overflow-y-auto custom-scroll bg-[#0b0e14]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-green-400 font-bold uppercase text-sm">📩 Applications Received</h3>
+                        <span id="app-count-badge" class="bg-gray-800 text-xs px-2 py-1 rounded text-white">0</span>
+                    </div>
+                    <div id="survey-responses-container" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-application-form" class="flex-col hidden h-full bg-[#0b0e14] items-center justify-center overflow-y-auto custom-scroll p-4">
+            <div class="w-full max-w-2xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden my-10">
+                <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center">
+                    <h1 class="text-3xl font-bold text-white mb-2">Guild Recruitment</h1>
+                    <p class="text-blue-200 text-sm">กรอกข้อมูลเพื่อสมัครเข้ากิลด์</p>
+                </div>
+                
+                <div class="p-8 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="col-span-1 flex flex-col items-center gap-3">
+                            <div class="col-span-1 flex flex-col">
+                                <label class="text-blue-400 mb-2 block text-center md:text-left">📸 รูปทีมปัจจุบัน (Team Screenshot)</label>
+                                
+                                <div class="w-full aspect-video rounded-xl border-4 border-dashed border-gray-700 hover:border-blue-500 bg-black/50 overflow-hidden relative group cursor-pointer transition-all" onclick="document.getElementById('app-img-upload').click()">
+                                    
+                                    <img id="app-img-preview" src="https://placehold.co/640x360?text=Upload+Screenshot" class="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-all">
+                                    
+                                    <div class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm">
+                                        <span class="text-4xl mb-2">📤</span>
+                                        <span class="text-sm text-white font-bold">คลิกเพื่ออัปโหลดรูป</span>
+                                        <span class="text-[10px] text-gray-400">(แนะนำแนวนอน)</span>
+                                    </div>
+                                </div>
+                                
+                                <input type="file" id="app-img-upload" class="hidden" accept="image/*" onchange="previewAppImage(this)">
+                            </div>
+                            <!-- <span class="text-xs text-gray-500">รูปโปรไฟล์ / ตัวละคร</span> -->
+                        </div>
+                        <div class="col-span-2 space-y-4">
+                            <div class="input-group">
+                                <label class="text-blue-400">ชื่อในเกม (In-Game Name)</label>
+                                <input type="text" id="app-name" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none focus:border-blue-500" placeholder="ระบุชื่อ...">
+                            </div>
+                            <div class="input-group">
+                                <label class="text-gray-400">ช่องทางติดต่อ (Line / Discord)</label>
+                                <input type="text" id="app-contact" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none" placeholder="ID...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-gray-700 my-4"></div>
+
+                    <div id="app-questions-area" class="space-y-5"></div>
+
+                    <div class="pt-4">
+                        <button onclick="submitApplication()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition transform hover:scale-105">
+                            🚀 ส่งใบสมัคร (Submit)
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1843,15 +1768,16 @@
     <script>
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
-            // ✅ 1. ใส่ URL ถาวรตรงนี้ (ถ้าใส่แล้ว ไม่ต้องกรอกในหน้า Setting อีก)
+            // ตรวจสอบว่า URL นี้ตรงกับที่ Deploy ล่าสุดหรือไม่
             WEB_APP_URL: "https://script.google.com/macros/s/AKfycbzrXxLPs0Gi4wtzNwvhzxbZX74yOnMpovM2IfUKEzl-mgPgjVmfjlen8Tg6K3jGQkQlbw/exec", 
-            
-            // ✅ 2. เวอร์ชันของไฟล์ HTML นี้ (ต้องตรงกับใน Code.gs)
             VERSION: "1.0.1" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
         let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
         let USE_CLOUD = !!SCRIPT_URL;
+
+        let surveyConfig = []; // เก็บโครงสร้างคำถาม [{id, question, type}]
+        let applicationsDB = []; // เก็บใบสมัครที่ส่งมา
 
         // --- [1] GLOBAL VARIABLES UPDATES ---
         let auditLogsDB = []; // เก็บ Log การแก้ไข
@@ -1976,7 +1902,6 @@
         let myTeamsDB = []; 
         let battleHistoryDB = []; // New DB for History
         
-        let currentView='war-room', currentCastle='นอก 1', currentCap=10;
         let editContext=null, dragSrc=null, contextTarget=null, detailTarget=null, editingItemId=null;
         let syncInterval=null, activeTextarea=null;
         let activeBattleSlot = null; // Track which slot is fighting
@@ -2096,19 +2021,34 @@
         let contextItemTarget = null; // เก็บว่าคลิกขวาที่ Hero ตัวไหน
 
         if(localStorage.getItem('7k_tier_bg')) setTimeout(() => setTierBg(localStorage.getItem('7k_tier_bg')), 100);
-
+        
         function initLogin() {
-            // 1. เช็คว่าเคย Login ค้างไว้ไหม (Session Storage)
+            // 1. เช็ค URL Parameter ก่อนทำอย่างอื่น
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+
+            if (mode === 'apply') {
+                // 🔥 บังคับซ่อนหน้า Login ทันที
+                const loginScreen = document.getElementById('login-screen');
+                if (loginScreen) loginScreen.style.display = 'none';
+
+                // 🔥 ซ่อน Sidebar
+                const sidebar = document.getElementById('main-sidebar');
+                if (sidebar) sidebar.style.display = 'none';
+
+                // เข้าสู่ระบบแบบไม่ต้องเช็ค User
+                initApp();
+                return; // จบการทำงานตรงนี้เลย
+            }
+
+            // 2. เช็ค Session ปกติ (กรณีไม่ใช่คนสมัคร)
             const savedUser = sessionStorage.getItem('7k_user_session');
-            
             if (savedUser) {
-                // ถ้ามี -> ข้ามหน้า Login ไปเลย
                 CURRENT_USER = JSON.parse(savedUser);
                 document.getElementById('login-screen').style.display = 'none';
-                initApp(); // เริ่มโหลดแอป
+                initApp();
             } else {
-                // ถ้าไม่มี -> โชว์หน้า Login (มันโชว์อยู่แล้วโดย default css)
-                // ยังไม่ต้องทำอะไร รอ user กรอก
+                // ถ้าไม่มีอะไรเลย ก็ปล่อยให้หน้า Login แสดงอยู่แบบนั้น
             }
         }
 
@@ -2236,58 +2176,32 @@
         initLogin();
 
         function initApp() {
-
             if (CURRENT_USER) {
                 const nameEl = document.getElementById('display-username');
-                if (nameEl) {
-                    nameEl.innerText = `${CURRENT_USER.name} (${CURRENT_USER.role})`;
-                }
-
-                // --- 🛡️ ROLE BASED ACCESS CONTROL (RBAC) ---
-                // รายชื่อ ID เมนูที่ User ธรรมดา "ห้ามเห็น"
-                const restrictedIds = [
-                    'nav-hero-manager', 
-                    'nav-pet-manager', 
-                    'nav-item-manager', 
-                    'nav-ring-manager', 
-                    'nav-set-manager',
-                    'menu-title-db-manager' // (แนะนำ) ให้คุณไปเพิ่ม id="menu-title-db-manager" ใส่ใน <div class="menu-section-title">Database Manager</div>
-                ];
-
-                // Default: ซ่อน Admin Group ไว้ก่อน
-                document.getElementById('admin-menu-group').style.display = 'none';
-
-                if (CURRENT_USER.role !== 'admin') {
-                    // CASE: User ธรรมดา -> ซ่อนเมนู Database Manager
-                    restrictedIds.forEach(id => {
-                        const el = document.getElementById(id);
-                        if(el) el.style.display = 'none';
-                    });
-                } else {
-                    // CASE: Admin -> แสดงครบทุกอย่าง + เปิดโซน Admin
-                    restrictedIds.forEach(id => {
-                        const el = document.getElementById(id);
-                        if(el) el.style.display = 'flex'; // หรือ block ตามเดิม
-                    });
-                    // เปิดเมนู Admin
-                    document.getElementById('admin-menu-group').style.display = 'block';
-                }
+                if (nameEl) nameEl.innerText = `${CURRENT_USER.name} (${CURRENT_USER.role})`;
+                if (typeof applyUserRole === 'function') applyUserRole();
             }
 
-            loadLocalTierData();
-            loadHeroListsFromLocal();
-            renderCastleMenu(); 
-            changeCastle('นอก 1', 10); 
-            updateSyncStatus();
-            loadTierListFull();
+            // โหลดข้อมูลพื้นฐาน
+            if(typeof loadLocalTierData === 'function') loadLocalTierData();
+            if(typeof loadHeroListsFromLocal === 'function') loadHeroListsFromLocal();
+            if(typeof loadSurveyData === 'function') loadSurveyData(); // โหลดคำถาม
+
+            if(typeof renderCastleMenu === 'function') renderCastleMenu();
+            if(typeof updateSyncStatus === 'function') updateSyncStatus();
             
-            initInteractionDetectors(); // เริ่มระบบจับการเคลื่อนไหว
-            if(USE_CLOUD) {
-                startCloudSync(true); // โหลดครั้งแรก
-                // startRealTimeSync();  // เริ่มวนลูป Real-time
-                // startUpdateChecker();
+            // 🔥 ตรวจสอบโหมดสมัครอีกครั้ง
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'apply') {
+                // ไปหน้าฟอร์มทันที
+                switchView('application-form');
+                return;
             }
 
+            if(USE_CLOUD) {
+                startCloudSync(true);
+            }
+            
             switchView('home');
         }
 
@@ -2539,190 +2453,195 @@
         }
         function startCloudSync(isInitial = false) { fetchCloudData(isInitial); if(syncInterval) clearInterval(syncInterval); }
         function fetchCloudData(showOverlay = false) {
-            if(showOverlay) showLoading("กำลังทำการเชื่อมต่อข้อมูล...");
-            const badge = document.getElementById('sync-status'); const statusText = document.getElementById('status-text'); const settingStatus = document.getElementById('setting-status-display');
+            if (showOverlay) showLoading("กำลังดึงข้อมูลจาก Cloud...");
+            
+            const badge = document.getElementById('sync-status');
+            const statusText = document.getElementById('status-text');
+            const settingStatus = document.getElementById('setting-status-display');
 
-            // ถ้าเป็นการโหลดเงียบๆ (Realtime) ให้โชว์แค่จุดกระพริบ
-            if(!showOverlay && badge) badge.classList.add('loading');
+            // เช็คก่อนใช้
+            if (!showOverlay && badge) badge.classList.add('loading');
 
-            // ใช้ mode: 'cors' หรือไม่ระบุ (default) เพื่อให้ response.json() ทำงานได้
             fetch(SCRIPT_URL)
-            .then(res => res.json())
-            .then(data => {
+                .then(res => res.json())
+                .then(data => {
+                    if (data.serverVersion) checkVersionMismatch(data.serverVersion);
 
-                if (data.serverVersion) checkVersionMismatch(data.serverVersion);
+                    console.log(data)
 
-                if (data.timestamp && data.timestamp <= lastServerTimestamp) {
-                    console.log("Data is up to date.");
-                    if(badge) badge.classList.remove('loading');
-                    if(showOverlay) hideLoading();
-                    return; // จบการทำงาน ไม่ต้อง Render ใหม่
-                }
-
-                if (data.timestamp) lastServerTimestamp = data.timestamp;
-                console.log("New data detected! Updating UI...");
-
-                if (data.users && Array.isArray(data.users)) {
-                    systemUsersDB = data.users;
-                    console.log("Users loaded:", systemUsersDB.length);
-                } else {
-                    // ถ้า Server ไม่มีข้อมูล ให้ใช้ Default (กันเหนียว)
-                    if(systemUsersDB.length === 0) {
-                        systemUsersDB = [{ id: 'admin', name: 'Super Admin', pass: '1234', role: 'admin' }];
+                    if (data.timestamp && data.timestamp <= lastServerTimestamp) {
+                        if (badge) badge.classList.remove('loading');
+                        if (showOverlay) hideLoading();
+                        return;
                     }
-                }
 
-                heroesDB = data.heroes || []; petsDB = data.pets || []; ringsDB = data.rings || [];
-                if(data.affiliations && Array.isArray(data.affiliations)) affiliationsDB = data.affiliations;
-                // if(data.tierLists) tierListsDB = data.tierLists; else 
-                loadLocalTierData();
-                // if(!tierListsDB) tierListsDB = { hero: {}, pet: {} };
-                ['hero', 'pet'].forEach(type => { if(!tierListsDB[type]) tierListsDB[type] = {}; TIER_MODES.forEach(m => { if(!tierListsDB[type][m]) tierListsDB[type][m] = {}; }); });
-                
-                if(data.teams) { if(data.teams.teams) teamsDB = data.teams.teams; else teamsDB = data.teams; if(data.teams.logs) logsDB = data.teams.logs; else if(!logsDB) logsDB = []; }
+                    if (data.timestamp) lastServerTimestamp = data.timestamp;
+                    console.log("📥 New data received from Cloud!");
 
-                console.log(data.guildMembers)
-                
-                if (data.guildMembers && data.guildMembers.length === 30) {
-                    guildMembersDB = data.guildMembers;
-                } else {
-                    initGuildMembers(); // ถ้าไม่มีข้อมูล หรือข้อมูลเก่า ให้สร้างใหม่ 30 ช่อง
-                }
+                    // --- Load Data ---
+                    if(data.users) systemUsersDB = data.users;
+                    if(data.heroes) heroesDB = data.heroes;
+                    if(data.pets) petsDB = data.pets;
+                    if(data.rings) ringsDB = data.rings;
+                    if(data.items) itemsDB = data.items;
+                    if(data.affiliations) affiliationsDB = data.affiliations;
+                    if(data.teams) teamsDB = data.teams;
+                    if(data.heroSets) heroSetsDB = data.heroSets;
+                    if(data.battleHistory) battleHistoryDB = data.battleHistory;
+                    if(data.seasonInfo) currentSeason = data.seasonInfo;
+                    if(data.archivedSeasons) archivedSeasons = data.archivedSeasons;
+                    if(data.auditLogs) auditLogsDB = data.auditLogs;
+                    if(data.knownEnemies) knownEnemies = data.knownEnemies;
+                    
+                    if(data.guildMembers) guildMembersDB = data.guildMembers;
+                    else if (guildMembersDB.length === 0) initGuildMembers();
 
-                if (data.knownEnemies) knownEnemies = data.knownEnemies; 
-                else knownEnemies = [];
-                
-                if(data.battleHistory) battleHistoryDB = data.battleHistory; else battleHistoryDB = [];
-                if (data.seasonInfo) {
-                    currentSeason = data.seasonInfo;
-                } else{
-                    console.warn("ไม่พบข้อมูล SeasonInfo บน Cloud, ใช้ค่าเริ่มต้น");
-                    currentSeason = { 
-                        id: 1, 
-                        name: 'Season 1', 
-                        opponent: '-', 
-                        status: 'waiting', 
-                        startDate: new Date().toLocaleDateString('th-TH') 
-                    };
-                }
-                if (data.archivedSeasons) archivedSeasons = data.archivedSeasons;
-                else archivedSeasons = [];
+                    if(data.heroLists) {
+                        tempHeroLists = data.heroLists;
+                        localStorage.setItem('7k_hero_lists_db', JSON.stringify(tempHeroLists));
+                    }
+                    if(data.manualUsage) {
+                        manualUsageOffsets = data.manualUsage;
+                        localStorage.setItem('7k_manual_usage_db', JSON.stringify(manualUsageOffsets));
+                    }
+                    if(data.surveyConfig) {
+                        surveyConfig = data.surveyConfig;
+                        localStorage.setItem('7k_survey_config', JSON.stringify(surveyConfig));
+                    }
+                    if(data.applications) {
+                        applicationsDB = data.applications;
+                        localStorage.setItem('7k_applications_db', JSON.stringify(applicationsDB));
+                    }
+                    
+                    // Update UI
+                    if (typeof syncWarRoomFromHistory === 'function') syncWarRoomFromHistory();
+                    if (typeof updateGuildWarUI === 'function') updateGuildWarUI();
+                    if (typeof updateCurrentViewUI === 'function') updateCurrentViewUI();
 
-                if (data.heroSets) heroSetsDB = data.heroSets;
+                    // ✅ Update Badges (Safety Check)
+                    if (badge) {
+                        badge.classList.remove('loading', 'offline');
+                        badge.classList.add('sync-cloud'); // add class success
+                    }
+                    if (statusText) statusText.innerText = 'ONLINE';
+                    
+                    if (settingStatus) {
+                        settingStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> <span class="text-green-500">Connected</span>`;
+                    }
 
-                syncWarRoomFromHistory();
-
-                if(currentView === 'war-room') checkWarRoomStatus();
-                else if(currentView === 'my-teams') renderGuildResultMode();
-                else if(currentView === 'logs') renderLogs(); 
-                else if(currentView === 'gallery') renderGallery();
-                else if(currentView === 'simulator') renderSimulatorTeams();
-                else if(currentView === 'tier-viewer') renderTierViewer();
-                // else if(currentView === 'tier-manager') initTierManager(currentTierType);
-                else if(currentView.includes('manager')) renderManagerUI();
-                
-                if(badge) { badge.classList.remove('loading', 'offline'); statusText.innerText = 'ONLINE'; }
-                if(settingStatus) settingStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> <span class="text-green-500">Connected</span>`;
-                if(showOverlay) { document.getElementById('loading-text').innerText = "เชื่อมต่อเสร็จสิ้น!"; setTimeout(() => { hideLoading(); if(currentView === 'settings') switchView('war-room'); }, 1000); }
-                updateGuildWarUI();
-                updateCurrentViewUI(); // รีเฟรชหน้าจอที่เปิดอยู่
-        
-                if(badge) badge.classList.remove('loading');
-                if(showOverlay) hideLoading();
-            }).catch(err => {
-                if(badge) { badge.classList.remove('loading'); badge.classList.add('offline'); statusText.innerText = 'OFFLINE'; }
-                if(settingStatus) settingStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-red-500"></div> <span class="text-red-500">Connection Failed</span>`;
-                if(showOverlay) { document.getElementById('loading-text').innerText = "การเชื่อมต่อล้มเหลว"; setTimeout(hideLoading, 1500); }
-                console.error("Sync Error:", err);
-                if(showOverlay) hideLoading();
-            });
+                    if (showOverlay) {
+                        const loadingText = document.getElementById('loading-text');
+                        if (loadingText) loadingText.innerText = "โหลดข้อมูลเสร็จสิ้น!";
+                        setTimeout(() => { 
+                            hideLoading(); 
+                            if (currentView === 'settings') switchView('war-room'); 
+                        }, 500);
+                    }
+                })
+                .catch(err => {
+                    // ✅ Error Handling UI (Safety Check)
+                    if (badge) {
+                        badge.classList.remove('loading');
+                        badge.classList.add('offline');
+                    }
+                    if (statusText) statusText.innerText = 'OFFLINE';
+                    
+                    if (showOverlay) {
+                        const loadingText = document.getElementById('loading-text');
+                        if (loadingText) loadingText.innerText = "การเชื่อมต่อล้มเหลว";
+                        setTimeout(hideLoading, 1500);
+                    }
+                    console.error("Sync Error:", err);
+                });
         }
-        async function pushData(showOverlay = false) {
-            if(!USE_CLOUD) return;
 
-            // หยุด Real-time sync ชั่วคราวเพื่อไม่ให้ข้อมูลชนกัน
+        async function pushData(showOverlay = false) {
+            if (!USE_CLOUD) return;
+
             if (realTimeInterval) clearInterval(realTimeInterval);
             isSaving = true;
-            
+
             const now = Date.now();
             lastServerTimestamp = now;
 
-            // 1. จัดการ UI (Badge มุมขวา)
             const badge = document.getElementById('sync-status');
             const statusText = document.getElementById('status-text');
-            if(badge && statusText) { 
-                badge.className = 'sync-badge loading'; 
-                statusText.innerText = 'Saving...';
-            }
 
-            // 2. จัดการ UI (Loading เต็มจอ) -> จะทำงานเฉพาะตอนกดปุ่ม Save หรือจบ Battle
-            if (showOverlay) {
-                showLoading("☁️ กำลังบันทึกข้อมูลเข้าสู่ระบบ Cloud...");
-            }
+            // ✅ Safety Check
+            if (badge) badge.className = 'sync-badge loading';
+            if (statusText) statusText.innerText = 'Saving...';
 
-            // เตรียมข้อมูล Payload
-            const payload = { 
+            if (showOverlay) showLoading("☁️ กำลังบันทึกข้อมูลเข้าสู่ Google Cloud...");
+
+            const payload = {
                 timestamp: now,
-                teams: teamsDB, 
-                heroes: heroesDB, 
-                pets: petsDB, 
+                heroes: heroesDB,
+                pets: petsDB,
                 rings: ringsDB,
-                guildMembers: guildMembersDB, 
-                heroSets: heroSetsDB, 
                 items: itemsDB,
-                auditLogs: auditLogsDB, 
-                users: systemUsersDB, 
+                affiliations: affiliationsDB,
+                teams: teamsDB,
+                heroSets: heroSetsDB,
+                battleHistory: battleHistoryDB,
+                seasonInfo: currentSeason,
+                archivedSeasons: archivedSeasons,
+                users: systemUsersDB,
+                auditLogs: auditLogsDB,
                 knownEnemies: knownEnemies,
-                affiliations: affiliationsDB, 
-                battleHistory: battleHistoryDB, 
-                seasonInfo: currentSeason, 
-                archivedSeasons: archivedSeasons
+                heroLists: tempHeroLists,
+                manualUsage: manualUsageOffsets,
+                surveyConfig: surveyConfig,
+                applications: applicationsDB
             };
-            
+
             try {
-                // ส่งข้อมูล
-                await fetch(SCRIPT_URL, { 
-                    method: 'POST', 
-                    mode: 'no-cors', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify(payload) 
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
 
-                console.log("✅ Save Sent.");
-                
-                // อัปเดตสถานะเมื่อสำเร็จ
-                if(badge && statusText) { 
-                    badge.className = 'sync-badge sync-cloud'; 
-                    statusText.innerText = 'SAVED';
-                }
+                console.log("✅ Save Sent to Cloud.");
+
+                // ✅ Safety Check Success
+                if (badge) badge.className = 'sync-badge sync-cloud';
+                if (statusText) statusText.innerText = 'SAVED';
 
             } catch (err) {
                 console.error("Save Error:", err);
-                if(statusText) {
-                    badge.className = 'sync-badge offline';
-                    statusText.innerText = 'Error';
-                }
+                // ✅ Safety Check Error
+                if (badge) badge.className = 'sync-badge offline';
+                if (statusText) statusText.innerText = 'Error';
+                
                 if (showOverlay) alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
             } finally {
-                // คืนค่าตัวแปร
-                isPendingSave = false; 
+                isPendingSave = false;
                 isSaving = false;
-                
-                // ปิด Loading เต็มจอ (ถ้าเปิดไว้)
-                if (showOverlay) {
-                    hideLoading();
-                }
 
-                // เริ่มนับถอยหลัง Auto-Sync ใหม่
+                if (showOverlay) hideLoading();
+
                 setTimeout(() => {
-                    if(statusText && statusText.innerText === 'SAVED') {
+                    // ✅ Safety Check Restore
+                    if (statusText && statusText.innerText === 'SAVED') {
                         statusText.innerText = 'ONLINE';
                     }
-                    startRealTimeSync(); 
-                }, 5000); 
+                    startRealTimeSync();
+                }, 5000);
             }
         }
-        function updateSyncStatus() { const b = document.getElementById('sync-status'); const t = document.getElementById('status-text'); const s = document.getElementById('setting-status-display'); if(!USE_CLOUD) { b.className = 'sync-badge offline'; t.innerText = 'NO SETUP'; if(s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`; } }
+        function updateSyncStatus() {
+            const b = document.getElementById('sync-status');
+            const t = document.getElementById('status-text');
+            const s = document.getElementById('setting-status-display');
+
+            if (!USE_CLOUD) {
+                // ใส่ if ดักไว้ ถ้าหาไม่เจอให้ข้ามไป
+                if (b) b.className = 'sync-badge offline';
+                if (t) t.innerText = 'NO SETUP';
+                if (s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`;
+            }
+        }
 
         function switchView(v) {
             currentView = v;
@@ -2743,14 +2662,14 @@
             // 3. กำหนด ID และการทำงาน
             const targetViewMap = {
                 'home': 'view-home',
-                'war-room': 'view-war-room',
+                // 'war-room': 'view-war-room',
                 'preparation': 'view-preparation',
-                'battle-war': 'view-battle-war',
-                'battle-history': 'view-battle-history',
+                // 'battle-war': 'view-battle-war',
+                // 'battle-history': 'view-battle-history',
                 'simulator': 'view-simulator',
                 'gallery': 'view-gallery',
                 'tier-viewer': 'view-tier-viewer',
-                'analytics': 'view-analytics',
+                // 'analytics': 'view-analytics',
                 'settings': 'view-settings',
                 
                 // Database & Admin
@@ -2763,7 +2682,9 @@
                 'audit-logs': 'view-audit-logs',
 
                 // ✅ [ส่วนที่ต้องเพิ่ม]
-                'hero-lists': 'view-hero-lists' // <--- เพิ่มบรรทัดนี้ครับ
+                'hero-lists': 'view-hero-lists',
+                'survey-admin': 'view-survey-admin',
+                'application-form': 'view-application-form'
             };
 
             const targetId = targetViewMap[v];
@@ -2774,22 +2695,22 @@
                 el.classList.add('tab-active');
 
                 // Init Functions (สั่งให้ทำงานเมื่อเปิดหน้า)
-                if (v === 'war-room') checkWarRoomStatus();
-                else if (v === 'preparation') renderPreparation();
-                else if (v === 'battle-war') renderBattleWar();
-                else if (v === 'battle-history') renderFullHistory();
+                // if (v === 'war-room') checkWarRoomStatus();
+                if (v === 'preparation') renderPreparation();
+                // else if (v === 'battle-war') renderBattleWar();
+                // else if (v === 'battle-history') renderFullHistory();
                 else if (v === 'simulator') initSimulator();
                 else if (v === 'tier-viewer') renderTierViewer();
                 else if (v === 'gallery') renderGallery();
-                else if (v === 'analytics') renderAnalytics();
+                // else if (v === 'analytics') renderAnalytics();
                 else if (v === 'settings') updateSyncStatus();
-                else if (v === 'audit-logs') renderAuditLogs();
+                // else if (v === 'audit-logs') renderAuditLogs();
                 else if (v === 'user-manager') renderUserManager();
                 else if (v === 'set-manager') renderSetManager();
                 else if (v.includes('manager')) renderManagerUI();
-
-                // ✅ [ส่วนที่ต้องเพิ่ม]
-                else if (v === 'hero-lists') renderHeroListsView(); // <--- เพิ่มบรรทัดนี้ครับ
+                else if (v === 'survey-admin') renderSurveyBuilder();
+                else if (v === 'application-form') renderApplicationForm();
+                else if (v === 'hero-lists') renderHeroListsView();
             }
         }
 
@@ -2855,7 +2776,6 @@
             const activeBtn = document.getElementById(`nav-castle-${name.replace(' ', '-')}`);
             if(activeBtn) activeBtn.classList.add('active');
             document.getElementById('castle-title').innerText = `ปราสาท${name}`;
-            renderDashboard();
         }
 
         // --- 1. openBattleModal: แก้ไขให้แสดงข้อมูล Header ให้ครบ ---
@@ -3412,7 +3332,6 @@
             // 🟢 บังคับสถานะห้องจากประวัติทันที (แก้บั๊กสถานะเด้ง)
             syncWarRoomFromHistory();
 
-            renderDashboard(); 
             closeBattleModal();
             triggerAutoSave(true);
         }
@@ -3456,7 +3375,6 @@
             });
 
             // 4. รีเฟรชหน้าจอทันที
-            renderDashboard();
         }
 
         function closeBattleModal() { document.getElementById('battleModal').style.display = 'none'; activeBattleSlot = null; }
@@ -3544,9 +3462,6 @@
             } else {
                 addLog(currentCastle, activeBattleSlot, enemyTeam.player, 'Lost');
             }
-
-            renderDashboard(); 
-            closeBattleModal();
 
             // showLoading("กำลังบันทึกผลการต่อสู้...");
             // try {
@@ -4597,22 +4512,19 @@
                 renderSetManager();    // 
             } else if(currentView === 'hero-lists') {
                 renderHeroListsView();
-            } else {
-                renderDashboard();     // อัปเดตหน้า War Room
             }
         }
         function updateTeam(i, f, v) { 
             const t = getTeam(i); 
             if (!t.isCleared) { 
                 t[f] = v; 
-                if (f === 'formation') renderDashboard(); 
                 
                 // ✅ [เพิ่มตรงนี้]
                 triggerAutoSave();
             } 
         }
-        function toggleSkill(i, p, n) { const t = getTeam(i); if (t.isCleared) return; const id = `${p}-${n}`; const idx = t.skills.indexOf(id); if (idx > -1) t.skills.splice(idx, 1); else if (t.skills.length < 3) t.skills.push(id); renderDashboard(); triggerAutoSave(); }
-        function removePet(e, i) { e.stopPropagation(); const t = getTeam(i); if (!t.isCleared) { t.pet = null; renderDashboard(); } }
+        function toggleSkill(i, p, n) { const t = getTeam(i); if (t.isCleared) return; const id = `${p}-${n}`; const idx = t.skills.indexOf(id); if (idx > -1) t.skills.splice(idx, 1); else if (t.skills.length < 3) t.skills.push(id); triggerAutoSave(); }
+        function removePet(e, i) { e.stopPropagation(); const t = getTeam(i); if (!t.isCleared) { t.pet = null;  } }
         function setStar(l) {
             const t = getTeam(contextTarget.i);
             if (t) {
@@ -4662,7 +4574,6 @@
                 else {
                     // กรณี Guild Team หรือ War Room
                     if(currentView === 'my-teams') renderMyTeams();
-                    else renderDashboard();
                     
                     triggerAutoSave();
                 }
@@ -4741,94 +4652,14 @@
 
             closeContextMenu();
         }
-        function resetSlot(i) { if (confirm('Reset Slot?')) { addLog(currentCastle, i, getTeam(i).player, 'Reset'); teamsDB[`${currentCastle}-${i}`] = undefined; renderDashboard(); } }
+        function resetSlot(i) { if (confirm('Reset Slot?')) { addLog(currentCastle, i, getTeam(i).player, 'Reset'); teamsDB[`${currentCastle}-${i}`] = undefined; } }
         function clearCastle() { 
             const canManage = CURRENT_USER.role === 'admin';
             if (!canManage) return alert("❌ คุณไม่มีสิทธิ์ในการล้างข้อมูลปราสาท");
-            if (confirm('Clear All?')) { Object.keys(teamsDB).forEach(k => { if (k.startsWith(currentCastle)) delete teamsDB[k] }); renderDashboard(); } }
-        function toggleStatus(i) { const t = getTeam(i); t.isCleared = !t.isCleared; if (t.isCleared) addLog(currentCastle, i, t.player, 'Defeated'); renderDashboard(); }
+            if (confirm('Clear All?')) { Object.keys(teamsDB).forEach(k => { if (k.startsWith(currentCastle)) delete teamsDB[k] }); } }
+        function toggleStatus(i) { const t = getTeam(i); t.isCleared = !t.isCleared; if (t.isCleared) addLog(currentCastle, i, t.player, 'Defeated'); }
 
-        function renderDashboard() {
-            const container = document.getElementById('dashboard-container'); container.innerHTML = '';
-
-            // [ส่วนที่ 1] สร้าง Datalist สำหรับ Autocomplete (ซ่อนอยู่)
-            // สร้าง Option จาก knownEnemies
-            const datalistHTML = `
-                <datalist id="enemy-names-list">
-                    ${knownEnemies.map(n => `<option value="${n}">`).join('')}
-                </datalist>
-            `;
-            
-            // ใส่ Datalist ไว้บนสุดของ Container
-            container.insertAdjacentHTML('beforeend', datalistHTML);
-            
-            for(let i=0; i<currentCap; i++) {
-                const team = getTeam(i);
-                const layout = { 'basic': {b:3,f:2}, 'balanced':{b:2,f:3}, 'attack':{b:4,f:1}, 'defense':{b:1,f:4} }[team.formation];
-                const fmts = ['basic','balanced','attack','defense'].map(f => `<button onclick="updateTeam(${i},'formation','${f}')" class="form-btn ${team.formation===f?'active':''}">${f.toUpperCase()}</button>`).join('');
-                let sc = 0;
-                const genRow = (c, l) => {
-                    let h = `<div class="flex gap-4 items-center justify-center relative min-h-[70px]"><div class="absolute -left-12 text-[10px] text-gray-500 font-bold w-10 text-right">${l}</div>`;
-                    for(let k=0; k<c; k++) {
-                        const p = sc++; const s = team.slots[p]; const hData = s ? heroesDB.find(x=>x.id==s.id) : null;
-                        let inner = '';
-                        if(hData) {
-                            let ring = '', rCls = ''; if(s.ring) { const r = ringsDB.find(x=>x.id==s.ring); if(r) { ring=`<img src="${r.img}">`; rCls=`equipped grade-${r.grade}`; } }
-                            const s1 = team.skills.includes(`${p}-1`)?'active':'', s2 = team.skills.includes(`${p}-2`)?'active':'';
-                            inner = `
-                                <img src="${hData.img}">
-                                ${getStarsHTML(s.star, false)}
-                                <div class="ring-trigger ${rCls}" onclick="openSelector(${i},${p},'ring',event)">${ring||'💍'}</div>
-                                <div class="skill-bar" onclick="event.stopPropagation()">
-                                    <div onclick="toggleSkill(${i},${p},2)" class="skill-btn ${s2}">บน</div>
-                                    <div onclick="toggleSkill(${i},${p},1)" class="skill-btn ${s1}">ล่าง</div>
-                                </div>  
-                            `;
-                        }
-                        h += `<div class="slot ${hData?'filled':''} interactive-area" onclick="handleSlotClick(${i},${p})" oncontextmenu="openContextMenu(event,${i},${p})" ondragover="allowDrop(event)" ondrop="drop(event,${i},${p})" draggable="true" ondragstart="dragStart(event,${i},${p})">${inner}</div>`;
-                    } return h + `</div>`;
-                }
-                const petD = team.pet ? petsDB.find(p=>p.id==team.pet.id) : null;
-                const queueHtml = team.skills.map((s, index) => {
-                    const [pos, skillNum] = s.split('-'); const slot = team.slots[pos]; if (!slot) return ''; const hero = heroesDB.find(h => h.id == slot.id); if (!hero) return '';
-                    return `<div class="relative w-14 h-14 border border-gray-600 rounded bg-black flex-shrink-0"><img src="${hero.img}" class="w-full h-full object-cover rounded opacity-70"><div class="absolute bottom-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-1.5 rounded-tl">${skillNum == '1' ? 'ล่าง' : 'บน'}</div><div class="absolute top-0 left-0 bg-yellow-500 text-black text-[10px] font-bold px-1.5 rounded-br leading-none">${index+1}</div></div>`;
-                }).join('');
-                const emptyHtml = Array(3 - team.skills.length).fill('<div class="w-14 h-14 border border-dashed border-gray-700 rounded bg-[#0d1117] flex items-center justify-center text-gray-700 text-xs flex-shrink-0">?</div>').join('');
-                container.insertAdjacentHTML('beforeend', `<div class="team-row ${team.isCleared?'cleared':''}">
-                    <div class="w-48 flex flex-col gap-3 justify-center flex-shrink-0"><div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-500">SLOT #${i+1}</span><div class="flex gap-1"><button onclick="checkHistory(${i})" class="text-gray-500 hover:text-white" title="History">📜</button><button onclick="openBattleModal(${i})" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] px-2 py-0.5 rounded font-bold">⚔️ BATTLE</button></div></div>
-                <input type="number" value="${team.speed}" onchange="updateTeam(${i},'speed',this.value)" class="w-full bg-[#0d1117] border border-gray-600 text-blue-400 font-bold text-sm rounded px-2 outline-none" placeholder="ความเร็วมากกว่า">
-                <input type="text" 
-                value="${team.player}" 
-                list="enemy-names-list" 
-                onchange="handleEnemyNameChange(${i}, this.value)" 
-                class="w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded outline-none placeholder-gray-600 focus:border-yellow-500 transition" 
-                placeholder="ชื่อศัตรู (Name)..."
-                autocomplete="off">
-                <div class="grid grid-cols-2 gap-2 mt-1">${fmts}</div>
-                <button onclick="openLoadSetModal('warRoom', ${i}, null)" class="w-full mt-2 bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-700 text-[10px] py-1 rounded font-bold">📂 LOAD SET</button></div><div class="flex-1 flex items-center border-x border-gray-700 px-2 bg-[#0d1117]/30 rounded-lg mx-2"><div class="flex flex-col gap-2 items-center justify-center w-20 mr-2 border-r border-dashed border-gray-700 pr-2 py-2 flex-shrink-0"><span class="text-[10px] text-yellow-500 font-bold uppercase tracking-wider">Queue</span><div class="flex flex-col gap-1 items-center">${queueHtml}${emptyHtml}</div></div><div class="flex-1 flex flex-col gap-3 justify-center items-center">${genRow(layout.b,'BACK')}<div class="w-full h-px bg-gray-700/50"></div>${genRow(layout.f,'FRONT')}</div><div class="w-px h-32 bg-gray-700 mx-4 border-l border-dashed border-gray-600"></div><div class="flex flex-col gap-2 items-center justify-center w-20 flex-shrink-0"><span class="text-[10px] text-purple-400 font-bold uppercase">Pet</span><div class="pet-slot ${petD?'filled':''}" onclick="openSelector(${i},'pet','pet')" oncontextmenu="openContextMenu(event,${i},'pet')">${petD?`<img src="${petD.img}">`:'<span class="text-xl">+</span>'}</div></div></div>
-                <div class="w-24 flex flex-col items-center justify-center gap-3 flex-shrink-0">
-                
-                    <div class="w-full mb-2 transform hover:scale-110 transition duration-300 cursor-help" title="ศัตรูทีมนี้ป้องกันสำเร็จ ${team.defensiveWins || 0} ครั้งแล้ว!">
-                        <div class="bg-gradient-to-br from-red-600 via-red-700 to-red-900 border-2 border-red-400 rounded-xl py-2 shadow-[0_0_15px_rgba(239,68,68,0.6)] flex flex-col items-center justify-center relative overflow-hidden">
-                            
-                            <div class="absolute inset-0 bg-white/10 animate-pulse"></div>
-                            
-                            <span class="text-[9px] font-bold text-red-200 uppercase tracking-widest z-10 relative" style="text-shadow: 0 1px 2px black;">DEFENDED</span>
-                            
-                            <div class="flex items-end gap-1 z-10 relative mt-[-2px]">
-                                <span class="text-sm mb-1 filter drop-shadow-lg">🛡️</span>
-                                <span class="text-3xl font-black text-yellow-400 leading-none filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">${team.defensiveWins || 0}</span>
-                            </div>
-                            
-                        </div>
-                    </div>
-
-                <button onclick="toggleStatus(${i})" class="w-full py-2 border rounded font-bold text-[10px] transition ${team.isCleared?"bg-red-900/20 text-red-500 border-red-900":"bg-green-900/20 text-green-500 border-green-900 hover:bg-green-800"}">${team.isCleared?"💀 DEFEATED":"🟢 ACTIVE"}</button><button onclick="resetSlot(${i})" class="text-xs text-gray-500 hover:text-white interactive-area border border-transparent hover:border-gray-600 px-3 py-1 rounded">Reset</button></div></div>`);
-
-                renderCastleMenu();
-            }
-            
-        }
+        
         function getStarsHTML(l, pet, detail = false) {
             let stars = [];
             let redCount = 0;
@@ -5157,7 +4988,7 @@
             let data = [];
             if (galleryTab === 'hero') { data = heroesDB.filter(h => { let match = h.name.toLowerCase().includes(search); if (galleryFilter.rarity && h.rarity !== galleryFilter.rarity) match = false; if (galleryFilter.type && h.type !== galleryFilter.type) match = false; if (galleryFilter.aff && h.affiliation !== galleryFilter.aff) match = false; return match; }); data.sort((a, b) => { let rA = RARITY_OPTS.indexOf(a.rarity); let rB = RARITY_OPTS.indexOf(b.rarity); if (rA === -1) rA = 999; if (rB === -1) rB = 999; if (rA !== rB) return rA - rB; return a.name.localeCompare(b.name, 'th'); }); } 
             else { data = petsDB.filter(p => { let match = p.name.toLowerCase().includes(search); if (galleryFilter.rarity && p.rarity !== galleryFilter.rarity) match = false; if (galleryFilter.type) { let pTypes = Array.isArray(p.type) ? p.type : [p.type]; if (!pTypes.includes(galleryFilter.type)) match = false; } return match; }); data.sort((a,b) => { let rA = PET_RARITY_OPTS.indexOf(a.rarity); let rB = PET_RARITY_OPTS.indexOf(b.rarity); if (rA === -1) rA = 999; if (rB === -1) rB = 999; if (rA !== rB) return rA - rB; return a.name.localeCompare(b.name, 'th'); }); }
-            container.innerHTML = data.map(item => `<div class="hero-card group" onclick="viewGalleryDetail('${item.id}', '${galleryTab}')"><img src="${item.img || 'https://via.placeholder.com/100'}" class="hc-img"><div class="absolute top-1 right-1 opacity-90">${getRarityBadgeHTML(item.rarity)}</div><div class="hc-name-overlay"><div class="hc-name-text">${item.name}</div></div></div>`).join('');
+            container.innerHTML = data.map(item => `<div class="hero-card group" onclick="viewGalleryDetail('${item.id}', '${galleryTab}')"><img src="${item.img || 'https://placehold.co/100'}" class="hc-img"><div class="absolute top-1 right-1 opacity-90">${getRarityBadgeHTML(item.rarity)}</div><div class="hc-name-overlay"><div class="hc-name-text">${item.name}</div></div></div>`).join('');
         }
 
         function openDetail(i, p) { 
@@ -5371,7 +5202,7 @@
                     const label = i.type === 'front' ? 'FRONT' : 'BACK';
                     badgeHtml = `<span class="${BASE_BADGE_STYLE} bg-[#0d1117] ${color}">+${i.level} ${label}</span>`;
                 }
-                list.innerHTML+=`<div onclick="editManagerItem('${i.id}')" class="manager-list-item ${editingItemId==i.id?'active':''}"><img src="${i.img||'https://via.placeholder.com/50'}" class="w-10 h-10 rounded bg-black object-cover border border-gray-700 shrink-0"><div class="overflow-hidden w-full"><div class="flex flex-wrap items-center">${badgeHtml}</div><div class="font-bold text-gray-200 text-sm truncate leading-tight">${i.name}</div></div></div>`
+                list.innerHTML+=`<div onclick="editManagerItem('${i.id}')" class="manager-list-item ${editingItemId==i.id?'active':''}"><img src="${i.img||'https://placehold.co/50'}" class="w-10 h-10 rounded bg-black object-cover border border-gray-700 shrink-0"><div class="overflow-hidden w-full"><div class="flex flex-wrap items-center">${badgeHtml}</div><div class="font-bold text-gray-200 text-sm truncate leading-tight">${i.name}</div></div></div>`
             });
             if(!editingItemId){form.classList.add('hidden');empty.classList.remove('hidden');} else{form.classList.remove('hidden');empty.classList.add('hidden');}
         }
@@ -5385,7 +5216,7 @@
             // ส่วนหัว Common
             let h = `<div class="bg-[#0d1117] p-4 rounded-xl border border-gray-700 mb-6 flex gap-6 items-start shadow-md">
                 <div class="relative group">
-                    <img id="m-prev" src="${item.img}" class="w-32 h-32 rounded-lg border-2 border-gray-600 object-cover bg-black shadow-lg" onerror="this.src='https://via.placeholder.com/128/333/fff?text=No+Image'">
+                    <img id="m-prev" src="${item.img}" class="w-32 h-32 rounded-lg border-2 border-gray-600 object-cover bg-black shadow-lg" onerror="this.src='https://placehold.co/128/333/fff?text=No+Image'">
                     <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none">
                         <span class="text-xs text-white font-bold">Preview</span>
                     </div>
@@ -6658,12 +6489,8 @@
             const emptyScreen = document.getElementById('war-room-empty');
             const interfaceScreen = document.getElementById('war-room-interface');
 
-            console.log(currentSeason);
-            
             // ถ้าไม่มี status ให้ถือว่าเป็น active (สำหรับข้อมูลเก่า)
             const status = currentSeason.status || 'active';
-
-            console.log(status);
 
             if (status === 'waiting') {
                 emptyScreen.classList.remove('hidden');
@@ -6677,8 +6504,6 @@
                 const oppName = document.getElementById('gw-opponent-name');
                 if(badge) badge.innerText = `Season ${currentSeason.id}`;
                 if(oppName) oppName.innerText = currentSeason.opponent;
-                
-                renderDashboard(); // เรนเดอร์กระดาน
             }
         }
         async function startNewSeasonInput() {
@@ -7129,9 +6954,6 @@
                 } 
                 else if (type === 'guild') {
                     renderGuildResultMode(); // หรือ renderMemberTeamsUI แล้วแต่หน้า
-                }
-                else {
-                    renderDashboard(); // War Room
                 }
 
                 triggerAutoSave();
@@ -7999,7 +7821,6 @@
                 // แต่ปกติมันจะ save ตอนกดปุ่ม Save หรือ End Round อยู่แล้ว
                 
                 // รีเฟรชหน้าจอเพื่อให้ Datalist อัปเดตชื่อใหม่ทันที
-                renderDashboard(); 
             }
 
             triggerAutoSave();
@@ -10583,6 +10404,302 @@
     function toggleMissingView() {
         viewOnlyMissing = !viewOnlyMissing; // สลับค่า true/false
         renderHeroListsView(); // วาดหน้าจอใหม่
+    }
+    // 1. โหลดข้อมูล (ใส่เรียกใน initApp หรือ loadLocalTierData)
+    function loadSurveyData() {
+        const savedConf = localStorage.getItem('7k_survey_config');
+        const savedApps = localStorage.getItem('7k_applications_db');
+
+        if (savedConf) {
+            surveyConfig = JSON.parse(savedConf);
+            // 🔥 Force Migration: บังคับทุกข้อให้เป็น 'choice'
+            surveyConfig.forEach(q => {
+                q.type = 'choice'; 
+                if (!q.options) q.options = [];
+            });
+        } else {
+            // ค่าเริ่มต้น (เฉพาะ Choice)
+            surveyConfig = [
+                { id: 1, question: "เวลาเล่นต่อวัน (Playtime)", type: "choice", options: ["น้อยกว่า 1 ชม.", "1-3 ชม.", "มากกว่า 3 ชม."] },
+                { id: 2, question: "สายการเล่น (Playstyle)", type: "choice", options: ["สายฟรี (F2P)", "เติมบ้าง (Low Spender)", "ศุลกากร (Whale)"] }
+            ];
+        }
+
+        if (savedApps) applicationsDB = JSON.parse(savedApps);
+        else applicationsDB = [];
+    }
+
+    function saveSurveyData() {
+        localStorage.setItem('7k_survey_config', JSON.stringify(surveyConfig));
+        localStorage.setItem('7k_applications_db', JSON.stringify(applicationsDB));
+        // ถ้ามี Cloud Sync ก็ให้ pushData() ตรงนี้ได้
+    }
+
+    // --- ADMIN SIDE: BUILDER ---
+
+    function renderSurveyBuilder() {
+        const container = document.getElementById('survey-builder-container');
+        
+        container.innerHTML = surveyConfig.map((q, idx) => {
+            // สร้างรายการตัวเลือก (Options List)
+            const list = (q.options || []).map((opt, optIdx) => `
+                <div class="flex justify-between items-center bg-black/30 px-2 py-1 rounded mb-1 border border-gray-600">
+                    <span class="text-xs text-gray-300">${optIdx + 1}. ${opt}</span>
+                    <button onclick="removeSurveyOption(${idx}, ${optIdx})" class="text-red-400 hover:text-red-200 font-bold text-xs">×</button>
+                </div>
+            `).join('');
+
+            // ส่วนเพิ่มตัวเลือก
+            const optionsHtml = `
+                <div class="mt-2 p-2 bg-[#111827] rounded border border-gray-600/50">
+                    <label class="text-[10px] text-blue-400 font-bold uppercase mb-1 block">📌 ตัวเลือกคำตอบ (Options)</label>
+                    <div class="space-y-1 mb-2 max-h-32 overflow-y-auto custom-scroll">${list}</div>
+                    <div class="flex gap-1">
+                        <input type="text" id="new-opt-${idx}" class="w-full bg-black border border-gray-600 rounded px-2 py-1 text-xs text-white outline-none" placeholder="พิมพ์ตัวเลือก..." onkeydown="if(event.key==='Enter') addSurveyOption(${idx})">
+                        <button onclick="addSurveyOption(${idx})" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold">+</button>
+                    </div>
+                </div>
+            `;
+
+            return `
+            <div class="bg-[#1f2937] p-3 rounded border border-gray-700 relative group animate-fade-in mb-3">
+                <div class="absolute top-2 right-2 cursor-pointer text-red-500 hover:text-white" onclick="removeSurveyQuestion(${idx})">✕</div>
+                
+                <div class="mb-2 pr-6">
+                    <label class="text-[10px] text-gray-500 uppercase font-bold">Question ${idx+1}</label>
+                    <input type="text" value="${q.question}" onchange="updateSurveyQuestion(${idx}, 'question', this.value)" class="w-full bg-[#0d1117] border border-gray-600 rounded px-2 py-1 text-sm text-white outline-none focus:border-blue-500">
+                </div>
+
+                ${optionsHtml}
+            </div>
+            `;
+        }).join('');
+        
+        renderSurveyResponses(); 
+    }
+
+    function addSurveyOption(qIdx) {
+        const input = document.getElementById(`new-opt-${qIdx}`);
+        const val = input.value.trim();
+        if (val) {
+            if (!surveyConfig[qIdx].options) surveyConfig[qIdx].options = [];
+            surveyConfig[qIdx].options.push(val);
+            // บันทึกและวาดใหม่ (เพื่อให้ input ยัง focus อยู่เราอาจจะต้องจัดการเพิ่ม แต่แบบง่ายคือ render ใหม่เลย)
+            saveSurveyData(); // Auto save
+            renderSurveyBuilder();
+            
+            // Trick: Focus กลับไปที่ช่องเดิม (ถ้ามีหลายข้ออาจจะต้องปรับ Logic)
+            setTimeout(() => {
+                const nextInput = document.getElementById(`new-opt-${qIdx}`);
+                if(nextInput) nextInput.focus();
+            }, 50);
+        }
+    }
+
+    // ลบตัวเลือก
+    function removeSurveyOption(qIdx, optIdx) {
+        surveyConfig[qIdx].options.splice(optIdx, 1);
+        saveSurveyData();
+        renderSurveyBuilder();
+    }
+
+    function addSurveyQuestion() {
+        // บังคับสร้างเป็น type: 'choice' และมี options ว่างรอไว้
+        surveyConfig.push({ id: Date.now(), question: "คำถามใหม่", type: "choice", options: [] });
+        renderSurveyBuilder();
+    }
+
+    function removeSurveyQuestion(idx) {
+        if(confirm("ลบคำถามนี้?")) {
+            surveyConfig.splice(idx, 1);
+            renderSurveyBuilder();
+        }
+    }
+
+    function updateSurveyQuestion(idx, field, val) {
+        surveyConfig[idx][field] = val;
+    }
+
+    function saveSurveyConfig() {
+        saveSurveyData();
+        alert("บันทึกโครงสร้างแบบสอบถามเรียบร้อย!");
+    }
+
+    // --- ADMIN SIDE: RESPONSES ---
+
+    function renderSurveyResponses() {
+        const container = document.getElementById('survey-responses-container');
+        const badge = document.getElementById('app-count-badge');
+        if(badge) badge.innerText = applicationsDB.length;
+
+        if (applicationsDB.length === 0) {
+            container.innerHTML = `<div class="text-center text-gray-600 py-10">ยังไม่มีผู้สมัคร</div>`;
+            return;
+        }
+
+        container.innerHTML = applicationsDB.map((app, i) => `
+            <div class="bg-[#1f2937] p-4 rounded-xl border border-gray-700 shadow-md animate-fade-in">
+                <div class="flex flex-col md:flex-row gap-4 mb-4 border-b border-gray-600 pb-4">
+                    <div class="w-full md:w-48 h-32 flex-shrink-0 bg-black rounded-lg overflow-hidden border border-gray-600 relative group">
+                        <img src="${app.img || 'https://placehold.co/640x360?text=No+Image'}" class="w-full h-full object-contain">
+                        <a href="${app.img}" target="_blank" class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition cursor-zoom-in">🔍 ดูรูปขยาย</a>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-bold text-blue-300 text-xl truncate">${app.name}</div>
+                                <div class="text-sm text-gray-400 mt-1">📞 Contact: <span class="text-white">${app.contact || '-'}</span></div>
+                            </div>
+                            <button onclick="deleteApplication(${i})" class="text-gray-500 hover:text-red-500 p-2 transition" title="ลบใบสมัคร">🗑️</button>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-2 text-right">📅 ${app.date}</div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 bg-[#111827] p-3 rounded-lg border border-gray-800/50">
+                    ${app.answers.map(ans => `
+                        <div>
+                            <div class="text-[11px] text-blue-400 font-bold mb-1 flex items-center gap-1">
+                                <span class="text-gray-600">❓</span> ${ans.q}
+                            </div>
+                            <div class="text-gray-200 text-sm pl-4 border-l-2 border-gray-700">${ans.a}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function deleteApplication(idx) {
+        if(confirm("ลบใบสมัครนี้?")) {
+            applicationsDB.splice(idx, 1);
+            saveSurveyData();
+            renderSurveyResponses();
+        }
+    }
+
+    // --- PUBLIC SIDE: APPLICATION FORM ---
+
+    function copyApplicationLink() {
+        // สร้างลิงก์โดยใส่ ?mode=apply ต่อท้าย URL ปัจจุบัน
+        const url = window.location.href.split('?')[0] + "?mode=apply";
+        navigator.clipboard.writeText(url).then(() => {
+            alert("คัดลอกลิงก์รับสมัครแล้ว!\n\n" + url);
+        });
+    }
+
+    function renderApplicationForm() {
+        const area = document.getElementById('app-questions-area');
+        if(!area) return;
+
+        area.innerHTML = surveyConfig.map(q => {
+            let inputHtml = '';
+            
+            if (q.type === 'long') {
+                inputHtml = `<textarea id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white h-24 outline-none focus:border-blue-500"></textarea>`;
+            } 
+            else if (q.type === 'choice') {
+                // สร้าง Dropdown
+                const opts = (q.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                inputHtml = `
+                    <div class="relative">
+                        <select id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="" disabled selected>-- กรุณาเลือก --</option>
+                            ${opts}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">▼</div>
+                    </div>
+                `;
+            } 
+            else {
+                inputHtml = `<input type="${q.type === 'number' ? 'number' : 'text'}" id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none focus:border-blue-500">`;
+            }
+
+            return `
+                <div class="animate-fade-in-up">
+                    <label class="block text-sm font-bold text-gray-300 mb-2">${q.question}</label>
+                    ${inputHtml}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function previewAppImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('app-img-preview').src = e.target.result;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function submitApplication() {
+        // 1. ดึงค่าจากฟอร์ม
+        const name = document.getElementById('app-name').value.trim();
+        const contact = document.getElementById('app-contact').value.trim();
+        const imgElement = document.getElementById('app-img-preview');
+        const img = imgElement.src.includes('placeholder') ? '' : imgElement.src;
+
+        if (!name) return alert("กรุณากรอกชื่อในเกม");
+
+        // 2. เก็บคำตอบจากคำถาม Dynamic
+        const answers = surveyConfig.map(q => {
+            const el = document.getElementById(`ans-${q.id}`);
+            return {
+                q: q.question,
+                a: el ? el.value.trim() : '-'
+            };
+        });
+
+        // 3. สร้าง Object ข้อมูลใบสมัคร
+        const appData = {
+            id: Date.now(),
+            name,
+            contact,
+            img, 
+            answers,
+            date: new Date().toLocaleString('th-TH')
+        };
+
+        // 4. บันทึกลง LocalStorage
+        applicationsDB.unshift(appData);
+        saveSurveyData();
+        
+        // (ถ้ามี Cloud Sync ให้ส่งข้อมูลตรงนี้)
+        if(typeof pushData === 'function' && USE_CLOUD) {
+            // ส่งข้อมูลขึ้น Server (ต้องแน่ใจว่า pushData รองรับ field 'applications')
+            // pushData(); 
+        }
+
+        // ==========================================
+        const container = document.getElementById('view-application-form');
+    
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center min-h-[80vh] text-center p-6 animate-fade-in-up max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-green-900/30 rounded-full flex items-center justify-center mb-6 border-4 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]">
+                    <span class="text-5xl">✅</span>
+                </div>
+                <h2 class="text-3xl font-bold text-white mb-2">ส่งใบสมัครเรียบร้อย!</h2>
+                <p class="text-blue-200 mb-8 text-sm">ข้อมูลของคุณถูกส่งเข้าระบบแล้ว<br>กรุณารอการติดต่อกลับจากแอดมิน</p>
+                
+                <div class="bg-[#161b22] rounded-xl border border-gray-700 overflow-hidden w-full shadow-xl mb-8">
+                    <div class="w-full h-48 bg-black border-b border-gray-700 relative">
+                        <img src="${img || 'https://placehold.co/640x360?text=No+Screenshot'}" class="w-full h-full object-contain">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10 text-left">
+                            <div class="text-white font-bold text-xl truncate">${name}</div>
+                            <div class="text-xs text-blue-300">${contact}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="window.location.href = window.location.pathname" 
+                    class="bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition w-full border border-gray-500/50 flex items-center justify-center gap-2">
+                    <span>🏠</span> กลับหน้าหลัก
+                </button>
+            </div>
+        `;
     }
     </script>
 </body>
