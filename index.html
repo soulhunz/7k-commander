@@ -1529,7 +1529,6 @@
                                 
                                 <input type="file" id="app-img-upload" class="hidden" accept="image/*" onchange="previewAppImage(this)">
                             </div>
-                            <!-- <span class="text-xs text-gray-500">รูปโปรไฟล์ / ตัวละคร</span> -->
                         </div>
                         <div class="col-span-2 space-y-4">
                             <div class="input-group">
@@ -1548,7 +1547,7 @@
                     <div id="app-questions-area" class="space-y-5"></div>
 
                     <div class="pt-4">
-                        <button onclick="submitApplication()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition transform hover:scale-105">
+                        <button onclick="submitApp()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition transform hover:scale-105">
                             🚀 ส่งใบสมัคร (Submit)
                         </button>
                     </div>
@@ -1769,7 +1768,7 @@
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
             // ตรวจสอบว่า URL นี้ตรงกับที่ Deploy ล่าสุดหรือไม่
-            WEB_APP_URL: "https://script.google.com/macros/s/AKfycbzrXxLPs0Gi4wtzNwvhzxbZX74yOnMpovM2IfUKEzl-mgPgjVmfjlen8Tg6K3jGQkQlbw/exec", 
+            WEB_APP_URL: "https://script.google.com/macros/s/AKfycbylrliVI4oC0tdOuY9MTVi_4z_FW6p7eZ-T0FjS91zQhLelh55hc9yfYCL93_7pIMXIqQ/exec", 
             VERSION: "1.0.1" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
@@ -2187,7 +2186,7 @@
             if(typeof loadHeroListsFromLocal === 'function') loadHeroListsFromLocal();
             if(typeof loadSurveyData === 'function') loadSurveyData(); // โหลดคำถาม
 
-            if(typeof renderCastleMenu === 'function') renderCastleMenu();
+            // if(typeof renderCastleMenu === 'function') renderCastleMenu();
             if(typeof updateSyncStatus === 'function') updateSyncStatus();
             
             // 🔥 ตรวจสอบโหมดสมัครอีกครั้ง
@@ -2389,7 +2388,7 @@
             systemUsersDB = systemUsersDB.filter(u => u.id !== id);
             logAudit('DEL_USER', id, 'Deleted');
             
-            await pushData(); // Sync ขึ้น Cloud
+            await pushData();
             
             renderUserManager();
          
@@ -2452,9 +2451,9 @@
             SCRIPT_URL = val; localStorage.setItem('7k_script_url', SCRIPT_URL); USE_CLOUD = true; startCloudSync(true); updateSyncStatus();
         }
         function startCloudSync(isInitial = false) { fetchCloudData(isInitial); if(syncInterval) clearInterval(syncInterval); }
-        function fetchCloudData(showOverlay = false) {
+        function fetchCloudData(showOverlay) {
             if (showOverlay) showLoading("กำลังดึงข้อมูลจาก Cloud...");
-            
+
             const badge = document.getElementById('sync-status');
             const statusText = document.getElementById('status-text');
             const settingStatus = document.getElementById('setting-status-display');
@@ -2467,7 +2466,7 @@
                 .then(data => {
                     if (data.serverVersion) checkVersionMismatch(data.serverVersion);
 
-                    console.log(data)
+                    // console.log(data) // ปิด log เพื่อความสะอาด
 
                     if (data.timestamp && data.timestamp <= lastServerTimestamp) {
                         if (badge) badge.classList.remove('loading');
@@ -2478,53 +2477,57 @@
                     if (data.timestamp) lastServerTimestamp = data.timestamp;
                     console.log("📥 New data received from Cloud!");
 
-                    // --- Load Data ---
-                    if(data.users) systemUsersDB = data.users;
-                    if(data.heroes) heroesDB = data.heroes;
-                    if(data.pets) petsDB = data.pets;
-                    if(data.rings) ringsDB = data.rings;
-                    if(data.items) itemsDB = data.items;
-                    if(data.affiliations) affiliationsDB = data.affiliations;
-                    if(data.teams) teamsDB = data.teams;
-                    if(data.heroSets) heroSetsDB = data.heroSets;
-                    if(data.battleHistory) battleHistoryDB = data.battleHistory;
-                    if(data.seasonInfo) currentSeason = data.seasonInfo;
-                    if(data.archivedSeasons) archivedSeasons = data.archivedSeasons;
-                    if(data.auditLogs) auditLogsDB = data.auditLogs;
-                    if(data.knownEnemies) knownEnemies = data.knownEnemies;
-                    
-                    if(data.guildMembers) guildMembersDB = data.guildMembers;
-                    else if (guildMembersDB.length === 0) initGuildMembers();
+                    // --- Load Standard Data ---
+                    if (data.users) systemUsersDB = data.users;
+                    if (data.heroes) heroesDB = data.heroes;
+                    if (data.pets) petsDB = data.pets;
+                    if (data.rings) ringsDB = data.rings;
+                    if (data.items) itemsDB = data.items;
+                    if (data.affiliations) affiliationsDB = data.affiliations;
+                    if (data.teams) teamsDB = data.teams;
+                    if (data.heroSets) heroSetsDB = data.heroSets;
+                    if (data.battleHistory) battleHistoryDB = data.battleHistory;
+                    if (data.seasonInfo) currentSeason = data.seasonInfo;
+                    if (data.archivedSeasons) archivedSeasons = data.archivedSeasons;
+                    if (data.auditLogs) auditLogsDB = data.auditLogs;
+                    if (data.knownEnemies) knownEnemies = data.knownEnemies;
+                    if (data.applications) applicationsDB = data.applications;
+                    if (data.surveyConfig) surveyConfig = data.surveyConfig
 
-                    if(data.heroLists) {
+                    // --- 1. แก้ไข Guild Members (แยก Logic ให้ชัดเจน) ---
+                    if (data.guildMembers) {
+                        guildMembersDB = data.guildMembers;
+                    } else if (guildMembersDB.length === 0) {
+                        initGuildMembers();
+                    }
+
+                    // --- Local Storage Items ---
+                    if (data.heroLists) {
                         tempHeroLists = data.heroLists;
                         localStorage.setItem('7k_hero_lists_db', JSON.stringify(tempHeroLists));
                     }
-                    if(data.manualUsage) {
+                    if (data.manualUsage) {
                         manualUsageOffsets = data.manualUsage;
                         localStorage.setItem('7k_manual_usage_db', JSON.stringify(manualUsageOffsets));
                     }
-                    if(data.surveyConfig) {
-                        surveyConfig = data.surveyConfig;
-                        localStorage.setItem('7k_survey_config', JSON.stringify(surveyConfig));
-                    }
-                    if(data.applications) {
-                        applicationsDB = data.applications;
-                        localStorage.setItem('7k_applications_db', JSON.stringify(applicationsDB));
-                    }
-                    
-                    // Update UI
+
+                    // --- Update UI ---
                     if (typeof syncWarRoomFromHistory === 'function') syncWarRoomFromHistory();
                     if (typeof updateGuildWarUI === 'function') updateGuildWarUI();
                     if (typeof updateCurrentViewUI === 'function') updateCurrentViewUI();
 
+                    // รีเฟรชหน้า Form หรือ Admin ทันทีที่โหลดเสร็จ
+                    if (currentView === 'survey-admin') renderSurveyBuilder();
+                    if (currentView === 'application-form') renderApplicationForm();
+
+
                     // ✅ Update Badges (Safety Check)
                     if (badge) {
                         badge.classList.remove('loading', 'offline');
-                        badge.classList.add('sync-cloud'); // add class success
+                        badge.classList.add('sync-cloud');
                     }
                     if (statusText) statusText.innerText = 'ONLINE';
-                    
+
                     if (settingStatus) {
                         settingStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> <span class="text-green-500">Connected</span>`;
                     }
@@ -2532,26 +2535,32 @@
                     if (showOverlay) {
                         const loadingText = document.getElementById('loading-text');
                         if (loadingText) loadingText.innerText = "โหลดข้อมูลเสร็จสิ้น!";
-                        setTimeout(() => { 
-                            hideLoading(); 
-                            if (currentView === 'settings') switchView('war-room'); 
+                        setTimeout(() => {
+                            hideLoading();
+                            if (currentView === 'settings') switchView('war-room');
                         }, 500);
                     }
                 })
                 .catch(err => {
-                    // ✅ Error Handling UI (Safety Check)
+                    // ✅ Error Handling UI
                     if (badge) {
                         badge.classList.remove('loading');
                         badge.classList.add('offline');
                     }
                     if (statusText) statusText.innerText = 'OFFLINE';
-                    
+
                     if (showOverlay) {
                         const loadingText = document.getElementById('loading-text');
                         if (loadingText) loadingText.innerText = "การเชื่อมต่อล้มเหลว";
                         setTimeout(hideLoading, 1500);
                     }
-                    console.error("Sync Error:", err);
+                    // console.error("Sync Error:", err);
+                    
+                    // Fallback กรณี Error เพื่อไม่ให้หน้าขาว
+                    // if (!surveyConfig || surveyConfig.length === 0) {
+                    //      surveyConfig = [{ id: 1, question: "Error Loading Question", type: "text", options: [] }];
+                    //      if (currentView === 'application-form') renderApplicationForm();
+                    // }
                 });
         }
 
@@ -2567,11 +2576,16 @@
             const badge = document.getElementById('sync-status');
             const statusText = document.getElementById('status-text');
 
-            // ✅ Safety Check
             if (badge) badge.className = 'sync-badge loading';
             if (statusText) statusText.innerText = 'Saving...';
 
             if (showOverlay) showLoading("☁️ กำลังบันทึกข้อมูลเข้าสู่ Google Cloud...");
+
+            // ✅ 1. เพิ่ม Safety Check (ถ้าตัวแปรไม่มีค่า ให้ส่ง [] ไปแทน)
+            // const safeSurveyConfig = (typeof surveyConfig !== 'undefined' && surveyConfig) ? surveyConfig : [];
+            // const safeApplications = (typeof applicationsDB !== 'undefined' && applicationsDB) ? applicationsDB : [];
+
+            console.log(applicationsDB);
 
             const payload = {
                 timestamp: now,
@@ -2583,18 +2597,24 @@
                 teams: teamsDB,
                 heroSets: heroSetsDB,
                 battleHistory: battleHistoryDB,
-                seasonInfo: currentSeason,
                 archivedSeasons: archivedSeasons,
                 users: systemUsersDB,
                 auditLogs: auditLogsDB,
                 knownEnemies: knownEnemies,
                 heroLists: tempHeroLists,
                 manualUsage: manualUsageOffsets,
+                
                 surveyConfig: surveyConfig,
                 applications: applicationsDB
             };
 
+            // ✅ 2. Debug: ดูข้อมูลก่อนส่ง (กด F12 ดูใน Console)
+            // console.log("📤 กำลังส่งข้อมูล (Payload):", payload);
+            // console.log("   - Survey Config:", safeSurveyConfig.length, "รายการ");
+            // console.log("   - Applications:", safeApplications.length, "ใบสมัคร");
+
             try {
+
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
@@ -2604,13 +2624,11 @@
 
                 console.log("✅ Save Sent to Cloud.");
 
-                // ✅ Safety Check Success
                 if (badge) badge.className = 'sync-badge sync-cloud';
                 if (statusText) statusText.innerText = 'SAVED';
 
             } catch (err) {
                 console.error("Save Error:", err);
-                // ✅ Safety Check Error
                 if (badge) badge.className = 'sync-badge offline';
                 if (statusText) statusText.innerText = 'Error';
                 
@@ -2622,7 +2640,6 @@
                 if (showOverlay) hideLoading();
 
                 setTimeout(() => {
-                    // ✅ Safety Check Restore
                     if (statusText && statusText.innerText === 'SAVED') {
                         statusText.innerText = 'ONLINE';
                     }
@@ -10343,7 +10360,6 @@
     function saveHeroListsToLocal() {
         localStorage.setItem('7k_hero_lists_db', JSON.stringify(tempHeroLists));
         localStorage.setItem('7k_manual_usage_db', JSON.stringify(manualUsageOffsets));
-        // console.log("✅ Hero Lists Auto-Saved to Local Storage");
     }
 
     // 2. ฟังก์ชันโหลดข้อมูลกลับมา (เรียกตอนเปิดเว็บ)
@@ -10381,7 +10397,6 @@
             id: Date.now().toString(),
             name: sourceList.name + " (Copy)",
             note: sourceList.note,
-            // ✅ Copy ข้อมูลภายในออกมาเป็นตัวใหม่ ไม่ให้ลิงค์กัน
             heroIds: sourceList.heroIds.map(item => ({ ...item })) 
         };
 
@@ -10407,38 +10422,49 @@
     }
     // 1. โหลดข้อมูล (ใส่เรียกใน initApp หรือ loadLocalTierData)
     function loadSurveyData() {
-        const savedConf = localStorage.getItem('7k_survey_config');
-        const savedApps = localStorage.getItem('7k_applications_db');
+        try {
+            // 1. โหลดข้อมูลเดิม
+            const localConfig = localStorage.getItem('7k_survey_config');
+            const localApps = localStorage.getItem('7k_applications_db');
+            
+            // ✅ 2. เพิ่ม: โหลดเวลาล่าสุด (Timestamp) กลับมาด้วย
+            const localTime = localStorage.getItem('7k_last_timestamp');
 
-        if (savedConf) {
-            surveyConfig = JSON.parse(savedConf);
-            // 🔥 Force Migration: บังคับทุกข้อให้เป็น 'choice'
-            surveyConfig.forEach(q => {
-                q.type = 'choice'; 
-                if (!q.options) q.options = [];
+            if (localConfig) surveyConfig = JSON.parse(localConfig);
+            if (localApps) applicationsDB = JSON.parse(localApps);
+            
+            // ✅ คืนค่าเวลาล่าสุด (ถ้าไม่มีให้เป็น 0)
+            if (localTime) lastServerTimestamp = parseInt(localTime) || 0;
+
+            console.log("📂 Loaded Local Data:", {
+                apps: applicationsDB ? applicationsDB.length : 0, 
+                timestamp: lastServerTimestamp
             });
-        } else {
-            // ค่าเริ่มต้น (เฉพาะ Choice)
-            surveyConfig = [
-                { id: 1, question: "เวลาเล่นต่อวัน (Playtime)", type: "choice", options: ["น้อยกว่า 1 ชม.", "1-3 ชม.", "มากกว่า 3 ชม."] },
-                { id: 2, question: "สายการเล่น (Playstyle)", type: "choice", options: ["สายฟรี (F2P)", "เติมบ้าง (Low Spender)", "ศุลกากร (Whale)"] }
-            ];
-        }
 
-        if (savedApps) applicationsDB = JSON.parse(savedApps);
-        else applicationsDB = [];
+        } catch (e) {
+            console.error("Load Local Error:", e);
+        }
     }
 
-    function saveSurveyData() {
-        localStorage.setItem('7k_survey_config', JSON.stringify(surveyConfig));
-        localStorage.setItem('7k_applications_db', JSON.stringify(applicationsDB));
-        // ถ้ามี Cloud Sync ก็ให้ pushData() ตรงนี้ได้
+    async function saveSurveyData(forceCloud = true) {
+
+        // ถ้าเชื่อมต่อ Cloud อยู่ ให้สั่ง Push ทันที
+        if (USE_CLOUD) {
+            // ส่งข้อมูลชุดปัจจุบัน (ในตัวแปร) ขึ้น Cloud
+            // ใส่ true เพื่อแสดง Loading ว่ากำลังบันทึก
+            await pushData(true); 
+        } else {
+            console.warn("Cannot save: No Cloud Connection");
+            alert("แจ้งเตือน: ไม่ได้เชื่อมต่อ Google Cloud ข้อมูลจะไม่ถูกบันทึก!");
+        }
     }
 
     // --- ADMIN SIDE: BUILDER ---
 
     function renderSurveyBuilder() {
         const container = document.getElementById('survey-builder-container');
+
+        console.log("surveyConfig");
         
         container.innerHTML = surveyConfig.map((q, idx) => {
             // สร้างรายการตัวเลือก (Options List)
@@ -10485,7 +10511,7 @@
             if (!surveyConfig[qIdx].options) surveyConfig[qIdx].options = [];
             surveyConfig[qIdx].options.push(val);
             // บันทึกและวาดใหม่ (เพื่อให้ input ยัง focus อยู่เราอาจจะต้องจัดการเพิ่ม แต่แบบง่ายคือ render ใหม่เลย)
-            saveSurveyData(); // Auto save
+            // saveSurveyData(); // Auto save
             renderSurveyBuilder();
             
             // Trick: Focus กลับไปที่ช่องเดิม (ถ้ามีหลายข้ออาจจะต้องปรับ Logic)
@@ -10521,8 +10547,10 @@
     }
 
     function saveSurveyConfig() {
-        saveSurveyData();
-        alert("บันทึกโครงสร้างแบบสอบถามเรียบร้อย!");
+        // เรียกใช้แบบ Force Save (true)
+        saveSurveyData(true).then(() => {
+            alert("บันทึกโครงสร้างแบบสอบถามเรียบร้อย!");
+        });
     }
 
     // --- ADMIN SIDE: RESPONSES ---
@@ -10574,7 +10602,7 @@
     function deleteApplication(idx) {
         if(confirm("ลบใบสมัครนี้?")) {
             applicationsDB.splice(idx, 1);
-            saveSurveyData();
+            // saveSurveyData();
             renderSurveyResponses();
         }
     }
@@ -10590,116 +10618,179 @@
     }
 
     function renderApplicationForm() {
-        const area = document.getElementById('app-questions-area');
-        if(!area) return;
+        const container = document.getElementById('view-application-form');
+        if (!container) return;
 
-        area.innerHTML = surveyConfig.map(q => {
-            let inputHtml = '';
-            
-            if (q.type === 'long') {
-                inputHtml = `<textarea id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white h-24 outline-none focus:border-blue-500"></textarea>`;
-            } 
-            else if (q.type === 'choice') {
-                // สร้าง Dropdown
-                const opts = (q.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                inputHtml = `
-                    <div class="relative">
-                        <select id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none focus:border-blue-500 appearance-none cursor-pointer">
-                            <option value="" disabled selected>-- กรุณาเลือก --</option>
-                            ${opts}
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">▼</div>
-                    </div>
-                `;
-            } 
-            else {
-                inputHtml = `<input type="${q.type === 'number' ? 'number' : 'text'}" id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none focus:border-blue-500">`;
-            }
+        // 1. ตรวจสอบข้อมูล (ใช้ Default ถ้าไม่มี)
+        if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
+            surveyConfig = [
+                { id: 1, question: "เวลาเล่นต่อวัน", type: "choice", options: ["< 1 ชม.", "1-3 ชม.", "> 3 ชม."] },
+                { id: 2, question: "สายการเล่น", type: "choice", options: ["F2P", "Low Spender", "Whale"] }
+            ];
+        }
 
+        // 2. สร้าง HTML คำถาม
+        let questionsHTML = surveyConfig.map(q => {
+            const options = Array.isArray(q.options) ? q.options : [];
+            const optionsHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
             return `
-                <div class="animate-fade-in-up">
-                    <label class="block text-sm font-bold text-gray-300 mb-2">${q.question}</label>
-                    ${inputHtml}
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-300 mb-2">${q.question || 'คำถาม'}</label>
+                <div class="relative">
+                    <select id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white appearance-none cursor-pointer focus:border-blue-500 outline-none">
+                        <option value="" disabled selected>-- กรุณาเลือก --</option>
+                        ${optionsHTML}
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">▼</div>
                 </div>
-            `;
+            </div>`;
         }).join('');
+
+        // 3. วาดหน้าจอ (เพิ่มช่องรูป 3 ช่อง)
+        container.innerHTML = `
+
+            <div class="mt-20">
+                <div class="w-full max-w-lg bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl my-10 animate-fade-in mx-auto relative">
+                    
+                    <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center rounded-t-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-full bg-white/5"></div>
+                        <h1 class="text-3xl font-bold text-white relative z-10">ใบสมัครเข้ากิลด์</h1>
+                        <p class="text-blue-200 text-sm mt-1 relative z-10">Guild Recruitment Form</p>
+                    </div>
+
+                    <div class="p-8">
+                        <div class="mb-5">
+                            <label class="text-blue-400 text-sm font-bold block mb-2">📸 รูปทีมปัจจุบัน (สูงสุด 3 รูป)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${[1, 2, 3].map(i => `
+                                    <div class="aspect-square rounded-xl border-2 border-dashed border-gray-600 hover:border-blue-500 bg-black/50 overflow-hidden relative cursor-pointer group" onclick="document.getElementById('app-img-upload-${i}').click()">
+                                        <img id="app-img-preview-${i}" src="https://placehold.co/300x300?text=${i}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
+                                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <span class="text-gray-400 group-hover:text-white text-xs bg-black/80 px-1 rounded transform scale-75 group-hover:scale-100 transition">+</span>
+                                        </div>
+                                        <input type="file" id="app-img-upload-${i}" class="hidden" accept="image/*" onchange="previewAppImg(this, ${i})">
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูป</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 mb-6">
+                            <div>
+                                <label class="text-gray-300 text-sm font-bold block mb-1">ชื่อในเกม (In-Game Name)</label>
+                                <input type="text" id="app-name" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุชื่อตัวละคร...">
+                            </div>
+                            <div>
+                                <label class="text-gray-300 text-sm font-bold block mb-1">ช่องทางติดต่อ (Line / Discord)</label>
+                                <input type="text" id="app-contact" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุ ID...">
+                            </div>
+                        </div>
+                        
+                        <div class="h-px bg-gray-700 my-4"></div>
+                        
+                        <div class="mb-6">
+                            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">แบบสอบถาม</div>
+                            ${questionsHTML}
+                        </div>
+
+                        <div class="mt-6 pt-4 border-t border-gray-700">
+                            <button id="btn-submit-app" onclick="submitApp()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                                <span>🚀</span> ส่งใบสมัคร (Submit)
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
-    function previewAppImage(input) {
+    function previewAppImg(input, index) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('app-img-preview').src = e.target.result;
+                // อัปเดตเฉพาะช่องที่เลือก (ตาม index)
+                const imgEl = document.getElementById(`app-img-preview-${index}`);
+                if(imgEl) {
+                    imgEl.src = e.target.result;
+                    imgEl.classList.remove('opacity-60'); // ทำให้รูปชัดขึ้นเมื่อมีภาพแล้ว
+                }
             }
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    function submitApplication() {
-        // 1. ดึงค่าจากฟอร์ม
-        const name = document.getElementById('app-name').value.trim();
-        const contact = document.getElementById('app-contact').value.trim();
-        const imgElement = document.getElementById('app-img-preview');
-        const img = imgElement.src.includes('placeholder') ? '' : imgElement.src;
+    async function submitApp() {
 
-        if (!name) return alert("กรุณากรอกชื่อในเกม");
+        if (USE_CLOUD) {
+            const name = document.getElementById('app-name').value.trim();
+            const contact = document.getElementById('app-contact').value.trim();
 
-        // 2. เก็บคำตอบจากคำถาม Dynamic
-        const answers = surveyConfig.map(q => {
-            const el = document.getElementById(`ans-${q.id}`);
-            return {
-                q: q.question,
-                a: el ? el.value.trim() : '-'
+            if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
+
+            // ✅ 1. วนลูปเก็บรูปภาพ (สูงสุด 3 รูป)
+            const images = [];
+            for(let i=1; i<=3; i++) {
+                const el = document.getElementById(`app-img-preview-${i}`);
+                // เช็คว่าไม่ใช่รูป Placeholder ถึงจะเก็บ
+                if (el && !el.src.includes('placehold.co') && !el.src.includes('text=')) {
+                    images.push(el.src);
+                }
+            }
+
+            // รวบรวมคำตอบ
+            const answers = surveyConfig.map(q => ({ 
+                q: q.question, 
+                a: document.getElementById(`ans-${q.id}`) ? document.getElementById(`ans-${q.id}`).value : '-' 
+            }));
+
+            // สร้าง Object ข้อมูล
+            const app = { 
+                id: Date.now(), 
+                name, 
+                contact, 
+                img: images[0] || '', // รูปหลัก (รูปแรก)
+                images: images,       // ✅ เก็บ Array รูปทั้งหมดไว้ด้วย
+                answers, 
+                date: new Date().toLocaleString('th-TH') 
             };
-        });
+            
+            // บันทึกและส่ง
+            applicationsDB.unshift(app);
 
-        // 3. สร้าง Object ข้อมูลใบสมัคร
-        const appData = {
-            id: Date.now(),
-            name,
-            contact,
-            img, 
-            answers,
-            date: new Date().toLocaleString('th-TH')
-        };
+            showLoading("กำลังบันทึกข้อมูล...");
+           
+            await pushData(true);
 
-        // 4. บันทึกลง LocalStorage
-        applicationsDB.unshift(appData);
-        saveSurveyData();
-        
-        // (ถ้ามี Cloud Sync ให้ส่งข้อมูลตรงนี้)
-        if(typeof pushData === 'function' && USE_CLOUD) {
-            // ส่งข้อมูลขึ้น Server (ต้องแน่ใจว่า pushData รองรับ field 'applications')
-            // pushData(); 
-        }
+            alert("บันทึกเรียบร้อย!");
 
-        // ==========================================
-        const container = document.getElementById('view-application-form');
-    
-        container.innerHTML = `
-            <div class="flex flex-col items-center justify-center min-h-[80vh] text-center p-6 animate-fade-in-up max-w-lg mx-auto">
-                <div class="w-20 h-20 bg-green-900/30 rounded-full flex items-center justify-center mb-6 border-4 border-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]">
-                    <span class="text-5xl">✅</span>
-                </div>
-                <h2 class="text-3xl font-bold text-white mb-2">ส่งใบสมัครเรียบร้อย!</h2>
-                <p class="text-blue-200 mb-8 text-sm">ข้อมูลของคุณถูกส่งเข้าระบบแล้ว<br>กรุณารอการติดต่อกลับจากแอดมิน</p>
-                
-                <div class="bg-[#161b22] rounded-xl border border-gray-700 overflow-hidden w-full shadow-xl mb-8">
-                    <div class="w-full h-48 bg-black border-b border-gray-700 relative">
-                        <img src="${img || 'https://placehold.co/640x360?text=No+Screenshot'}" class="w-full h-full object-contain">
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10 text-left">
-                            <div class="text-white font-bold text-xl truncate">${name}</div>
-                            <div class="text-xs text-blue-300">${contact}</div>
+            // แสดงหน้า Success
+            document.getElementById('view-application-form').innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in">
+                    <div class="text-6xl mb-4">✅</div>
+                    <h2 class="text-3xl font-bold text-white mb-2">ส่งใบสมัครเรียบร้อย!</h2>
+                    <p class="text-gray-400 mb-8">ขอบคุณที่สมัครเข้าร่วมกิลด์</p>
+                    
+                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm mb-6">
+                        <div class="h-40 bg-black rounded mb-2 overflow-hidden border border-gray-600 relative">
+                            <img src="${app.img || 'https://placehold.co/640x360?text=No+Image'}" class="w-full h-full object-contain">
+                            ${images.length > 1 ? `<div class="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded">+${images.length-1}</div>` : ''}
                         </div>
+                        <div class="font-bold text-white text-xl">${name}</div>
+                        <div class="text-xs text-gray-400">${contact}</div>
                     </div>
-                </div>
 
-                <button onclick="window.location.href = window.location.pathname" 
-                    class="bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition w-full border border-gray-500/50 flex items-center justify-center gap-2">
-                    <span>🏠</span> กลับหน้าหลัก
-                </button>
-            </div>
-        `;
+                    <button onclick="window.location.href = window.location.pathname" 
+                        class="text-white bg-gray-700 hover:bg-gray-600 border border-gray-500 px-6 py-2 rounded transition shadow-lg">
+                        กลับสู่หน้าหลัก
+                    </button>
+                </div>
+            `;
+        } else {
+            console.warn("Cannot save: No Cloud Connection");
+            alert("แจ้งเตือน: ไม่ได้เชื่อมต่อ Google Cloud ข้อมูลจะไม่ถูกบันทึก!");
+        }
+        
     }
     </script>
 </body>
