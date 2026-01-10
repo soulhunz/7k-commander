@@ -859,10 +859,10 @@
             <h1 class="text-2xl font-bold text-white tracking-wider mb-1">7K Seven Deadly Sins</h1>
             <p class="text-xs text-gray-500 mb-4">Guild Management System</p>
 
-            <div id="login-status-indicator" class="flex items-center justify-center gap-2 mb-6 bg-[#0d1117] py-2 rounded-lg border border-gray-800">
+            <!-- <div id="login-status-indicator" class="flex items-center justify-center gap-2 mb-6 bg-[#0d1117] py-2 rounded-lg border border-gray-800">
                 <div id="login-dot" class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></div>
                 <span id="login-text" class="text-xs text-orange-500 font-bold">กำลังเชื่อมต่อ...</span>
-            </div>
+            </div> -->
             <form onsubmit="event.preventDefault(); doLogin();" class="space-y-4">
                 <div class="text-left">
                     <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Username</label>
@@ -2006,33 +2006,51 @@
 
         if(localStorage.getItem('7k_tier_bg')) setTimeout(() => setTierBg(localStorage.getItem('7k_tier_bg')), 100);
         
-        function initLogin() {
-            // 1. เช็ค URL Parameter ก่อนทำอย่างอื่น
+        async function initLogin() {
+            console.log("🔍 Checking Login Status...");
+
+            // 1. เช็ค URL Parameter (?mode=apply)
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
 
             if (mode === 'apply') {
-                // 🔥 บังคับซ่อนหน้า Login ทันที
+                console.log("🚀 Mode: Apply -> Bypassing Login");
+                
+                // ซ่อน UI Login
                 const loginScreen = document.getElementById('login-screen');
                 if (loginScreen) loginScreen.style.display = 'none';
 
-                // 🔥 ซ่อน Sidebar
+                // ซ่อน Sidebar
                 const sidebar = document.getElementById('main-sidebar');
                 if (sidebar) sidebar.style.display = 'none';
 
-                // เข้าสู่ระบบแบบไม่ต้องเช็ค User
+                // 🔥 [สำคัญ] สั่งโหลดข้อมูลก่อน! (Show Overlay = true)
+                await fetchCloudData(true); 
+                
+                // โหลดเสร็จค่อยเข้าแอป
                 initApp();
-                return; // จบการทำงานตรงนี้เลย
+                return; 
             }
 
-            // 2. เช็ค Session ปกติ (กรณีไม่ใช่คนสมัคร)
+            // 2. เช็ค Session ปกติ (Login ค้างไว้)
             const savedUser = sessionStorage.getItem('7k_user_session');
             if (savedUser) {
+                console.log("👤 Session Found -> Auto Login");
                 CURRENT_USER = JSON.parse(savedUser);
                 document.getElementById('login-screen').style.display = 'none';
+                
+                // 🔥 [สำคัญ] สั่งโหลดข้อมูลก่อน!
+                // ถ้า heroesDB ยังว่างเปล่า แปลว่ายังไม่ได้โหลด ให้โหลดเลย
+                if (heroesDB.length === 0) {
+                    await fetchCloudData(true);
+                }
+                
                 initApp();
             } else {
-                // ถ้าไม่มีอะไรเลย ก็ปล่อยให้หน้า Login แสดงอยู่แบบนั้น
+                // 3. ถ้าไม่มีอะไรเลย (หน้า Login ปกติ)
+                console.log("🔒 No Session -> Stay on Login Screen");
+                // ให้โหลดข้อมูลรอไว้เงียบๆ (ไม่ต้องบังคับหน้าจอ)
+                fetchCloudData(false);
             }
         }
 
@@ -2164,30 +2182,16 @@
             if (SYSTEM_CONFIG.WEB_APP_URL) {
                 SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL;
                 USE_CLOUD = true;
-            } else {
-                if (typeof updateLoginStatus === 'function') updateLoginStatus('offline');
-                return; 
             }
 
-            // 2. ขึ้นสถานะสีส้มรอไว้
-            if (typeof updateLoginStatus === 'function') updateLoginStatus('connecting');
-
-            // 3. 📥 โหลดข้อมูลครั้งแรก (First Load)
-            if (typeof fetchCloudData === 'function') {
-                fetchCloudData(false)
-                    .then(() => {
-                        console.log("✅ Initial Load Complete.");
-                        // โหลดเสร็จค่อยเริ่มนับเวลา Auto Sync (ป้องกัน Loop)
-                        startRealTimeSync(); 
-                    })
-                    .catch(err => {
-                        console.error("❌ Init Failed:", err);
-                    });
-            }
-
-            // 4. ตรวจสอบ Login (แต่ห้ามให้ฟังก์ชันนี้ไปสั่งโหลดข้อมูลซ้ำ)
+            // 2. เริ่มการทำงาน (initLogin จะจัดการเรื่องโหลดข้อมูลเองตามโค้ดด้านบน)
             if (typeof initLogin === 'function') {
                 initLogin();
+            }
+            
+            // 3. เริ่มระบบเช็คอัปเดตเบื้องหลัง
+            if (typeof startRealTimeSync === 'function') {
+                startRealTimeSync();
             }
         };
 
