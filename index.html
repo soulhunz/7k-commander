@@ -1807,7 +1807,7 @@
         const SYSTEM_CONFIG = {
             // ตรวจสอบว่า URL นี้ตรงกับที่ Deploy ล่าสุดหรือไม่
             WEB_APP_URL: "https://script.google.com/macros/s/AKfycbyxGb6jb_BotVYjJbPrnZ-SzoxWmHHR8QqP8mtbexQxuV6cP8ylhyobswJW6MdDxS85fQ/exec", 
-            VERSION: "1.0.8" 
+            VERSION: "1.1.9" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
         let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
@@ -7868,6 +7868,7 @@
 
             triggerAutoSave();
         }
+        
         // --- VERSION CHECK SYSTEM ---
         function checkVersionMismatch(serverVer) {
             // ถ้า Server ไม่ส่งเวอร์ชันมา (เป็น Script ตัวเก่า) หรือเวอร์ชันตรงกัน -> ไม่ต้องทำอะไร
@@ -10698,10 +10699,13 @@
 
         // D. ผูกปุ่มลบกับ Index ปัจจุบัน
         const delBtn = document.getElementById('btn-delete-app');
-        delBtn.onclick = function() {
+        delBtn.replaceWith(delBtn.cloneNode(true)); 
+        const newDelBtn = document.getElementById('btn-delete-app');
+
+        newDelBtn.onclick = function() {
             if(confirm(`ต้องการลบใบสมัครของ "${app.name}" ใช่หรือไม่?`)) {
+                // เรียกฟังก์ชันลบที่เราเพิ่งสร้าง
                 deleteApplication(index);
-                closeAppDetail();
             }
         };
 
@@ -10713,11 +10717,55 @@
         document.getElementById('appDetailModal').style.display = 'none';
     }
 
-    function deleteApplication(idx) {
-        if(confirm("ลบใบสมัครนี้?")) {
-            applicationsDB.splice(idx, 1);
-            // saveSurveyData();
-            renderSurveyResponses();
+    async function deleteApplication(index) {
+        // 1. ตรวจสอบว่ามีข้อมูลไหม
+        if (!applicationsDB[index]) return;
+
+        const app = applicationsDB[index];
+        const nameToDelete = app.name;
+
+        // ✅ รวบรวมรูปภาพที่จะลบ (ทั้งรูปหลัก img และอัลบั้ม images)
+        let imagesToDelete = [];
+        if (app.img && !app.img.includes('placehold')) imagesToDelete.push(app.img);
+        if (app.images && Array.isArray(app.images)) {
+            app.images.forEach(img => {
+                if(img && !img.includes('placehold')) imagesToDelete.push(img);
+            });
+        }
+
+        // 2. ลบข้อมูลออกจาก Array ในเครื่อง
+        applicationsDB.splice(index, 1);
+
+        // 3. รีเฟรชหน้าจอทันที
+        renderSurveyResponses();
+        closeAppDetail();
+
+        showLoading(`กำลังลบข้อมูลและรูปภาพ...`);
+        
+        try {
+            // ✅ 4. ส่งคำสั่งลบรูปภาพไปที่ Server (ถ้ามีรูป)
+            if (imagesToDelete.length > 0) {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'deleteImages', // บอก Server ว่าให้ลบรูป
+                        urls: imagesToDelete
+                    })
+                });
+                console.log("🗑️ Deleted images:", imagesToDelete.length);
+            }
+
+            // 5. บันทึกข้อมูลที่เหลือ (อัปเดต Sheet)
+            await pushData(false); // false = ไม่ต้องโชว์ Loading ซ้ำ
+
+            // alert("ลบข้อมูลเรียบร้อยแล้ว");
+
+        } catch (err) {
+            console.error("Delete Error:", err);
+            alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
+            fetchCloudData(false).then(() => renderSurveyResponses());
+        } finally {
+            hideLoading();
         }
     }
 
