@@ -857,8 +857,12 @@
 
             <div class="text-4xl mb-2">🛡️</div>
             <h1 class="text-2xl font-bold text-white tracking-wider mb-1">7K Seven Deadly Sins</h1>
-            <p class="text-xs text-gray-500 mb-8">Guild Management System</p>
+            <p class="text-xs text-gray-500 mb-4">Guild Management System</p>
 
+            <div id="login-status-indicator" class="flex items-center justify-center gap-2 mb-6 bg-[#0d1117] py-2 rounded-lg border border-gray-800">
+                <div id="login-dot" class="w-2 h-2 rounded-full bg-orange-500 animate-ping"></div>
+                <span id="login-text" class="text-xs text-orange-500 font-bold">กำลังเชื่อมต่อ...</span>
+            </div>
             <form onsubmit="event.preventDefault(); doLogin();" class="space-y-4">
                 <div class="text-left">
                     <label class="text-[10px] text-gray-400 font-bold uppercase ml-1">Username</label>
@@ -881,23 +885,43 @@
     </div>
 
     <aside class="sidebar w-72 flex-col h-full flex overflow-y-auto no-scroll flex-shrink-0" id="main-sidebar">
-        <div class="p-6 border-b border-gray-800 flex justify-between items-start">
+        <div class="px-6 pt-6 border-gray-800 flex justify-between items-start">
             <div>
                 <h1 class="text-2xl font-bold text-yellow-500 italic tracking-wider">7K COMMANDER</h1>
                 <p class="text-xs text-gray-500 mt-1">Seven Deadly Sins</p>
-                <div class="py-2 mb-2 text-xs text-gray-500">
+                <div class="py-2 text-xs text-gray-500">
                     User: <span id="display-username" class="text-blue-400 font-bold">...</span>
-                </div>
-                <div id="sync-status" class="sync-badge sync-cloud">
-                    <div class="w-2 h-2 rounded-full bg-current"></div>
-                    <span id="status-text">OFFLINE</span>
                 </div>
             </div>
             <button onclick="toggleSidebar()" class="text-gray-500 hover:text-white p-1 px-2 rounded hover:bg-gray-800 transition" title="ซ่อนเมนู">
                 ◀
             </button>
         </div>
-        <div class="p-4 flex-1 flex flex-col">
+
+        <div>
+            <div class="p-1 px-3 bg-[#0b0e14] border-t border-gray-800 flex justify-between items-center text-[10px] select-none">
+                <div class="flex items-center gap-2.5">
+                    <div class="relative flex h-2 w-2">
+                        <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span id="mini-status-dot" class="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]"></span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-500 uppercase tracking-wider font-bold text-[8px]">Server Status</span>
+                        <span id="mini-status-text" class="text-gray-400 font-mono">Disconnected</span>
+                    </div>
+                </div>
+
+                <!-- <button onclick="forceRefreshData()" id="btn-manual-refresh" class="group flex items-center gap-2 px-3 py-1.5 rounded border border-gray-700 bg-[#161b22] text-gray-400 hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-all duration-300 shadow-lg active:scale-95">
+                    <span class="font-bold tracking-wide">SYNC</span>
+                    <svg id="refresh-icon" class="w-3 h-3 transition-transform duration-700 group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </button> -->
+            </div>
+        </div>
+        
+
+        <div class="border-t p-4 flex-1 flex flex-col">
             <div class="menu-section-title">Main</div>
             <div onclick="switchView('preparation')" class="menu-item text-green-400" id="nav-preparation">🧠 PREPARATION (AI)</div>
             <div onclick="switchView('simulator')" class="menu-item" id="nav-simulator">🎮 Battle Simulator</div>
@@ -929,9 +953,7 @@
             </div>
 
             <div class="mt-4 pt-4 border-t border-gray-800">
-                <!-- <div class="mt-auto pt-4 border-t border-gray-800"> -->
                 <div onclick="logout()" class="menu-item text-red-400 hover:text-red-300">🚪 Logout</div>
-                <div onclick="switchView('settings')" class="menu-item text-gray-400 hover:text-white" id="nav-settings">⚙️ Setting</div>
             </div>
         </div>
     </aside>
@@ -1240,38 +1262,6 @@
                     <div id="arc-season-list" class="w-1/3 border-r border-gray-700 pr-2 overflow-y-auto space-y-2"></div>
                     <div id="arc-log-detail" class="w-2/3 pl-4 overflow-y-auto">
                         <div class="text-gray-500 text-center mt-20">เลือก Season เพื่อดูข้อมูล</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="view-settings" class="flex-col">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg">
-                <h2 class="text-2xl font-bold text-white">System Settings</h2>
-            </header>
-            <div class="p-8 flex justify-center">
-                <div class="bg-[#161b22] p-8 rounded-2xl border border-gray-700 w-full max-w-2xl shadow-xl">
-                    <h3 class="text-xl font-bold text-yellow-500 mb-6 flex items-center gap-2"><span>☁️</span> Google Sheets / Cloud Sync</h3>
-                    <div class="space-y-4">
-                        <div><label class="block text-sm font-bold text-gray-400 mb-2">Web App URL</label><input type="text" id="setting-url-input" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded-lg text-white outline-none" placeholder="https://script.google.com/macros/s/..."></div>
-                        <div class="flex items-center justify-between pt-4 border-t border-gray-700 mt-6"><div id="setting-status-display" class="flex items-center gap-2 text-sm font-bold text-gray-500"><div class="w-3 h-3 rounded-full bg-gray-500"></div> Checking...</div><button onclick="saveCloudSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg">บันทึกและเชื่อมต่อ</button></div>
-                    </div>
-                </div>
-            </div>
-            <div class="p-8 flex justify-center"> 
-                <div class="bg-[#161b22] p-8 rounded-2xl border border-gray-700 w-full max-w-2xl shadow-xl mt-6">
-                    <h3 class="text-xl font-bold text-blue-400 mb-6 flex items-center gap-2"><span>💾</span> Backup & Restore</h3>
-                    <div class="space-y-4">
-                        <p class="text-sm text-gray-400">ดาวน์โหลดข้อมูลทั้งหมดเก็บไว้ในเครื่องคอมพิวเตอร์ หรือกู้คืนข้อมูลจากไฟล์</p>
-                        <div class="flex gap-4">
-                            <button onclick="downloadBackup()" class="flex-1 bg-green-900/50 hover:bg-green-800 text-green-200 border border-green-700 py-3 rounded-lg font-bold flex items-center justify-center gap-2">
-                                <span>⬇️</span> Download JSON (Backup)
-                            </button>
-                            <label class="flex-1 bg-gray-700 hover:bg-gray-600 text-white border border-gray-500 py-3 rounded-lg font-bold flex items-center justify-center gap-2 cursor-pointer">
-                                <span>⬆️</span> Restore from File
-                                <input type="file" id="restore-file" onchange="restoreBackup(this)" class="hidden" accept=".json">
-                            </label>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1768,8 +1758,8 @@
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
             // ตรวจสอบว่า URL นี้ตรงกับที่ Deploy ล่าสุดหรือไม่
-            WEB_APP_URL: "https://script.google.com/macros/s/AKfycbylrliVI4oC0tdOuY9MTVi_4z_FW6p7eZ-T0FjS91zQhLelh55hc9yfYCL93_7pIMXIqQ/exec", 
-            VERSION: "1.0.1" 
+            WEB_APP_URL: "***REMOVED-WEBAPP-URL***", 
+            VERSION: "1.0.8" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
         let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
@@ -1777,6 +1767,8 @@
 
         let surveyConfig = []; // เก็บโครงสร้างคำถาม [{id, question, type}]
         let applicationsDB = []; // เก็บใบสมัครที่ส่งมา
+
+        let currentView = 'home';
 
         // --- [1] GLOBAL VARIABLES UPDATES ---
         let auditLogsDB = []; // เก็บ Log การแก้ไข
@@ -1822,18 +1814,12 @@
             { id: 'nav-simulator',    label: '🎮 Simulator',        default: true },
             { id: 'nav-tier-viewer',  label: '🏆 Tier List (View)', default: true },
             { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
-            { id: 'nav-settings',     label: '⚙️ Settings',         default: true },
             
             // Database Manager
             { id: 'nav-hero-manager', label: '🦸 Manage Heroes',    default: false },
             { id: 'nav-pet-manager',  label: '🐾 Manage Pets',      default: false },
-            { id: 'nav-item-manager', label: '⚔️ Manage Items',     default: false },
             { id: 'nav-ring-manager', label: '💍 Manage Rings',     default: false },
             
-            // War Manager
-            { id:'battle-war',      label:'⚔️ Battle War',        default:false},
-            { id:'nav-set-manager',  label: '📦 Manage Sets',      default: false },
-
             // Admin Zone
             { id: 'nav-user-manager', label: '👥 User Manager',     default: false },
             { id: 'nav-audit-logs',   label: '🕵️ Audit Logs',       default: false }
@@ -1858,7 +1844,6 @@
         let pendingUpdateData = null; // ตัวแปรพักข้อมูลรอการอัปเดต
         let updateCheckInterval = null;
 
-        // ✅ [เพิ่มตัวแปรนี้] เช็คสถานะกำลังบันทึก
         let isSaving = false;
         let isPendingSave = false;
 
@@ -2172,36 +2157,64 @@
             updateSyncStatus();
         }
         
-        initLogin();
+        window.onload = function() {
+            console.log("🚀 System Starting...");
+
+            // 1. ตั้งค่า URL
+            if (SYSTEM_CONFIG.WEB_APP_URL) {
+                SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL;
+                USE_CLOUD = true;
+            } else {
+                if (typeof updateLoginStatus === 'function') updateLoginStatus('offline');
+                return; 
+            }
+
+            // 2. ขึ้นสถานะสีส้มรอไว้
+            if (typeof updateLoginStatus === 'function') updateLoginStatus('connecting');
+
+            // 3. 📥 โหลดข้อมูลครั้งแรก (First Load)
+            if (typeof fetchCloudData === 'function') {
+                fetchCloudData(false)
+                    .then(() => {
+                        console.log("✅ Initial Load Complete.");
+                        // โหลดเสร็จค่อยเริ่มนับเวลา Auto Sync (ป้องกัน Loop)
+                        startRealTimeSync(); 
+                    })
+                    .catch(err => {
+                        console.error("❌ Init Failed:", err);
+                    });
+            }
+
+            // 4. ตรวจสอบ Login (แต่ห้ามให้ฟังก์ชันนี้ไปสั่งโหลดข้อมูลซ้ำ)
+            if (typeof initLogin === 'function') {
+                initLogin();
+            }
+        };
 
         function initApp() {
+            // อัปเดตชื่อ User
             if (CURRENT_USER) {
                 const nameEl = document.getElementById('display-username');
                 if (nameEl) nameEl.innerText = `${CURRENT_USER.name} (${CURRENT_USER.role})`;
                 if (typeof applyUserRole === 'function') applyUserRole();
             }
 
-            // โหลดข้อมูลพื้นฐาน
-            if(typeof loadLocalTierData === 'function') loadLocalTierData();
-            if(typeof loadHeroListsFromLocal === 'function') loadHeroListsFromLocal();
-            if(typeof loadSurveyData === 'function') loadSurveyData(); // โหลดคำถาม
+            // --- ❌ ลบบรรทัดพวกนี้ออกให้หมด เพื่อกัน Loop ---
+            // SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL; 
+            // USE_CLOUD = true;
+            // fetchCloudData(false);  <-- ตัวการ Loop
+            // startRealTimeSync();    <-- ตัวการ Loop
+            // ------------------------------------------
 
-            // if(typeof renderCastleMenu === 'function') renderCastleMenu();
-            if(typeof updateSyncStatus === 'function') updateSyncStatus();
-            
-            // 🔥 ตรวจสอบโหมดสมัครอีกครั้ง
+            // เหลือไว้แค่การสลับหน้าจอ
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('mode') === 'apply') {
-                // ไปหน้าฟอร์มทันที
-                switchView('application-form');
-                return;
+                // ถ้าเป็นโหมดสมัคร ให้สลับไปหน้าฟอร์มทันที
+                switchView('application-form'); 
+            } else {
+                // ถ้าปกติ ให้ไปหน้า Home
+                switchView('home'); 
             }
-
-            if(USE_CLOUD) {
-                startCloudSync(true);
-            }
-            
-            switchView('home');
         }
 
         // --- [3] AUDIT LOG SYSTEM ---
@@ -2453,142 +2466,44 @@
         function startCloudSync(isInitial = false) { fetchCloudData(isInitial); if(syncInterval) clearInterval(syncInterval); }
         function fetchCloudData(showOverlay) {
             if (showOverlay) showLoading("กำลังดึงข้อมูลจาก Cloud...");
+            updateSyncStatus('loading');
 
-            const badge = document.getElementById('sync-status');
-            const statusText = document.getElementById('status-text');
-            const settingStatus = document.getElementById('setting-status-display');
-
-            // เช็คก่อนใช้
-            if (!showOverlay && badge) badge.classList.add('loading');
-
-            fetch(SCRIPT_URL)
+            return fetch(SCRIPT_URL)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.serverVersion) checkVersionMismatch(data.serverVersion);
+                    updateSyncStatus('online');
+                    processLoadedData(data); // ✅ ใช้ฟังก์ชันกลาง
+                    
+                    // Special Case: หน้าสมัครงาน
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('mode') === 'apply') renderApplicationForm();
 
-                    // console.log(data) // ปิด log เพื่อความสะอาด
-
-                    if (data.timestamp && data.timestamp <= lastServerTimestamp) {
-                        if (badge) badge.classList.remove('loading');
-                        if (showOverlay) hideLoading();
-                        return;
-                    }
-
-                    if (data.timestamp) lastServerTimestamp = data.timestamp;
-                    console.log("📥 New data received from Cloud!");
-
-                    // --- Load Standard Data ---
-                    if (data.users) systemUsersDB = data.users;
-                    if (data.heroes) heroesDB = data.heroes;
-                    if (data.pets) petsDB = data.pets;
-                    if (data.rings) ringsDB = data.rings;
-                    if (data.items) itemsDB = data.items;
-                    if (data.affiliations) affiliationsDB = data.affiliations;
-                    if (data.teams) teamsDB = data.teams;
-                    if (data.heroSets) heroSetsDB = data.heroSets;
-                    if (data.battleHistory) battleHistoryDB = data.battleHistory;
-                    if (data.seasonInfo) currentSeason = data.seasonInfo;
-                    if (data.archivedSeasons) archivedSeasons = data.archivedSeasons;
-                    if (data.auditLogs) auditLogsDB = data.auditLogs;
-                    if (data.knownEnemies) knownEnemies = data.knownEnemies;
-                    if (data.applications) applicationsDB = data.applications;
-                    if (data.surveyConfig) surveyConfig = data.surveyConfig
-
-                    // --- 1. แก้ไข Guild Members (แยก Logic ให้ชัดเจน) ---
-                    if (data.guildMembers) {
-                        guildMembersDB = data.guildMembers;
-                    } else if (guildMembersDB.length === 0) {
-                        initGuildMembers();
-                    }
-
-                    // --- Local Storage Items ---
-                    if (data.heroLists) {
-                        tempHeroLists = data.heroLists;
-                        localStorage.setItem('7k_hero_lists_db', JSON.stringify(tempHeroLists));
-                    }
-                    if (data.manualUsage) {
-                        manualUsageOffsets = data.manualUsage;
-                        localStorage.setItem('7k_manual_usage_db', JSON.stringify(manualUsageOffsets));
-                    }
-
-                    // --- Update UI ---
-                    if (typeof syncWarRoomFromHistory === 'function') syncWarRoomFromHistory();
-                    if (typeof updateGuildWarUI === 'function') updateGuildWarUI();
-                    if (typeof updateCurrentViewUI === 'function') updateCurrentViewUI();
-
-                    // รีเฟรชหน้า Form หรือ Admin ทันทีที่โหลดเสร็จ
-                    if (currentView === 'survey-admin') renderSurveyBuilder();
-                    if (currentView === 'application-form') renderApplicationForm();
-
-
-                    // ✅ Update Badges (Safety Check)
-                    if (badge) {
-                        badge.classList.remove('loading', 'offline');
-                        badge.classList.add('sync-cloud');
-                    }
-                    if (statusText) statusText.innerText = 'ONLINE';
-
-                    if (settingStatus) {
-                        settingStatus.innerHTML = `<div class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> <span class="text-green-500">Connected</span>`;
-                    }
-
-                    if (showOverlay) {
-                        const loadingText = document.getElementById('loading-text');
-                        if (loadingText) loadingText.innerText = "โหลดข้อมูลเสร็จสิ้น!";
-                        setTimeout(() => {
-                            hideLoading();
-                            if (currentView === 'settings') switchView('war-room');
-                        }, 500);
-                    }
+                    if (showOverlay) hideLoading();
+                    return data;
                 })
                 .catch(err => {
-                    // ✅ Error Handling UI
-                    if (badge) {
-                        badge.classList.remove('loading');
-                        badge.classList.add('offline');
-                    }
-                    if (statusText) statusText.innerText = 'OFFLINE';
-
+                    console.error("Fetch Error:", err);
+                    updateSyncStatus('offline');
                     if (showOverlay) {
-                        const loadingText = document.getElementById('loading-text');
-                        if (loadingText) loadingText.innerText = "การเชื่อมต่อล้มเหลว";
-                        setTimeout(hideLoading, 1500);
+                        hideLoading();
+                        alert("การเชื่อมต่อล้มเหลว");
                     }
-                    // console.error("Sync Error:", err);
-                    
-                    // Fallback กรณี Error เพื่อไม่ให้หน้าขาว
-                    // if (!surveyConfig || surveyConfig.length === 0) {
-                    //      surveyConfig = [{ id: 1, question: "Error Loading Question", type: "text", options: [] }];
-                    //      if (currentView === 'application-form') renderApplicationForm();
-                    // }
+                    throw err;
                 });
         }
-
+    
         async function pushData(showOverlay = false) {
-            if (!USE_CLOUD) return;
+        if (!USE_CLOUD) return;
+        if (realTimeInterval) clearInterval(realTimeInterval);
+        isSaving = true;
 
-            if (realTimeInterval) clearInterval(realTimeInterval);
-            isSaving = true;
+        // ไฟเหลือง (กำลังส่ง)
+        updateSyncStatus('loading');
 
-            const now = Date.now();
-            lastServerTimestamp = now;
-
-            const badge = document.getElementById('sync-status');
-            const statusText = document.getElementById('status-text');
-
-            if (badge) badge.className = 'sync-badge loading';
-            if (statusText) statusText.innerText = 'Saving...';
-
-            if (showOverlay) showLoading("☁️ กำลังบันทึกข้อมูลเข้าสู่ Google Cloud...");
-
-            // ✅ 1. เพิ่ม Safety Check (ถ้าตัวแปรไม่มีค่า ให้ส่ง [] ไปแทน)
-            // const safeSurveyConfig = (typeof surveyConfig !== 'undefined' && surveyConfig) ? surveyConfig : [];
-            // const safeApplications = (typeof applicationsDB !== 'undefined' && applicationsDB) ? applicationsDB : [];
-
-            console.log(applicationsDB);
+            if (showOverlay) showLoading("☁️ กำลังบันทึกข้อมูล...");
 
             const payload = {
-                timestamp: now,
+                timestamp: Date.now(),
                 heroes: heroesDB,
                 pets: petsDB,
                 rings: ringsDB,
@@ -2598,65 +2513,89 @@
                 heroSets: heroSetsDB,
                 battleHistory: battleHistoryDB,
                 archivedSeasons: archivedSeasons,
-                users: systemUsersDB,
+                // users: systemUsersDB,
                 auditLogs: auditLogsDB,
                 knownEnemies: knownEnemies,
                 heroLists: tempHeroLists,
                 manualUsage: manualUsageOffsets,
-                
                 surveyConfig: surveyConfig,
                 applications: applicationsDB
             };
 
-            // ✅ 2. Debug: ดูข้อมูลก่อนส่ง (กด F12 ดูใน Console)
-            // console.log("📤 กำลังส่งข้อมูล (Payload):", payload);
-            // console.log("   - Survey Config:", safeSurveyConfig.length, "รายการ");
-            // console.log("   - Applications:", safeApplications.length, "ใบสมัคร");
-
             try {
-
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
-                console.log("✅ Save Sent to Cloud.");
-
-                if (badge) badge.className = 'sync-badge sync-cloud';
-                if (statusText) statusText.innerText = 'SAVED';
+                
+                // ไฟเขียว (สำเร็จ)
+                updateSyncStatus('online');
 
             } catch (err) {
                 console.error("Save Error:", err);
-                if (badge) badge.className = 'sync-badge offline';
-                if (statusText) statusText.innerText = 'Error';
-                
-                if (showOverlay) alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
+                // ไฟแดง (ล้มเหลว)
+                updateSyncStatus('offline');
+                if (showOverlay) alert("บันทึกไม่สำเร็จ");
             } finally {
                 isPendingSave = false;
                 isSaving = false;
-
                 if (showOverlay) hideLoading();
-
-                setTimeout(() => {
-                    if (statusText && statusText.innerText === 'SAVED') {
-                        statusText.innerText = 'ONLINE';
-                    }
-                    startRealTimeSync();
-                }, 5000);
+                // เริ่ม Sync ใหม่
+                startRealTimeSync();
             }
         }
-        function updateSyncStatus() {
-            const b = document.getElementById('sync-status');
-            const t = document.getElementById('status-text');
-            const s = document.getElementById('setting-status-display');
+        function updateSyncStatus(status = 'offline') {
+            const dot = document.getElementById('mini-status-dot');
+            const ping = document.getElementById('status-ping');
+            const text = document.getElementById('mini-status-text');
+            // const btn = document.getElementById('btn-manual-refresh');
+            // const icon = document.getElementById('refresh-icon');
 
-            if (!USE_CLOUD) {
-                // ใส่ if ดักไว้ ถ้าหาไม่เจอให้ข้ามไป
-                if (b) b.className = 'sync-badge offline';
-                if (t) t.innerText = 'NO SETUP';
-                if (s) s.innerHTML = `<div class="w-3 h-3 rounded-full bg-gray-500"></div> Not Configured`;
+            if (!dot || !text) return;
+
+            // Reset Classes
+            dot.className = "relative inline-flex rounded-full h-2 w-2 transition-colors duration-300";
+            ping.className = "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 transition-colors duration-300";
+            // icon.classList.remove('animate-spin'); // หยุดหมุนปกติ
+
+            if (status === 'online') {
+                // 🟢 Online: เขียวสดใส
+                dot.classList.add('bg-emerald-500', 'shadow-[0_0_8px_#10b981]');
+                ping.classList.add('bg-emerald-400');
+                ping.style.display = 'none'; // หยุดกระพริบเมื่อนิ่ง
+                
+                text.innerText = "ONLINE";
+                text.className = "text-emerald-500 font-bold font-mono tracking-widest";
+                
+                // btn.classList.remove('cursor-not-allowed', 'opacity-50');
+                // btn.disabled = false;
+
+            } else if (status === 'loading') {
+                // 🟡 Loading: เหลือง + หมุนติ้ว
+                dot.classList.add('bg-yellow-400', 'shadow-[0_0_8px_#facc15]');
+                ping.classList.add('bg-yellow-400');
+                ping.style.display = 'inline-flex'; // กระพริบ
+                
+                text.innerText = "SYNCING...";
+                text.className = "text-yellow-400 font-bold font-mono animate-pulse";
+                
+                // icon.classList.add('animate-spin'); // สั่งไอคอนหมุน
+                // btn.classList.add('cursor-not-allowed', 'opacity-50');
+                // btn.disabled = true; // ห้ามกดซ้ำ
+
+            } else {
+                // 🔴 Offline: แดงเข้ม
+                dot.classList.add('bg-red-600');
+                ping.classList.add('bg-red-500');
+                ping.style.display = 'none';
+                
+                text.innerText = "OFFLINE";
+                text.className = "text-red-500 font-bold font-mono";
+                
+                // btn.classList.remove('cursor-not-allowed', 'opacity-50');
+                // btn.disabled = false;
             }
         }
 
@@ -3347,52 +3286,52 @@
             else addLog(currentCastle, activeBattleSlot, enemyTeam.player, 'Lost');
 
             // 🟢 บังคับสถานะห้องจากประวัติทันที (แก้บั๊กสถานะเด้ง)
-            syncWarRoomFromHistory();
+            // syncWarRoomFromHistory();
 
             closeBattleModal();
             triggerAutoSave(true);
         }
 
-        function syncWarRoomFromHistory() {
-            console.log("🔄 Re-syncing War Room status from History...");
+        // function syncWarRoomFromHistory() {
+        //     console.log("🔄 Re-syncing War Room status from History...");
 
-            // 1. รีเซ็ตสถานะห้องทั้งหมดให้ "ยังไม่แตก" ก่อน (กันค่าค้าง)
-            // แต่ถ้าห้องไหน Locked (ผู้เล่นจองไว้/ใส่ข้อมูลไว้) ก็ยังคงข้อมูลเดิม
-            Object.keys(teamsDB).forEach(key => {
-                if (teamsDB[key]) {
-                    teamsDB[key].isCleared = false; 
-                    teamsDB[key].defensiveWins = 0;
-                }
-            });
+        //     // 1. รีเซ็ตสถานะห้องทั้งหมดให้ "ยังไม่แตก" ก่อน (กันค่าค้าง)
+        //     // แต่ถ้าห้องไหน Locked (ผู้เล่นจองไว้/ใส่ข้อมูลไว้) ก็ยังคงข้อมูลเดิม
+        //     Object.keys(teamsDB).forEach(key => {
+        //         if (teamsDB[key]) {
+        //             teamsDB[key].isCleared = false; 
+        //             teamsDB[key].defensiveWins = 0;
+        //         }
+        //     });
 
-            // 2. วนลูปประวัติ แล้วบังคับค่าทับลงไป
-            battleHistoryDB.forEach(log => {
-                // หา Key ของห้อง (รองรับทั้ง Log ใหม่ที่มี castleKey และ Log เก่า)
-                let key = log.castleKey;
+        //     // 2. วนลูปประวัติ แล้วบังคับค่าทับลงไป
+        //     battleHistoryDB.forEach(log => {
+        //         // หา Key ของห้อง (รองรับทั้ง Log ใหม่ที่มี castleKey และ Log เก่า)
+        //         let key = log.castleKey;
                 
-                // Fallback สำหรับ Log เก่าที่ยังไม่ได้แก้ Code (พยายามสร้าง Key เอง)
-                if (!key && log.castle && log.castleSlot) {
-                    // แปลงชื่อเต็มกลับเป็นชื่อย่อ (อาจจะไม่แม่น 100% แต่ช่วยได้)
-                    // เช่น "ปราสาทนอก 1" -> "นอก 1"
-                    let shortName = log.castle.replace('ปราสาท', '').trim();
-                    // ถ้าเป็น "ปราสาทหลัก (ราชันย์)" -> "ราชันย์"
-                    if (shortName.includes('ราชันย์')) shortName = 'ราชันย์';
+        //         // Fallback สำหรับ Log เก่าที่ยังไม่ได้แก้ Code (พยายามสร้าง Key เอง)
+        //         if (!key && log.castle && log.castleSlot) {
+        //             // แปลงชื่อเต็มกลับเป็นชื่อย่อ (อาจจะไม่แม่น 100% แต่ช่วยได้)
+        //             // เช่น "ปราสาทนอก 1" -> "นอก 1"
+        //             let shortName = log.castle.replace('ปราสาท', '').trim();
+        //             // ถ้าเป็น "ปราสาทหลัก (ราชันย์)" -> "ราชันย์"
+        //             if (shortName.includes('ราชันย์')) shortName = 'ราชันย์';
                     
-                    key = `${shortName}-${log.castleSlot - 1}`;
-                }
+        //             key = `${shortName}-${log.castleSlot - 1}`;
+        //         }
 
-                // 3. ถ้าเจอห้องนี้ใน DB ให้แก้สถานะ
-                if (key && teamsDB[key]) {
-                    if (log.result === 'Win' || log.status === 'Win') {
-                        teamsDB[key].isCleared = true; // บังคับให้แตก
-                    } else if (log.result === 'Lose' || log.status === 'Lose') {
-                        teamsDB[key].defensiveWins = (teamsDB[key].defensiveWins || 0) + 1;
-                    }
-                }
-            });
+        //         // 3. ถ้าเจอห้องนี้ใน DB ให้แก้สถานะ
+        //         if (key && teamsDB[key]) {
+        //             if (log.result === 'Win' || log.status === 'Win') {
+        //                 teamsDB[key].isCleared = true; // บังคับให้แตก
+        //             } else if (log.result === 'Lose' || log.status === 'Lose') {
+        //                 teamsDB[key].defensiveWins = (teamsDB[key].defensiveWins || 0) + 1;
+        //             }
+        //         }
+        //     });
 
-            // 4. รีเฟรชหน้าจอทันที
-        }
+        //     // 4. รีเฟรชหน้าจอทันที
+        // }
 
         function closeBattleModal() { document.getElementById('battleModal').style.display = 'none'; activeBattleSlot = null; }
 
@@ -7907,23 +7846,17 @@
 
         // แก้ไขฟังก์ชันนี้ (ทับของเดิม)
         function startRealTimeSync() {
-            // 1. ฆ่าตัวเก่าทิ้งก่อนเสมอ (กันการรันซ้อน)
             if (realTimeInterval) clearInterval(realTimeInterval);
-
-            console.log("🔄 Auto-Sync System Started (Every 10s)");
-
-            // 2. เริ่มนับใหม่
+            
+            console.log("📡 Background Update Checker Started (Passive Mode)");
+            
+            // เช็คเงียบๆ ทุก 15 วินาที (ไม่กระทบหน้าจอ)
             realTimeInterval = setInterval(() => {
-                // ถ้ากำลังใช้งาน หรือ กำลังบันทึก -> ข้ามรอบนี้ไปเลย
-                if (isUserInteracting || isSaving || isPendingSave) { 
-                    console.log("Skipping sync (User busy or Saving)...");
-                    return;
-                }
+                // ถ้ากำลัง Save หรือมีข้อมูลรออัปเดตค้างอยู่แล้ว ไม่ต้องเช็คซ้ำ
+                if (isSaving || isPendingSave || pendingUpdateData) return;
                 
-                // ดึงข้อมูล (แบบเงียบๆ ไม่โชว์ Loading จอดำ)
-                fetchCloudData(false);
-                
-            }, 10000); // 10 วินาที
+                checkForUpdates(); 
+            }, 15000); 
         }
         // แก้ไขฟังก์ชันนี้ (ทับของเดิม)
         function triggerAutoSave(immediate = false) {
@@ -9412,82 +9345,114 @@
 
     // 2. ฟังก์ชันเช็คข้อมูลเบื้องหลัง (ไม่กระทบหน้าจอ)
     function checkForUpdates() {
-        const badge = document.getElementById('sync-status');
-        // โชว์สถานะเล็กๆ ว่ากำลังเช็ค (Option)
-        if(badge && !badge.classList.contains('offline')) {
-            document.getElementById('status-text').innerText = 'Checking...';
-        }
+        if (!SCRIPT_URL) return;
 
+        // ดึงข้อมูลมาเช็ค Timestamp เท่านั้น
         fetch(SCRIPT_URL)
         .then(res => res.json())
         .then(data => {
-            // คืนสถานะ Online ปกติ
-            if(badge) document.getElementById('status-text').innerText = 'ONLINE';
+            updateSyncStatus('online'); // คงสถานะไฟเขียว
 
-            // เปรียบเทียบ Timestamp
+            // เปรียบเทียบเวลา: ถ้า Server ใหม่กว่า Local -> แจ้งเตือน
             if (data.timestamp && data.timestamp > lastServerTimestamp) {
-                console.log("🔔 New update found!");
+                console.log("🔔 New update found on server!");
                 
                 // พักข้อมูลไว้ในตัวแปร ยังไม่เอาขึ้นหน้าจอ
                 pendingUpdateData = data;
                 
-                // แสดงแถบแจ้งเตือน
-                document.getElementById('update-notification').classList.remove('hidden');
-                document.getElementById('update-notification').classList.add('flex');
-            } else {
-                console.log("✅ System is up to date.");
+                // แสดงแถบแจ้งเตือนด้านบน
+                const notif = document.getElementById('update-notification');
+                if(notif) {
+                    notif.classList.remove('hidden');
+                    notif.classList.add('flex');
+                }
             }
         })
         .catch(err => {
-            console.error("Check Update Error:", err);
-            if(badge) document.getElementById('status-text').innerText = 'OFFLINE';
+            console.warn("Background check failed:", err);
+            // ไม่ต้องทำอะไร ปล่อยให้มันลองใหม่รอบหน้า
         });
     }
 
     // 3. ฟังก์ชันเมื่อผู้ใช้กดปุ่ม Refresh (Apply Data)
     function applyPendingUpdate() {
-        if (!pendingUpdateData) return;
+        // ถ้าไม่มีข้อมูลที่พักไว้ ให้ดึงใหม่เลย
+        if (!pendingUpdateData) {
+            forceRefreshData();
+            return;
+        }
 
-        showLoading("🔄 Refreshing Data...");
+        showLoading("🔄 กำลังอัปเดตข้อมูล...");
 
         const data = pendingUpdateData;
-        lastServerTimestamp = data.timestamp;
+        processLoadedData(data); // เรียกฟังก์ชันจัดการข้อมูล
 
-        // --- Process Data (เหมือน fetchCloudData เดิม) ---
-        // 1. Users
-        if (data.users && Array.isArray(data.users)) systemUsersDB = data.users;
+        // Clear State
+        pendingUpdateData = null;
+        dismissUpdate(); // ซ่อนแถบแจ้งเตือน
         
-        // 2. Main DB
-        heroesDB = data.heroes || []; 
-        petsDB = data.pets || []; 
-        ringsDB = data.rings || [];
-        if(data.affiliations) affiliationsDB = data.affiliations;
+        setTimeout(hideLoading, 500); 
+    }
+
+    function forceRefreshData() {
+        // เปลี่ยนสถานะเป็น Loading ทันทีเพื่อให้ UI ตอบสนอง
+        updateSyncStatus('loading');
         
-        // 3. Tier List & Teams
-        loadLocalTierData(); // (หรือใช้ data.tierLists ถ้าต้องการ sync)
-        if(data.teams) { 
+        // เรียกฟังก์ชันดึงข้อมูลเดิม
+        fetchCloudData(false)
+            .then(() => {
+                // หน่วงเวลานิดนึงเพื่อให้เห็นว่าหมุนเสร็จแล้ว (UX)
+                setTimeout(() => {
+                    updateSyncStatus('online');
+                    // alert("Sync Complete!"); // (เอาออกได้ถ้าไม่อยากให้เด้ง)
+                }, 800);
+            })
+            .catch(() => {
+                updateSyncStatus('offline');
+                alert("Connection Failed");
+            });
+    }
+
+    function processLoadedData(data) {
+        lastServerTimestamp = data.timestamp || Date.now();
+
+        // --- Load Data into Variables ---
+        if (data.users) systemUsersDB = data.users;
+        if (data.heroes) heroesDB = data.heroes;
+        if (data.pets) petsDB = data.pets;
+        if (data.rings) ringsDB = data.rings;
+        if (data.items) itemsDB = data.items;
+        if (data.affiliations) affiliationsDB = data.affiliations;
+        
+        // Tier List & Teams
+        if (data.tierLists) tierListsDB = data.tierLists; // ถ้าอยากให้ Sync Tier List ด้วย
+        
+        if (data.teams) { 
+            // รองรับทั้งโครงสร้างเก่าและใหม่
             if(data.teams.teams) teamsDB = data.teams.teams; else teamsDB = data.teams; 
             if(data.teams.logs) logsDB = data.teams.logs; 
         }
 
-        // 4. Guild & Others
-        if (data.guildMembers && data.guildMembers.length === 30) guildMembersDB = data.guildMembers;
+        // Guild & Others
+        if (data.guildMembers) guildMembersDB = data.guildMembers;
         if (data.knownEnemies) knownEnemies = data.knownEnemies;
         if (data.battleHistory) battleHistoryDB = data.battleHistory;
         if (data.seasonInfo) currentSeason = data.seasonInfo;
         if (data.archivedSeasons) archivedSeasons = data.archivedSeasons;
         if (data.heroSets) heroSetsDB = data.heroSets;
+        if (data.surveyConfig) surveyConfig = data.surveyConfig;
+        if (data.applications) applicationsDB = data.applications;
 
-        // --- Update UI ---
-        syncWarRoomFromHistory();
-        updateGuildWarUI();
-        updateCurrentViewUI(); // รีเฟรชเฉพาะหน้าจอที่เปิดอยู่ (SPA Style)
-
-        // Clear Pending State
-        pendingUpdateData = null;
-        dismissUpdate(); // ซ่อนแถบแจ้งเตือน
+        // --- Refresh UI (เฉพาะหน้าปัจจุบัน) ---
+        updateCurrentViewUI();
         
-        setTimeout(hideLoading, 500); // ปิด Loading
+        // รีเฟรชหน้าอื่นๆ ที่สำคัญ
+        if (currentView === 'preparation') renderPreparation();
+        if (currentView === 'simulator') renderSimulatorTeams();
+        if (currentView.includes('manager')) renderManagerUI();
+        if (currentView === 'hero-lists') renderHeroListsView();
+        
+        console.log("✅ Data Processed & UI Updated");
     }
 
     // 4. ปุ่มปิดแจ้งเตือน (กรณีไม่อยากอัปเดตตอนนี้)
@@ -10464,8 +10429,6 @@
     function renderSurveyBuilder() {
         const container = document.getElementById('survey-builder-container');
 
-        console.log("surveyConfig");
-        
         container.innerHTML = surveyConfig.map((q, idx) => {
             // สร้างรายการตัวเลือก (Options List)
             const list = (q.options || []).map((opt, optIdx) => `
@@ -10525,7 +10488,7 @@
     // ลบตัวเลือก
     function removeSurveyOption(qIdx, optIdx) {
         surveyConfig[qIdx].options.splice(optIdx, 1);
-        saveSurveyData();
+        // saveSurveyData();
         renderSurveyBuilder();
     }
 
@@ -10622,11 +10585,22 @@
         if (!container) return;
 
         // 1. ตรวจสอบข้อมูล (ใช้ Default ถ้าไม่มี)
+        // if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
+        //     surveyConfig = [
+        //         { id: 1, question: "เวลาเล่นต่อวัน", type: "choice", options: ["< 1 ชม.", "1-3 ชม.", "> 3 ชม."] },
+        //         { id: 2, question: "สายการเล่น", type: "choice", options: ["F2P", "Low Spender", "Whale"] }
+        //     ];
+        // }
+
+        console.log("🟢 Rendering Application Form...");
+        console.log("📦 Data in surveyConfig:", surveyConfig);
+
+        // 1. ตรวจสอบข้อมูล (ใช้ Default ถ้าไม่มี)
         if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
-            surveyConfig = [
-                { id: 1, question: "เวลาเล่นต่อวัน", type: "choice", options: ["< 1 ชม.", "1-3 ชม.", "> 3 ชม."] },
-                { id: 2, question: "สายการเล่น", type: "choice", options: ["F2P", "Low Spender", "Whale"] }
-            ];
+            console.warn("⚠️ Survey Config is empty! Using default questions.");
+            // ... (โค้ด Default เดิม) ...
+        } else {
+            console.log("✅ Using Custom Config from Database");
         }
 
         // 2. สร้าง HTML คำถาม
@@ -10791,6 +10765,48 @@
             alert("แจ้งเตือน: ไม่ได้เชื่อมต่อ Google Cloud ข้อมูลจะไม่ถูกบันทึก!");
         }
         
+    }
+    function updateLoginStatus(state) {
+        const dot = document.getElementById('login-dot');
+        const text = document.getElementById('login-text');
+        const btn = document.getElementById('btn-login');
+
+        if (!dot || !text) return;
+
+        // Reset Classes
+        dot.className = "w-2 h-2 rounded-full";
+        text.className = "text-xs font-bold";
+
+        if (state === 'connecting') {
+            // 1. สีส้ม: กำลังเชื่อมต่อ
+            dot.classList.add('bg-orange-500', 'animate-ping');
+            text.classList.add('text-orange-500');
+            text.innerText = "กำลังเชื่อมต่อ...";
+            if(btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        } 
+        else if (state === 'online') {
+            // 2. สีเขียว: เชื่อมต่อแล้ว
+            dot.classList.add('bg-green-500', 'shadow-[0_0_5px_#22c55e]');
+            text.classList.add('text-green-500');
+            text.innerText = "เชื่อมต่อแล้ว (Online)";
+            if(btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        } 
+        else {
+            // 3. สีแดง: เชื่อมต่อล้มเหลว
+            dot.classList.add('bg-red-500');
+            text.classList.add('text-red-500');
+            text.innerText = "เชื่อมต่อล้มเหลว (Offline)";
+            if(btn) {
+                btn.disabled = true; // ปิดปุ่ม Login ถ้าเน็ตหลุด
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
     }
     </script>
 </body>
