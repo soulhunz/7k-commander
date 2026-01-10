@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7K Commander (Master Edition)</title>
+    
+    <meta name="referrer" content="no-referrer"> 
+    
+    <title>7K Seven Deadly Sins</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -923,9 +926,9 @@
 
         <div class="border-t p-4 flex-1 flex flex-col">
             <div class="menu-section-title">Main</div>
-            <div onclick="switchView('preparation')" class="menu-item text-green-400" id="nav-preparation">🧠 PREPARATION (AI)</div>
+            <div onclick="switchView('preparation')" class="menu-item" id="nav-preparation">🧠 PREPARATION (AI)</div>
             <div onclick="switchView('simulator')" class="menu-item" id="nav-simulator">🎮 Battle Simulator</div>
-            <div onclick="switchView('hero-lists')" class="menu-item">📋 Hero Lists & Usage</div>
+            <div onclick="switchView('hero-lists')" class="menu-item" id="nav-hero-lists">📋 Hero Lists & Usage</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ Gallery</div>
             <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🏆 Tier Lists</div>
 
@@ -1544,6 +1547,51 @@
                 </div>
             </div>
         </div>
+
+        <div id="appDetailModal" class="modal-overlay" style="z-index: 200;">
+            <div class="modal-content !max-w-4xl !h-[90vh] flex flex-col">
+                <div class="p-4 border-b border-gray-700 bg-[#1f2937] flex justify-between items-center flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">📝</span>
+                        <div>
+                            <h3 class="text-white font-bold text-lg" id="view-app-name">Player Name</h3>
+                            <div class="text-xs text-gray-400" id="view-app-contact">Contact: -</div>
+                        </div>
+                    </div>
+                    <button onclick="closeAppDetail()" class="text-gray-400 hover:text-white font-bold text-2xl px-2">✕</button>
+                </div>
+
+                <div class="p-6 bg-[#0b0e14] overflow-y-auto flex-1 custom-scroll">
+                    
+                    <div class="mb-6">
+                        <h4 class="text-xs font-bold text-blue-400 uppercase mb-3 flex items-center gap-2">
+                            <span>📸 Team Screenshots</span>
+                            <span class="bg-gray-800 text-gray-500 px-2 rounded text-[10px]" id="view-img-count">0 images</span>
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="view-app-images">
+                            </div>
+                    </div>
+
+                    <div class="h-px bg-gray-800 my-6"></div>
+
+                    <div class="mb-6">
+                        <h4 class="text-xs font-bold text-yellow-500 uppercase mb-3">💬 Interview Answers</h4>
+                        <div class="space-y-4" id="view-app-answers">
+                            </div>
+                    </div>
+
+                </div>
+
+                <div class="p-4 border-t border-gray-700 bg-[#161b22] flex justify-end gap-3 flex-shrink-0">
+                    <button id="btn-delete-app" class="px-4 py-2 border border-red-900 text-red-500 hover:bg-red-900/20 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                        🗑️ Delete Application
+                    </button>
+                    <button onclick="closeAppDetail()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow-lg">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
         
     </main>
     
@@ -1814,6 +1862,7 @@
             { id: 'nav-simulator',    label: '🎮 Simulator',        default: true },
             { id: 'nav-tier-viewer',  label: '🏆 Tier List (View)', default: true },
             { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
+            { id: 'nav-hero-lists',   label: '📜 Hero Lists',        default: true },
             
             // Database Manager
             { id: 'nav-hero-manager', label: '🦸 Manage Heroes',    default: false },
@@ -1822,7 +1871,7 @@
             
             // Admin Zone
             { id: 'nav-user-manager', label: '👥 User Manager',     default: false },
-            { id: 'nav-audit-logs',   label: '🕵️ Audit Logs',       default: false }
+            { id: 'nav-survey-admin', label: '📝 Survey Builder',   default: false },
         ];
 
         // --- AUTO-SAVE SYSTEM ---
@@ -2055,94 +2104,123 @@
         }
 
         async function doLogin() {
-            const userIn = document.getElementById('login-user').value.trim(); // เปลี่ยนชื่อตัวแปรกันสับสน
+            const userIn = document.getElementById('login-user').value.trim();
             const passIn = document.getElementById('login-pass').value.trim();
             const btn = document.getElementById('btn-login');
             const msg = document.getElementById('login-msg');
 
-            // 1. ตรวจสอบการตั้งค่า URL
-            if (!SCRIPT_URL) {
-                // ถ้ายังไม่มี URL ให้ลองไปเช็คค่า Local Admin (เผื่อ Login ครั้งแรกเพื่อไปตั้งค่า)
-                if (userIn === 'admin' && passIn === '1234') {
-                    // อนุญาตให้ผ่านไปตั้งค่าได้
-                } else {
-                    alert("ยังไม่ได้ตั้งค่า Web App URL! และไม่ใช่รหัส Admin เริ่มต้น");
-                    return;
-                }
+            // 1. ป้องกันการกดซ้ำ และเช็คค่าว่าง
+            if (!userIn || !passIn) {
+                msg.innerText = "กรุณากรอก Username และ Password";
+                msg.className = "text-yellow-500 text-xs mt-4";
+                return;
             }
+            if (btn.disabled) return;
 
-            // 2. เริ่ม UI Loading
+            // 2. เริ่มสถานะ Loading UI
             btn.disabled = true;
+            const originalBtnText = btn.innerHTML;
             btn.innerHTML = `<div class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Checking...`;
             msg.innerText = "";
 
             try {
-                // 3. [สำคัญ] ตรวจสอบข้อมูล User ล่าสุด
-                // ถ้าในตัวแปร systemUsersDB ยังไม่มีข้อมูล (หรือมีแค่ตัว Default) ให้โหลดจาก Server ก่อน
-                // เพื่อให้แน่ใจว่าถ้ามีการเพิ่ม User ใหม่ใน Sheet เราจะรู้จัก User นั้นทันที
-                if (USE_CLOUD && (systemUsersDB.length <= 1)) {
-                    console.log("Downloading latest user data...");
-                    const res = await fetch(SCRIPT_URL); // ใช้ GET ปกติ
-                    const data = await res.json();
+                // ---------------------------------------------------------
+                // 🛡️ STEP 1: เช็คว่ามีฐานข้อมูล User หรือยัง?
+                // ---------------------------------------------------------
+                if (!systemUsersDB || systemUsersDB.length === 0) {
+                    console.log("⚠️ User DB is empty. Fetching from cloud...");
+                    msg.innerText = "กำลังดึงข้อมูลผู้ใช้...";
                     
-                    if (data.users && Array.isArray(data.users)) {
-                        systemUsersDB = data.users; // อัปเดตตัวแปร Global
-                        // อัปเดตข้อมูลอื่นๆ ไปด้วยเลยก็ได้ เพื่อความสดใหม่
-                        if(data.heroes) heroesDB = data.heroes;
-                        if(data.teams) teamsDB = data.teams;
-                        // ... (ข้อมูลอื่นๆ)
+                    try {
+                        // พยายามดึงข้อมูลใหม่ (รอสูงสุด 8 วินาที)
+                        await fetchCloudData(false);
+                    } catch (e) {
+                        console.warn("Fetch failed, trying local fallback.");
                     }
                 }
 
-                // 4. ตรวจสอบ User/Pass กับฐานข้อมูลที่มี (Local Check)
+                // ---------------------------------------------------------
+                // 🛡️ STEP 2: ประตูฉุกเฉิน (Emergency Admin)
+                // ---------------------------------------------------------
+                // เผื่อระบบล่ม หรือเน็ตหลุด ให้ Admin เข้าได้เสมอ
+                if (userIn === 'admin' && passIn === '1234') {
+                    // เช็คว่าใน DB มี admin ตัวจริงไหม ถ้าไม่มีให้สร้างตัวปลอมให้เข้าได้
+                    const realAdmin = systemUsersDB.find(u => u.id === 'admin');
+                    if (!realAdmin) {
+                        console.log("🔓 Emergency Local Login");
+                        loginSuccess({ 
+                            id: 'admin', 
+                            name: 'Super Admin (Local)', 
+                            role: 'admin', 
+                            permissions: ALL_MENUS.map(m => m.id) // ให้สิทธิ์ทุกอย่าง
+                        });
+                        return;
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // 🛡️ STEP 3: ตรวจสอบ User จริงจากฐานข้อมูล
+                // ---------------------------------------------------------
+                // ค้นหา User ที่ ID และ Password ตรงกัน
                 const foundUser = systemUsersDB.find(u => u.id === userIn && u.pass === passIn);
 
                 if (foundUser) {
-                    // ✅ LOGIN SUCCESS
-                    msg.innerText = "Login Success! Redirecting...";
-                    msg.className = "text-green-400 text-xs mt-4";
-
-                    // 4.1 สร้าง Session
-                    const userData = { 
-                        username: foundUser.id, 
-                        name: foundUser.name, 
-                        role: foundUser.role,
-                        permissions: foundUser.permissions
-                    };
-                    sessionStorage.setItem('7k_user_session', JSON.stringify(userData));
-                    CURRENT_USER = userData;
-
-                    // 4.2 เรียกฟังก์ชันจัดการเมนูตาม Role
-                    if (typeof applyUserRole === "function") {
-                        applyUserRole();
-                    }
-
-                    // 4.3 โหลดข้อมูลเริ่มต้นและเข้าหน้าแอพ
-                    setTimeout(() => {
-                        document.getElementById('login-screen').style.display = 'none';
-                        initApp();
-                        
-                        // คืนค่าปุ่มให้เหมือนเดิม (เผื่อ Logout กลับมา)
-                        btn.disabled = false;
-                        btn.innerHTML = `<span>🔓</span> Login`;
-                        msg.innerText = "";
-                    }, 800);
-
+                    // ✅ เจอ User -> Login สำเร็จ
+                    loginSuccess(foundUser);
                 } else {
-                    // ❌ LOGIN FAILED
-                    throw new Error("Username หรือ Password ไม่ถูกต้อง");
+                    // ❌ ไม่เจอ -> แจ้งเตือน
+                    // เช็คเพิ่มหน่อยว่า ID ถูกแต่รหัสผิด หรือไม่มี ID นี้เลย
+                    const idExist = systemUsersDB.some(u => u.id === userIn);
+                    if (idExist) {
+                        throw new Error("รหัสผ่านไม่ถูกต้อง (Wrong Password)");
+                    } else {
+                        throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ (User Not Found)");
+                    }
                 }
 
             } catch (err) {
-                console.error("Login Error:", err);
-                
-                // แสดงข้อความ Error
-                msg.innerText = err.message || "Connection Failed";
+                // กรณี Error
+                console.error("Login Failed:", err);
+                msg.innerText = err.message || "การเชื่อมต่อมีปัญหา";
                 msg.className = "text-red-400 text-xs mt-4";
                 
                 // คืนค่าปุ่ม
                 btn.disabled = false;
-                btn.innerHTML = `<span>🔓</span> Login`;
+                btn.innerHTML = originalBtnText;
+            }
+
+            // --- Helper: เมื่อ Login ผ่าน ---
+            function loginSuccess(user) {
+                msg.innerText = `ยินดีต้อนรับ, ${user.name}`;
+                msg.className = "text-green-400 text-xs mt-4";
+                
+                // 1. บันทึก Session
+                const userData = { 
+                    username: user.id, 
+                    name: user.name, 
+                    role: user.role,
+                    permissions: user.permissions || [] 
+                };
+                sessionStorage.setItem('7k_user_session', JSON.stringify(userData));
+                CURRENT_USER = userData;
+
+                // 2. ตั้งค่าเมนูตามสิทธิ์
+                if (typeof applyUserRole === "function") applyUserRole();
+
+                // 3. ปิดหน้า Login และเข้าสู่ระบบ
+                setTimeout(() => {
+                    document.getElementById('login-screen').style.display = 'none';
+                    
+                    // เรียก initApp เพื่อโหลดหน้าแรก
+                    if (typeof initApp === "function") initApp();
+
+                    // Reset ฟอร์มรอไว้ เผื่อ Logout
+                    document.getElementById('login-user').value = '';
+                    document.getElementById('login-pass').value = '';
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnText;
+                    msg.innerText = "";
+                }, 800);
             }
         }
 
@@ -2191,7 +2269,7 @@
             
             // 3. เริ่มระบบเช็คอัปเดตเบื้องหลัง
             if (typeof startRealTimeSync === 'function') {
-                startRealTimeSync();
+                // startRealTimeSync();
             }
         };
 
@@ -2267,32 +2345,31 @@
             const tbody = document.getElementById('user-list-body');
             if (!tbody) return;
             
-            // ถ้าไม่มีข้อมูล ให้โชว์ว่าง
             if (!systemUsersDB || systemUsersDB.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">No Data</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">No User Data Found</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = systemUsersDB.map(u => {
-                // เช็คว่าเป็น Admin หรือไม่ (ดูจากสิทธิ์เข้า User Manager)
-                const isAdmin = u.permissions && u.permissions.includes('nav-user-manager');
+                // เช็คว่าเป็น Admin หรือไม่
+                const isAdmin = u.role === 'admin' || (u.permissions && u.permissions.includes('nav-user-manager'));
                 const roleBadge = isAdmin 
-                    ? '<span class="bg-red-900/50 text-red-200 border border-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase">👑 ADMIN</span>'
+                    ? '<span class="bg-red-900/50 text-red-200 border border-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase">👑 ADMIN</span>' 
                     : '<span class="bg-blue-900/50 text-blue-200 border border-blue-700 px-2 py-1 rounded text-[10px] font-bold uppercase">👤 USER</span>';
                 
-                // ปุ่มลบ (ห้ามลบตัวเอง และห้ามลบ admin หลัก)
+                // ล็อคปุ่มลบ (ห้ามลบตัวเอง และห้ามลบ admin หลัก)
                 const isLocked = (CURRENT_USER && u.id === CURRENT_USER.username) || u.id === 'admin';
                 const deleteBtn = isLocked 
-                    ? `<span class="text-gray-600 text-xs italic px-2">Locked</span>`
-                    : `<button onclick="deleteUser('${u.id}')" class="text-red-400 hover:text-white border border-red-900 px-2 py-1 rounded text-xs">Delete</button>`;
+                    ? `<span class="text-gray-600 text-xs italic px-2 cursor-not-allowed">Locked</span>` 
+                    : `<button onclick="deleteUser('${u.id}')" class="text-red-400 hover:text-white border border-red-900 hover:bg-red-900 px-2 py-1 rounded text-xs transition">Delete</button>`;
 
                 return `
                     <tr class="hover:bg-[#1f2937] border-b border-gray-800 transition">
-                        <td class="p-4 font-mono text-yellow-500">${u.id}</td>
+                        <td class="p-4 font-mono text-yellow-500 font-bold">${u.id}</td>
                         <td class="p-4 text-white font-bold">${u.name}</td>
                         <td class="p-4">${roleBadge}</td>
                         <td class="p-4 text-right flex justify-end gap-2 items-center">
-                            <button onclick="openEditUserModal('${u.id}')" class="text-blue-400 hover:text-white border border-blue-800 px-2 py-1 rounded text-xs">✏️ Edit</button>
+                            <button onclick="openEditUserModal('${u.id}')" class="text-blue-400 hover:text-white border border-blue-800 hover:bg-blue-900 px-2 py-1 rounded text-xs transition">✏️ Edit</button>
                             ${deleteBtn}
                         </td>
                     </tr>`;
@@ -2304,14 +2381,16 @@
             document.getElementById('user-modal-title').innerText = "Add New User";
             document.getElementById('form-user-mode').value = 'add';
             
-            // Clear Form
+            // Reset Form
             document.getElementById('form-user-id').value = '';
-            document.getElementById('form-user-id').disabled = false;
+            document.getElementById('form-user-id').disabled = false; // เปิดให้พิมพ์ ID ได้
+            document.getElementById('form-user-id').classList.remove('opacity-50');
+            
             document.getElementById('form-user-name').value = '';
             document.getElementById('form-user-pass').value = '';
             
-            // Generate Checkbox (ติ๊กเฉพาะ Default)
-            renderPermissionCheckboxes([]); 
+            // Default Permissions (ให้แค่ดูได้พื้นฐาน)
+            renderPermissionCheckboxes(ALL_MENUS.filter(m => m.default).map(m => m.id)); 
             
             document.getElementById('userModal').style.display = 'flex';
         }
@@ -2324,18 +2403,20 @@
             document.getElementById('user-modal-title').innerText = "Edit User: " + user.id;
             document.getElementById('form-user-mode').value = 'edit';
             
-            // Fill Form
+            // Fill Data
             document.getElementById('form-user-id').value = user.id;
             document.getElementById('form-user-id').disabled = true; // ห้ามแก้ ID
+            document.getElementById('form-user-id').classList.add('opacity-50');
+
             document.getElementById('form-user-name').value = user.name;
             document.getElementById('form-user-pass').value = user.pass;
             
-            // Generate Checkbox (ตามสิทธิ์เดิมของ User)
-            // ถ้า User เก่าไม่มี Permissions ให้ลองเช็ค Role เก่า
-            let perms = user.permissions;
-            if (!perms) {
-                if (user.role === 'admin') perms = ALL_MENUS.map(m => m.id); // เก่าเป็น Admin ให้หมด
-                else perms = ALL_MENUS.filter(m => m.default).map(m => m.id); // เก่าเป็น User ให้แค่ Default
+            // Load Permissions
+            let perms = user.permissions || [];
+            // Fallback: ถ้าของเก่าไม่มี array ให้ดูจาก role
+            if (!user.permissions) {
+                if (user.role === 'admin') perms = ALL_MENUS.map(m => m.id);
+                else perms = ALL_MENUS.filter(m => m.default).map(m => m.id);
             }
             renderPermissionCheckboxes(perms);
 
@@ -2346,52 +2427,57 @@
         async function saveUserData() {
             const id = document.getElementById('form-user-id').value.trim();
             const name = document.getElementById('form-user-name').value.trim();
-            const pass = document.getElementById('form-user-pass').value.trim();
+            const pass = String(document.getElementById('form-user-pass').value).trim();
             const mode = document.getElementById('form-user-mode').value;
-
-            // รวบรวม Checkbox
-            let selectedPerms = [];
-            document.querySelectorAll('.perm-check:checked').forEach(cb => selectedPerms.push(cb.value));
 
             if (!id || !pass || !name) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
-            showLoading("กำลังบันทึกข้อมูล...");
+            // รวบรวมสิทธิ์ (Checkbox)
+            let selectedPerms = [];
+            document.querySelectorAll('.perm-check:checked').forEach(cb => selectedPerms.push(cb.value));
 
-            // สร้าง Object User
-            // เราจะยังเก็บ role ไว้ด้วยเพื่อความเข้ากันได้ (ถ้ามี user-manager = admin)
+            // กำหนด Role อัตโนมัติ (ถ้าเข้า User Manager ได้ = Admin)
             const derivedRole = selectedPerms.includes('nav-user-manager') ? 'admin' : 'user';
-            
+
             const userData = {
                 id: id,
                 name: name,
                 pass: pass,
                 role: derivedRole, 
-                permissions: selectedPerms // <--- สำคัญ: บันทึก Array นี้ลงไป
+                permissions: selectedPerms 
             };
+
+            showLoading("กำลังบันทึกข้อมูลผู้ใช้...");
 
             try {
                 if (mode === 'add') {
-                    if (systemUsersDB.some(u => u.id === id)) throw new Error("Username นี้มีอยู่แล้ว");
+                    // เช็คซ้ำ
+                    if (systemUsersDB.some(u => u.id === id)) {
+                        hideLoading();
+                        return alert("Username นี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น");
+                    }
                     systemUsersDB.push(userData);
-                    logAudit('ADD_USER', id, `Role: ${derivedRole}, Perms: ${selectedPerms.length}`);
+                    logAudit('ADD_USER', id, `Role: ${derivedRole}`);
                 } else {
                     const idx = systemUsersDB.findIndex(u => u.id === id);
                     if (idx > -1) {
                         systemUsersDB[idx] = userData;
-                        logAudit('EDIT_USER', id, `Updated Perms: ${selectedPerms.length}`);
+                        logAudit('EDIT_USER', id, `Role: ${derivedRole}`);
                     }
                 }
 
+                // ปิด Modal
                 document.getElementById('userModal').style.display = 'none';
 
-                // *** Sync ขึ้น Google Sheets ***
-                await pushData();
+                // 🔥 สำคัญ: สั่งบันทึกลง Cloud ทันที
+                await pushData(true); 
                 
                 renderUserManager();
                 alert("บันทึกเรียบร้อย!");
                 
             } catch (err) {
-                alert("Error: " + err.message);
+                console.error(err);
+                alert("เกิดข้อผิดพลาดในการบันทึก: " + err.message);
             } finally {
                 hideLoading();
             }
@@ -2399,17 +2485,26 @@
 
         // --- 6. ลบ (DELETE) ---
         async function deleteUser(id) {
-            if (!confirm(`ลบผู้ใช้ "${id}" ?`)) return;
+            if (!confirm(`ยืนยันที่จะลบผู้ใช้ "${id}" ?\n(การกระทำนี้ไม่สามารถย้อนกลับได้)`)) return;
             
-            showLoading("กำลังลบ...");
-            systemUsersDB = systemUsersDB.filter(u => u.id !== id);
-            logAudit('DEL_USER', id, 'Deleted');
+            showLoading("กำลังลบผู้ใช้...");
             
-            await pushData();
-            
-            renderUserManager();
-         
-            hideLoading();
+            try {
+                // ลบออกจาก Array
+                systemUsersDB = systemUsersDB.filter(u => u.id !== id);
+                logAudit('DEL_USER', id, 'Deleted by Admin');
+                
+                // 🔥 สำคัญ: สั่งบันทึกลง Cloud ทันที
+                await pushData(true);
+                
+                renderUserManager();
+                // alert("ลบผู้ใช้เรียบร้อย");
+                
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                hideLoading();
+            }
         }
 
         // --- 7. APPLY PERMISSION (ตอน Login) ---
@@ -2477,6 +2572,8 @@
                 .then(data => {
                     updateSyncStatus('online');
                     processLoadedData(data); // ✅ ใช้ฟังก์ชันกลาง
+
+                    console.log(data)
                     
                     // Special Case: หน้าสมัครงาน
                     const urlParams = new URLSearchParams(window.location.search);
@@ -2497,14 +2594,16 @@
         }
     
         async function pushData(showOverlay = false) {
-        if (!USE_CLOUD) return;
-        if (realTimeInterval) clearInterval(realTimeInterval);
-        isSaving = true;
+            if (!USE_CLOUD) return;
+            if (realTimeInterval) clearInterval(realTimeInterval);
+            isSaving = true;
 
-        // ไฟเหลือง (กำลังส่ง)
-        updateSyncStatus('loading');
+            // ไฟเหลือง (กำลังส่ง)
+            updateSyncStatus('loading');
 
             if (showOverlay) showLoading("☁️ กำลังบันทึกข้อมูล...");
+
+            console.log(applicationsDB)
 
             const payload = {
                 timestamp: Date.now(),
@@ -2517,7 +2616,7 @@
                 heroSets: heroSetsDB,
                 battleHistory: battleHistoryDB,
                 archivedSeasons: archivedSeasons,
-                // users: systemUsersDB,
+                users: systemUsersDB,
                 auditLogs: auditLogsDB,
                 knownEnemies: knownEnemies,
                 heroLists: tempHeroLists,
@@ -2547,7 +2646,7 @@
                 isSaving = false;
                 if (showOverlay) hideLoading();
                 // เริ่ม Sync ใหม่
-                startRealTimeSync();
+                // startRealTimeSync();
             }
         }
         function updateSyncStatus(status = 'offline') {
@@ -2622,27 +2721,18 @@
             // 3. กำหนด ID และการทำงาน
             const targetViewMap = {
                 'home': 'view-home',
-                // 'war-room': 'view-war-room',
                 'preparation': 'view-preparation',
-                // 'battle-war': 'view-battle-war',
-                // 'battle-history': 'view-battle-history',
                 'simulator': 'view-simulator',
                 'gallery': 'view-gallery',
                 'tier-viewer': 'view-tier-viewer',
-                // 'analytics': 'view-analytics',
-                'settings': 'view-settings',
+                'hero-lists': 'view-hero-lists',
                 
                 // Database & Admin
                 'hero-manager': 'view-manager',
                 'pet-manager': 'view-manager',
-                'item-manager': 'view-manager',
                 'ring-manager': 'view-manager',
-                'set-manager': 'view-set-manager',
                 'user-manager': 'view-user-manager',
-                'audit-logs': 'view-audit-logs',
 
-                // ✅ [ส่วนที่ต้องเพิ่ม]
-                'hero-lists': 'view-hero-lists',
                 'survey-admin': 'view-survey-admin',
                 'application-form': 'view-application-form'
             };
@@ -2655,18 +2745,11 @@
                 el.classList.add('tab-active');
 
                 // Init Functions (สั่งให้ทำงานเมื่อเปิดหน้า)
-                // if (v === 'war-room') checkWarRoomStatus();
                 if (v === 'preparation') renderPreparation();
-                // else if (v === 'battle-war') renderBattleWar();
-                // else if (v === 'battle-history') renderFullHistory();
                 else if (v === 'simulator') initSimulator();
                 else if (v === 'tier-viewer') renderTierViewer();
                 else if (v === 'gallery') renderGallery();
-                // else if (v === 'analytics') renderAnalytics();
-                else if (v === 'settings') updateSyncStatus();
-                // else if (v === 'audit-logs') renderAuditLogs();
                 else if (v === 'user-manager') renderUserManager();
-                else if (v === 'set-manager') renderSetManager();
                 else if (v.includes('manager')) renderManagerUI();
                 else if (v === 'survey-admin') renderSurveyBuilder();
                 else if (v === 'application-form') renderApplicationForm();
@@ -7924,20 +8007,17 @@
             container.innerHTML = '';
 
             ALL_MENUS.forEach(menu => {
-                // ถ้าเป็นโหมด Add (userPerms ว่าง) ให้ใช้ค่า Default ของเมนู
-                // ถ้าเป็นโหมด Edit ให้เช็คว่า userPerms มี id นี้ไหม
-                const isChecked = (userPerms.length > 0 || userPerms.includes('*')) 
-                    ? userPerms.includes(menu.id) 
-                    : menu.default;
-
+                const isChecked = userPerms.includes(menu.id);
                 container.innerHTML += `
-                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1.5 rounded transition select-none">
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded transition select-none border border-transparent hover:border-gray-600">
                         <input type="checkbox" class="perm-check accent-green-500 w-4 h-4" value="${menu.id}" ${isChecked ? 'checked' : ''}>
-                        <span class="text-xs text-gray-300">${menu.label}</span>
+                        <span class="text-xs text-gray-300 font-bold">${menu.label}</span>
                     </label>
                 `;
             });
         }
+
+        // 7. Helper: เลือกทั้งหมด / ล้างทั้งหมด
         function toggleAllPermissions(check) {
             document.querySelectorAll('.perm-check').forEach(cb => cb.checked = check);
         }
@@ -9358,19 +9438,19 @@
             updateSyncStatus('online'); // คงสถานะไฟเขียว
 
             // เปรียบเทียบเวลา: ถ้า Server ใหม่กว่า Local -> แจ้งเตือน
-            if (data.timestamp && data.timestamp > lastServerTimestamp) {
-                console.log("🔔 New update found on server!");
+            // if (data.timestamp && data.timestamp > lastServerTimestamp) {
+            //     console.log("🔔 New update found on server!");
                 
-                // พักข้อมูลไว้ในตัวแปร ยังไม่เอาขึ้นหน้าจอ
-                pendingUpdateData = data;
+            //     // พักข้อมูลไว้ในตัวแปร ยังไม่เอาขึ้นหน้าจอ
+            //     pendingUpdateData = data;
                 
-                // แสดงแถบแจ้งเตือนด้านบน
-                const notif = document.getElementById('update-notification');
-                if(notif) {
-                    notif.classList.remove('hidden');
-                    notif.classList.add('flex');
-                }
-            }
+            //     // แสดงแถบแจ้งเตือนด้านบน
+            //     const notif = document.getElementById('update-notification');
+            //     if(notif) {
+            //         notif.classList.remove('hidden');
+            //         notif.classList.add('flex');
+            //     }
+            // }
         })
         .catch(err => {
             console.warn("Background check failed:", err);
@@ -10528,42 +10608,109 @@
         if(badge) badge.innerText = applicationsDB.length;
 
         if (applicationsDB.length === 0) {
-            container.innerHTML = `<div class="text-center text-gray-600 py-10">ยังไม่มีผู้สมัคร</div>`;
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-10 text-gray-600 opacity-60">
+                    <span class="text-4xl mb-2">📭</span>
+                    <span class="text-xs">ยังไม่มีผู้สมัคร</span>
+                </div>`;
             return;
         }
 
-        container.innerHTML = applicationsDB.map((app, i) => `
-            <div class="bg-[#1f2937] p-4 rounded-xl border border-gray-700 shadow-md animate-fade-in">
-                <div class="flex flex-col md:flex-row gap-4 mb-4 border-b border-gray-600 pb-4">
-                    <div class="w-full md:w-48 h-32 flex-shrink-0 bg-black rounded-lg overflow-hidden border border-gray-600 relative group">
-                        <img src="${app.img || 'https://placehold.co/640x360?text=No+Image'}" class="w-full h-full object-contain">
-                        <a href="${app.img}" target="_blank" class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition cursor-zoom-in">🔍 ดูรูปขยาย</a>
-                    </div>
+        container.innerHTML = applicationsDB.map((app, i) => {
+            // ใช้รูปแรกเป็น Avatar
+            const avatar = (app.images && app.images.length > 0) ? app.images[0] : (app.img || '');
+            
+            return `
+            <div onclick="viewApplicationDetail(${i})" class="group flex items-center gap-3 p-3 bg-[#161b22] border border-gray-800 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-[#1f2937] transition relative overflow-hidden mb-2">
+                
+                <div class="w-12 h-12 rounded-lg bg-black border border-gray-700 flex-shrink-0 overflow-hidden relative">
+                    <img src="${avatar}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition" onerror="this.src='https://placehold.co/100?text=?'">
+                </div>
 
-                    <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="font-bold text-blue-300 text-xl truncate">${app.name}</div>
-                                <div class="text-sm text-gray-400 mt-1">📞 Contact: <span class="text-white">${app.contact || '-'}</span></div>
-                            </div>
-                            <button onclick="deleteApplication(${i})" class="text-gray-500 hover:text-red-500 p-2 transition" title="ลบใบสมัคร">🗑️</button>
-                        </div>
-                        <div class="text-[10px] text-gray-500 mt-2 text-right">📅 ${app.date}</div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-gray-200 font-bold text-sm truncate group-hover:text-white transition">${app.name}</h4>
+                        <span class="text-[10px] text-gray-500 whitespace-nowrap">${app.date.split(' ')[0]}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 truncate group-hover:text-blue-300 transition">
+                        📞 ${app.contact || '-'}
                     </div>
                 </div>
-                
-                <div class="space-y-3 bg-[#111827] p-3 rounded-lg border border-gray-800/50">
-                    ${app.answers.map(ans => `
-                        <div>
-                            <div class="text-[11px] text-blue-400 font-bold mb-1 flex items-center gap-1">
-                                <span class="text-gray-600">❓</span> ${ans.q}
-                            </div>
-                            <div class="text-gray-200 text-sm pl-4 border-l-2 border-gray-700">${ans.a}</div>
-                        </div>
-                    `).join('')}
+
+                <div class="text-gray-600 group-hover:text-blue-500 transition px-1">
+                    ❯
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
+    }
+
+    function viewApplicationDetail(index) {
+        const app = applicationsDB[index];
+        if(!app) return;
+
+        // A. ใส่ข้อมูลพื้นฐาน
+        document.getElementById('view-app-name').innerText = app.name;
+        document.getElementById('view-app-contact').innerText = `Contact: ${app.contact || '-'}`;
+        
+        // B. ใส่รูปภาพ (รองรับทั้งระบบเก่า img เดียว และระบบใหม่ images array)
+        const imgContainer = document.getElementById('view-app-images');
+        let imagesToShow = [];
+
+        if (app.images && Array.isArray(app.images) && app.images.length > 0) {
+            imagesToShow = app.images;
+        } else if (app.img) {
+            imagesToShow = [app.img]; // รองรับข้อมูลเก่า
+        }
+
+        document.getElementById('view-img-count').innerText = `${imagesToShow.length} images`;
+
+        if (imagesToShow.length === 0) {
+            imgContainer.innerHTML = `<div class="col-span-3 text-center text-gray-500 py-4 text-xs">ไม่พบรูปภาพ</div>`;
+        } else {
+            imgContainer.innerHTML = imagesToShow.map((src, idx) => `
+                <a href="${src}" target="_blank" class="block relative aspect-video bg-black rounded-lg overflow-hidden border border-gray-700 group hover:border-blue-500 transition">
+                    <img src="${src}" class="w-full h-full object-contain opacity-90 group-hover:opacity-100 transition">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition">
+                        <span class="text-white text-xs font-bold bg-black/60 px-2 py-1 rounded">🔍 Zoom</span>
+                    </div>
+                    <div class="absolute top-1 left-1 bg-black/70 text-gray-300 text-[9px] px-1.5 rounded border border-white/10">#${idx+1}</div>
+                </a>
+            `).join('');
+        }
+
+        // C. ใส่คำถาม-คำตอบ
+        const qaContainer = document.getElementById('view-app-answers');
+        if (app.answers && app.answers.length > 0) {
+            qaContainer.innerHTML = app.answers.map(ans => `
+                <div class="bg-[#111827] p-3 rounded-lg border border-gray-800">
+                    <div class="text-[11px] text-blue-400 font-bold mb-1 opacity-80 flex gap-2">
+                        <span>❓</span> ${ans.q}
+                    </div>
+                    <div class="text-sm text-gray-200 pl-6 border-l-2 border-gray-700">
+                        ${ans.a}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            qaContainer.innerHTML = `<div class="text-gray-500 text-xs text-center">ไม่มีข้อมูลคำตอบ</div>`;
+        }
+
+        // D. ผูกปุ่มลบกับ Index ปัจจุบัน
+        const delBtn = document.getElementById('btn-delete-app');
+        delBtn.onclick = function() {
+            if(confirm(`ต้องการลบใบสมัครของ "${app.name}" ใช่หรือไม่?`)) {
+                deleteApplication(index);
+                closeAppDetail();
+            }
+        };
+
+        // E. แสดง Modal
+        document.getElementById('appDetailModal').style.display = 'flex';
+    }
+
+    function closeAppDetail() {
+        document.getElementById('appDetailModal').style.display = 'none';
     }
 
     function deleteApplication(idx) {
