@@ -1487,9 +1487,16 @@
                 </div>
 
                 <div class="w-1/2 p-6 overflow-y-auto custom-scroll bg-[#0b0e14]">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-green-400 font-bold uppercase text-sm">📩 Applications Received</h3>
-                        <span id="app-count-badge" class="bg-gray-800 text-xs px-2 py-1 rounded text-white">0</span>
+                    <div class="flex items-center justify-between mb-4 bg-[#1f2937] p-3 rounded-lg border border-gray-700">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            📥 Applications Received
+                            <span id="app-count-badge" class="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full shadow">0</span>
+                        </h3>
+                        <button id="btn-refresh-apps" onclick="refreshApplications()" 
+                                class="group flex items-center gap-2 text-gray-400 hover:text-white hover:bg-gray-600 px-3 py-1.5 rounded-lg transition text-xs font-bold border border-transparent hover:border-gray-500">
+                            <span id="icon-refresh" class="text-lg transition-transform duration-700">🔄</span>
+                            <span>Refresh Data</span>
+                        </button>
                     </div>
                     <div id="survey-responses-container" class="space-y-3"></div>
                 </div>
@@ -11005,6 +11012,41 @@
                 btn.disabled = true; // ปิดปุ่ม Login ถ้าเน็ตหลุด
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
             }
+        }
+    }
+    async function refreshApplications() {
+        const btn = document.getElementById('btn-refresh-apps');
+        const icon = document.getElementById('icon-refresh');
+        
+        // 1. เริ่ม Animation (หมุนติ้วๆ) และล็อคปุ่ม
+        if(btn) btn.disabled = true;
+        if(icon) icon.classList.add('animate-spin'); // ใช้ Class หมุนของ Tailwind
+
+        try {
+            console.log("🔄 Refreshing Applications...");
+
+            showLoading("กำลังบันทึกข้อมูลผู้ใช้...");
+            
+            // 2. เรียกฟังก์ชันโหลดข้อมูล (ใส่ false เพื่อไม่ให้ Overlay ใหญ่บังจอ)
+            // ระบบจะไปดึงข้อมูลล่าสุดจาก Google Sheets มาอัปเดตตัวแปร applicationsDB
+            await fetchCloudData(false);
+
+            // 3. วาดตารางใหม่
+            renderSurveyResponses();
+            renderSurveyBuilder();
+
+            // (Optional) ขึ้น Toast แจ้งเตือนเล็กๆ ว่าเสร็จแล้ว
+            // alert("ข้อมูลอัปเดตแล้ว!"); 
+
+        } catch (e) {
+            console.error("Refresh Error:", e);
+            alert("โหลดข้อมูลไม่สำเร็จ: " + e.message);
+             hideLoading();
+        } finally {
+            // 4. หยุด Animation และปลดล็อคปุ่ม
+            if(btn) btn.disabled = false;
+            if(icon) icon.classList.remove('animate-spin');
+             hideLoading();
         }
     }
     </script>
