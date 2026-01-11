@@ -730,10 +730,10 @@
         .floating-label {
             position: absolute;
             cursor: move;
-            background-color: rgba(0, 0, 0, 0.7);
+            /* background-color: rgba(0, 0, 0, 0.7); */
             color: #fbbf24;
             padding: 4px 12px;
-            border: 1px dashed #fbbf24;
+            /* border: 1px dashed #fbbf24; */
             border-radius: 4px;
             font-weight: bold;
             font-size: 1.2rem;
@@ -741,7 +741,7 @@
             min-width: 50px;
             text-align: center;
             user-select: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            /* box-shadow: 0 4px 6px rgba(0,0,0,0.3); */
 
             /* Properties สำหรับรูปพื้นหลัง */
             background-size: cover;
@@ -930,7 +930,9 @@
             <div onclick="switchView('simulator')" class="menu-item" id="nav-simulator">🎮 Battle Simulator</div>
             <div onclick="switchView('hero-lists')" class="menu-item" id="nav-hero-lists">📋 Hero Lists & Usage</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ Gallery</div>
-            <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🏆 Tier Lists</div>
+            <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🧩 Customize</div>
+            <div class="menu-item" id="nav-catalog"> Catalog</div>
+            <!-- onclick="switchView('catalog')" -->
 
             <div class="my-4 pt-4 border-t border-gray-800">
                 <div class="menu-section-title">Database Manager</div>
@@ -1203,24 +1205,57 @@
                 <div onclick="deleteSticker()" class="ctx-option delete hover:bg-red-900/50 text-red-400 p-2 rounded cursor-pointer text-xs">🗑️ ลบรูป (Delete)</div>
             </div>
 
-            <div id="tier-context-menu" class="fixed hidden bg-gray-800 border border-gray-600 shadow-xl rounded-lg py-1 z-[2000] w-40 font-['Kanit']">
-                <div onclick="addTextAtContextLocation()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm flex items-center gap-2 transition">
-                    <span>✎</span> เพิ่มข้อความ
+            <div id="tier-context-menu" class="fixed hidden bg-[#161b22] border border-gray-600 shadow-2xl rounded-lg py-1 z-[2000] w-48 font-['Kanit']">
+                <div onclick="addTextAtContextLocation()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm flex items-center gap-2 transition border-b border-gray-700">
+                    <span>✎</span> เพิ่มข้อความ (Text)
                 </div>
-                <div onclick="resetTierList()" class="px-4 py-2 hover:bg-red-900/50 hover:text-red-200 cursor-pointer text-gray-300 text-sm flex items-center gap-2 border-t border-gray-700 mt-1 transition">
+                <div onclick="addStickerFromContext()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-blue-300 text-sm flex items-center gap-2 transition">
+                    <span>🖼️</span> เพิ่มสติ๊กเกอร์ (Link)
+                </div>
+                
+                <div onclick="resetTierList()" class="px-4 py-2 hover:bg-red-900/50 hover:text-red-200 cursor-pointer text-gray-400 text-sm flex items-center gap-2 border-t border-gray-700 mt-1 transition">
                     <span>🗑️</span> Reset ทั้งหมด
                 </div>
             </div>
 
-            <div id="tier-text-menu" class="fixed hidden bg-gray-800 border border-gray-600 shadow-xl rounded-lg py-1 z-[2000] w-48 font-['Kanit']">
-                <div onclick="setTextBackground()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white text-sm flex items-center gap-2 transition">
-                    <span>🌄</span> ใส่รูปพื้นหลัง (Set BG)
+            <div id="tier-text-menu" class="fixed hidden bg-[#161b22] border border-gray-600 shadow-2xl rounded-lg p-2 z-[2000] w-56 font-['Kanit'] flex flex-col gap-2">
+        
+                <div onclick="editTextContent()" class="px-3 py-1.5 hover:bg-blue-600 bg-blue-900/30 text-white rounded cursor-pointer text-xs font-bold text-center border border-blue-500/50 mb-1">
+                    ✏️ แก้ไขข้อความ (Edit)
                 </div>
-                <div onclick="clearTextBackground()" class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-gray-300 text-sm flex items-center gap-2 transition">
-                    <span>🎨</span> ลบพื้นหลัง (Clear BG)
+
+                <div class="flex gap-2 items-center">
+                    <div class="flex-1 bg-[#0d1117] border border-gray-600 rounded flex items-center px-2">
+                        <span class="text-[10px] text-gray-500 mr-1">Size</span>
+                        <input type="number" id="ctx-text-size" class="w-full bg-transparent text-white text-xs py-1 outline-none text-center" 
+                            onchange="updateTextStyle('fontSize', this.value + 'px')">
+                    </div>
+                    <div class="w-8 h-8 rounded border border-gray-600 overflow-hidden relative cursor-pointer">
+                        <input type="color" id="ctx-text-color" class="absolute -top-2 -left-2 w-12 h-12 cursor-pointer p-0 border-0" 
+                            oninput="updateTextStyle('color', this.value)">
+                    </div>
                 </div>
-                <div onclick="deleteFloatingText()" class="px-4 py-2 hover:bg-red-900/50 hover:text-red-200 cursor-pointer text-red-400 text-sm flex items-center gap-2 border-t border-gray-700 transition mt-1">
-                    <span>🗑️</span> ลบข้อความ (Delete)
+
+                <select id="ctx-text-font" onchange="updateTextStyle('fontFamily', this.value)" class="w-full bg-[#0d1117] border border-gray-600 rounded text-xs text-white px-2 py-1 outline-none">
+                    <option value="'Kanit', sans-serif">Kanit (Default)</option>
+                    <option value="sans-serif">Sans Serif</option>
+                    <option value="serif">Serif (ทางการ)</option>
+                    <option value="monospace">Monospace (โค้ด)</option>
+                    <option value="cursive">Cursive (ลายมือ)</option>
+                    <option value="fantasy">Fantasy (แฟนตาซี)</option>
+                </select>
+
+                <div class="grid grid-cols-2 gap-2 mt-1 pt-2 border-t border-gray-700">
+                    <button onclick="setTextBackground()" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-white py-1 rounded">
+                        🌄 ใส่รูป BG
+                    </button>
+                    <button onclick="clearTextBackground()" class="text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-300 py-1 rounded">
+                        ⬜ ลบ BG
+                    </button>
+                </div>
+
+                <div onclick="deleteFloatingText()" class="mt-1 px-3 py-1.5 hover:bg-red-900/50 text-red-400 rounded cursor-pointer text-xs font-bold text-center border border-red-900/30">
+                    🗑️ ลบข้อความ
                 </div>
             </div>
 
@@ -1501,7 +1536,7 @@
             </div>
         </div>
 
-        <div id="view-application-form" class="flex-col h-full bg-[#0b0e14] overflow-y-auto custom-scroll">
+        <div id="view-application-form" class="flex-col h-full bg-[#0b0e14] overflow-y-auto justify-start items-center custom-scroll">
             <div class="w-full max-w-2xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden my-10">
                 <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center">
                     <h1 class="text-3xl font-bold text-white mb-2">Guild Recruitment</h1>
@@ -1820,7 +1855,10 @@
                 <div class="mb-6">
                     <label class="text-xs text-gray-400 font-bold uppercase mb-2 block">🖼️ รูปพื้นหลัง (Background URL)</label>
                     <div class="flex gap-2">
-                        <input type="text" id="tm-bg-input" class="flex-1 bg-[#161b22] border border-gray-600 rounded p-2 text-white text-xs outline-none" placeholder="https://...">
+                        <input type="text" id="tm-bg-input" class="flex-1 bg-[#161b22] border border-gray-600 rounded p-2 text-white text-xs outline-none" 
+                            placeholder="https://..." 
+                            onchange="setTierBg(this.value)">
+                            
                         <button onclick="setTierBg(document.getElementById('tm-bg-input').value)" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Set</button>
                         <button onclick="setTierBg('')" class="bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-800 px-3 py-1 rounded text-xs">Clear</button>
                     </div>
@@ -4125,10 +4163,21 @@
         function addNewRank() {
             const id = 'RANK_' + Date.now();
             activeTiers.push(id);
-            tierRankConfigs[id] = { name: 'NEW', color: '#ffffff', opacity: 60, bg: '' };
-            saveLocalTierData();
+            // สร้างค่า Default
+            tierRankConfigs[id] = { name: 'NEW', color: '#ffffff', headerBg: '#333333', opacity: 60, bg: '' };
+            
+            // ✅ บันทึกทันที
+            autoSaveTierList();
+            
+            // รีเฟรชหน้าจอ
             renderTierViewer();
-            closeCtxMenus();
+            renderManagerRows(); // อัปเดตรายการใน Modal ด้วย
+            
+            // Scroll ไปล่างสุดของรายการใน Modal
+            setTimeout(() => {
+                const list = document.getElementById('tm-rows-list');
+                if(list) list.scrollTop = list.scrollHeight;
+            }, 100);
         }
 
         function deleteRank() {
@@ -4168,13 +4217,22 @@
         }
 
         function resetTierNames() {
-            if(confirm("ล้างกระดานทั้งหมดให้โล่ง (Clear All)?\n(ไอเท็มจะกลับลง Pool)")) {
-                // ✅ กำหนดให้เป็นค่าว่าง
-                activeTiers = [];
-                tierRankConfigs = {};
+            if(confirm("ล้างค่าทั้งหมดกลับเป็นค่าเริ่มต้น?")) {
+                // คืนค่า Default S, A, B...
+                activeTiers = ['S', 'A', 'B', 'C', 'D'];
+                tierRankConfigs = {
+                    S: { name: 'S', color: '#ffffff', headerBg: '#ef4444', opacity: 60 },
+                    A: { name: 'A', color: '#ffffff', headerBg: '#f97316', opacity: 60 },
+                    B: { name: 'B', color: '#ffffff', headerBg: '#eab308', opacity: 60 },
+                    C: { name: 'C', color: '#ffffff', headerBg: '#22c55e', opacity: 60 },
+                    D: { name: 'D', color: '#ffffff', headerBg: '#64748b', opacity: 60 }
+                };
                 
+                // ✅ บันทึกทันที
                 autoSaveTierList();
+                
                 renderTierViewer();
+                renderManagerRows();
             }
         }
 
@@ -4465,27 +4523,24 @@
         }
 
         // --- 2. BACKGROUND LOGIC (ปรับให้ชัด 100%) ---
-        function setTierBg(url, shouldSave = true) {
+        function setTierBg(url) {
             const container = document.getElementById('tier-bg-container');
             const overlay = document.getElementById('tier-bg-overlay');
-            
+            const input = document.getElementById('tm-bg-input'); // ช่อง Input ใน Modal
+
             if (!url) {
-                // Reset (กลับเป็นสีดำทึบ)
                 container.style.backgroundImage = 'none';
                 container.style.backgroundColor = '#0b0e14';
                 overlay.style.backgroundColor = 'transparent';
-                localStorage.removeItem('7k_tier_bg');
+                if(input) input.value = '';
             } else {
                 container.style.backgroundImage = `url('${url}')`;
-                
-                // [จุดที่แก้ไข] เปลี่ยนเป็น 'transparent' เพื่อให้เห็นภาพชัดที่สุด
-                // ถ้าอยากให้มืดนิดหน่อยเพื่อให้เห็นตัวหนังสือ เปลี่ยนเป็น 'rgba(0,0,0,0.2)'
-                overlay.style.backgroundColor = 'transparent'; 
-                
-                localStorage.setItem('7k_tier_bg', url);
+                overlay.style.backgroundColor = 'transparent';
+                if(input) input.value = url;
             }
 
-            if(shouldSave) autoSaveTierList();
+            // ✅ บันทึกทันที
+            autoSaveTierList();
         }
 
         // Toggle Menu
@@ -11089,6 +11144,198 @@
             if(icon) icon.classList.remove('animate-spin');
              hideLoading();
         }
+    }
+    function openTierListManager() {
+        // 1. โหลด Background ปัจจุบันมาใส่ Input
+        const currentBg = localStorage.getItem('7k_tier_bg') || '';
+        document.getElementById('tm-bg-input').value = currentBg;
+
+        // 2. Render รายการแถว
+        renderManagerRows();
+
+        // 3. เปิด Modal
+        document.getElementById('tierListManagerModal').style.display = 'flex';
+    }
+
+    function closeTierListManager() {
+        document.getElementById('tierListManagerModal').style.display = 'none';
+        // Auto Save เมื่อปิดหน้าต่าง
+        autoSaveTierList();
+    }
+
+    function renderManagerRows() {
+        const container = document.getElementById('tm-rows-list');
+        container.innerHTML = '';
+
+        activeTiers.forEach((rankId, index) => {
+            // ดึง Config ของ Rank นั้น
+            let conf = tierRankConfigs[rankId];
+            if (!conf) {
+                // ถ้าไม่มี Config ให้สร้าง Default
+                conf = { name: rankId, color: '#ffffff', headerBg: '#333333', opacity: 60 };
+                tierRankConfigs[rankId] = conf;
+            }
+
+            // แปลงสีให้แสดงผลใน Input Color ได้
+            let hexColor = conf.headerBg || '#333333';
+            if(!hexColor.startsWith('#')) hexColor = '#333333'; 
+
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-2 p-2 bg-[#161b22] border border-gray-700 rounded-lg group";
+            div.innerHTML = `
+                <div class="flex flex-col items-center justify-center w-8 gap-1">
+                    <button onclick="moveRankManager(${index}, -1)" class="text-gray-500 hover:text-white text-[10px]">▲</button>
+                    <button onclick="moveRankManager(${index}, 1)" class="text-gray-500 hover:text-white text-[10px]">▼</button>
+                </div>
+                
+                <div class="flex-1 grid grid-cols-12 gap-2 items-center">
+                    <div class="col-span-1">
+                        <input type="color" class="w-8 h-8 rounded cursor-pointer bg-transparent border-none p-0" 
+                            value="${hexColor}" 
+                            oninput="updateRankConfig('${rankId}', 'headerBg', this.value)">
+                    </div>
+                    <div class="col-span-8">
+                        <input type="text" class="w-full bg-[#0d1117] border border-gray-600 rounded px-2 py-1.5 text-white text-sm outline-none focus:border-blue-500"
+                            value="${conf.name}" 
+                            oninput="updateRankConfig('${rankId}', 'name', this.value)" placeholder="ชื่อแถว...">
+                    </div>
+                     <div class="col-span-3">
+                         <div class="flex items-center gap-1 bg-[#0d1117] border border-gray-600 rounded px-2">
+                            <span class="text-[10px] text-gray-400">Op:</span>
+                            <input type="number" class="w-full bg-transparent text-white text-xs py-1.5 outline-none text-center"
+                                value="${conf.opacity}" min="0" max="100"
+                                oninput="updateRankConfig('${rankId}', 'opacity', this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="deleteRankManager('${rankId}')" class="text-red-500 hover:bg-red-900/30 p-2 rounded border border-transparent hover:border-red-900 transition">
+                    🗑️
+                </button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // ฟังก์ชันย่อยสำหรับ Manager
+    function updateRankConfig(rankId, field, value) {
+        if (!tierRankConfigs[rankId]) return;
+        
+        tierRankConfigs[rankId][field] = value;
+        
+        // ✅ บันทึกทันที
+        autoSaveTierList(); 
+        
+        // รีเฟรชหน้าจอหลักแบบ Real-time
+        renderTierViewer();
+    }
+
+    function moveRankManager(index, direction) {
+        const newIdx = index + direction;
+        if (newIdx >= 0 && newIdx < activeTiers.length) {
+            // สลับตำแหน่งใน Array
+            const temp = activeTiers[newIdx];
+            activeTiers[newIdx] = activeTiers[index];
+            activeTiers[index] = temp;
+            
+            // ✅ บันทึกทันที
+            autoSaveTierList();
+            
+            renderManagerRows();
+            renderTierViewer();
+        }
+    }
+
+    function deleteRankManager(rankId) {
+        if(confirm(`ต้องการลบแถวนี้หรือไม่?\n(ไอเท็มข้างในจะถูกย้ายลง Pool)`)) {
+            activeTiers = activeTiers.filter(r => r !== rankId);
+            
+            // ✅ บันทึกทันที
+            autoSaveTierList();
+            
+            renderManagerRows();
+            renderTierViewer();
+        }
+    }
+
+    function addStickerFromContext() {
+        const url = prompt("วางลิงก์รูปภาพ (Image URL):");
+        if(url) {
+            addSticker(url);
+            // (Optional) ถ้าอยากให้รูปไปโผล่ตรงจุดที่คลิกขวาเลย ต้องแก้ addSticker ให้รับ x,y
+            // แต่ตอนนี้มันจะไปโผล่กลางจอ ซึ่งก็ใช้งานง่ายดีครับ
+        }
+        closeCtxMenus();
+    }
+
+    // 2. เปิดเมนูข้อความ (โหลดค่าเดิมมาโชว์)
+    function openTierTextMenu(e, element) {
+        e.preventDefault(); // กันเมนู Browser
+        e.stopPropagation();
+
+        activeFloatingText = element; // จำตัวที่ถูกคลิก
+        closeCtxMenus();
+
+        const menu = document.getElementById('tier-text-menu');
+        
+        // --- โหลดค่าปัจจุบันมาใส่ในเมนู ---
+        const currentSize = parseInt(window.getComputedStyle(element).fontSize);
+        const currentColor = rgbToHex(window.getComputedStyle(element).color);
+        const currentFont = element.style.fontFamily.replace(/"/g, "'") || "'Kanit', sans-serif";
+
+        document.getElementById('ctx-text-size').value = currentSize;
+        document.getElementById('ctx-text-color').value = currentColor;
+        document.getElementById('ctx-text-font').value = currentFont;
+
+        // แสดงเมนู
+        menu.style.display = 'flex';
+        menu.classList.remove('hidden');
+        
+        // จัดตำแหน่งไม่ให้ตกจอ
+        let top = e.pageY;
+        let left = e.pageX;
+        if (left + 224 > window.innerWidth) left = window.innerWidth - 230; // 224px คือความกว้างเมนู
+        if (top + 250 > window.innerHeight) top = window.innerHeight - 260;
+
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+    }
+
+    // 3. ฟังก์ชันอัปเดต Style แบบ Real-time
+    function updateTextStyle(prop, value) {
+        if (!activeFloatingText) return;
+        activeFloatingText.style[prop] = value;
+        autoSaveTierList(); // บันทึกทันที
+    }
+
+    // 4. แก้ไขข้อความ (Prompt)
+    function editTextContent() {
+        if (!activeFloatingText) return;
+        const oldText = activeFloatingText.innerText;
+        const newText = prompt("แก้ไขข้อความ:", oldText);
+        
+        if (newText !== null) { // ถ้ากด Cancel จะเป็น null
+            activeFloatingText.innerText = newText;
+            autoSaveTierList();
+        }
+        closeCtxMenus();
+    }
+
+    // --- Helper: แปลงสี RGB เป็น Hex (สำหรับ Input Color) ---
+    function rgbToHex(rgb) {
+        if (!rgb || rgb.indexOf('rgb') === -1) return '#ffffff';
+        const sep = rgb.indexOf(",") > -1 ? "," : " ";
+        rgb = rgb.substr(4).split(")")[0].split(sep);
+        
+        let r = (+rgb[0]).toString(16),
+            g = (+rgb[1]).toString(16),
+            b = (+rgb[2]).toString(16);
+      
+        if (r.length == 1) r = "0" + r;
+        if (g.length == 1) g = "0" + g;
+        if (b.length == 1) b = "0" + b;
+      
+        return "#" + r + g + b;
     }
     </script>
 </body>
