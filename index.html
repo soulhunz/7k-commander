@@ -10855,10 +10855,10 @@
             const optionsHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
             return `
             <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-300 mb-2">${q.question || 'คำถาม'}</label>
+                <label class="block text-xl font-bold text-gray-300 mb-2">${q.question || 'คำถาม'}</label>
                 <div class="relative">
-                    <select id="ans-${q.id}" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white appearance-none cursor-pointer focus:border-blue-500 outline-none">
-                        <option value="" disabled selected>-- กรุณาเลือก --</option>
+                    <select id="ans-${q.id}" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white appearance-none cursor-pointer focus:border-blue-500 outline-none">
+                        <option class="text-xl" value="" disabled selected>-- กรุณาเลือก --</option>
                         ${optionsHTML}
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">▼</div>
@@ -10874,46 +10874,46 @@
                     <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center rounded-t-2xl relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-full h-full bg-white/5"></div>
                         <h1 class="text-3xl font-bold text-white relative z-10">Guild Seven Deadly Sins</h1>
-                        <p class="text-blue-200 text-sm mt-1 relative z-10">ใบสมัครเข้ากิลด์</p>
+                        <p class="text-blue-200 text-lg mt-1 relative z-10">ใบสมัครเข้ากิลด์</p>
                     </div>
 
                     <div class="p-8">
                         <div class="mb-5">
-                            <label class="text-blue-400 text-sm font-bold block mb-2">📸 รูปตัวละครใน ID และรูปทีมหน้าจัดกิลวอร์</label>
+                            <label class="text-blue-400 text-lg font-bold block mb-2">📸 รูปตัวละครใน ID และรูปทีมหน้าจัดกิลวอร์</label>
                             <div class="grid grid-cols-3 gap-2">
                                 ${[1, 2, 3].map(i => `
                                     <div class="aspect-square rounded-xl border-2 border-dashed border-gray-600 hover:border-blue-500 bg-black/50 overflow-hidden relative cursor-pointer group" onclick="document.getElementById('app-img-upload-${i}').click()">
                                         <img id="app-img-preview-${i}" src="https://placehold.co/300x300?text=${i}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
                                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <span class="text-gray-400 group-hover:text-white text-xs bg-black/80 px-1 rounded transform scale-75 group-hover:scale-100 transition">+</span>
+                                            <span class="text-gray-400 group-hover:text-white text-lg bg-black/80 px-2 rounded transform scale-75 group-hover:scale-100 transition">+</span>
                                         </div>
                                         <input type="file" id="app-img-upload-${i}" class="hidden" accept="image/*" onchange="previewAppImg(this, ${i})">
                                     </div>
                                 `).join('')}
                             </div>
-                            <p class="text-sm text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูป</p>
+                            <p class="text-lg text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูป</p>
                         </div>
 
                         <div class="grid grid-cols-1 gap-4 mb-6">
                             <div>
-                                <label class="text-gray-300 text-sm font-bold block mb-1">ชื่อในเกม (In-Game Name)</label>
-                                <input type="text" id="app-name" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุชื่อตัวละคร...">
+                                <label class="text-gray-300 text-lg font-bold block mb-1">ชื่อในเกม (In-Game Name)</label>
+                                <input type="text" id="app-name" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุชื่อตัวละคร...">
                             </div>
                             <div>
-                                <label class="text-gray-300 text-sm font-bold block mb-1">ช่องทางติดต่อ (Line / Discord)</label>
-                                <input type="text" id="app-contact" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุ ID...">
+                                <label class="text-gray-300 text-lg font-bold block mb-1">ช่องทางติดต่อ (Line / Discord)</label>
+                                <input type="text" id="app-contact" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุ ID...">
                             </div>
                         </div>
                         
                         <div class="h-px bg-gray-700 my-4"></div>
                         
                         <div class="mb-6">
-                            <div class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">แบบสอบถาม</div>
+                            <div class="text-xl font-bold text-gray-500 uppercase tracking-widest mb-3">แบบสอบถาม</div>
                             ${questionsHTML}
                         </div>
 
                         <div class="mt-6 pt-4 border-t border-gray-700">
-                            <button id="btn-submit-app" onclick="submitApp()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                            <button id="btn-submit-app" onclick="submitApp()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
                                 <span>🚀</span> ส่งใบสมัคร (Submit)
                             </button>
                         </div>
@@ -10996,10 +10996,10 @@
                     <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm mb-6">
                         <div class="h-40 bg-black rounded mb-2 overflow-hidden border border-gray-600 relative">
                             <img src="${app.img || 'https://placehold.co/640x360?text=No+Image'}" class="w-full h-full object-contain">
-                            ${images.length > 1 ? `<div class="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-2 py-1 rounded">+${images.length-1}</div>` : ''}
+                            ${images.length > 1 ? `<div class="absolute bottom-1 right-1 bg-black/70 text-white text-lg px-2 py-1 rounded">+${images.length-1}</div>` : ''}
                         </div>
                         <div class="font-bold text-white text-xl">${name}</div>
-                        <div class="text-xs text-gray-400">${contact}</div>
+                        <div class="text-lg text-gray-400">${contact}</div>
                     </div>
                 </div>
             `;
