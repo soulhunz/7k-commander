@@ -1119,11 +1119,9 @@
                         <button onclick="togglePreviewMode()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 border border-indigo-400"><span>👁️</span> Full Screen</button>
                         
                         <div class="relative">
-                            <button onclick="toggleTierSettings()" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 border border-gray-600"><span>🎨</span> Customize</button>
-                            <div id="tier-settings-menu" class="hidden absolute right-0 top-12 w-72 bg-[#161b22] border border-gray-600 rounded-xl shadow-2xl p-4 animate-fade-in z-[100]">
-                                <div class="text-[10px] text-blue-400 font-bold uppercase mb-2">Change Background</div>
-                                <input type="text" placeholder="BG Image URL..." class="w-full bg-black/50 border border-gray-600 rounded px-2 py-1.5 text-xs text-white outline-none mb-3" onchange="setTierBg(this.value)">
-                                </div>
+                            <button onclick="openTierListManager()" class="bg-gray-800 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 border border-gray-600">
+                                <span>⚙️</span> จัดการรายการ (Manage)
+                            </button>
                         </div>
                     </div>
                 </header>
@@ -1503,7 +1501,7 @@
             </div>
         </div>
 
-        <div id="view-application-form" class="flex-col hidden h-full bg-[#0b0e14] items-center justify-center overflow-y-auto custom-scroll p-4">
+        <div id="view-application-form" class="flex-col h-full bg-[#0b0e14] overflow-y-auto custom-scroll">
             <div class="w-full max-w-2xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden my-10">
                 <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center">
                     <h1 class="text-3xl font-bold text-white mb-2">Guild Recruitment</h1>
@@ -1809,6 +1807,48 @@
         </div>
     </div>
 
+    <div id="tierListManagerModal" class="modal-overlay" style="z-index: 200;">
+        <div class="modal-content !max-w-xl flex flex-col h-[85vh]">
+            
+            <div class="p-4 border-b border-gray-700 bg-[#1f2937] flex justify-between items-center">
+                <h3 class="text-white font-bold text-lg">⚙️ จัดการโครงสร้าง (Structure Manager)</h3>
+                <button onclick="closeTierListManager()" class="text-gray-400 hover:text-white font-bold text-2xl">✕</button>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scroll flex-1 bg-[#0b0e14]">
+                
+                <div class="mb-6">
+                    <label class="text-xs text-gray-400 font-bold uppercase mb-2 block">🖼️ รูปพื้นหลัง (Background URL)</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="tm-bg-input" class="flex-1 bg-[#161b22] border border-gray-600 rounded p-2 text-white text-xs outline-none" placeholder="https://...">
+                        <button onclick="setTierBg(document.getElementById('tm-bg-input').value)" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs">Set</button>
+                        <button onclick="setTierBg('')" class="bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-800 px-3 py-1 rounded text-xs">Clear</button>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-800 my-4"></div>
+
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-blue-400 font-bold text-sm uppercase">รายการแถว (Rows)</h4>
+                    <button onclick="addNewRank()" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-xs font-bold shadow">+ เพิ่มแถวใหม่</button>
+                </div>
+
+                <div id="tm-rows-list" class="space-y-2">
+                    </div>
+
+            </div>
+
+            <div class="p-4 border-t border-gray-700 bg-[#1f2937] flex justify-end gap-3">
+                <button onclick="resetTierNames()" class="px-4 py-2 text-red-400 hover:bg-red-900/20 border border-red-900 rounded-lg text-xs font-bold">
+                    🗑️ Reset All Default
+                </button>
+                <button onclick="closeTierListManager()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold shadow-lg">
+                    เสร็จสิ้น (Done)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
@@ -1867,7 +1907,7 @@
         let CURRENT_USER = null; // เก็บข้อมูลผู้ใช้ปัจจุบัน
         const ALL_MENUS = [
             { id: 'nav-simulator',    label: '🎮 Simulator',        default: true },
-            { id: 'nav-tier-viewer',  label: '🏆 Tier List (View)', default: true },
+            { id: 'nav-tier-viewer',  label: '🧩 Customize', default: true },
             { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
             { id: 'nav-hero-lists',   label: '📜 Hero Lists',        default: true },
             
@@ -10829,18 +10869,17 @@
         // 3. วาดหน้าจอ (เพิ่มช่องรูป 3 ช่อง)
         container.innerHTML = `
 
-            <div class="mt-20">
-                <div class="w-full max-w-lg bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl my-10 animate-fade-in mx-auto relative">
-                    
+            <div >
+                <div class="w-full max-w-3xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl my-10 animate-fade-in mx-auto relative">
                     <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center rounded-t-2xl relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-full h-full bg-white/5"></div>
-                        <h1 class="text-3xl font-bold text-white relative z-10">ใบสมัครเข้ากิลด์</h1>
-                        <p class="text-blue-200 text-sm mt-1 relative z-10">Guild Recruitment Form</p>
+                        <h1 class="text-3xl font-bold text-white relative z-10">Guild Seven Deadly Sins</h1>
+                        <p class="text-blue-200 text-sm mt-1 relative z-10">ใบสมัครเข้ากิลด์</p>
                     </div>
 
                     <div class="p-8">
                         <div class="mb-5">
-                            <label class="text-blue-400 text-sm font-bold block mb-2">📸 รูปทีมปัจจุบัน (สูงสุด 3 รูป)</label>
+                            <label class="text-blue-400 text-sm font-bold block mb-2">📸 รูปตัวละครใน ID และรูปทีมหน้าจัดกิลวอร์</label>
                             <div class="grid grid-cols-3 gap-2">
                                 ${[1, 2, 3].map(i => `
                                     <div class="aspect-square rounded-xl border-2 border-dashed border-gray-600 hover:border-blue-500 bg-black/50 overflow-hidden relative cursor-pointer group" onclick="document.getElementById('app-img-upload-${i}').click()">
@@ -10852,7 +10891,7 @@
                                     </div>
                                 `).join('')}
                             </div>
-                            <p class="text-xs text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูป</p>
+                            <p class="text-sm text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูป</p>
                         </div>
 
                         <div class="grid grid-cols-1 gap-4 mb-6">
@@ -10869,7 +10908,7 @@
                         <div class="h-px bg-gray-700 my-4"></div>
                         
                         <div class="mb-6">
-                            <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">แบบสอบถาม</div>
+                            <div class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-3">แบบสอบถาม</div>
                             ${questionsHTML}
                         </div>
 
@@ -10906,8 +10945,6 @@
             const name = document.getElementById('app-name').value.trim();
             const contact = document.getElementById('app-contact').value.trim();
 
-            if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
-
             // ✅ 1. วนลูปเก็บรูปภาพ (สูงสุด 3 รูป)
             const images = [];
             for(let i=1; i<=3; i++) {
@@ -10924,6 +10961,11 @@
                 a: document.getElementById(`ans-${q.id}`) ? document.getElementById(`ans-${q.id}`).value : '-' 
             }));
 
+            if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
+            if(!contact) return alert("กรุณากรอกเบอร์โทรศัพท์ (Phone Number)");
+            if(images.length === 0) return alert("กรุณาเลือกรูปภาพ (Upload Images)");
+            if(!answers.every(a => a.a)) return alert("กรุณากรอกคำตอบทุกคำถาม (Answer All Questions)");
+
             // สร้าง Object ข้อมูล
             const app = { 
                 id: Date.now(), 
@@ -10932,7 +10974,7 @@
                 img: images[0] || '', // รูปหลัก (รูปแรก)
                 images: images,       // ✅ เก็บ Array รูปทั้งหมดไว้ด้วย
                 answers, 
-                date: new Date().toLocaleString('th-TH') 
+                date: new Date().toLocaleString('th-TH')
             };
             
             // บันทึกและส่ง
@@ -10959,17 +11001,17 @@
                         <div class="font-bold text-white text-xl">${name}</div>
                         <div class="text-xs text-gray-400">${contact}</div>
                     </div>
-
-                    <button onclick="window.location.href = window.location.pathname" 
-                        class="text-white bg-gray-700 hover:bg-gray-600 border border-gray-500 px-6 py-2 rounded transition shadow-lg">
-                        กลับสู่หน้าหลัก
-                    </button>
                 </div>
             `;
         } else {
             console.warn("Cannot save: No Cloud Connection");
             alert("แจ้งเตือน: ไม่ได้เชื่อมต่อ Google Cloud ข้อมูลจะไม่ถูกบันทึก!");
         }
+
+        // <button onclick="window.location.href = window.location.pathname" 
+        //     class="text-white bg-gray-700 hover:bg-gray-600 border border-gray-500 px-6 py-2 rounded transition shadow-lg">
+        //     กลับสู่หน้าหลัก
+        // </button>
         
     }
     function updateLoginStatus(state) {
@@ -11025,9 +11067,8 @@
         try {
             console.log("🔄 Refreshing Applications...");
 
-            showLoading("กำลังบันทึกข้อมูลผู้ใช้...");
+            showLoading("กำลังโหลดข้อมูล...");
             
-            // 2. เรียกฟังก์ชันโหลดข้อมูล (ใส่ false เพื่อไม่ให้ Overlay ใหญ่บังจอ)
             // ระบบจะไปดึงข้อมูลล่าสุดจาก Google Sheets มาอัปเดตตัวแปร applicationsDB
             await fetchCloudData(false);
 
