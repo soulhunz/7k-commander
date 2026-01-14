@@ -1537,7 +1537,7 @@
         </div>
 
         <div id="view-application-form" class="flex-col h-full bg-[#0b0e14] overflow-y-auto justify-start items-center custom-scroll">
-            <div class="w-full max-w-2xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden my-10">
+            <!-- <div class="w-full max-w-2xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden my-10">
                 <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center">
                     <h1 class="text-3xl font-bold text-white mb-2">Guild Recruitment</h1>
                     <p class="text-blue-200 text-sm">กรอกข้อมูลเพื่อสมัครเข้ากิลด์</p>
@@ -1585,7 +1585,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
 
         <div id="appDetailModal" class="modal-overlay" style="z-index: 200;">
@@ -2141,50 +2141,49 @@
         if(localStorage.getItem('7k_tier_bg')) setTimeout(() => setTierBg(localStorage.getItem('7k_tier_bg')), 100);
         
         async function initLogin() {
-            console.log("🔍 Checking Login Status...");
+            console.log("🔍 Checking System Mode...");
 
-            // 1. เช็ค URL Parameter (?mode=apply)
+            // A. เช็คว่าเป็นโหมดใบสมัครหรือไม่? (?mode=apply)
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
 
             if (mode === 'apply') {
-                console.log("🚀 Mode: Apply -> Bypassing Login");
+                console.log("🚀 Mode: Apply (Public Access)");
                 
-                // ซ่อน UI Login
-                const loginScreen = document.getElementById('login-screen');
-                if (loginScreen) loginScreen.style.display = 'none';
-
-                // ซ่อน Sidebar
-                const sidebar = document.getElementById('main-sidebar');
-                if (sidebar) sidebar.style.display = 'none';
-
-                // 🔥 [สำคัญ] สั่งโหลดข้อมูลก่อน! (Show Overlay = true)
-                await fetchCloudData(true); 
+                // ซ่อนหน้า Login และ Sidebar
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-sidebar').style.display = 'none';
                 
-                // โหลดเสร็จค่อยเข้าแอป
-                initApp();
+                // ✅ Requirement 3: ดึงแค่ surveyConfig เท่านั้น (ไม่เอาข้อมูล User/Hero)
+                // ส่ง action 'getPublicConfig' ไปบอก Server
+                await fetchCloudData('getPublicConfig', true); 
+                
+                // สลับไปหน้าฟอร์ม
+                switchView('application-form');
                 return; 
             }
 
-            // 2. เช็ค Session ปกติ (Login ค้างไว้)
+            // B. เช็คว่ามี Session ค้างไว้หรือไม่? (User เก่าที่ Login แล้ว)
             const savedUser = sessionStorage.getItem('7k_user_session');
             if (savedUser) {
                 console.log("👤 Session Found -> Auto Login");
                 CURRENT_USER = JSON.parse(savedUser);
                 document.getElementById('login-screen').style.display = 'none';
                 
-                // 🔥 [สำคัญ] สั่งโหลดข้อมูลก่อน!
-                // ถ้า heroesDB ยังว่างเปล่า แปลว่ายังไม่ได้โหลด ให้โหลดเลย
+                // ✅ Requirement 2: ถ้ามี Session ถึงจะยอมดึงข้อมูลทั้งหมด
+                // ส่ง action 'getAllData' ไปบอก Server
                 if (heroesDB.length === 0) {
-                    await fetchCloudData(true);
+                    await fetchCloudData('getAllData', true);
+                } else {
+                    initApp();
                 }
-                
-                initApp();
             } else {
-                // 3. ถ้าไม่มีอะไรเลย (หน้า Login ปกติ)
-                console.log("🔒 No Session -> Stay on Login Screen");
-                // ให้โหลดข้อมูลรอไว้เงียบๆ (ไม่ต้องบังคับหน้าจอ)
-                fetchCloudData(false);
+                // C. ถ้ายังไม่ Login
+                console.log("🔒 Access Denied -> Require Login");
+                document.getElementById('login-screen').style.display = 'flex';
+                
+                // ❌ Requirement 1 & 2: ไม่โหลดข้อมูลใดๆ รอ User กด Login ก่อน
+                // (User List จะไม่ถูกดึงมาที่ Client ทำให้ดูรหัสผ่านไม่ได้)
             }
         }
 
@@ -2193,95 +2192,60 @@
             const passIn = document.getElementById('login-pass').value.trim();
             const btn = document.getElementById('btn-login');
             const msg = document.getElementById('login-msg');
+            // เก็บข้อความปุ่มเดิมไว้เผื่อคืนค่าตอน error
+            const originalBtnText = btn.innerHTML; 
 
-            // 1. ป้องกันการกดซ้ำ และเช็คค่าว่าง
             if (!userIn || !passIn) {
-                msg.innerText = "กรุณากรอก Username และ Password";
-                msg.className = "text-yellow-500 text-xs mt-4";
+                msg.innerText = "กรุณากรอกข้อมูลให้ครบ";
                 return;
             }
-            if (btn.disabled) return;
 
-            // 2. เริ่มสถานะ Loading UI
             btn.disabled = true;
-            const originalBtnText = btn.innerHTML;
             btn.innerHTML = `<div class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Checking...`;
             msg.innerText = "";
 
             try {
-                // ---------------------------------------------------------
-                // 🛡️ STEP 1: เช็คว่ามีฐานข้อมูล User หรือยัง?
-                // ---------------------------------------------------------
-                if (!systemUsersDB || systemUsersDB.length === 0) {
-                    console.log("⚠️ User DB is empty. Fetching from cloud...");
-                    msg.innerText = "กำลังดึงข้อมูลผู้ใช้...";
+                // ส่ง Username/Pass ไปตรวจที่ Google Apps Script
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'login', // บอก Server ว่านี่คือการ Login
+                        username: userIn,
+                        password: passIn
+                    })
+                });
+                
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // ✅ Login ผ่าน
+                    // Server ควรส่งกลับมาแค่ { name, role, permissions } ไม่ควรส่ง password กลับมา
+                    loginSuccess(result.user);
                     
-                    try {
-                        // พยายามดึงข้อมูลใหม่ (รอสูงสุด 8 วินาที)
-                        await fetchCloudData(false);
-                    } catch (e) {
-                        console.warn("Fetch failed, trying local fallback.");
-                    }
-                }
-
-                // ---------------------------------------------------------
-                // 🛡️ STEP 2: ประตูฉุกเฉิน (Emergency Admin)
-                // ---------------------------------------------------------
-                // เผื่อระบบล่ม หรือเน็ตหลุด ให้ Admin เข้าได้เสมอ
-                if (userIn === 'admin' && passIn === '1234') {
-                    // เช็คว่าใน DB มี admin ตัวจริงไหม ถ้าไม่มีให้สร้างตัวปลอมให้เข้าได้
-                    const realAdmin = systemUsersDB.find(u => u.id === 'admin');
-                    if (!realAdmin) {
-                        console.log("🔓 Emergency Local Login");
-                        loginSuccess({ 
-                            id: 'admin', 
-                            name: 'Super Admin (Local)', 
-                            role: 'admin', 
-                            permissions: ALL_MENUS.map(m => m.id) // ให้สิทธิ์ทุกอย่าง
-                        });
-                        return;
-                    }
-                }
-
-                // ---------------------------------------------------------
-                // 🛡️ STEP 3: ตรวจสอบ User จริงจากฐานข้อมูล
-                // ---------------------------------------------------------
-                // ค้นหา User ที่ ID และ Password ตรงกัน
-                const foundUser = systemUsersDB.find(u => u.id === userIn && u.pass === passIn);
-
-                if (foundUser) {
-                    // ✅ เจอ User -> Login สำเร็จ
-                    loginSuccess(foundUser);
+                    // ✅ Requirement 2: เมื่อ Login ผ่านแล้ว ค่อยดึงข้อมูลทั้งหมด
+                    await fetchCloudData('getAllData', true);
+                    
                 } else {
-                    // ❌ ไม่เจอ -> แจ้งเตือน
-                    // เช็คเพิ่มหน่อยว่า ID ถูกแต่รหัสผิด หรือไม่มี ID นี้เลย
-                    const idExist = systemUsersDB.some(u => u.id === userIn);
-                    if (idExist) {
-                        throw new Error("รหัสผ่านไม่ถูกต้อง (Wrong Password)");
-                    } else {
-                        throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ (User Not Found)");
-                    }
+                    // ❌ ไม่ผ่าน
+                    throw new Error(result.message || "Username หรือ Password ไม่ถูกต้อง");
                 }
 
             } catch (err) {
-                // กรณี Error
-                console.error("Login Failed:", err);
-                msg.innerText = err.message || "การเชื่อมต่อมีปัญหา";
+                console.error(err);
+                msg.innerText = err.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ";
                 msg.className = "text-red-400 text-xs mt-4";
-                
-                // คืนค่าปุ่ม
                 btn.disabled = false;
-                btn.innerHTML = originalBtnText;
+                btn.innerHTML = originalBtnText; // คืนค่าปุ่มเดิม
             }
-
-            // --- Helper: เมื่อ Login ผ่าน ---
+            
+            // Helper function ภายใน doLogin เพื่อจัดการเมื่อ Login สำเร็จ
             function loginSuccess(user) {
                 msg.innerText = `ยินดีต้อนรับ, ${user.name}`;
                 msg.className = "text-green-400 text-xs mt-4";
                 
                 // 1. บันทึก Session
                 const userData = { 
-                    username: user.id, 
+                    username: user.username, // แก้ไข key ให้ตรงกับที่ server ส่งมา (username หรือ id)
                     name: user.name, 
                     role: user.role,
                     permissions: user.permissions || [] 
@@ -2292,14 +2256,11 @@
                 // 2. ตั้งค่าเมนูตามสิทธิ์
                 if (typeof applyUserRole === "function") applyUserRole();
 
-                // 3. ปิดหน้า Login และเข้าสู่ระบบ
+                // 3. ปิดหน้า Login (จะทำหลังจากโหลดข้อมูลเสร็จใน fetchCloudData)
                 setTimeout(() => {
                     document.getElementById('login-screen').style.display = 'none';
                     
-                    // เรียก initApp เพื่อโหลดหน้าแรก
-                    if (typeof initApp === "function") initApp();
-
-                    // Reset ฟอร์มรอไว้ เผื่อ Logout
+                    // Reset ฟอร์ม
                     document.getElementById('login-user').value = '';
                     document.getElementById('login-pass').value = '';
                     btn.disabled = false;
@@ -2648,34 +2609,46 @@
             SCRIPT_URL = val; localStorage.setItem('7k_script_url', SCRIPT_URL); USE_CLOUD = true; startCloudSync(true); updateSyncStatus();
         }
         function startCloudSync(isInitial = false) { fetchCloudData(isInitial); if(syncInterval) clearInterval(syncInterval); }
-        function fetchCloudData(showOverlay) {
-            if (showOverlay) showLoading("กำลังดึงข้อมูลจาก Cloud...");
+        function fetchCloudData(action = 'getAllData', showOverlay = true) {
+            if (!USE_CLOUD) return Promise.resolve({}); // ถ้าไม่มี URL ไม่ต้องทำอะไร
+
+            if (showOverlay) showLoading("กำลังเชื่อมต่อข้อมูล...");
             updateSyncStatus('loading');
 
-            return fetch(SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
-                    updateSyncStatus('online');
-                    processLoadedData(data); // ✅ ใช้ฟังก์ชันกลาง
-
-                    console.log(data)
-                    
-                    // Special Case: หน้าสมัครงาน
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('mode') === 'apply') renderApplicationForm();
-
-                    if (showOverlay) hideLoading();
-                    return data;
-                })
-                .catch(err => {
-                    console.error("Fetch Error:", err);
-                    updateSyncStatus('offline');
-                    if (showOverlay) {
-                        hideLoading();
-                        alert("การเชื่อมต่อล้มเหลว");
-                    }
-                    throw err;
-                });
+            // ส่ง POST request พร้อมระบุ action ไปที่ Server (Google Apps Script)
+            return fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: action })
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateSyncStatus('online');
+                
+                // กรณี: Login ผ่าน หรือ Reload แล้วขอข้อมูลทั้งหมด (เฉพาะ User ที่ Login แล้ว)
+                if (action === 'getAllData') {
+                    processLoadedData(data); // โหลดข้อมูลเข้าตัวแปร global
+                    initApp(); // เริ่มการทำงานของแอป
+                }
+                // กรณี: หน้าใบสมัคร (ขอแค่ Config คำถาม) ไม่เอาข้อมูล User/Hero
+                else if (action === 'getPublicConfig') {
+                    console.log("📝 Public Config Loaded");
+                    if (data.surveyConfig) surveyConfig = data.surveyConfig;
+                    // ไม่เรียก initApp() แต่เรียก render ฟอร์มโดยตรง
+                    renderApplicationForm(); 
+                }
+                
+                if (showOverlay) hideLoading();
+                return data;
+            })
+            .catch(err => {
+                console.error("Fetch Error:", err);
+                updateSyncStatus('offline');
+                if (showOverlay) {
+                    hideLoading();
+                    // ถ้าเป็นหน้าใบสมัคร ไม่ต้องแจ้งเตือนแรงมาก
+                    if (action !== 'getPublicConfig') alert("การเชื่อมต่อล้มเหลว หรือ Server ขัดข้อง");
+                }
+            });
         }
     
         async function pushData(showOverlay = false) {
@@ -2832,13 +2805,16 @@
                 // Init Functions (สั่งให้ทำงานเมื่อเปิดหน้า)
                 if (v === 'preparation') renderPreparation();
                 else if (v === 'simulator') initSimulator();
-                else if (v === 'tier-viewer') renderTierViewer();
                 else if (v === 'gallery') renderGallery();
                 else if (v === 'user-manager') renderUserManager();
                 else if (v.includes('manager')) renderManagerUI();
                 else if (v === 'survey-admin') renderSurveyBuilder();
                 else if (v === 'application-form') renderApplicationForm();
                 else if (v === 'hero-lists') renderHeroListsView();
+                else if (v === 'tier-viewer') {
+                    loadLocalTierData();
+                    // renderTierViewer();
+                }
             }
         }
 
@@ -3894,87 +3870,67 @@
         function renderTierViewer() {
             renderTierModeSelectors('tv-mode-selector', 'switchTierViewMode');
             const container = document.getElementById('tier-canvas');
-            const poolContainer = document.getElementById('tier-pool-content');
+            if(!container) return;
+
+            // 1. ล้างเฉพาะแถว (Rows) แต่ *ห้าม* ล้าง Text/Sticker ที่อาจจะโหลดมาแล้ว
+            container.querySelectorAll('.tier-row-modern').forEach(e => e.remove());
+
+            // 2. วาดแถว Tier (Rows)
             const db = tierViewTab === 'hero' ? heroesDB : petsDB;
             const currentTiers = tierListsDB[tierViewTab][currentTierMode];
 
-            // Clear ของเก่า (เฉพาะที่เป็น tier-row)
-            // เราจะไม่ innerHTML='' ทั้งหมด เพราะจะทำให้ snap-guide หาย
-            container.querySelectorAll('.tier-row-modern').forEach(e => e.remove());
-
             activeTiers.forEach((rank, index) => {
-                sanitizeRankConfig(rank); // ตรวจสอบค่าพิกัด
+                if(!tierRankConfigs[rank]) tierRankConfigs[rank] = { name: rank, color: '#ffffff', opacity: 60 };
                 const conf = tierRankConfigs[rank];
                 const ids = currentTiers[rank] || [];
 
-                // Style พื้นหลังและสี
-                let headerStyle = conf.headerBg ? `background: ${conf.headerBg};` : `background: linear-gradient(135deg, #333, #000);`;
-                // สี Default ตามชื่อ Rank ถ้าไม่ได้ตั้งค่า
-                if (!conf.headerBg) {
-                    if(rank==='S') headerStyle = 'background: linear-gradient(135deg, #ef4444, #7f1d1d);';
-                    else if(rank==='A') headerStyle = 'background: linear-gradient(135deg, #f97316, #c2410c);';
-                    else if(rank==='B') headerStyle = 'background: linear-gradient(135deg, #eab308, #a16207);';
-                    else if(rank==='C') headerStyle = 'background: linear-gradient(135deg, #22c55e, #14532d);';
-                    else if(rank==='D') headerStyle = 'background: linear-gradient(135deg, #64748b, #334155);';
-                }
-
-                const overlayColor = `rgba(17, 24, 39, ${conf.opacity / 100})`;
-                const rowBgImg = conf.bg ? `background-image: url('${conf.bg}'); background-size: cover;` : '';
-
-                // สร้าง Element
                 const row = document.createElement('div');
                 row.className = 'tier-row-modern group';
                 row.id = `tier-row-${rank}`;
                 
-                // กำหนดพิกัดและการหมุน
-                row.style.left = conf.x + 'px';
-                row.style.top = conf.y + 'px';
-                row.style.width = (conf.width || 800) + 'px'; // ความกว้าง
-                row.style.transform = `scale(${conf.scale}) rotate(${conf.rot}deg)`;
-                row.style.cssText += rowBgImg; // เพิ่ม BG Image
+                // ใช้ค่า Config
+                row.style.left = (conf.x !== undefined ? conf.x : 50) + 'px';
+                row.style.top = (conf.y !== undefined ? conf.y : (index * 120 + 50)) + 'px';
+                row.style.width = (conf.width || 600) + 'px';
+                row.style.transform = `scale(${conf.scale||1}) rotate(${conf.rot||0}deg)`;
+                if(conf.bg) row.style.backgroundImage = `url('${conf.bg}')`;
 
-                // Events สำหรับลากของเข้า
+                const overlayColor = `rgba(17, 24, 39, ${(conf.opacity||60)/100})`;
+                const headerBg = conf.headerBg || '#333333';
+
                 row.ondragover = tierAllowDrop;
                 row.ondrop = (e) => tierDrop(e, rank);
 
-                // HTML ภายใน
                 row.innerHTML = `
                     <div class="absolute inset-0 z-0 pointer-events-none" style="background-color: ${overlayColor};"></div>
-                    
-                    <div class="tier-header-modern relative z-10" style="${headerStyle}" 
+                    <div class="tier-header-modern relative z-10" style="background: ${headerBg};"
                         onmousedown="rowDragStart(event, '${rank}')"
                         onwheel="rowWheel(event, '${rank}')"
                         oncontextmenu="openRankContextMenu(event, '${rank}')">
-                        
-                        <input type="text" value="${conf.name}" 
-                            class="rank-name-input pointer-events-auto" 
+                        <input type="text" value="${conf.name}" class="rank-name-input pointer-events-auto" 
                             style="color: ${conf.color} !important;" 
-                            oninput="updateRankNameLocal('${rank}', this.value)"
-                            onclick="event.stopPropagation()"> </div>
-                    
+                            oninput="updateRankNameLocal('${rank}', this.value)" onclick="event.stopPropagation()">
+                    </div>
                     <div class="tier-content relative z-10">
                         ${ids.map(id => {
                             const item = db.find(x => x.id === id);
                             if(!item) return '';
-                            return `
-                                <div class="w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 relative cursor-grab active:cursor-grabbing hover:scale-110 transition shadow-lg bg-[#0d1117] group/item"
-                                    draggable="true" 
-                                    ondragstart="tierDragStart(event, '${item.id}', '${rank}')"
-                                    oncontextmenu="openItemContextMenu(event, '${item.id}', '${rank}')">
-                                    <img src="${item.img}" class="w-full h-full object-cover pointer-events-none">
-                                </div>`;
+                            return `<div class="w-16 h-16 rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 relative cursor-grab active:cursor-grabbing hover:scale-110 transition shadow-lg bg-[#0d1117] group/item"
+                                draggable="true" ondragstart="tierDragStart(event, '${id}', '${rank}')" oncontextmenu="openItemContextMenu(event, '${id}', '${rank}')">
+                                <img src="${item.img}" class="w-full h-full object-cover pointer-events-none">
+                            </div>`;
                         }).join('')}
                     </div>
-
-                    <div class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-20 hover:bg-white/20 rounded-tl"
-                        onmousedown="rowResizeStart(event, '${rank}')"></div>
+                    <div class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-20 hover:bg-white/20 rounded-tl" onmousedown="rowResizeStart(event, '${rank}')"></div>
                 `;
-
                 container.appendChild(row);
             });
 
-            // Render Pool (เหมือนเดิม)
-            renderTierPoolContent(poolContainer, db, currentTiers);
+            // 3. Render Pool
+            const poolContainer = document.getElementById('tier-pool-content');
+            if(poolContainer) renderTierPoolContent(poolContainer, db, currentTiers);
+
+            loadTierObjects();
         }
 
         // Helper แยก Pool Render (เพื่อให้โค้ดอ่านง่าย)
@@ -4400,54 +4356,50 @@
             if(url) addSticker(url);
         }
 
-       // --- STICKER LOGIC (RESIZABLE) ---
-
         // --- STICKER LOGIC (RESIZE & ROTATE) ---
         function addSticker(url) {
             const layer = document.getElementById('tier-sticker-layer');
             const img = document.createElement('img');
             img.src = url;
-            img.title = "คลิกขวาเพื่อเมนู / ลากเพื่อย้าย / Scroll ย่อขยาย / Shift+Scroll หมุน";
-            
-            // Default Classes & Style
             img.className = "sticker-item pointer-events-auto";
-            img.style.width = "128px"; // Default size (w-32)
+            img.style.width = "128px";
             img.style.height = "auto";
+            // จัดกึ่งกลางจอ
             img.style.left = "50%";
             img.style.top = "50%";
             img.style.transform = "translate(-50%, -50%) rotate(0deg)";
-            
-            // Init Data
             img.dataset.rotation = 0;
 
-            // [NEW] Right Click Event
             img.oncontextmenu = function(e) {
-                e.preventDefault();
-                e.stopPropagation(); // ไม่ให้ทะลุไปโดน Background
+                e.preventDefault(); e.stopPropagation();
                 openStickerContextMenu(e, this);
             };
             
-            // Mouse Wheel (Resize & Rotate) - เหมือนเดิม
+            // ฟังก์ชันหมุน/ย่อขยายด้วยเมาส์
             img.onwheel = function(e) {
                 e.preventDefault();
-                if (e.shiftKey) {
+                if (e.shiftKey) { // หมุน
                     let currentRot = parseFloat(this.dataset.rotation) || 0;
-                    const rotateStep = 15;
-                    if (e.deltaY < 0) currentRot += rotateStep; else currentRot -= rotateStep;
+                    if (e.deltaY < 0) currentRot += 15; else currentRot -= 15;
                     this.dataset.rotation = currentRot;
                     this.style.transform = `translate(-50%, -50%) rotate(${currentRot}deg)`;
-                } else {
+                } else { // ย่อขยาย
                     const scaleFactor = e.deltaY < 0 ? 1.1 : 0.9;
                     let newWidth = this.clientWidth * scaleFactor;
-                    if (newWidth > 20 && newWidth < 1000) {
+                    if (newWidth > 20) {
                         this.style.width = newWidth + "px";
                         this.style.height = "auto";
                     }
                 }
+                // 🔥🔥🔥 หมุน/ย่อเสร็จ เซฟทันที 🔥🔥🔥
+                autoSaveTierList();
             };
-            
+
             makeDraggable(img);
             layer.appendChild(img);
+            
+            // เซฟทันทีที่สร้างรูป
+            autoSaveTierList();
         }
 
         // --- STICKER CONTEXT MENU ACTIONS ---
@@ -4488,45 +4440,57 @@
 
         // อัปเดต Drag Logic ให้รองรับ Transform
         function makeDraggable(elmnt) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            elmnt.onmousedown = dragMouseDown;
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        // ถ้าคลิกที่ตัว Object ให้เริ่มฟังก์ชัน dragMouseDown
+        elmnt.onmousedown = dragMouseDown;
 
-            function dragMouseDown(e) {
-                e = e || window.event;
-                e.preventDefault();
-                // Get initial cursor position
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
+        function dragMouseDown(e) {
+            // ถ้ากำลังพิมพ์ข้อความ หรือจิ้ม Input สี ห้ามลาก
+            if (e.target.isContentEditable || e.target.tagName === 'INPUT') {
+                return; 
             }
-
-            function elementDrag(e) {
-                e = e || window.event;
-                e.preventDefault();
-                // Calculate new position
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                
-                // Set element's new position
-                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-            }
-
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-                autoSaveTierList();
-            }
+            
+            e = e || window.event;
+            e.preventDefault();
+            // เก็บตำแหน่งเมาส์เริ่มต้น
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // เมื่อปล่อยเมาส์ หรือขยับเมาส์
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
         }
 
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // คำนวณตำแหน่งใหม่
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // ขยับ Object
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // หยุดการลาก
+            document.onmouseup = null;
+            document.onmousemove = null;
+            
+            // 🔥🔥🔥 จุดสำคัญ: บันทึกทันทีที่ปล่อยเมาส์ 🔥🔥🔥
+            autoSaveTierList(); 
+        }
+    }
+
         // --- 2. BACKGROUND LOGIC (ปรับให้ชัด 100%) ---
-        function setTierBg(url) {
+        function setTierBg(url, save = true) {
             const container = document.getElementById('tier-bg-container');
             const overlay = document.getElementById('tier-bg-overlay');
-            const input = document.getElementById('tm-bg-input'); // ช่อง Input ใน Modal
+            const input = document.getElementById('tm-bg-input');
 
             if (!url) {
                 container.style.backgroundImage = 'none';
@@ -4535,12 +4499,14 @@
                 if(input) input.value = '';
             } else {
                 container.style.backgroundImage = `url('${url}')`;
-                overlay.style.backgroundColor = 'transparent';
+                overlay.style.backgroundColor = 'transparent'; // หรือสีที่คุณชอบ
                 if(input) input.value = url;
             }
 
-            // ✅ บันทึกทันที
-            autoSaveTierList();
+            // ✅ เช็คก่อนว่าให้ Save ไหม (ถ้าโหลดหน้าเว็บอยู่ ไม่ต้อง Save)
+            if (save) {
+                autoSaveTierList();
+            }
         }
 
         // Toggle Menu
@@ -8084,24 +8050,35 @@
 
         // ฟังก์ชันโหลด Tier List จากเครื่องตัวเอง
         function loadLocalTierData() {
-            const localDB = localStorage.getItem('7k_local_tier_db');
-            const localStruct = localStorage.getItem('7k_local_tier_struct');
-            const localConf = localStorage.getItem('7k_local_tier_conf');
+            try {
+                console.log("📂 Loading Tier Data...");
 
-            if (localDB) tierListsDB = JSON.parse(localDB);
-            else tierListsDB = { hero: { pvp: {}, pve: {}, farming: {} }, pet: { pvp: {}, pve: {}, farming: {} } };
+                // 1. โหลด Config และ Structure
+                const localConf = localStorage.getItem('7k_local_tier_conf');
+                const localStruct = localStorage.getItem('7k_local_tier_struct');
+                const localDB = localStorage.getItem('7k_local_tier_db');
 
-            if (localStruct) {
-                activeTiers = JSON.parse(localStruct);
-            } else {
-                // ✅ แก้ตรงนี้: เปลี่ยนจาก ['S', 'A'...] เป็น [] (ว่างเปล่า)
-                activeTiers = []; 
-            }
+                if (localConf) tierRankConfigs = JSON.parse(localConf);
+                if (localStruct) activeTiers = JSON.parse(localStruct);
+                if (localDB) tierListsDB = JSON.parse(localDB);
 
-            if (localConf) {
-                tierRankConfigs = JSON.parse(localConf);
-            } else {
-                tierRankConfigs = {};
+                // 2. โหลด Background (🔴 จุดสำคัญ: ใส่ false เพื่อไม่ให้ Save ทับ)
+                const savedBg = localStorage.getItem('7k_tier_bg');
+                if (savedBg) {
+                    setTierBg(savedBg, false); 
+                }
+
+                // 3. วาดตาราง (Render)
+                renderTierViewer();
+
+                // 4. ✅ สำคัญที่สุด: โหลด Text/Sticker หลังจากวาดตารางเสร็จ
+                // (ถึงแม้ใน renderTierViewer จะมีเรียกแล้ว แต่เรียกซ้ำตรงนี้เพื่อความชัวร์ 100%)
+                setTimeout(() => {
+                    loadTierObjects();
+                }, 100);
+
+            } catch (e) {
+                console.error("❌ Load Error:", e);
             }
         }
         // --- 4. Render Checkbox Logic ---
@@ -9586,13 +9563,9 @@
         updateSyncStatus('loading');
         
         // เรียกฟังก์ชันดึงข้อมูลเดิม
-        fetchCloudData(false)
+        fetchCloudData('getAllData', false)
             .then(() => {
-                // หน่วงเวลานิดนึงเพื่อให้เห็นว่าหมุนเสร็จแล้ว (UX)
-                setTimeout(() => {
-                    updateSyncStatus('online');
-                    // alert("Sync Complete!"); // (เอาออกได้ถ้าไม่อยากให้เด้ง)
-                }, 800);
+                updateSyncStatus('online');
             })
             .catch(() => {
                 updateSyncStatus('offline');
@@ -10019,45 +9992,50 @@
         // สร้างกล่องข้อความ
         const el = document.createElement('div');
         el.className = 'floating-label animate-fade-in';
-        el.contentEditable = true;
-        el.innerText = 'Text';
+        el.contentEditable = true; // ให้พิมพ์ได้
+        el.innerText = 'Text'; // ข้อความเริ่มต้น
 
-        // วางตำแหน่ง
+        // วางตรงจุดที่คลิกขวา
         el.style.left = contextMenuPos.x + 'px';
         el.style.top = contextMenuPos.y + 'px';
 
+        // 🔥🔥🔥 บันทึกทันทีที่พิมพ์ (พิมพ์ปุ๊บเซฟปั๊บ) 🔥🔥🔥
         el.oninput = function() {
             autoSaveTierList(); 
         };
+        
+        // บันทึกตอนกด Enter หรือคลิกออก (กันเหนียว)
+        el.onblur = function() {
+            autoSaveTierList();
+        };
 
-        // Event: คลิกขวาที่ตัวข้อความ เพื่อเปิดเมนูแก้ไข
+        // Event คลิกขวาที่ข้อความ
         el.oncontextmenu = function(e) {
             e.preventDefault();
-            e.stopPropagation(); // กันไม่ให้ทะลุไปโดนพื้นหลัง
+            e.stopPropagation();
             openTierTextMenu(e, this);
         };
 
-        // Event: ดับเบิ้ลคลิกเพื่อลบด่วน
+        // Event ดับเบิ้ลคลิกเพื่อลบ
         el.ondblclick = function(e) {
             e.stopPropagation();
             if(confirm("ลบข้อความนี้?")) {
                 el.remove();
-                autoSaveTierList(); // ✅ เพิ่มบรรทัดนี้
+                autoSaveTierList(); // ลบแล้วเซฟทันที
             }
         };
 
-        // ทำให้ลากได้ (ถ้ามีฟังก์ชันนี้อยู่แล้ว)
-        if (typeof makeDraggable === "function") makeDraggable(el);
+        makeDraggable(el); // ใส่ระบบลาก
         canvas.appendChild(el);
         
-        // Auto Focus
+        // ให้ Cursor ไปกระพริบรอพิมพ์เลย
         setTimeout(() => {
             el.focus();
             document.execCommand('selectAll', false, null);
         }, 100);
         
-        closeCtxMenus(); // ปิดเมนูหลังสร้างเสร็จ
-        autoSaveTierList();
+        closeCtxMenus();
+        autoSaveTierList(); // เซฟสถานะเริ่มต้นที่สร้างเสร็จ
     }
 
     // 6. ฟังก์ชันเปิดเมนูแก้ไขข้อความ
@@ -10153,45 +10131,48 @@
 
     // ฟังก์ชันบันทึกทุกอย่างลงเครื่องทันที
     function autoSaveTierList() {
-        // 1. บันทึกข้อมูลตาราง (Rank/Hero)
-        localStorage.setItem('7k_local_tier_db', JSON.stringify(tierListsDB));
-        localStorage.setItem('7k_local_tier_struct', JSON.stringify(activeTiers));
-        localStorage.setItem('7k_local_tier_conf', JSON.stringify(tierRankConfigs));
-        
-        // 2. บันทึก Background
-        const bgContainer = document.getElementById('tier-bg-container');
-        if(bgContainer) {
-            localStorage.setItem('7k_tier_bg', bgContainer.style.backgroundImage.slice(5, -2).replace(/"/g, ""));
+        try {
+            // บันทึกตัวแปรหลัก
+            localStorage.setItem('7k_local_tier_db', JSON.stringify(tierListsDB));
+            localStorage.setItem('7k_local_tier_struct', JSON.stringify(activeTiers));
+            
+            // 🔥 จุดที่แก้: ใช้ชื่อ 7k_local_tier_conf ให้ตรงกับตอนโหลด
+            localStorage.setItem('7k_local_tier_conf', JSON.stringify(tierRankConfigs));
+            
+            // บันทึก Background
+            const bgContainer = document.getElementById('tier-bg-container');
+            if(bgContainer) {
+                let bgStyle = bgContainer.style.backgroundImage || '';
+                bgStyle = bgStyle.slice(5, -2).replace(/"/g, "");
+                localStorage.setItem('7k_tier_bg', bgStyle);
+            }
+
+            // บันทึก Text & Sticker
+            const objects = [];
+            // Sticker
+            document.querySelectorAll('.sticker-item').forEach(el => {
+                objects.push({
+                    type: 'sticker',
+                    src: el.src,
+                    style: el.getAttribute('style'), 
+                    rotation: el.dataset.rotation || 0
+                });
+            });
+            // Text
+            document.querySelectorAll('.floating-label').forEach(el => {
+                objects.push({
+                    type: 'text',
+                    text: el.innerText, 
+                    style: el.getAttribute('style'), 
+                    className: el.className 
+                });
+            });
+            localStorage.setItem('7k_tier_objects', JSON.stringify(objects));
+
+        } catch (e) {
+            console.error("❌ Save Failed:", e);
         }
-
-        // 3. บันทึก Stickers และ Text (Object Layer)
-        const objects = [];
-        
-        // เก็บข้อมูล Sticker
-        document.querySelectorAll('.sticker-item').forEach(el => {
-            objects.push({
-                type: 'sticker',
-                src: el.src,
-                style: el.getAttribute('style'),
-                rotation: el.dataset.rotation || 0
-            });
-        });
-
-        // เก็บข้อมูล Text
-        document.querySelectorAll('.floating-label').forEach(el => {
-            objects.push({
-                type: 'text',
-                text: el.innerText,
-                style: el.getAttribute('style'),
-                className: el.className // เก็บ class เพื่อรักษา style
-            });
-        });
-
-        localStorage.setItem('7k_tier_objects', JSON.stringify(objects));
-        
-        console.log("✅ Auto-saved to Local Storage");
     }
-
     function loadTierListFull() {
         // 1. โหลดข้อมูลตาราง
         const localDB = localStorage.getItem('7k_local_tier_db');
@@ -10865,7 +10846,7 @@
         } catch (err) {
             console.error("Delete Error:", err);
             alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
-            fetchCloudData(false).then(() => renderSurveyResponses());
+            fetchCloudData('getAllData', false).then(() => renderSurveyResponses());
         } finally {
             hideLoading();
         }
@@ -11115,34 +11096,28 @@
         const btn = document.getElementById('btn-refresh-apps');
         const icon = document.getElementById('icon-refresh');
         
-        // 1. เริ่ม Animation (หมุนติ้วๆ) และล็อคปุ่ม
         if(btn) btn.disabled = true;
-        if(icon) icon.classList.add('animate-spin'); // ใช้ Class หมุนของ Tailwind
+        if(icon) icon.classList.add('animate-spin'); 
 
         try {
             console.log("🔄 Refreshing Applications...");
-
             showLoading("กำลังโหลดข้อมูล...");
             
-            // ระบบจะไปดึงข้อมูลล่าสุดจาก Google Sheets มาอัปเดตตัวแปร applicationsDB
-            await fetchCloudData(false);
+            // แอดมินกดรีเฟรช = ขอข้อมูลทั้งหมดใหม่
+            await fetchCloudData('getAllData', false);
 
-            // 3. วาดตารางใหม่
+            // วาดตารางใหม่
             renderSurveyResponses();
             renderSurveyBuilder();
-
-            // (Optional) ขึ้น Toast แจ้งเตือนเล็กๆ ว่าเสร็จแล้ว
-            // alert("ข้อมูลอัปเดตแล้ว!"); 
 
         } catch (e) {
             console.error("Refresh Error:", e);
             alert("โหลดข้อมูลไม่สำเร็จ: " + e.message);
-             hideLoading();
+            hideLoading();
         } finally {
-            // 4. หยุด Animation และปลดล็อคปุ่ม
             if(btn) btn.disabled = false;
             if(icon) icon.classList.remove('animate-spin');
-             hideLoading();
+            hideLoading();
         }
     }
     function openTierListManager() {
@@ -11304,8 +11279,12 @@
     // 3. ฟังก์ชันอัปเดต Style แบบ Real-time
     function updateTextStyle(prop, value) {
         if (!activeFloatingText) return;
+        
+        // เปลี่ยนค่า CSS
         activeFloatingText.style[prop] = value;
-        autoSaveTierList(); // บันทึกทันที
+        
+        // 🔥🔥🔥 บันทึกทันที 🔥🔥🔥
+        autoSaveTierList(); 
     }
 
     // 4. แก้ไขข้อความ (Prompt)
@@ -11337,6 +11316,83 @@
       
         return "#" + r + g + b;
     }
+
+    function loadTierObjects() {
+        try {
+            const savedObjs = localStorage.getItem('7k_tier_objects');
+            if (!savedObjs) return; // ถ้าไม่มีข้อมูล ให้จบเงียบๆ ห้ามไป Save ทับ
+
+            const objects = JSON.parse(savedObjs);
+            if (!Array.isArray(objects) || objects.length === 0) return;
+
+            const canvas = document.getElementById('tier-canvas');
+            const stickerLayer = document.getElementById('tier-sticker-layer');
+            if (!canvas || !stickerLayer) return;
+
+            // เคลียร์ของเก่าเพื่อกันซ้อน
+            canvas.querySelectorAll('.floating-label').forEach(e => e.remove());
+            stickerLayer.querySelectorAll('.sticker-item').forEach(e => e.remove());
+
+            objects.forEach(obj => {
+                if (obj.type === 'text') {
+                    const el = document.createElement('div');
+                    el.className = obj.className || 'floating-label animate-fade-in';
+                    el.contentEditable = true;
+                    el.innerText = obj.text;
+                    el.setAttribute('style', obj.style);
+
+                    // Event Listeners
+                    el.oninput = function() { autoSaveTierList(); }; // พิมพ์แล้วค่อยเซฟ
+                    el.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); openTierTextMenu(e, this); };
+                    el.ondblclick = function(e) { 
+                        e.stopPropagation(); 
+                        if(confirm("ลบข้อความนี้?")) { el.remove(); autoSaveTierList(); } 
+                    };
+                    
+                    makeDraggable(el);
+                    canvas.appendChild(el);
+                } 
+                else if (obj.type === 'sticker') {
+                    const img = document.createElement('img');
+                    img.src = obj.src;
+                    img.className = "sticker-item pointer-events-auto";
+                    img.setAttribute('style', obj.style);
+                    img.dataset.rotation = obj.rotation || 0;
+
+                    img.oncontextmenu = function(e) { e.preventDefault(); e.stopPropagation(); openStickerContextMenu(e, this); };
+                    img.onwheel = function(e) { 
+                         e.preventDefault();
+                         if (e.shiftKey) { 
+                             let r = parseFloat(this.dataset.rotation) || 0;
+                             r = (e.deltaY < 0) ? r + 15 : r - 15;
+                             this.dataset.rotation = r;
+                             this.style.transform = `translate(-50%, -50%) rotate(${r}deg)`;
+                         } else {
+                             const scaleFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                             let newWidth = this.clientWidth * scaleFactor;
+                             if(newWidth > 20) { this.style.width = newWidth + "px"; this.style.height = "auto"; }
+                         }
+                         autoSaveTierList();
+                    };
+                    
+                    makeDraggable(img);
+                    stickerLayer.appendChild(img);
+                }
+            });
+            console.log(`✅ Restored ${objects.length} objects`);
+
+        } catch (e) {
+            console.error("❌ Object Load Error:", e);
+        }
+    }
+
+    (function initTierBackground() {
+        const savedBg = localStorage.getItem('7k_tier_bg');
+        if(savedBg) {
+            const bgContainer = document.getElementById('tier-bg-container');
+            if(bgContainer) bgContainer.style.backgroundImage = `url('${savedBg}')`;
+        }
+    })();
     </script>
 </body>
 </html>
