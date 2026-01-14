@@ -952,8 +952,8 @@
 
             <div id="admin-menu-group" class="mt-4 pt-4 border-t border-gray-800" style="display: none;">
                 <div class="menu-section-title text-red-400">Admin Zone</div>
-                <div onclick="switchView('user-manager')" class="menu-item" id="nav-user-manager">👥 User Management</div>
-                <div onclick="switchView('audit-logs')" class="menu-item" id="nav-audit-logs">🕵️ System Audit Logs</div>
+                <!-- <div onclick="switchView('user-manager')" class="menu-item" id="nav-user-manager">👥 User Management</div> -->
+                <!-- <div onclick="switchView('audit-logs')" class="menu-item" id="nav-audit-logs">🕵️ System Audit Logs</div> -->
                 <div onclick="switchView('survey-admin')" class="menu-item" id="nav-survey-admin">📝 Recruitment Form</div>
             </div>
 
@@ -1525,11 +1525,11 @@
                             📥 Applications Received
                             <span id="app-count-badge" class="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full shadow">0</span>
                         </h3>
-                        <button id="btn-refresh-apps" onclick="refreshApplications()" 
+                        <!-- <button id="btn-refresh-apps" onclick="refreshApplications()" 
                                 class="group flex items-center gap-2 text-gray-400 hover:text-white hover:bg-gray-600 px-3 py-1.5 rounded-lg transition text-xs font-bold border border-transparent hover:border-gray-500">
                             <span id="icon-refresh" class="text-lg transition-transform duration-700">🔄</span>
                             <span>Refresh Data</span>
-                        </button>
+                        </button> -->
                     </div>
                     <div id="survey-responses-container" class="space-y-3"></div>
                 </div>
@@ -1537,55 +1537,6 @@
         </div>
 
         <div id="view-application-form" class="flex-col h-full bg-[#0b0e14] overflow-y-auto justify-start items-center custom-scroll">
-            <!-- <div class="w-full max-w-2xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl overflow-hidden my-10">
-                <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center">
-                    <h1 class="text-3xl font-bold text-white mb-2">Guild Recruitment</h1>
-                    <p class="text-blue-200 text-sm">กรอกข้อมูลเพื่อสมัครเข้ากิลด์</p>
-                </div>
-                
-                <div class="p-8 space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="col-span-1 flex flex-col items-center gap-3">
-                            <div class="col-span-1 flex flex-col">
-                                <label class="text-blue-400 mb-2 block text-center md:text-left">📸 รูปทีมปัจจุบัน (Team Screenshot)</label>
-                                
-                                <div class="w-full aspect-video rounded-xl border-4 border-dashed border-gray-700 hover:border-blue-500 bg-black/50 overflow-hidden relative group cursor-pointer transition-all" onclick="document.getElementById('app-img-upload').click()">
-                                    
-                                    <img id="app-img-preview" src="https://placehold.co/640x360?text=Upload+Screenshot" class="w-full h-full object-contain opacity-80 group-hover:opacity-100 transition-all">
-                                    
-                                    <div class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm">
-                                        <span class="text-4xl mb-2">📤</span>
-                                        <span class="text-sm text-white font-bold">คลิกเพื่ออัปโหลดรูป</span>
-                                        <span class="text-[10px] text-gray-400">(แนะนำแนวนอน)</span>
-                                    </div>
-                                </div>
-                                
-                                <input type="file" id="app-img-upload" class="hidden" accept="image/*" onchange="previewAppImage(this)">
-                            </div>
-                        </div>
-                        <div class="col-span-2 space-y-4">
-                            <div class="input-group">
-                                <label class="text-blue-400">ชื่อในเกม (In-Game Name)</label>
-                                <input type="text" id="app-name" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none focus:border-blue-500" placeholder="ระบุชื่อ...">
-                            </div>
-                            <div class="input-group">
-                                <label class="text-gray-400">ช่องทางติดต่อ (Line / Discord)</label>
-                                <input type="text" id="app-contact" class="w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white outline-none" placeholder="ID...">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="h-px bg-gray-700 my-4"></div>
-
-                    <div id="app-questions-area" class="space-y-5"></div>
-
-                    <div class="pt-4">
-                        <button onclick="submitApp()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg transition transform hover:scale-105">
-                            🚀 ส่งใบสมัคร (Submit)
-                        </button>
-                    </div>
-                </div>
-            </div> -->
         </div>
 
         <div id="appDetailModal" class="modal-overlay" style="z-index: 200;">
@@ -1903,6 +1854,8 @@
 
         let currentView = 'home';
 
+        let isRegisterMode = false;
+
         // --- [1] GLOBAL VARIABLES UPDATES ---
         let auditLogsDB = []; // เก็บ Log การแก้ไข
         let systemUsersDB = [];
@@ -2143,7 +2096,7 @@
         async function initLogin() {
             console.log("🔍 Checking System Mode...");
 
-            // A. เช็คว่าเป็นโหมดใบสมัครหรือไม่? (?mode=apply)
+            // A. เช็คโหมดสมัครสมาชิก (?mode=apply)
             const urlParams = new URLSearchParams(window.location.search);
             const mode = urlParams.get('mode');
 
@@ -2154,36 +2107,30 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-sidebar').style.display = 'none';
                 
-                // ✅ Requirement 3: ดึงแค่ surveyConfig เท่านั้น (ไม่เอาข้อมูล User/Hero)
-                // ส่ง action 'getPublicConfig' ไปบอก Server
+                // 🔥 ดึงแค่ Config (ไม่เอาข้อมูลความลับ)
                 await fetchCloudData('getPublicConfig', true); 
                 
-                // สลับไปหน้าฟอร์ม
                 switchView('application-form');
                 return; 
             }
 
-            // B. เช็คว่ามี Session ค้างไว้หรือไม่? (User เก่าที่ Login แล้ว)
+            // B. เช็ค Session ผู้ใช้เดิม
             const savedUser = sessionStorage.getItem('7k_user_session');
             if (savedUser) {
                 console.log("👤 Session Found -> Auto Login");
                 CURRENT_USER = JSON.parse(savedUser);
                 document.getElementById('login-screen').style.display = 'none';
                 
-                // ✅ Requirement 2: ถ้ามี Session ถึงจะยอมดึงข้อมูลทั้งหมด
-                // ส่ง action 'getAllData' ไปบอก Server
+                // 🔥 มีสิทธิ์แล้ว -> ดึงข้อมูลทั้งหมด
                 if (heroesDB.length === 0) {
                     await fetchCloudData('getAllData', true);
                 } else {
                     initApp();
                 }
             } else {
-                // C. ถ้ายังไม่ Login
+                // C. ยังไม่ Login -> แสดงหน้า Login และไม่โหลดข้อมูลใดๆ
                 console.log("🔒 Access Denied -> Require Login");
                 document.getElementById('login-screen').style.display = 'flex';
-                
-                // ❌ Requirement 1 & 2: ไม่โหลดข้อมูลใดๆ รอ User กด Login ก่อน
-                // (User List จะไม่ถูกดึงมาที่ Client ทำให้ดูรหัสผ่านไม่ได้)
             }
         }
 
@@ -2192,60 +2139,95 @@
             const passIn = document.getElementById('login-pass').value.trim();
             const btn = document.getElementById('btn-login');
             const msg = document.getElementById('login-msg');
-            // เก็บข้อความปุ่มเดิมไว้เผื่อคืนค่าตอน error
-            const originalBtnText = btn.innerHTML; 
 
+            // 1. ป้องกันการกดซ้ำ และเช็คค่าว่าง
             if (!userIn || !passIn) {
-                msg.innerText = "กรุณากรอกข้อมูลให้ครบ";
+                msg.innerText = "กรุณากรอก Username และ Password";
+                msg.className = "text-yellow-500 text-xs mt-4";
                 return;
             }
+            if (btn.disabled) return;
 
+            // 2. เริ่มสถานะ Loading UI
             btn.disabled = true;
+            const originalBtnText = btn.innerHTML;
             btn.innerHTML = `<div class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Checking...`;
             msg.innerText = "";
 
             try {
-                // ส่ง Username/Pass ไปตรวจที่ Google Apps Script
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'login', // บอก Server ว่านี่คือการ Login
-                        username: userIn,
-                        password: passIn
-                    })
-                });
-                
-                const result = await response.json();
+                // ---------------------------------------------------------
+                // 🛡️ STEP 1: เช็คว่ามีฐานข้อมูล User หรือยัง?
+                // ---------------------------------------------------------
+                if (!systemUsersDB || systemUsersDB.length === 0) {
+                    console.log("⚠️ User DB is empty. Fetching from cloud...");
+                    msg.innerText = "กำลังดึงข้อมูลผู้ใช้...";
+                    
+                    try {
+                        // พยายามดึงข้อมูลใหม่ (รอสูงสุด 8 วินาที)
+                        await fetchCloudData(false);
+                    } catch (e) {
+                        console.warn("Fetch failed, trying local fallback.");
+                    }
+                }
 
-                if (result.status === 'success') {
-                    // ✅ Login ผ่าน
-                    // Server ควรส่งกลับมาแค่ { name, role, permissions } ไม่ควรส่ง password กลับมา
-                    loginSuccess(result.user);
-                    
-                    // ✅ Requirement 2: เมื่อ Login ผ่านแล้ว ค่อยดึงข้อมูลทั้งหมด
-                    await fetchCloudData('getAllData', true);
-                    
+                // ---------------------------------------------------------
+                // 🛡️ STEP 2: ประตูฉุกเฉิน (Emergency Admin)
+                // ---------------------------------------------------------
+                // เผื่อระบบล่ม หรือเน็ตหลุด ให้ Admin เข้าได้เสมอ
+                if (userIn === 'admin' && passIn === '1234') {
+                    // เช็คว่าใน DB มี admin ตัวจริงไหม ถ้าไม่มีให้สร้างตัวปลอมให้เข้าได้
+                    const realAdmin = systemUsersDB.find(u => u.id === 'admin');
+                    if (!realAdmin) {
+                        console.log("🔓 Emergency Local Login");
+                        loginSuccess({ 
+                            id: 'admin', 
+                            name: 'Super Admin (Local)', 
+                            role: 'admin', 
+                            permissions: ALL_MENUS.map(m => m.id) // ให้สิทธิ์ทุกอย่าง
+                        });
+                        return;
+                    }
+                }
+
+                // ---------------------------------------------------------
+                // 🛡️ STEP 3: ตรวจสอบ User จริงจากฐานข้อมูล
+                // ---------------------------------------------------------
+                // ค้นหา User ที่ ID และ Password ตรงกัน
+                const foundUser = systemUsersDB.find(u => u.id === userIn && u.pass === passIn);
+
+                if (foundUser) {
+                    // ✅ เจอ User -> Login สำเร็จ
+                    loginSuccess(foundUser);
                 } else {
-                    // ❌ ไม่ผ่าน
-                    throw new Error(result.message || "Username หรือ Password ไม่ถูกต้อง");
+                    // ❌ ไม่เจอ -> แจ้งเตือน
+                    // เช็คเพิ่มหน่อยว่า ID ถูกแต่รหัสผิด หรือไม่มี ID นี้เลย
+                    const idExist = systemUsersDB.some(u => u.id === userIn);
+                    if (idExist) {
+                        throw new Error("รหัสผ่านไม่ถูกต้อง (Wrong Password)");
+                    } else {
+                        throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ (User Not Found)");
+                    }
                 }
 
             } catch (err) {
-                console.error(err);
-                msg.innerText = err.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ";
+                // กรณี Error
+                console.error("Login Failed:", err);
+                msg.innerText = err.message || "การเชื่อมต่อมีปัญหา";
                 msg.className = "text-red-400 text-xs mt-4";
+                
+                // คืนค่าปุ่ม
                 btn.disabled = false;
-                btn.innerHTML = originalBtnText; // คืนค่าปุ่มเดิม
+                btn.innerHTML = originalBtnText;
             }
-            
-            // Helper function ภายใน doLogin เพื่อจัดการเมื่อ Login สำเร็จ
+
+            // --- Helper: เมื่อ Login ผ่าน ---
             function loginSuccess(user) {
                 msg.innerText = `ยินดีต้อนรับ, ${user.name}`;
                 msg.className = "text-green-400 text-xs mt-4";
                 
                 // 1. บันทึก Session
                 const userData = { 
-                    username: user.username, // แก้ไข key ให้ตรงกับที่ server ส่งมา (username หรือ id)
+                    username: user.id, 
                     name: user.name, 
                     role: user.role,
                     permissions: user.permissions || [] 
@@ -2256,11 +2238,14 @@
                 // 2. ตั้งค่าเมนูตามสิทธิ์
                 if (typeof applyUserRole === "function") applyUserRole();
 
-                // 3. ปิดหน้า Login (จะทำหลังจากโหลดข้อมูลเสร็จใน fetchCloudData)
+                // 3. ปิดหน้า Login และเข้าสู่ระบบ
                 setTimeout(() => {
                     document.getElementById('login-screen').style.display = 'none';
                     
-                    // Reset ฟอร์ม
+                    // เรียก initApp เพื่อโหลดหน้าแรก
+                    if (typeof initApp === "function") initApp();
+
+                    // Reset ฟอร์มรอไว้ เผื่อ Logout
                     document.getElementById('login-user').value = '';
                     document.getElementById('login-pass').value = '';
                     btn.disabled = false;
@@ -2610,12 +2595,12 @@
         }
         function startCloudSync(isInitial = false) { fetchCloudData(isInitial); if(syncInterval) clearInterval(syncInterval); }
         function fetchCloudData(action = 'getAllData', showOverlay = true) {
-            if (!USE_CLOUD) return Promise.resolve({}); // ถ้าไม่มี URL ไม่ต้องทำอะไร
+            if (!USE_CLOUD) return Promise.resolve({});
 
             if (showOverlay) showLoading("กำลังเชื่อมต่อข้อมูล...");
             updateSyncStatus('loading');
 
-            // ส่ง POST request พร้อมระบุ action ไปที่ Server (Google Apps Script)
+            // ส่ง POST ไปยัง Server (Code.gs)
             return fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify({ action: action })
@@ -2624,16 +2609,15 @@
             .then(data => {
                 updateSyncStatus('online');
                 
-                // กรณี: Login ผ่าน หรือ Reload แล้วขอข้อมูลทั้งหมด (เฉพาะ User ที่ Login แล้ว)
+                // กรณี: Login ผ่านแล้ว -> โหลดข้อมูลจริงทั้งหมด (Heroes, Pets, Teams...)
                 if (action === 'getAllData') {
-                    processLoadedData(data); // โหลดข้อมูลเข้าตัวแปร global
-                    initApp(); // เริ่มการทำงานของแอป
+                    processLoadedData(data); 
+                    initApp();
                 }
-                // กรณี: หน้าใบสมัคร (ขอแค่ Config คำถาม) ไม่เอาข้อมูล User/Hero
+                // กรณี: หน้าใบสมัคร (Public) -> โหลดแค่ Config คำถาม
                 else if (action === 'getPublicConfig') {
                     console.log("📝 Public Config Loaded");
                     if (data.surveyConfig) surveyConfig = data.surveyConfig;
-                    // ไม่เรียก initApp() แต่เรียก render ฟอร์มโดยตรง
                     renderApplicationForm(); 
                 }
                 
@@ -2645,8 +2629,7 @@
                 updateSyncStatus('offline');
                 if (showOverlay) {
                     hideLoading();
-                    // ถ้าเป็นหน้าใบสมัคร ไม่ต้องแจ้งเตือนแรงมาก
-                    if (action !== 'getPublicConfig') alert("การเชื่อมต่อล้มเหลว หรือ Server ขัดข้อง");
+                    if (action !== 'getPublicConfig') alert("การเชื่อมต่อล้มเหลว");
                 }
             });
         }
@@ -2661,27 +2644,33 @@
 
             if (showOverlay) showLoading("☁️ กำลังบันทึกข้อมูล...");
 
-            console.log(applicationsDB)
+            let payload = null
 
-            const payload = {
-                timestamp: Date.now(),
-                heroes: heroesDB,
-                pets: petsDB,
-                rings: ringsDB,
-                items: itemsDB,
-                affiliations: affiliationsDB,
-                teams: teamsDB,
-                heroSets: heroSetsDB,
-                battleHistory: battleHistoryDB,
-                archivedSeasons: archivedSeasons,
-                users: systemUsersDB,
-                auditLogs: auditLogsDB,
-                knownEnemies: knownEnemies,
-                heroLists: tempHeroLists,
-                manualUsage: manualUsageOffsets,
-                surveyConfig: surveyConfig,
-                applications: applicationsDB
-            };
+            if(isRegisterMode){
+                payload = {
+                    timestamp: Date.now(),
+                    applications: applicationsDB
+                }
+            }else{
+                payload = {
+                    timestamp: Date.now(),
+                    heroes: heroesDB,
+                    pets: petsDB,
+                    rings: ringsDB,
+                    items: itemsDB,
+                    affiliations: affiliationsDB,
+                    teams: teamsDB,
+                    heroSets: heroSetsDB,
+                    battleHistory: battleHistoryDB,
+                    archivedSeasons: archivedSeasons,
+                    auditLogs: auditLogsDB,
+                    knownEnemies: knownEnemies,
+                    heroLists: tempHeroLists,
+                    manualUsage: manualUsageOffsets,
+                    surveyConfig: surveyConfig,
+                };
+            }
+
 
             try {
                 await fetch(SCRIPT_URL, {
@@ -9563,9 +9552,13 @@
         updateSyncStatus('loading');
         
         // เรียกฟังก์ชันดึงข้อมูลเดิม
-        fetchCloudData('getAllData', false)
+        fetchCloudData(false)
             .then(() => {
-                updateSyncStatus('online');
+                // หน่วงเวลานิดนึงเพื่อให้เห็นว่าหมุนเสร็จแล้ว (UX)
+                setTimeout(() => {
+                    updateSyncStatus('online');
+                    // alert("Sync Complete!"); // (เอาออกได้ถ้าไม่อยากให้เด้ง)
+                }, 800);
             })
             .catch(() => {
                 updateSyncStatus('offline');
@@ -10846,7 +10839,7 @@
         } catch (err) {
             console.error("Delete Error:", err);
             alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
-            fetchCloudData('getAllData', false).then(() => renderSurveyResponses());
+            fetchCloudData(false).then(() => renderSurveyResponses());
         } finally {
             hideLoading();
         }
@@ -10977,6 +10970,8 @@
 
     async function submitApp() {
 
+        isRegisterMode = true;
+
         if (USE_CLOUD) {
             const name = document.getElementById('app-name').value.trim();
             const contact = document.getElementById('app-contact').value.trim();
@@ -11096,28 +11091,34 @@
         const btn = document.getElementById('btn-refresh-apps');
         const icon = document.getElementById('icon-refresh');
         
+        // 1. เริ่ม Animation (หมุนติ้วๆ) และล็อคปุ่ม
         if(btn) btn.disabled = true;
-        if(icon) icon.classList.add('animate-spin'); 
+        if(icon) icon.classList.add('animate-spin'); // ใช้ Class หมุนของ Tailwind
 
         try {
             console.log("🔄 Refreshing Applications...");
+
             showLoading("กำลังโหลดข้อมูล...");
             
-            // แอดมินกดรีเฟรช = ขอข้อมูลทั้งหมดใหม่
-            await fetchCloudData('getAllData', false);
+            // ระบบจะไปดึงข้อมูลล่าสุดจาก Google Sheets มาอัปเดตตัวแปร applicationsDB
+            await fetchCloudData(action = 'getAllData',false);
 
-            // วาดตารางใหม่
+            // 3. วาดตารางใหม่
             renderSurveyResponses();
             renderSurveyBuilder();
+
+            // (Optional) ขึ้น Toast แจ้งเตือนเล็กๆ ว่าเสร็จแล้ว
+            // alert("ข้อมูลอัปเดตแล้ว!"); 
 
         } catch (e) {
             console.error("Refresh Error:", e);
             alert("โหลดข้อมูลไม่สำเร็จ: " + e.message);
-            hideLoading();
+             hideLoading();
         } finally {
+            // 4. หยุด Animation และปลดล็อคปุ่ม
             if(btn) btn.disabled = false;
             if(icon) icon.classList.remove('animate-spin');
-            hideLoading();
+             hideLoading();
         }
     }
     function openTierListManager() {
