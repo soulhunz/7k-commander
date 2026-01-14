@@ -2139,80 +2139,53 @@
             const passIn = document.getElementById('login-pass').value.trim();
             const btn = document.getElementById('btn-login');
             const msg = document.getElementById('login-msg');
+            const originalBtnText = btn.innerHTML; // จำปุ่มเดิมไว้
 
-            // 1. ป้องกันการกดซ้ำ และเช็คค่าว่าง
+            // 1. ตรวจสอบค่าว่าง
             if (!userIn || !passIn) {
-                msg.innerText = "กรุณากรอก Username และ Password";
+                msg.innerText = "กรุณากรอกข้อมูลให้ครบ";
                 msg.className = "text-yellow-500 text-xs mt-4";
                 return;
             }
+
             if (btn.disabled) return;
 
-            // 2. เริ่มสถานะ Loading UI
+            // 2. เริ่มสถานะ Loading
             btn.disabled = true;
-            const originalBtnText = btn.innerHTML;
             btn.innerHTML = `<div class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Checking...`;
             msg.innerText = "";
 
             try {
-                // ---------------------------------------------------------
-                // 🛡️ STEP 1: เช็คว่ามีฐานข้อมูล User หรือยัง?
-                // ---------------------------------------------------------
-                if (!systemUsersDB || systemUsersDB.length === 0) {
-                    console.log("⚠️ User DB is empty. Fetching from cloud...");
-                    msg.innerText = "กำลังดึงข้อมูลผู้ใช้...";
+                // 3. ส่งข้อมูลไปตรวจสอบที่ Server (Google Apps Script)
+                // ต้องใช้ mode: 'no-cors' ไม่ได้ เพราะเราต้องการอ่าน response กลับมาว่าผ่านหรือไม่
+                // Server ต้องตั้งค่า deploy เป็น "Anyone" (ทุกคน) เพื่อเลี่ยงปัญหา CORS
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เลี่ยง Preflight
+                    body: JSON.stringify({
+                        action: 'login', // บอก Server ว่าจะ Login
+                        username: userIn,
+                        password: passIn
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // ✅ Login ผ่าน: Server จะส่งข้อมูล User (ไม่มี Password) กลับมาใน result.user
+                    loginSuccess(result.user);
                     
-                    try {
-                        // พยายามดึงข้อมูลใหม่ (รอสูงสุด 8 วินาที)
-                        await fetchCloudData(false);
-                    } catch (e) {
-                        console.warn("Fetch failed, trying local fallback.");
-                    }
-                }
-
-                // ---------------------------------------------------------
-                // 🛡️ STEP 2: ประตูฉุกเฉิน (Emergency Admin)
-                // ---------------------------------------------------------
-                // เผื่อระบบล่ม หรือเน็ตหลุด ให้ Admin เข้าได้เสมอ
-                if (userIn === 'admin' && passIn === '1234') {
-                    // เช็คว่าใน DB มี admin ตัวจริงไหม ถ้าไม่มีให้สร้างตัวปลอมให้เข้าได้
-                    const realAdmin = systemUsersDB.find(u => u.id === 'admin');
-                    if (!realAdmin) {
-                        console.log("🔓 Emergency Local Login");
-                        loginSuccess({ 
-                            id: 'admin', 
-                            name: 'Super Admin (Local)', 
-                            role: 'admin', 
-                            permissions: ALL_MENUS.map(m => m.id) // ให้สิทธิ์ทุกอย่าง
-                        });
-                        return;
-                    }
-                }
-
-                // ---------------------------------------------------------
-                // 🛡️ STEP 3: ตรวจสอบ User จริงจากฐานข้อมูล
-                // ---------------------------------------------------------
-                // ค้นหา User ที่ ID และ Password ตรงกัน
-                const foundUser = systemUsersDB.find(u => u.id === userIn && u.pass === passIn);
-
-                if (foundUser) {
-                    // ✅ เจอ User -> Login สำเร็จ
-                    loginSuccess(foundUser);
+                    // 🔥 ดึงข้อมูลทั้งหมดทันทีหลังจาก Login ผ่าน
+                    await fetchCloudData('getAllData', true);
+                    
                 } else {
-                    // ❌ ไม่เจอ -> แจ้งเตือน
-                    // เช็คเพิ่มหน่อยว่า ID ถูกแต่รหัสผิด หรือไม่มี ID นี้เลย
-                    const idExist = systemUsersDB.some(u => u.id === userIn);
-                    if (idExist) {
-                        throw new Error("รหัสผ่านไม่ถูกต้อง (Wrong Password)");
-                    } else {
-                        throw new Error("ไม่พบชื่อผู้ใช้นี้ในระบบ (User Not Found)");
-                    }
+                    // ❌ ไม่ผ่าน: แสดงข้อความจาก Server
+                    throw new Error(result.message || "Username หรือ Password ไม่ถูกต้อง");
                 }
 
             } catch (err) {
-                // กรณี Error
-                console.error("Login Failed:", err);
-                msg.innerText = err.message || "การเชื่อมต่อมีปัญหา";
+                console.error("Login Error:", err);
+                msg.innerText = err.message || "การเชื่อมต่อมีปัญหา กรุณาลองใหม่";
                 msg.className = "text-red-400 text-xs mt-4";
                 
                 // คืนค่าปุ่ม
@@ -2220,14 +2193,14 @@
                 btn.innerHTML = originalBtnText;
             }
 
-            // --- Helper: เมื่อ Login ผ่าน ---
+            // --- Helper Function ---
             function loginSuccess(user) {
                 msg.innerText = `ยินดีต้อนรับ, ${user.name}`;
                 msg.className = "text-green-400 text-xs mt-4";
                 
-                // 1. บันทึก Session
+                // 1. บันทึก Session (ใช้ข้อมูลที่ได้จาก Server)
                 const userData = { 
-                    username: user.id, 
+                    username: user.username, // หรือ user.id ตามที่ Server ส่งกลับมา
                     name: user.name, 
                     role: user.role,
                     permissions: user.permissions || [] 
@@ -2239,18 +2212,19 @@
                 if (typeof applyUserRole === "function") applyUserRole();
 
                 // 3. ปิดหน้า Login และเข้าสู่ระบบ
+                // หน่วงเวลาเล็กน้อยเพื่อให้เห็นข้อความต้อนรับ
                 setTimeout(() => {
                     document.getElementById('login-screen').style.display = 'none';
                     
-                    // เรียก initApp เพื่อโหลดหน้าแรก
-                    if (typeof initApp === "function") initApp();
-
-                    // Reset ฟอร์มรอไว้ เผื่อ Logout
+                    // Reset ฟอร์ม
                     document.getElementById('login-user').value = '';
                     document.getElementById('login-pass').value = '';
                     btn.disabled = false;
                     btn.innerHTML = originalBtnText;
                     msg.innerText = "";
+                    
+                    // ถ้ายังไม่ได้โหลดข้อมูล (เช่น กรณี Login ครั้งแรก) ให้ initApp
+                    // แต่ปกติ fetchCloudData('getAllData') ด้านบนจะเรียก initApp() ให้แล้วเมื่อโหลดเสร็จ
                 }, 800);
             }
         }
