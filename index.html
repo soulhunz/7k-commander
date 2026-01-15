@@ -10833,21 +10833,11 @@
         const container = document.getElementById('view-application-form');
         if (!container) return;
 
-        // 1. ตรวจสอบข้อมูล (ใช้ Default ถ้าไม่มี)
-        // if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
-        //     surveyConfig = [
-        //         { id: 1, question: "เวลาเล่นต่อวัน", type: "choice", options: ["< 1 ชม.", "1-3 ชม.", "> 3 ชม."] },
-        //         { id: 2, question: "สายการเล่น", type: "choice", options: ["F2P", "Low Spender", "Whale"] }
-        //     ];
-        // }
-
         console.log("🟢 Rendering Application Form...");
-        console.log("📦 Data in surveyConfig:", surveyConfig);
 
-        // 1. ตรวจสอบข้อมูล (ใช้ Default ถ้าไม่มี)
+        // 1. ตรวจสอบข้อมูล
         if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
             console.warn("⚠️ Survey Config is empty! Using default questions.");
-            // ... (โค้ด Default เดิม) ...
         } else {
             console.log("✅ Using Custom Config from Database");
         }
@@ -10869,10 +10859,9 @@
             </div>`;
         }).join('');
 
-        // 3. วาดหน้าจอ (เพิ่มช่องรูป 3 ช่อง)
+        // 3. วาดหน้าจอ (เพิ่มช่องรูป Pet)
         container.innerHTML = `
-
-            <div >
+            <div>
                 <div class="w-full max-w-3xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl my-10 animate-fade-in mx-auto relative">
                     <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center rounded-t-2xl relative overflow-hidden">
                         <div class="absolute top-0 left-0 w-full h-full bg-white/5"></div>
@@ -10881,7 +10870,8 @@
                     </div>
 
                     <div class="p-8">
-                        <div class="mb-5">
+                        
+                        <div class="mb-8">
                             <label class="text-blue-400 text-lg font-bold block mb-2">📸 รูปตัวละครใน ID และรูปทีมหน้าจัดกิลวอร์</label>
                             <div class="grid grid-cols-3 gap-2">
                                 ${[1, 2, 3].map(i => `
@@ -10894,24 +10884,38 @@
                                     </div>
                                 `).join('')}
                             </div>
-                            <p class="text-lg text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูป</p>
+                            <p class="text-sm text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูปทีม</p>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-4 mb-6">
+                        <div class="mb-8">
+                            <label class="text-purple-400 text-lg font-bold block mb-2">🐾 รูปสัตว์เลี้ยง (Pet)</label>
+                            <div class="flex justify-start">
+                                <div class="w-32 aspect-square rounded-xl border-2 border-dashed border-purple-600/50 hover:border-purple-500 bg-black/50 overflow-hidden relative cursor-pointer group" onclick="document.getElementById('app-pet-upload').click()">
+                                    <img id="app-pet-preview" src="https://placehold.co/300x300?text=Pet" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
+                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span class="text-purple-300 group-hover:text-white text-lg bg-black/80 px-2 rounded transform scale-75 group-hover:scale-100 transition">+</span>
+                                    </div>
+                                    <input type="file" id="app-pet-upload" class="hidden" accept="image/*" onchange="previewPetImg(this)">
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">*อัปโหลดรูปสัตว์เลี้ยงหลักของคุณ</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-6 mb-8">
                             <div>
                                 <label class="text-gray-300 text-lg font-bold block mb-1">ชื่อในเกม (In-Game Name)</label>
-                                <input type="text" id="app-name" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุชื่อตัวละคร...">
+                                <input type="text" id="app-name" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500 outline-none" placeholder="ระบุชื่อตัวละคร...">
                             </div>
                             <div>
                                 <label class="text-gray-300 text-lg font-bold block mb-1">ช่องทางติดต่อ (Line / Discord)</label>
-                                <input type="text" id="app-contact" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500" placeholder="ระบุ ID...">
+                                <input type="text" id="app-contact" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500 outline-none" placeholder="ระบุ ID...">
                             </div>
                         </div>
                         
-                        <div class="h-px bg-gray-700 my-4"></div>
+                        <div class="h-px bg-gray-700 my-6"></div>
                         
-                        <div class="mb-6">
-                            <div class="text-xl font-bold text-gray-500 uppercase tracking-widest mb-3">แบบสอบถาม</div>
+                        <div class="mb-8">
+                            <div class="text-xl font-bold text-gray-500 uppercase tracking-widest mb-4">แบบสอบถาม</div>
                             ${questionsHTML}
                         </div>
 
@@ -10942,6 +10946,20 @@
         }
     }
 
+    function previewPetImg(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgEl = document.getElementById('app-pet-preview');
+                if(imgEl) {
+                    imgEl.src = e.target.result;
+                    imgEl.classList.remove('opacity-60');
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     async function submitApp() {
 
         isRegisterMode = true;
@@ -10960,6 +10978,15 @@
                 }
             }
 
+            // 2. เก็บรูปสัตว์เลี้ยง (1 รูป) [NEW]
+            const petEl = document.getElementById('app-pet-preview');
+            let petImage = '';
+            if (petEl && !petEl.src.includes('placehold.co') && !petEl.src.includes('text=')) {
+                petImage = petEl.src;
+                // เพิ่มเข้าไปใน images array ด้วย เพื่อให้ Server อัปโหลดทั้งหมดทีเดียว
+                images.push(petImage);
+            }
+
             // รวบรวมคำตอบ
             const answers = surveyConfig.map(q => ({ 
                 q: q.question, 
@@ -10969,15 +10996,16 @@
             if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
             if(!contact) return alert("กรุณากรอกเบอร์โทรศัพท์ (Phone Number)");
             if(images.length === 0) return alert("กรุณาเลือกรูปภาพ (Upload Images)");
+            if(!petImage) return alert("กรุณาเลือกรูปสัตว์เลี้ยง (Upload Pet Image)");
             if(!answers.every(a => a.a)) return alert("กรุณากรอกคำตอบทุกคำถาม (Answer All Questions)");
 
-            // สร้าง Object ข้อมูล
             const app = { 
                 id: Date.now(), 
                 name, 
                 contact, 
-                img: images[0] || '', // รูปหลัก (รูปแรก)
-                images: images,       // ✅ เก็บ Array รูปทั้งหมดไว้ด้วย
+                img: images[0] || '', // รูปหลัก (รูปแรกใน Array)
+                petImg: petImage,     // [NEW] แยกฟิลด์รูปสัตว์เลี้ยงไว้ (แต่ตัวรูปจริงๆ อยู่ใน images array แล้ว)
+                images: images,       // ส่งไปทั้งหมดให้ Server process
                 answers, 
                 date: new Date().toLocaleString('th-TH')
             };
