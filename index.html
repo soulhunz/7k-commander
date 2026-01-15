@@ -10833,96 +10833,114 @@
         const container = document.getElementById('view-application-form');
         if (!container) return;
 
-        console.log("🟢 Rendering Application Form...");
+        console.log("🟢 Rendering Application Form (Light Theme)...");
 
         // 1. ตรวจสอบข้อมูล
         if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
-            console.warn("⚠️ Survey Config is empty! Using default questions.");
-        } else {
-            console.log("✅ Using Custom Config from Database");
+            console.warn("⚠️ Survey Config is empty!");
         }
 
-        // 2. สร้าง HTML คำถาม
+        // 2. สร้าง HTML คำถาม (ปรับสี Text และ Input เป็นโทนสว่าง)
         let questionsHTML = surveyConfig.map(q => {
             const options = Array.isArray(q.options) ? q.options : [];
             const optionsHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
             return `
-            <div class="mb-4">
-                <label class="block text-xl font-bold text-gray-300 mb-2">${q.question || 'คำถาม'}</label>
+            <div class="mb-5 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <label class="block text-lg font-bold text-gray-800 mb-2">🔹 ${q.question || 'คำถาม'}</label>
                 <div class="relative">
-                    <select id="ans-${q.id}" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white appearance-none cursor-pointer focus:border-blue-500 outline-none">
-                        <option class="text-xl" value="" disabled selected>-- กรุณาเลือก --</option>
+                    <select id="ans-${q.id}" class="text-lg w-full bg-white border border-gray-300 p-3 rounded-lg text-gray-900 appearance-none cursor-pointer focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition shadow-sm">
+                        <option class="text-gray-400" value="" disabled selected>-- กรุณาเลือก --</option>
                         ${optionsHTML}
                     </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">▼</div>
+                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">▼</div>
                 </div>
             </div>`;
         }).join('');
 
-        // 3. วาดหน้าจอ (เพิ่มช่องรูป Pet)
+        // 3. วาดหน้าจอ (เปลี่ยน Theme ใหม่ทั้งหมด)
         container.innerHTML = `
-            <div>
-                <div class="w-full max-w-3xl bg-[#161b22] border border-gray-700 rounded-2xl shadow-2xl my-10 animate-fade-in mx-auto relative">
-                    <div class="bg-gradient-to-r from-blue-900 to-purple-900 p-6 text-center rounded-t-2xl relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-full bg-white/5"></div>
-                        <h1 class="text-3xl font-bold text-white relative z-10">Guild Seven Deadly Sins</h1>
-                        <p class="text-blue-200 text-lg mt-1 relative z-10">ใบสมัครเข้ากิลด์</p>
+            <div class="w-full flex justify-center py-10 bg-gray-100">
+                <div class="w-full max-w-3xl bg-white border border-gray-200 rounded-3xl shadow-xl animate-fade-in relative overflow-hidden">
+                    
+                    <div class="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-8 text-center relative">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                        <h1 class="text-4xl font-extrabold text-white drop-shadow-md relative z-10 tracking-wide">
+                            🛡️ Guild Recruitment
+                        </h1>
+                        <p class="text-blue-100 text-lg mt-2 relative z-10 font-medium">ใบสมัครเข้ากิลด์ Seven Deadly Sins</p>
                     </div>
 
-                    <div class="p-8">
+                    <div class="p-8 md:p-10 space-y-8">
                         
-                        <div class="mb-8">
-                            <label class="text-blue-400 text-lg font-bold block mb-2">📸 รูปตัวละครใน ID และรูปทีมหน้าจัดกิลวอร์</label>
-                            <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-white rounded-2xl border-2 border-dashed border-indigo-100 p-6 shadow-sm hover:border-indigo-300 transition">
+                            <label class="text-indigo-600 text-xl font-bold flex items-center gap-2 mb-4">
+                                📸 <span class="text-gray-800">รูปทีม / ตัวละคร</span>
+                            </label>
+                            
+                            <div class="grid grid-cols-3 gap-4">
                                 ${[1, 2, 3].map(i => `
-                                    <div class="aspect-square rounded-xl border-2 border-dashed border-gray-600 hover:border-blue-500 bg-black/50 overflow-hidden relative cursor-pointer group" onclick="document.getElementById('app-img-upload-${i}').click()">
-                                        <img id="app-img-preview-${i}" src="https://placehold.co/300x300?text=${i}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
-                                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <span class="text-gray-400 group-hover:text-white text-lg bg-black/80 px-2 rounded transform scale-75 group-hover:scale-100 transition">+</span>
+                                    <div class="aspect-square rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 overflow-hidden relative cursor-pointer group transition-all shadow-inner" onclick="document.getElementById('app-img-upload-${i}').click()">
+                                        <img id="app-img-preview-${i}" src="https://placehold.co/300x300/f3f4f6/9ca3af?text=Image+${i}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-300">
+                                        
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none group-hover:scale-110 transition">
+                                            <div class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow text-blue-500 font-bold text-xl group-hover:bg-blue-500 group-hover:text-white transition">+</div>
                                         </div>
                                         <input type="file" id="app-img-upload-${i}" class="hidden" accept="image/*" onchange="previewAppImg(this, ${i})">
                                     </div>
                                 `).join('')}
                             </div>
-                            <p class="text-sm text-gray-500 mt-2">*แตะที่ช่องเพื่ออัปโหลดรูปทีม</p>
+                            <p class="text-sm text-gray-500 mt-3 text-center bg-yellow-50 py-1 rounded text-yellow-700 border border-yellow-100">
+                                💡 แตะที่ช่องเพื่ออัปโหลดรูป (แนะนำ 3 รูป)
+                            </p>
                         </div>
 
-                        <div class="mb-8">
-                            <label class="text-purple-400 text-lg font-bold block mb-2">🐾 รูปสัตว์เลี้ยง (Pet)</label>
-                            <div class="flex justify-start">
-                                <div class="w-32 aspect-square rounded-xl border-2 border-dashed border-purple-600/50 hover:border-purple-500 bg-black/50 overflow-hidden relative cursor-pointer group" onclick="document.getElementById('app-pet-upload').click()">
-                                    <img id="app-pet-preview" src="https://placehold.co/300x300?text=Pet" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
-                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <span class="text-purple-300 group-hover:text-white text-lg bg-black/80 px-2 rounded transform scale-75 group-hover:scale-100 transition">+</span>
+                        <div class="bg-white rounded-2xl border-2 border-dashed border-purple-100 p-6 shadow-sm hover:border-purple-300 transition">
+                            <label class="text-purple-600 text-xl font-bold flex items-center gap-2 mb-4">
+                                🐾 <span class="text-gray-800">รูปสัตว์เลี้ยง (Pet)</span>
+                            </label>
+                            
+                            <div class="flex items-center gap-6">
+                                <div class="w-36 aspect-square rounded-2xl bg-gray-50 border-2 border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50 overflow-hidden relative cursor-pointer group transition-all shadow-inner" onclick="document.getElementById('app-pet-upload').click()">
+                                    <img id="app-pet-preview" src="https://placehold.co/300x300/f3f4f6/a78bfa?text=Pet" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-300">
+                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 transition">
+                                        <div class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow text-purple-500 font-bold text-xl group-hover:bg-purple-500 group-hover:text-white transition">+</div>
                                     </div>
                                     <input type="file" id="app-pet-upload" class="hidden" accept="image/*" onchange="previewPetImg(this)">
                                 </div>
+                                <div class="text-gray-500 text-sm flex-1">
+                                    อัปโหลดรูปสัตว์เลี้ยงหลักของคุณ<br>เพื่อประกอบการพิจารณา
+                                </div>
                             </div>
-                            <p class="text-sm text-gray-500 mt-2">*อัปโหลดรูปสัตว์เลี้ยงหลักของคุณ</p>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-6 mb-8">
-                            <div>
-                                <label class="text-gray-300 text-lg font-bold block mb-1">ชื่อในเกม (In-Game Name)</label>
-                                <input type="text" id="app-name" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500 outline-none" placeholder="ระบุชื่อตัวละคร...">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="group">
+                                <label class="text-gray-700 text-sm font-bold block mb-1 uppercase tracking-wide">👤 ชื่อในเกม (In-Game Name)</label>
+                                <input type="text" id="app-name" class="text-lg w-full bg-white border border-gray-300 p-3 rounded-lg text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition shadow-sm placeholder-gray-400" placeholder="ระบุชื่อตัวละคร...">
                             </div>
-                            <div>
-                                <label class="text-gray-300 text-lg font-bold block mb-1">ช่องทางติดต่อ (Line / Discord)</label>
-                                <input type="text" id="app-contact" class="text-xl w-full bg-[#0d1117] border border-gray-600 p-3 rounded text-white focus:border-blue-500 outline-none" placeholder="ระบุ ID...">
+                            <div class="group">
+                                <label class="text-gray-700 text-sm font-bold block mb-1 uppercase tracking-wide">📱 ช่องทางติดต่อ (Contact)</label>
+                                <input type="text" id="app-contact" class="text-lg w-full bg-white border border-gray-300 p-3 rounded-lg text-gray-900 focus:border-green-500 focus:ring-4 focus:ring-green-100 outline-none transition shadow-sm placeholder-gray-400" placeholder="Line ID / Discord...">
                             </div>
                         </div>
                         
-                        <div class="h-px bg-gray-700 my-6"></div>
+                        <hr class="border-gray-200">
                         
-                        <div class="mb-8">
-                            <div class="text-xl font-bold text-gray-500 uppercase tracking-widest mb-4">แบบสอบถาม</div>
-                            ${questionsHTML}
+                        <div>
+                            <div class="text-2xl font-black text-gray-800 uppercase tracking-tight mb-6 flex items-center gap-2">
+                                <span class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-lg">?</span> 
+                                แบบสอบถาม
+                            </div>
+                            <div class="space-y-2">
+                                ${questionsHTML}
+                            </div>
                         </div>
 
-                        <div class="mt-6 pt-4 border-t border-gray-700">
-                            <button id="btn-submit-app" onclick="submitApp()" class="w-full bg-green-600 hover:bg-green-500 text-white py-4 rounded-xl font-bold text-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                                <span>🚀</span> ส่งใบสมัคร (Submit)
+                        <div class="pt-4">
+                            <button id="btn-submit-app" onclick="submitApp()" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-4 rounded-2xl font-bold text-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
+                                <span>🚀</span> ส่งใบสมัคร (Submit Application)
                             </button>
+                            <p class="text-center text-gray-400 text-xs mt-3">ข้อมูลของคุณจะถูกส่งไปยังหัวหน้ากิลด์เพื่อพิจารณา</p>
                         </div>
 
                     </div>
@@ -10961,61 +10979,74 @@
     }
 
     async function submitApp() {
+        // 1. ตรวจสอบการเชื่อมต่อ
+        if (!USE_CLOUD) {
+            alert("แจ้งเตือน: ไม่ได้เชื่อมต่อ Google Cloud ข้อมูลจะไม่ถูกบันทึก!");
+            return;
+        }
 
-        isRegisterMode = true;
+        const name = document.getElementById('app-name').value.trim();
+        const contact = document.getElementById('app-contact').value.trim();
 
-        if (USE_CLOUD) {
-            const name = document.getElementById('app-name').value.trim();
-            const contact = document.getElementById('app-contact').value.trim();
-
-            // ✅ 1. วนลูปเก็บรูปภาพ (สูงสุด 3 รูป)
-            const images = [];
-            for(let i=1; i<=3; i++) {
-                const el = document.getElementById(`app-img-preview-${i}`);
-                // เช็คว่าไม่ใช่รูป Placeholder ถึงจะเก็บ
-                if (el && !el.src.includes('placehold.co') && !el.src.includes('text=')) {
-                    images.push(el.src);
-                }
+        // 2. รวบรวมรูปภาพทีม (3 รูป)
+        const images = [];
+        for(let i=1; i<=3; i++) {
+            const el = document.getElementById(`app-img-preview-${i}`);
+            // เช็คว่าไม่ใช่รูป Placeholder
+            if (el && !el.src.includes('placehold.co') && !el.src.includes('text=')) {
+                images.push(el.src);
             }
+        }
 
-            // 2. เก็บรูปสัตว์เลี้ยง (1 รูป) [NEW]
-            const petEl = document.getElementById('app-pet-preview');
-            let petImage = '';
-            if (petEl && !petEl.src.includes('placehold.co') && !petEl.src.includes('text=')) {
-                petImage = petEl.src;
-                // เพิ่มเข้าไปใน images array ด้วย เพื่อให้ Server อัปโหลดทั้งหมดทีเดียว
-                images.push(petImage);
-            }
+        // 3. รวบรวมรูปสัตว์เลี้ยง (1 รูป)
+        const petEl = document.getElementById('app-pet-preview');
+        let petImage = '';
+        if (petEl && !petEl.src.includes('placehold.co') && !petEl.src.includes('text=')) {
+            petImage = petEl.src;
+            // ⚠️ สำคัญ: เพิ่มรูปสัตว์เลี้ยงลงใน Array images ด้วย 
+            // เพื่อให้ Server (Script เดิม) ทำการอัปโหลดขึ้น Drive ให้โดยอัตโนมัติ
+            images.push(petImage);
+        }
 
-            // รวบรวมคำตอบ
-            const answers = surveyConfig.map(q => ({ 
-                q: q.question, 
-                a: document.getElementById(`ans-${q.id}`) ? document.getElementById(`ans-${q.id}`).value : '-' 
-            }));
+        // 4. รวบรวมคำตอบ
+        const answers = surveyConfig.map(q => ({ 
+            q: q.question, 
+            a: document.getElementById(`ans-${q.id}`) ? document.getElementById(`ans-${q.id}`).value : '-' 
+        }));
 
-            if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
-            if(!contact) return alert("กรุณากรอกเบอร์โทรศัพท์ (Phone Number)");
-            if(images.length === 0) return alert("กรุณาเลือกรูปภาพ (Upload Images)");
-            if(!petImage) return alert("กรุณาเลือกรูปสัตว์เลี้ยง (Upload Pet Image)");
-            if(!answers.every(a => a.a)) return alert("กรุณากรอกคำตอบทุกคำถาม (Answer All Questions)");
+        // 5. Validation
+        if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
+        if(!contact) return alert("กรุณากรอกช่องทางติดต่อ (Line / Discord)");
+        if(images.length === 0) return alert("กรุณาเลือกรูปภาพอย่างน้อย 1 รูป (ทีม หรือ สัตว์เลี้ยง)");
+        if(!petImage) return alert("กรุณาเลือกรูปสัตว์เลี้ยง (Upload Pet Image)");
+        if(!answers.every(a => a.a)) return alert("กรุณากรอกคำตอบทุกคำถาม (Answer All Questions)");
 
-            const app = { 
-                id: Date.now(), 
-                name, 
-                contact, 
-                img: images[0] || '', // รูปหลัก (รูปแรกใน Array)
-                petImg: petImage,     // [NEW] แยกฟิลด์รูปสัตว์เลี้ยงไว้ (แต่ตัวรูปจริงๆ อยู่ใน images array แล้ว)
-                images: images,       // ส่งไปทั้งหมดให้ Server process
-                answers, 
-                date: new Date().toLocaleString('th-TH')
-            };
-            
-            // บันทึกและส่ง
-            applicationsDB.unshift(app);
-
-            showLoading("กำลังบันทึกข้อมูล...");
-           
-            await pushData(true);
+        // 6. สร้าง Object ข้อมูล
+        const app = { 
+            id: Date.now(), 
+            name: name, 
+            contact: contact, 
+            img: images[0] || '', // ใช้รูปแรกเป็นรูปหลัก
+            // petImg: petImage,  // ไม่จำเป็นต้องแยกฟิลด์ เพราะรวมอยู่ใน images แล้ว
+            images: images,       // ส่ง Array รวมไปให้ Server
+            answers: answers, 
+            date: new Date().toLocaleString('th-TH')
+        };
+        
+        showLoading("กำลังส่งใบสมัคร...");
+        
+        try {
+            // 🚀 ใช้ action: 'submitApplication' เพื่อความปลอดภัย (Append Mode)
+            // ห้ามใช้ pushData() เด็ดขาด เพราะจะทำให้ข้อมูลเก่าหาย
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { "Content-Type": "text/plain;charset=utf-8" }, 
+                body: JSON.stringify({
+                    action: 'submitApplication',
+                    data: app
+                })
+            });
 
             alert("บันทึกเรียบร้อย!");
 
@@ -11026,26 +11057,25 @@
                     <h2 class="text-3xl font-bold text-white mb-2">ส่งใบสมัครเรียบร้อย!</h2>
                     <p class="text-gray-400 mb-8">ขอบคุณที่สมัครเข้าร่วมกิลด์</p>
                     
-                    <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm mb-6">
+                     <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm mb-6">
                         <div class="h-40 bg-black rounded mb-2 overflow-hidden border border-gray-600 relative">
                             <img src="${app.img || 'https://placehold.co/640x360?text=No+Image'}" class="w-full h-full object-contain">
-                            ${images.length > 1 ? `<div class="absolute bottom-1 right-1 bg-black/70 text-white text-lg px-2 py-1 rounded">+${images.length-1}</div>` : ''}
+                            <div class="absolute bottom-1 right-1 bg-black/70 text-white text-lg px-2 py-1 rounded">Total: ${images.length} Pics</div>
                         </div>
                         <div class="font-bold text-white text-xl">${name}</div>
                         <div class="text-lg text-gray-400">${contact}</div>
                     </div>
+
+                    <button onclick="location.reload()" class="text-white bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded">กลับหน้าหลัก</button>
                 </div>
             `;
-        } else {
-            console.warn("Cannot save: No Cloud Connection");
-            alert("แจ้งเตือน: ไม่ได้เชื่อมต่อ Google Cloud ข้อมูลจะไม่ถูกบันทึก!");
-        }
 
-        // <button onclick="window.location.href = window.location.pathname" 
-        //     class="text-white bg-gray-700 hover:bg-gray-600 border border-gray-500 px-6 py-2 rounded transition shadow-lg">
-        //     กลับสู่หน้าหลัก
-        // </button>
-        
+        } catch (err) {
+            console.error("Submit Error:", err);
+            alert("เกิดข้อผิดพลาด: " + err.message);
+        } finally {
+            hideLoading();
+        }
     }
     function updateLoginStatus(state) {
         const dot = document.getElementById('login-dot');
