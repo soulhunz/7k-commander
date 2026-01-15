@@ -10835,37 +10835,65 @@
 
         console.log("🟢 Rendering Application Form (Light Theme)...");
 
+        const uploadSlots = [
+            { 
+                id: 1, 
+                label: "1. รูปโปรไฟล์ในเกม", 
+                // ❌ แบบนี้ใช้ไม่ได้ (ลิงก์แชร์ปกติ):
+                // placeholder: "https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j/view?usp=sharing"
+                
+                // ✅ แบบนี้ใช้ได้ (Direct Link):
+                placeholder: "https://drive.google.com/thumbnail?id=1BhgGBZyxje79J7vE65uohpoDmQb0iBAW" 
+            },
+            { 
+                id: 2, 
+                label: "2. รูปตัวละครหลัก", 
+                // ใส่ ID รูปที่ 2 ของคุณ
+                placeholder: "https://drive.google.com/thumbnail?id=12rtddzDqQN4__-4gEjuDBn8rJ1yoLqno" 
+            },
+            { 
+                id: 3, 
+                label: "3. รูปสัตว์เลี้ยง", 
+                // ใส่ ID รูปที่ 3 ของคุณ
+                placeholder: "https://drive.google.com/thumbnail?id=1U_usb4n6mXXJwmY_s2PB_6IUOTTBXnkB" 
+            }
+        ];
+
+
         // 1. ตรวจสอบข้อมูล
         if (!Array.isArray(surveyConfig) || surveyConfig.length === 0) {
             console.warn("⚠️ Survey Config is empty!");
         }
 
         // 2. สร้าง HTML คำถาม (ปรับสี Text และ Input เป็นโทนสว่าง)
-        let questionsHTML = surveyConfig.map(q => {
-            const options = Array.isArray(q.options) ? q.options : [];
-            const optionsHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-            return `
-            <div class="mb-5 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <label class="block text-lg font-bold text-gray-800 mb-2">🔹 ${q.question || 'คำถาม'}</label>
-                <div class="relative">
-                    <select id="ans-${q.id}" class="text-lg w-full bg-white border border-gray-300 p-3 rounded-lg text-gray-900 appearance-none cursor-pointer focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition shadow-sm">
-                        <option class="text-gray-400" value="" disabled selected>-- กรุณาเลือก --</option>
-                        ${optionsHTML}
-                    </select>
-                    <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">▼</div>
-                </div>
-            </div>`;
-        }).join('');
+        let questionsHTML = '';
+        if (typeof surveyConfig !== 'undefined' && Array.isArray(surveyConfig)) {
+            questionsHTML = surveyConfig.map(q => {
+                const options = Array.isArray(q.options) ? q.options : [];
+                const optionsHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                return `
+                <div class="mb-5 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <label class="block text-lg font-bold text-gray-800 mb-2">🔹 ${q.question || 'คำถาม'}</label>
+                    <div class="relative">
+                        <select id="ans-${q.id}" class="text-lg w-full bg-white border border-gray-300 p-3 rounded-lg text-gray-900 appearance-none cursor-pointer focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition shadow-sm">
+                            <option class="text-gray-400" value="" disabled selected>-- กรุณาเลือก --</option>
+                            ${optionsHTML}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">▼</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
 
         // 3. วาดหน้าจอ (เปลี่ยน Theme ใหม่ทั้งหมด)
         container.innerHTML = `
             <div class="w-full flex justify-center py-10 bg-gray-100">
-                <div class="w-full max-w-3xl bg-white border border-gray-200 rounded-3xl shadow-xl animate-fade-in relative overflow-hidden">
+                <div class="w-full max-w-4xl bg-white border border-gray-200 rounded-3xl shadow-xl animate-fade-in relative overflow-hidden">
                     
                     <div class="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 p-8 text-center relative">
                         <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
                         <h1 class="text-4xl font-extrabold text-white drop-shadow-md relative z-10 tracking-wide">
-                            🛡️ Guild Recruitment
+                            Guild Recruitment
                         </h1>
                         <p class="text-blue-100 text-lg mt-2 relative z-10 font-medium">ใบสมัครเข้ากิลด์ Seven Deadly Sins</p>
                     </div>
@@ -10873,43 +10901,43 @@
                     <div class="p-8 md:p-10 space-y-8">
                         
                         <div class="bg-white rounded-2xl border-2 border-dashed border-indigo-100 p-6 shadow-sm hover:border-indigo-300 transition">
-                            <label class="text-indigo-600 text-xl font-bold flex items-center gap-2 mb-4">
-                                📸 <span class="text-gray-800">รูปทีม / ตัวละคร</span>
+                            <label class="text-indigo-600 text-xl font-bold flex items-center gap-2 mb-6">
+                                📸 <span class="text-gray-800">อัปโหลดรูปภาพ</span>
                             </label>
-                            
-                            <div class="grid grid-cols-3 gap-4">
-                                ${[1, 2, 3].map(i => `
-                                    <div class="aspect-square rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50 overflow-hidden relative cursor-pointer group transition-all shadow-inner" onclick="document.getElementById('app-img-upload-${i}').click()">
-                                        <img id="app-img-preview-${i}" src="https://placehold.co/300x300/f3f4f6/9ca3af?text=Image+${i}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-300">
+
+                            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 mb-6 text-sm text-blue-700">
+                                💡 <strong>คำแนะนำ:</strong> กรุณาแตะที่รูปตัวอย่างเพื่ออัปโหลดรูปของท่าน
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                ${uploadSlots.map(slot => `
+                                    <div class="flex flex-col gap-2 group">
                                         
-                                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none group-hover:scale-110 transition">
-                                            <div class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow text-blue-500 font-bold text-xl group-hover:bg-blue-500 group-hover:text-white transition">+</div>
+                                        <div class="aspect-video rounded-2xl bg-gray-100 border-2 border-dashed border-indigo-300 hover:border-blue-500 hover:bg-blue-50 overflow-hidden relative cursor-pointer transition-all shadow-sm hover:shadow-md" onclick="document.getElementById('app-img-upload-${slot.id}').click()">
+                                            
+                                            <img id="app-img-preview-${slot.id}" 
+                                                src="${slot.placeholder}" 
+                                                class="w-full h-full object-cover opacity-70 filter grayscale transition duration-300">
+                                            
+                                            <div id="upload-overlay-${slot.id}" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                                <div class="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg text-white font-bold text-3xl transform group-hover:scale-110 transition-transform">
+                                                    +
+                                                </div>
+                                                <span class="text-blue-600 font-bold text-sm mt-3 bg-white/90 px-3 py-1 rounded-full shadow-sm">แตะเพื่ออัปโหลด</span>
+                                            </div>
+
+                                            <input type="file" id="app-img-upload-${slot.id}" class="hidden" accept="image/*" onchange="previewAppImg(this, ${slot.id})">
+                                            
+                                            <div class="absolute top-2 right-2 bg-gray-800/80 text-white text-[10px] px-2 py-1 rounded-full pointer-events-none example-badge-${slot.id}">
+                                                รูปตัวอย่าง
+                                            </div>
                                         </div>
-                                        <input type="file" id="app-img-upload-${i}" class="hidden" accept="image/*" onchange="previewAppImg(this, ${i})">
+
+                                        <span class="text-center text-sm font-bold text-gray-700">
+                                            ${slot.label}
+                                        </span>
                                     </div>
                                 `).join('')}
-                            </div>
-                            <p class="text-sm text-gray-500 mt-3 text-center bg-yellow-50 py-1 rounded text-yellow-700 border border-yellow-100">
-                                💡 แตะที่ช่องเพื่ออัปโหลดรูป (แนะนำ 3 รูป)
-                            </p>
-                        </div>
-
-                        <div class="bg-white rounded-2xl border-2 border-dashed border-purple-100 p-6 shadow-sm hover:border-purple-300 transition">
-                            <label class="text-purple-600 text-xl font-bold flex items-center gap-2 mb-4">
-                                🐾 <span class="text-gray-800">รูปสัตว์เลี้ยง (Pet)</span>
-                            </label>
-                            
-                            <div class="flex items-center gap-6">
-                                <div class="w-36 aspect-square rounded-2xl bg-gray-50 border-2 border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50 overflow-hidden relative cursor-pointer group transition-all shadow-inner" onclick="document.getElementById('app-pet-upload').click()">
-                                    <img id="app-pet-preview" src="https://placehold.co/300x300/f3f4f6/a78bfa?text=Pet" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-300">
-                                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none group-hover:scale-110 transition">
-                                        <div class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow text-purple-500 font-bold text-xl group-hover:bg-purple-500 group-hover:text-white transition">+</div>
-                                    </div>
-                                    <input type="file" id="app-pet-upload" class="hidden" accept="image/*" onchange="previewPetImg(this)">
-                                </div>
-                                <div class="text-gray-500 text-sm flex-1">
-                                    อัปโหลดรูปสัตว์เลี้ยงหลักของคุณ<br>เพื่อประกอบการพิจารณา
-                                </div>
                             </div>
                         </div>
 
@@ -10938,9 +10966,9 @@
 
                         <div class="pt-4">
                             <button id="btn-submit-app" onclick="submitApp()" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white py-4 rounded-2xl font-bold text-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3">
-                                <span>🚀</span> ส่งใบสมัคร (Submit Application)
+                                <span>🚀</span> ส่งใบสมัคร
                             </button>
-                            <p class="text-center text-gray-400 text-xs mt-3">ข้อมูลของคุณจะถูกส่งไปยังหัวหน้ากิลด์เพื่อพิจารณา</p>
+                            <p class="text-center text-gray-400 text-xs mt-3">ข้อมูลจะถูกส่งไปยังหัวหน้ากิลด์เพื่อพิจารณา</p>
                         </div>
 
                     </div>
@@ -10949,15 +10977,31 @@
         `;
     }
 
-    function previewAppImg(input, index) {
+    function previewAppImg(input, id) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
-            reader.onload = function(e) {
-                // อัปเดตเฉพาะช่องที่เลือก (ตาม index)
-                const imgEl = document.getElementById(`app-img-preview-${index}`);
-                if(imgEl) {
+            reader.onload = function (e) {
+                const imgEl = document.getElementById(`app-img-preview-${id}`);
+                const overlayEl = document.getElementById(`upload-overlay-${id}`);
+                
+                if (imgEl) {
                     imgEl.src = e.target.result;
-                    imgEl.classList.remove('opacity-60'); // ทำให้รูปชัดขึ้นเมื่อมีภาพแล้ว
+                    // ✅ ทำให้รูปชัดขึ้นเมื่อเลือกแล้ว
+                    imgEl.classList.remove('opacity-40', 'filter', 'grayscale'); 
+                    imgEl.classList.add('opacity-100'); 
+                }
+                
+                // ✅ ซ่อนปุ่มบวกและข้อความ "แตะเพื่ออัปโหลด" (ให้เห็นรูปเต็มๆ)
+                if (overlayEl) {
+                    overlayEl.style.opacity = '0'; 
+                    // (Optional) ถ้าอยากให้เห็นปุ่มตอน Hover เพื่อเปลี่ยนรูป ให้ลบบรรทัดบนแล้วใช้ CSS hover แทนได้
+                    // แต่ซ่อนไปเลยดูสะอาดกว่า ถ้าจะเปลี่ยนก็กดที่รูปได้อยู่แล้ว
+                }
+                
+                // ✅ ซ่อนป้าย "รูปตัวอย่าง"
+                const badgeEl = document.querySelector(`.example-badge-${id}`);
+                if (badgeEl) {
+                    badgeEl.style.display = 'none';
                 }
             }
             reader.readAsDataURL(input.files[0]);
@@ -10988,47 +11032,50 @@
         const name = document.getElementById('app-name').value.trim();
         const contact = document.getElementById('app-contact').value.trim();
 
-        // 2. รวบรวมรูปภาพทีม (3 รูป)
+        // -----------------------------------------------------------
+        // 🟢 จุดที่แก้ไข: เช็คว่าเป็นรูปจริงด้วย 'data:image'
+        // -----------------------------------------------------------
         const images = [];
+        
+        // 1. เช็ครูปทีม (3 ช่อง)
         for(let i=1; i<=3; i++) {
             const el = document.getElementById(`app-img-preview-${i}`);
-            // เช็คว่าไม่ใช่รูป Placeholder
-            if (el && !el.src.includes('placehold.co') && !el.src.includes('text=')) {
+            // เช็คว่า src ขึ้นต้นด้วย data:image หรือไม่ (ถ้าใช่ แปลว่ามาจากไฟล์ที่อัปโหลด)
+            if (el && el.src.startsWith('data:image')) {
                 images.push(el.src);
             }
         }
 
-        // 3. รวบรวมรูปสัตว์เลี้ยง (1 รูป)
+        // 2. เช็ครูปสัตว์เลี้ยง
         const petEl = document.getElementById('app-pet-preview');
-        let petImage = '';
-        if (petEl && !petEl.src.includes('placehold.co') && !petEl.src.includes('text=')) {
-            petImage = petEl.src;
-            // ⚠️ สำคัญ: เพิ่มรูปสัตว์เลี้ยงลงใน Array images ด้วย 
-            // เพื่อให้ Server (Script เดิม) ทำการอัปโหลดขึ้น Drive ให้โดยอัตโนมัติ
-            images.push(petImage);
+        if (petEl && petEl.src.startsWith('data:image')) {
+            // เพิ่มรูปสัตว์เลี้ยงเข้าไปในรายการรูปทั้งหมด
+            images.push(petEl.src);
         }
+        // -----------------------------------------------------------
 
-        // 4. รวบรวมคำตอบ
+        // รวบรวมคำตอบ
         const answers = surveyConfig.map(q => ({ 
             q: q.question, 
             a: document.getElementById(`ans-${q.id}`) ? document.getElementById(`ans-${q.id}`).value : '-' 
         }));
 
-        // 5. Validation
+        // Validation
         if(!name) return alert("กรุณากรอกชื่อในเกม (In-Game Name)");
         if(!contact) return alert("กรุณากรอกช่องทางติดต่อ (Line / Discord)");
-        if(images.length === 0) return alert("กรุณาเลือกรูปภาพอย่างน้อย 1 รูป (ทีม หรือ สัตว์เลี้ยง)");
-        if(!petImage) return alert("กรุณาเลือกรูปสัตว์เลี้ยง (Upload Pet Image)");
+        
+        // เช็คว่ามีรูปอย่างน้อย 1 รูป (ไม่สนว่าเป็นช่องไหน)
+        if(images.length === 0) return alert("กรุณาเลือกรูปภาพอย่างน้อย 1 รูป");
+        
         if(!answers.every(a => a.a)) return alert("กรุณากรอกคำตอบทุกคำถาม (Answer All Questions)");
 
-        // 6. สร้าง Object ข้อมูล
+        // สร้าง Object ข้อมูล
         const app = { 
             id: Date.now(), 
             name: name, 
             contact: contact, 
-            img: images[0] || '', // ใช้รูปแรกเป็นรูปหลัก
-            // petImg: petImage,  // ไม่จำเป็นต้องแยกฟิลด์ เพราะรวมอยู่ใน images แล้ว
-            images: images,       // ส่ง Array รวมไปให้ Server
+            img: images[0] || '', // ใช้รูปแรกที่เจอเป็นรูปหลัก
+            images: images,       // ส่งเฉพาะรูปที่เป็น data:image ไป
             answers: answers, 
             date: new Date().toLocaleString('th-TH')
         };
@@ -11036,8 +11083,6 @@
         showLoading("กำลังส่งใบสมัคร...");
         
         try {
-            // 🚀 ใช้ action: 'submitApplication' เพื่อความปลอดภัย (Append Mode)
-            // ห้ามใช้ pushData() เด็ดขาด เพราะจะทำให้ข้อมูลเก่าหาย
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -11058,17 +11103,22 @@
                     <p class="text-gray-400 mb-8">ขอบคุณที่สมัครเข้าร่วมกิลด์</p>
                     
                      <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm mb-6">
-                        <div class="h-40 bg-black rounded mb-2 overflow-hidden border border-gray-600 relative">
-                            <img src="${app.img || 'https://placehold.co/640x360?text=No+Image'}" class="w-full h-full object-contain">
-                            <div class="absolute bottom-1 right-1 bg-black/70 text-white text-lg px-2 py-1 rounded">Total: ${images.length} Pics</div>
+                        <div class="h-48 bg-black rounded mb-2 overflow-hidden border border-gray-600 relative">
+                            <img src="${app.img}" class="w-full h-full object-contain">
+                            
+                            <div class="absolute bottom-2 right-2 bg-blue-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white/20">
+                                Total: ${images.length} Pics
+                            </div>
                         </div>
                         <div class="font-bold text-white text-xl">${name}</div>
                         <div class="text-lg text-gray-400">${contact}</div>
                     </div>
-
-                    <button onclick="location.reload()" class="text-white bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded">กลับหน้าหลัก</button>
                 </div>
             `;
+
+            // <button onclick="location.reload()" class="text-white bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded transition shadow-lg font-bold">
+            //             กลับหน้าหลัก
+            //         </button>
 
         } catch (err) {
             console.error("Submit Error:", err);
