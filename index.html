@@ -955,6 +955,7 @@
                 <!-- <div onclick="switchView('user-manager')" class="menu-item" id="nav-user-manager">👥 User Management</div> -->
                 <!-- <div onclick="switchView('audit-logs')" class="menu-item" id="nav-audit-logs">🕵️ System Audit Logs</div> -->
                 <div onclick="switchView('survey-admin')" class="menu-item" id="nav-survey-admin">📝 Recruitment Form</div>
+                <div onclick="switchView('add-battle')" class="menu-item" id="nav-add-battle">➕ Add Battle Manual</div>
             </div>
 
             <div class="mt-4 pt-4 border-t border-gray-800">
@@ -1583,6 +1584,49 @@
                 </div>
             </div>
         </div>
+
+        <div id="view-add-battle" class="flex-col hidden h-full">
+            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg flex-shrink-0">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <span>📝</span> Battle Logger (Player 1 vs Player 2)
+                </h2>
+                <div class="flex gap-2">
+                    <button onclick="addAdminRow()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition">
+                        <span>+</span> เพิ่มแถว
+                    </button>
+                    <button onclick="saveAdminBatch()" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition">
+                        <span>💾</span> บันทึก (<span id="admin-row-count">0</span>)
+                    </button>
+                </div>
+            </header>
+            
+            <div class="flex-1 overflow-auto bg-[#0d1117] p-4 custom-scroll">
+                <div class="min-w-[1000px]"> 
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 z-20">
+                            <tr class="bg-[#1f2937] text-gray-400 text-xs uppercase font-bold border-b border-gray-700 shadow-md">
+                                <th class="p-3 w-10 text-center bg-[#1f2937]">#</th>
+                                <th class="p-3 bg-[#1e3a8a]/20 text-blue-400 text-center border-l border-gray-700 w-1/2">
+                                    👤 PLAYER 1
+                                </th>
+                                <th class="p-3 w-8 text-center bg-[#1f2937]">VS</th>
+                                <th class="p-3 bg-[#581c87]/20 text-purple-400 text-center border-r border-gray-700 w-1/2">
+                                    👤 PLAYER 2
+                                </th>
+                                <th class="p-3 w-10 bg-[#1f2937]"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-battle-tbody" class="text-sm divide-y divide-gray-800">
+                            </tbody>
+                    </table>
+
+                    <div id="admin-battle-empty" class="text-center py-20 text-gray-600 hidden">
+                        <div class="text-4xl mb-2 opacity-30">⚔️</div>
+                        กดปุ่ม "+ เพิ่มแถว" ด้านบนเพื่อเริ่มบันทึก
+                    </div>
+                </div>
+            </div>
+        </div>
         
     </main>
     
@@ -1838,6 +1882,12 @@
         </div>
     </div>
 
+    <datalist id="castle-list-tbl">
+    <option value="ปราสาทนอก 1"><option value="ปราสาทนอก 2"><option value="ปราสาทนอก 3">
+    <option value="ปราสาทใน 1"><option value="ปราสาทใน 2"><option value="ปราสาทใน 3">
+    <option value="ปราสาทหลัก (ราชันย์)">
+    </datalist>
+
     <script>
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
@@ -1851,6 +1901,8 @@
 
         let surveyConfig = []; // เก็บโครงสร้างคำถาม [{id, question, type}]
         let applicationsDB = []; // เก็บใบสมัครที่ส่งมา
+
+        let adminManualEntries = [];
 
         let currentView = 'home';
 
@@ -6430,7 +6482,7 @@
                     <div class="flex gap-4">
                         <div class="flex flex-col gap-2 w-20 flex-shrink-0 pt-4 ${lockClass}">
                             <span class="text-[10px] text-gray-500 font-bold uppercase text-center">Formation</span>
-                            <div class="flex flex-col gap-1">
+                            <div class="flex flex-col">
                                 ${['basic','balanced','attack','defense'].map(f => `<button onclick="updateGuildTeam(${slotIdx},'formation','${f}')" class="px-2 py-2 text-[9px] rounded border transition ${team.formation===f?'bg-blue-600 border-blue-500 text-white font-bold shadow-lg ring-1 ring-blue-400':'bg-[#0d1117] border-gray-600 text-gray-400 hover:text-white hover:border-gray-400'}">${f.substring(0,3).toUpperCase()}</button>`).join('')}
                             </div>
                         </div>
@@ -7501,11 +7553,11 @@
 
                 // รวมร่าง (เพิ่ม mt-4 เพื่อดันให้ห่าง)
                 formationHtml = `
-                    <div class="flex flex-col w-28 border-r border-dashed border-gray-700/50 pr-3 mr-2 flex-shrink-0 justify-center items-center py-1">
+                    <div class="flex flex-col w-15 border-r border-dashed border-gray-700/50 pr-3 mr-2 flex-shrink-0 justify-center items-center py-1">
                         
                         <span class="text-[8px] text-gray-500 font-bold uppercase text-center mb-1.5">Formation</span>
                         
-                        <div class="grid grid-cols-2 gap-1 w-full">
+                        <div class="grid grid-cols-1 gap-1 w-full">
                             ${formationBtns}
                         </div>
 
@@ -8395,142 +8447,150 @@
 
     // แทนที่ฟังก์ชัน renderPreparation เดิม
     function renderPreparation() {
-        // 1. Render Enemy (แก้ไขได้ = true)
-        // param สุดท้าย false = ไม่ใช่ ReadOnly (คือแก้ไขได้)
-        const enemyHTML = generateSimCardHTML(prepData.enemy, 'PREP-ENEMY', false, false);
-        document.getElementById('prep-enemy-area').innerHTML = enemyHTML;
+        // สร้าง HTML ของทีมเดียว (ใช้ data ของ Enemy เพื่อให้ AI ทำงานได้)
+        // ตั้งชื่อ ID เป็น PREP-ENEMY เหมือนเดิมเพื่อให้ Logic อื่นๆ (Drag/Drop/AI) ทำงานต่อได้
+        const teamHTML = generateSimCardHTML(prepData.enemy, 'PREP-ENEMY', false, false); 
+        
+        const container = document.getElementById('view-preparation').querySelector('.flex-1.flex.overflow-hidden');
+        
+        // จัด Layout ใหม่: ทีมเดียวอยู่ตรงกลาง
+        container.innerHTML = `
+            <div class="flex-1 overflow-y-auto custom-scroll p-6 bg-[#0b0e14] relative flex flex-col items-center">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
 
-        // 2. Render My Team (แก้ไขได้ = true)
-        const myHTML = generateSimCardHTML(prepData.my, 'PREP-MY', true, false);
-        document.getElementById('prep-my-area').innerHTML = myHTML;
+                <div class="w-full max-w-2xl relative z-10 pb-20 mt-10">
+                    
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-black text-white uppercase tracking-widest flex items-center justify-center gap-3">
+                            <span class="text-blue-500">🛡️ TEAM</span> 
+                            <span class="text-gray-700">|</span>
+                            <span class="text-purple-500">BUILDER ⚔️</span>
+                        </h2>
+                        <p class="text-gray-500 text-xs mt-2">จัดทีมเพื่อตรวจสอบค่าพลังและวิเคราะห์จุดอ่อน (AI Analysis)</p>
+                    </div>
 
-        // 3. เรียก AI
+                    <div class="relative group transform hover:scale-[1.01] transition duration-300">
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2 z-20 bg-[#1f2937] text-gray-300 text-xs font-bold px-6 py-1.5 rounded-full border border-gray-600 shadow-xl uppercase tracking-wider flex items-center gap-2">
+                            <span>♟️ Active Squad</span>
+                        </div>
+                        
+                        <div class="absolute inset-0 bg-blue-500/10 blur-2xl rounded-full -z-10"></div>
+                        
+                        ${teamHTML}
+                    </div>
+
+                    <div class="flex justify-center gap-4 mt-8">
+                         <button onclick="clearSimTeam('PREP-ENEMY')" class="flex items-center gap-2 px-6 py-2 rounded-lg border border-red-900/50 text-red-400 hover:bg-red-900/20 hover:text-red-300 transition text-xs font-bold uppercase tracking-wider">
+                            <span>🗑️</span> Clear Team
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="w-80 xl:w-96 bg-[#111827] border-l border-gray-800 flex flex-col flex-shrink-0 z-20 shadow-2xl">
+                <div class="p-4 border-b border-gray-800 font-bold text-gray-400 text-xs uppercase tracking-wider bg-[#1f2937] flex justify-between items-center">
+                    <span>📊 Tactical Analysis</span>
+                    <span class="text-[9px] bg-indigo-900 text-indigo-200 px-2 py-0.5 rounded border border-indigo-700">LIVE</span>
+                </div>
+                <div id="prep-ai-panel" class="p-4 overflow-y-auto flex-1 custom-scroll">
+                    <div class="flex items-center justify-center h-full text-gray-500 animate-pulse">
+                        Analyzing Team...
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 3. เรียก AI วิเคราะห์
         analyzePreparationBattle();
     }
 
     // 3. ฟังก์ชัน AI วิเคราะห์ (Unified Logic: Who beat this team?)
     function analyzePreparationBattle() {
         const panel = document.getElementById('prep-ai-panel');
-        
+        if (!panel) return;
+
         // 1. ดึง ID ของศัตรู (Target Team)
         const targetIds = [];
         for(let i=0; i<5; i++) {
             if(prepData.enemy.slots[i]) targetIds.push(prepData.enemy.slots[i].id);
         }
-        
-        // 2. ดึง ID ของทีมเรา (Drafting Team)
-        const myDraftIds = [];
-        for(let i=0; i<5; i++) if(prepData.my.slots[i]) myDraftIds.push(prepData.my.slots[i].id);
 
         if (targetIds.length === 0) {
             panel.innerHTML = `
                 <div class="flex flex-col items-center justify-center h-64 text-gray-500 opacity-60">
                     <span class="text-6xl mb-4">🕵️</span>
-                    <div class="text-sm font-bold">Waiting for Enemy Data...</div>
-                    <div class="text-xs">ใส่ตัวละครฝั่งศัตรูเพื่อเริ่มวิเคราะห์</div>
+                    <div class="text-sm font-bold">No Enemy Data</div>
+                    <div class="text-xs">ใส่ตัวละครศัตรูเพื่อเริ่มวิเคราะห์</div>
                 </div>`;
             return;
         }
 
         // =========================================================
-        // 🧠 AI PROCESSING (UNIFIED LOGIC)
+        // 🧠 AI PROCESSING
         // =========================================================
         
         let totalRelevantLogs = 0;
-        
-        // Stats Containers
-        let counterStats = {};          // ตัวละครที่ชนะ Target บ่อยสุด
-        let skillPreference = {};       // สกิลแรกที่ผู้ชนะใช้
-        let teamSequenceStats = {};     // คอมโบของผู้ชนะ
-        let specificCounterStats = {};  // Target ตัวนี้ แพ้ให้ใครบ่อยสุด
+        let skillQueueStats = {}; // สูตรกดสกิล
+        let skillQueueHeroes = {}; // Hero ในสูตร
+        let specificCounterStats = {}; // ตัวแก้ทาง
+        let petUsageStats = {}; // 🟢 เก็บสถิติสัตว์เลี้ยง
 
-        // Init Specific Stats
         targetIds.forEach(eid => specificCounterStats[eid] = {});
 
         // --- Analyze Logs ---
         battleHistoryDB.forEach(log => {
-            let winnerIds = [];
-            let loserIds = [];
-            let winnerSkillQueue = [];
-            let winnerData = []; // เก็บ playerData หรือ enemyData ของผู้ชนะ
+            let winnerIds = [], loserIds = [], winnerQueue = [];
+            let winnerPetId = null;
 
-            // 1. แยกแยะผู้ชนะ/ผู้แพ้
             if (log.result === 'Win') {
-                // เราชนะ
                 winnerIds = log.playerIds || [];
                 loserIds = log.enemyIds || [];
-                winnerSkillQueue = log.skillQueue || [];
-                winnerData = log.playerData || [];
-            } else {
-                // ศัตรูชนะ (เราแพ้)
-                winnerIds = log.enemyIds || [];
-                loserIds = log.playerIds || [];
-                winnerSkillQueue = log.enemySkillQueue || []; // ต้องมี field นี้ใน log ใหม่ๆ
-                winnerData = log.enemyData || [];
+                winnerQueue = log.skillQueue || [];
+                if(log.myPet && log.myPet.id) winnerPetId = log.myPet.id;
+            } else { 
+                return; // สนใจแค่แมตช์ที่เราชนะ
             }
 
-            // 2. เช็คว่า "ทีมแพ้" มีตัวละครที่เราสนใจ (Target) หรือไม่?
-            // (นับว่าเจอ ถ้ามี Target อยู่ในทีมแพ้อย่างน้อย 1 ตัว)
-            const targetInLoser = targetIds.some(tid => loserIds.includes(tid));
-
-            if (targetInLoser) {
+            // เช็คว่าทีมแพ้คือเป้าหมายเราหรือไม่
+            const matchCount = targetIds.filter(tid => loserIds.includes(tid)).length;
+            
+            if (matchCount >= 1) { 
                 totalRelevantLogs++;
 
-                // --- 🟢 เก็บสถิติ "ผู้ชนะ" (The Counter Team) ---
-                
-                // A. เก็บสถิติ Hero (Global & Specific Counter)
-                winnerIds.forEach(wId => {
-                    // Global Stats
-                    if (!counterStats[wId]) counterStats[wId] = { wins: 0 };
-                    counterStats[wId].wins++;
+                // 1. เก็บสถิติ Skill Queue
+                if (winnerQueue.length > 0) {
+                    const seqStr = winnerQueue.slice(0, 3).join('|'); 
+                    skillQueueStats[seqStr] = (skillQueueStats[seqStr] || 0) + 1;
 
-                    // Specific Stats: ตัวนี้ชนะ Target ตัวไหนบ้างในแมตช์นี้
+                    if (!skillQueueHeroes[seqStr]) skillQueueHeroes[seqStr] = {};
+                    
+                    winnerQueue.slice(0, 3).forEach(part => {
+                        const [sIdx, sNum] = part.split('-');
+                        const hId = winnerIds[parseInt(sIdx)];
+                        
+                        if (hId) {
+                            if (!skillQueueHeroes[seqStr][sIdx]) skillQueueHeroes[seqStr][sIdx] = {};
+                            const count = skillQueueHeroes[seqStr][sIdx][hId] || 0;
+                            skillQueueHeroes[seqStr][sIdx][hId] = count + 1;
+                        }
+                    });
+                }
+
+                // 2. เก็บสถิติ Weakness
+                winnerIds.forEach(wId => {
+                    if(!wId) return;
                     loserIds.forEach(lId => {
-                        if (targetIds.includes(lId)) { // ถ้าผู้แพ้คือหนึ่งในเป้าหมาย
-                            if (!specificCounterStats[lId]) specificCounterStats[lId] = {};
+                        if (targetIds.includes(lId)) {
                             if (!specificCounterStats[lId][wId]) specificCounterStats[lId][wId] = 0;
                             specificCounterStats[lId][wId]++;
                         }
                     });
                 });
 
-                // B. เก็บสถิติ Skill & Sequence ของผู้ชนะ
-                // ต้อง Map จาก Slot -> HeroID ให้ถูกต้องตามฝั่งที่ชนะ
-                if (winnerSkillQueue && winnerSkillQueue.length > 0) {
-                    let extractedMoves = [];
-
-                    winnerSkillQueue.forEach(sq => {
-                        const [sIdx, sNum] = sq.split('-');
-                        
-                        // หา Hero ID ของผู้ชนะจาก Slot Index
-                        // (ต้องระวัง: winnerData อาจจะไม่เรียง 0-4 ถ้าเก็บแบบ Compact)
-                        // สมมติว่า winnerData เก็บ object {id, star} ตามลำดับ slot หรือมี id
-                        
-                        let hId = null;
-                        // พยายามหา ID จาก winnerData (ถ้ามี) หรือ winnerIds
-                        if (winnerData[sIdx] && winnerData[sIdx].id) hId = winnerData[sIdx].id;
-                        else if (winnerIds[sIdx]) hId = winnerIds[sIdx];
-
-                        if (hId) {
-                            // 1. Skill Preference (เก็บเฉพาะตัวที่เรากำลัง Draft อยู่ เพื่อแนะนำ)
-                            if (myDraftIds.includes(hId)) {
-                                if (!skillPreference[hId]) skillPreference[hId] = { s1: 0, s2: 0 };
-                                if (sNum === '1') skillPreference[hId].s1++; else skillPreference[hId].s2++;
-                            }
-                            
-                            // 2. เก็บลง Sequence รวม (เฉพาะตัวที่เรา Draft)
-                            if (myDraftIds.includes(hId)) {
-                                extractedMoves.push(`${hId}:${sNum}`);
-                            }
-                        }
-                    });
-
-                    // Smart Combo (เฉพาะตัวที่เราเลือก)
-                    if (extractedMoves.length > 0) {
-                        const finalSeqStr = extractedMoves.slice(0, 3).join('|');
-                        if (!teamSequenceStats[finalSeqStr]) teamSequenceStats[finalSeqStr] = 0;
-                        teamSequenceStats[finalSeqStr]++;
-                    }
+                // 3. 🟢 เก็บสถิติ Pet
+                if (winnerPetId) {
+                    petUsageStats[winnerPetId] = (petUsageStats[winnerPetId] || 0) + 1;
                 }
             }
         });
@@ -8539,189 +8599,162 @@
         // 📊 DISPLAY GENERATION
         // =========================================================
 
-        // 1. Guild Win Rate (ในบริบทนี้คือ "อัตราความสำเร็จในการหาข้อมูล")
-        // เนื่องจากเราดู "แมตช์ที่ Target แพ้" เท่านั้น ดังนั้น Win Rate จึงเป็น 100% ของ Dataset นี้
-        // แต่เพื่อความสวยงาม เราอาจจะโชว์จำนวนครั้งที่ Target แพ้แทน
-        const totalDefeats = totalRelevantLogs;
-        
-        // 🏆 Best Counters (Top 5 Heroes ที่ชนะ Target บ่อยสุด ไม่ว่าจะอยู่ฝั่งไหน)
-        const bestHeroesHTML = Object.keys(counterStats)
-            .map(id => ({ id, ...counterStats[id] }))
-            .sort((a,b) => b.wins - a.wins)
-            .slice(0, 5)
-            .map(h => {
-                const hero = heroesDB.find(x => x.id === h.id);
-                // คำนวณ % ว่าชนะบ่อยแค่ไหนเทียบกับการแพ้ทั้งหมดของ Target
-                const winRate = ((h.wins / totalDefeats) * 100).toFixed(0);
-                
-                return hero ? `
-                    <div class="flex flex-col items-center group relative min-w-[50px]">
-                        <div class="relative">
-                            <img src="${hero.img}" class="w-10 h-10 rounded-lg border border-green-500/50 bg-black object-cover cursor-help">
-                            <div class="absolute -top-2 -right-2 bg-green-900 text-green-100 text-[8px] px-1 rounded-full border border-green-600 font-bold">${h.wins}</div>
-                        </div>
-                        <span class="text-[9px] text-green-300 font-bold mt-1">${winRate}% Freq</span>
-                        <div class="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 text-white text-[10px] p-2 rounded border border-gray-600 whitespace-nowrap z-50 shadow-xl">
-                            ${hero.name}<br>Found in winning team ${h.wins} times
-                        </div>
-                    </div>` : '';
-            }).join('');
+        // 🟢 PART 1: Winning Skill Sequences (คงเดิม)
+        let skillQueueHTML = '';
+        const topQueues = Object.entries(skillQueueStats)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 3);
 
-        // ⚡ Weakness Analysis (Specific Counters)
-        let breakdownHTML = `<div class="space-y-1 mt-2 max-h-56 overflow-y-auto custom-scroll pr-1">`;
-        targetIds.forEach(eId => {
-            const enemyHero = heroesDB.find(x => x.id === eId);
-            const lostToStats = specificCounterStats[eId];
-            if (!lostToStats || Object.keys(lostToStats).length === 0) return;
-            const topKillerId = Object.keys(lostToStats).sort((a,b) => lostToStats[b] - lostToStats[a])[0];
-            const topKiller = heroesDB.find(x => x.id === topKillerId);
-            const killCount = lostToStats[topKillerId];
-            if (topKiller) {
-                breakdownHTML += `
-                    <div class="flex justify-between items-center bg-[#1f2937] p-2 rounded border border-gray-700/50 text-[10px]">
-                        <div class="flex items-center gap-2">
-                            <img src="${enemyHero?.img}" class="w-10 h-10 rounded border border-red-500/50 opacity-80 object-cover">
-                            <span class="text-red-300 w-16 truncate">${enemyHero?.name}</span>
-                        </div>
-                        <div class="text-gray-600 font-bold text-xs">แพ้ให้</div>
-                        <div class="flex items-center gap-2 justify-end">
-                            <span class="text-green-300 w-16 truncate text-right">${topKiller.name}</span>
-                            <div class="relative">
-                                <img src="${topKiller.img}" class="w-10 h-10 rounded border border-green-500/50 object-cover">
-                                <div class="absolute -top-1 -right-1 bg-green-900 text-[8px] px-1.5 rounded-full text-white border border-green-700 font-bold shadow-sm">${killCount}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        });
-        breakdownHTML += `</div>`;
+        if (topQueues.length > 0) {
+            const queuesRender = topQueues.map((item, idx) => {
+                const seqParts = item[0].split('|');
+                const winCount = item[1];
+                const winPercent = ((winCount / totalRelevantLogs) * 100).toFixed(0);
 
-        // 🟢 4. SMART COMBO (Winning Sequence from Combined Data)
-        let comboHTML = '';
-        if (myDraftIds.length > 0) {
-            const sortedSeqs = Object.entries(teamSequenceStats).sort((a,b) => b[1] - a[1]);
-            
-            if (sortedSeqs.length > 0) {
-                const bestSeqStr = sortedSeqs[0][0]; 
-                const winCount = sortedSeqs[0][1];
-                
-                const stepsHTML = bestSeqStr.split('|').map((step, idx) => {
-                    const [hid, sNum] = step.split(':');
-                    const hero = heroesDB.find(h => h.id === hid);
+                const buttons = seqParts.map((part, stepIdx) => {
+                    const [slot, sNum] = part.split('-');
                     const label = sNum === '1' ? 'ล่าง' : 'บน';
-                    const colorClass = sNum === '1' ? 'bg-blue-600' : 'bg-yellow-500 text-black';
+                    const color = sNum === '1' ? 'bg-blue-600' : 'bg-yellow-500 text-black';
+                    
+                    let bestHeroId = null;
+                    let maxCount = 0;
+                    const candidates = skillQueueHeroes[item[0]][slot]; 
+
+                    if (candidates) {
+                        for (const [hid, cnt] of Object.entries(candidates)) {
+                            if (cnt > maxCount) {
+                                maxCount = cnt;
+                                bestHeroId = hid;
+                            }
+                        }
+                    }
+
+                    const hero = heroesDB.find(h => h.id === bestHeroId);
+                    const heroImg = hero ? hero.img : '';
+                    
                     return `
-                        <div class="flex flex-col items-center relative group mx-1">
-                            <div class="absolute -top-2 -left-2 bg-gray-800 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-gray-500 font-bold z-20 shadow-md">${idx+1}</div>
-                            <div class="relative w-12 h-12 rounded-xl border-2 border-gray-600 bg-black shadow-lg overflow-hidden">
-                                <img src="${hero?.img}" class="w-full h-full object-cover opacity-90">
+                        <div class="flex flex-col items-center relative">
+                            <div class="w-10 h-10 bg-[#000] border border-gray-600 rounded-lg flex items-center justify-center overflow-hidden relative shadow-md">
+                                ${heroImg ? `<img src="${heroImg}" class="w-full h-full object-cover">` : `<span class="text-[10px] text-gray-500">#${parseInt(slot)+1}</span>`}
+                                <div class="absolute bottom-0 right-0 ${color} text-[8px] font-bold px-1 py-0.5 leading-none rounded-tl shadow border-t border-l border-black/20">${label}</div>
                             </div>
-                            <div class="${colorClass} text-[9px] font-bold px-2 py-0.5 rounded -mt-2.5 z-10 shadow-lg border uppercase tracking-wider relative">${label}</div>
                         </div>
+                        ${stepIdx < seqParts.length -1 ? '<span class="text-gray-600 text-xs font-bold">➜</span>' : ''}
                     `;
-                }).join('<div class="text-gray-500 mx-1 text-xl font-bold">➜</div>');
-
-                comboHTML = `
-                    <div class="bg-gradient-to-r from-blue-900/20 to-purple-900/20 p-4 rounded-2xl border border-blue-500/30 mt-4 shadow-inner">
-                        <div class="flex justify-between items-center mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-lg">💎</span>
-                                <div class="flex flex-col">
-                                    <span class="text-[10px] text-blue-300 font-bold uppercase tracking-widest leading-none">Best Winning Sequence</span>
-                                    <span class="text-[8px] text-gray-400 leading-none mt-0.5">Top 3 skills form ${winCount} successful matches</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-center bg-[#0b0e14]/60 p-3 rounded-xl border border-gray-700/50">
-                            ${stepsHTML}
-                        </div>
-                    </div>
-                `;
-            } else {
-                comboHTML = `<div class="text-center text-[10px] text-gray-600 mt-4 py-3 border-2 border-dashed border-gray-800 rounded-xl">No combined history found for this draft</div>`;
-            }
-        } else {
-            comboHTML = `<div class="text-center text-[10px] text-gray-500 mt-4 py-2">เลือกตัวละครเพื่อดู Combo</div>`;
-        }
-
-        // 5. INDIVIDUAL SKILL (Skill Priority from Combined Data)
-        let skillRecHTML = '';
-        if (myDraftIds.length > 0) {
-            const listItems = myDraftIds.map(mid => {
-                const pref = skillPreference[mid];
-                const hero = heroesDB.find(h => h.id === mid);
-                
-                if (!pref || (pref.s1 === 0 && pref.s2 === 0)) return null;
-
-                const total = pref.s1 + pref.s2;
-                const s1Per = (pref.s1 / total) * 100;
-                const isS1Better = s1Per >= 50;
-                const label = isS1Better ? 'ล่าง' : 'บน';
-                const percent = isS1Better ? s1Per : (100 - s1Per);
-                const color = isS1Better ? 'bg-blue-600' : 'bg-yellow-500 text-black';
+                }).join('');
 
                 return `
-                    <div class="flex items-center justify-between bg-[#1f2937] p-2 rounded border border-gray-700 mb-1">
-                        <div class="flex items-center gap-2">
-                            <img src="${hero.img}" class="w-10 h-10 rounded border border-gray-600 bg-black object-cover">
-                            <span class="text-[10px] text-gray-300 font-bold">${hero.name}</span>
-                        </div>
-                        <div class="${color} text-[8px] font-bold px-2 py-1 rounded shadow min-w-[50px] text-center">
-                            ${label} ${percent.toFixed(0)}%
+                    <div class="bg-[#0b0e14] p-3 rounded-xl border border-gray-700/50 mb-2 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-2">${buttons}</div>
+                        <div class="text-right">
+                            <div class="text-green-400 font-bold text-lg leading-none">${winPercent}%</div>
                         </div>
                     </div>
                 `;
-            }).filter(x=>x).join('');
-
-            if (listItems) {
-                skillRecHTML = `
-                    <div class="mt-4">
-                        <div class="text-[10px] text-purple-400 font-bold uppercase mb-2">⚡ Individual Priority (รวมทุกแมตช์)</div>
-                        <div class="space-y-1 max-h-48 overflow-y-auto custom-scroll pr-1">${listItems}</div>
+            }).join('');
+            
+            skillQueueHTML = `
+                <div class="mb-6">
+                    <div class="text-[10px] text-yellow-500 font-bold uppercase mb-2 flex items-center gap-2">
+                        <span>⚡ Best Skill Sequences</span>
                     </div>
-                `;
-            }
+                    ${queuesRender}
+                </div>
+            `;
+        } else {
+            skillQueueHTML = `<div class="text-center text-gray-600 text-xs py-4 mb-4 border border-dashed border-gray-700 rounded">No skill data available</div>`;
         }
+
+        // 🟢 PART 2: Pet Usage % (เพิ่มใหม่)
+        let petHTML = '';
+        const topPets = Object.entries(petUsageStats)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 3); // Top 3 Pets
+
+        if (topPets.length > 0) {
+            const petList = topPets.map(([pid, count]) => {
+                const pet = petsDB.find(p => p.id === pid);
+                const percent = ((count / totalRelevantLogs) * 100).toFixed(0);
+                return `
+                    <div class="flex items-center justify-between bg-[#161b22] p-2 rounded-lg border border-purple-500/20 mb-1">
+                        <div class="flex items-center gap-2">
+                            <img src="${pet?.img}" class="w-8 h-8 rounded-full border border-purple-500/50 object-cover bg-black">
+                            <span class="text-xs text-purple-200">${pet?.name || 'Unknown'}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-purple-400 font-bold text-xs">${percent}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            petHTML = `
+                <div class="mb-6">
+                    <div class="text-[10px] text-purple-400 font-bold uppercase mb-2">🐾 Recommended Pets</div>
+                    ${petList}
+                </div>
+            `;
+        }
+
+
+        // 🟢 PART 3: Weakness Analysis (%)
+        let weaknessHTML = '';
+        targetIds.forEach(eId => {
+            const enemy = heroesDB.find(h => h.id === eId);
+            const counters = specificCounterStats[eId];
+            if (!counters || Object.keys(counters).length === 0) return;
+
+            const topCounters = Object.entries(counters)
+                .sort((a,b) => b[1] - a[1])
+                .slice(0, 4)
+                .map(([cId, count]) => {
+                    const hero = heroesDB.find(h => h.id === cId);
+                    // คำนวณ %
+                    const percent = ((count / totalRelevantLogs) * 100).toFixed(0);
+                    
+                    return `
+                        <div class="relative group cursor-pointer" title="${hero?.name} (${count} wins)">
+                            <img src="${hero?.img}" class="w-9 h-9 rounded-lg border border-green-500/30 bg-black hover:border-green-400 transition">
+                            <div class="absolute -top-1 -right-1 bg-green-900 text-white text-[7px] px-1 rounded-full border border-green-600 font-bold">${percent}%</div>
+                        </div>
+                    `;
+                }).join('');
+
+            weaknessHTML += `
+                <div class="bg-[#161b22] p-2.5 rounded-xl border border-gray-700/50 mb-3 shadow-sm flex items-center gap-3">
+                    <div class="relative w-12 h-12 flex-shrink-0">
+                        <img src="${enemy?.img}" class="w-full h-full rounded-xl border-2 border-red-500/50 object-cover bg-black">
+                    </div>
+                    <div class="text-red-400 text-xs font-bold">แพ้</div>
+                    <div class="flex-1 flex gap-1.5 overflow-x-auto custom-scroll pb-1">
+                        ${topCounters}
+                    </div>
+                </div>
+            `;
+        });
 
         // --- RENDER FINAL ---
         panel.innerHTML = `
             <div class="flex items-center gap-3 mb-4 pb-3 border-b border-gray-700">
                 <div class="bg-indigo-900/20 p-2 rounded-full border border-indigo-500/50">
-                    <span class="text-2xl">🌍</span>
+                    <span class="text-2xl">🧠</span>
                 </div>
                 <div>
-                    <div class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Unified Analysis</div>
-                    <div class="text-[10px] text-gray-400">Merged data from ${totalRelevantLogs} target defeats</div>
+                    <div class="text-xs font-bold text-indigo-400 uppercase tracking-widest">AI Advisor</div>
+                    <div class="text-[10px] text-gray-400">Based on ${totalRelevantLogs} victories</div>
                 </div>
             </div>
 
-            <div class="space-y-4">
-                
-                <div class="flex justify-between items-center bg-[#0d1117] p-3 rounded-xl border border-gray-700">
-                    <span class="text-xs text-gray-400 uppercase">Target Defeats</span>
-                    <div class="text-right">
-                        <span class="text-2xl font-black text-white">${totalDefeats}</span>
-                        <span class="text-[9px] text-gray-500 block">times recorded</span>
-                    </div>
+            ${skillQueueHTML}
+
+            ${petHTML}
+
+            <div>
+                <div class="text-[10px] text-red-400 font-bold uppercase mb-3 flex items-center gap-2 border-b border-gray-800 pb-1">
+                    <span>🎯 Counter Heroes (%)</span>
                 </div>
-
-                <div>
-                    <div class="text-[10px] text-blue-400 font-bold uppercase mb-2">🏆 Top Winners (ใครชนะทีมนี้บ่อยสุด)</div>
-                    <div class="flex gap-2 bg-[#0d1117] p-2 rounded-lg border border-gray-700 overflow-x-auto min-h-[60px] items-center custom-scroll">
-                        ${bestHeroesHTML || '<span class="text-[10px] text-gray-600 w-full text-center">No Data</span>'}
-                    </div>
-                </div>
-
-                ${comboHTML}
-
-                ${skillRecHTML}
-
-                <div>
-                    <div class="text-[10px] text-orange-400 font-bold uppercase border-b border-gray-700 pb-1 flex justify-between mt-4">
-                        <span>⚡ Weakness Analysis</span>
-                    </div>
-                    ${breakdownHTML}
+                <div class="space-y-1">
+                    ${weaknessHTML || '<div class="text-center text-gray-600 py-4">No counter data found</div>'}
                 </div>
             </div>
         `;
@@ -11476,6 +11509,478 @@
             if(bgContainer) bgContainer.style.backgroundImage = `url('${savedBg}')`;
         }
     })();
+
+    const originalSwitchViewForAdmin = switchView;
+    switchView = function(v) {
+        originalSwitchViewForAdmin(v); 
+        if (v === 'add-battle') {
+            // Init หน้าจอ
+            document.getElementById('view-add-battle').classList.remove('hidden');
+            document.getElementById('view-add-battle').classList.add('tab-active');
+            
+            // ถ้ายังไม่มีข้อมูล ให้เพิ่มแถวแรก
+            if (adminManualEntries.length === 0) addAdminRow();
+            else renderAdminRows();
+        }
+    };
+
+    // 2. Add Row
+    function addAdminRow() {
+        const rowId = 'ADM-' + Date.now() + Math.random().toString(36).substr(2, 5);
+        
+        const newEntry = {
+            rowId: rowId,
+            memberIdx: "",
+            castle: "",
+            slot: 1,
+            // 3 Hero Slots + 1 Pet
+            myHeroes: [null, null, null], 
+            myPet: null,
+            // 3 Hero Slots + 1 Pet
+            enemyHeroes: [null, null, null],
+            enemyPet: null,
+            // Skill Queue
+            skillQueue: [], 
+            result: 'Win'
+        };
+        
+        adminManualEntries.push(newEntry);
+        renderAdminRows();
+    }
+
+    // 3. Delete Row
+    function removeAdminRow(rowId) {
+        adminManualEntries = adminManualEntries.filter(r => r.rowId !== rowId);
+        renderAdminRows();
+    }
+
+    // 4. Render Table
+    function renderAdminRows() {
+        const tbody = document.getElementById('admin-battle-tbody');
+        const empty = document.getElementById('admin-battle-empty');
+        const badge = document.getElementById('admin-row-count');
+
+        if(badge) badge.innerText = adminManualEntries.length;
+
+        if (adminManualEntries.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+        empty.classList.add('hidden');
+
+        tbody.innerHTML = adminManualEntries.map((row, idx) => {
+            const isMyWin = row.result === 'Win';
+            
+            // Style ตามผลแพ้ชนะ
+            const p1Style = isMyWin 
+                ? 'border-green-600 bg-green-900/10 shadow-[0_0_15px_rgba(22,163,74,0.2)]' 
+                : 'border-red-900/30 bg-red-900/5 opacity-80';
+            
+            const p2Style = !isMyWin 
+                ? 'border-green-600 bg-green-900/10 shadow-[0_0_15px_rgba(22,163,74,0.2)]' 
+                : 'border-red-900/30 bg-red-900/5 opacity-80';
+
+            const p1Label = isMyWin ? '<span class="text-green-400 font-bold">🏆 WINNER</span>' : '<span class="text-red-500 font-bold">DEFEAT</span>';
+            const p2Label = !isMyWin ? '<span class="text-green-400 font-bold">🏆 WINNER</span>' : '<span class="text-red-500 font-bold">DEFEAT</span>';
+
+            return `
+            <tr class="hover:bg-[#111827] transition group align-top border-b border-gray-800">
+                <td class="p-3 text-center text-gray-500 font-mono font-bold pt-16">${idx + 1}</td>
+                
+                <td class="p-2 transition-all duration-300">
+                    <div class="border-2 rounded-xl p-2 relative ${p1Style}">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-700/50">
+                            <span class="text-[10px] text-blue-300 font-bold uppercase">PLAYER 1</span>
+                            <label class="flex items-center gap-2 cursor-pointer bg-black/40 px-2 py-1 rounded border border-gray-600 hover:border-blue-500 transition">
+                                <input type="radio" name="winner-${row.rowId}" class="accent-green-500" 
+                                    onchange="setAdminWinner('${row.rowId}', 'Win')" ${isMyWin ? 'checked' : ''}>
+                                <span class="text-xs text-white">${p1Label}</span>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-center items-end gap-2 pb-1">
+                            ${[0,1,2].map(i => renderAdminSlot(row, 'my', i)).join('')}
+                            ${renderAdminPetSlot(row, 'my')}
+                        </div>
+                    </div>
+                </td>
+
+                <td class="p-2 text-center align-middle font-black text-gray-700 italic text-xl pt-16">VS</td>
+
+                <td class="p-2 transition-all duration-300">
+                    <div class="border-2 rounded-xl p-2 relative ${p2Style}">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-700/50">
+                            <label class="flex items-center gap-2 cursor-pointer bg-black/40 px-2 py-1 rounded border border-gray-600 hover:border-blue-500 transition">
+                                <span class="text-xs text-white">${p2Label}</span>
+                                <input type="radio" name="winner-${row.rowId}" class="accent-green-500" 
+                                    onchange="setAdminWinner('${row.rowId}', 'Lose')" ${!isMyWin ? 'checked' : ''}>
+                            </label>
+                            <span class="text-[10px] text-purple-300 font-bold uppercase">PLAYER 2</span>
+                        </div>
+
+                        <div class="flex justify-center items-end gap-2 pb-1">
+                            ${renderAdminPetSlot(row, 'enemy')}
+                            ${[0,1,2].map(i => renderAdminSlot(row, 'enemy', i)).join('')}
+                        </div>
+                    </div>
+                </td>
+
+                <td class="p-3 text-center align-middle">
+                    <button onclick="removeAdminRow('${row.rowId}')" class="text-gray-600 hover:text-red-500 font-bold text-xl px-2 transition pt-10">×</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // --- HTML Generators for Slots (Reuse Logic) ---
+
+    function renderAdminSlot(row, team, slotIdx) {
+        const hero = team === 'my' ? row.myHeroes[slotIdx] : row.enemyHeroes[slotIdx];
+        const val = hero ? hero.name : '';
+        const inputId = `adm-input-${team}-${slotIdx}-${row.rowId}`;
+        const borderClass = team === 'my' ? (hero ? 'border-blue-500/50' : 'border-gray-700') : (hero ? 'border-red-500/50' : 'border-gray-700');
+        
+        // --- 🟢 Logic คำนวณลำดับสกิล (1, 2, 3) ---
+        const s1Key = `${team}-${slotIdx}-1`; // ล่าง (Lower)
+        const s2Key = `${team}-${slotIdx}-2`; // บน (Upper)
+        
+        // 1. ดึงคิวทั้งหมดของแถวนี้
+        const fullQueue = row.skillQueue || [];
+        
+        // 2. กรองเฉพาะคิวของทีมนี้ (my หรือ enemy) เพื่อหาลำดับที่ถูกต้อง
+        const teamQueue = fullQueue.filter(k => k.startsWith(team + '-'));
+
+        // 3. หา Index ของสกิล (ถ้าเจอจะได้เลข 0, 1, 2 -> แปลงเป็น 1, 2, 3)
+        const s1Index = teamQueue.indexOf(s1Key);
+        const s2Index = teamQueue.indexOf(s2Key);
+
+        // 4. กำหนดข้อความที่จะแสดง
+        const labelS1 = s1Index > -1 ? (s1Index + 1) : 'ล่าง';
+        const labelS2 = s2Index > -1 ? (s2Index + 1) : 'บน';
+
+        // 5. กำหนดสีปุ่ม
+        const inactive = 'bg-[#1f2937] text-gray-500 hover:bg-gray-700';
+        
+        // สีเมื่อถูกเลือก (Active)
+        const activeTop = 'bg-yellow-500 text-black border-yellow-400 font-black text-xs'; // บน = เหลือง
+        const activeBot = 'bg-blue-600 text-white border-blue-400 font-black text-xs';   // ล่าง = ฟ้า
+
+        const classS1 = s1Index > -1 ? activeBot : inactive;
+        const classS2 = s2Index > -1 ? activeTop : inactive;
+
+        return `
+            <div class="flex flex-col items-center w-20">
+                <div class="rec-slot-container ${borderClass} group/slot w-full h-20 mb-0 relative">
+                    ${hero ? `<img src="${hero.img}" class="rec-slot-img w-full h-full object-cover opacity-80">` : `<span class="text-2xl text-gray-800 font-bold">+</span>`}
+                    
+                    <input type="text" id="${inputId}" value="${val}" 
+                        class="rec-slot-input absolute inset-0 bg-transparent text-center text-xs text-white font-bold p-1 outline-none"
+                        placeholder="Hero"
+                        oninput="handleAdminSearch(this, '${row.rowId}', '${team}', ${slotIdx})"
+                        onkeydown="handleAdminEnter(event, '${row.rowId}', '${team}', ${slotIdx}, 'hero')" 
+                        onfocus="this.select()" autocomplete="off">
+                    
+                    <div id="list-${inputId}" class="autocomplete-list shadow-2xl"></div>
+                </div>
+                
+                <div class="flex w-full border border-gray-700 border-t-0 rounded-b-lg overflow-hidden h-6">
+                    <button onclick="toggleAdminSkill('${row.rowId}', '${s2Key}')" class="flex-1 text-[9px] font-bold ${classS2} border-r border-gray-700 transition-all duration-100">
+                        ${labelS2}
+                    </button>
+                    <button onclick="toggleAdminSkill('${row.rowId}', '${s1Key}')" class="flex-1 text-[9px] font-bold ${classS1} transition-all duration-100">
+                        ${labelS1}
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderAdminPetSlot(row, team) {
+        const pet = team === 'my' ? row.myPet : row.enemyPet;
+        const val = pet ? pet.name : '';
+        const inputId = `adm-pet-${team}-${row.rowId}`;
+        const borderClass = team === 'my' ? 'border-purple-500/50' : 'border-orange-500/50';
+
+        return `
+            <div class="flex flex-col items-center justify-center w-16 h-16 rounded-full border-2 ${borderClass} bg-[#0d1117] relative shadow-lg mb-6">
+                ${pet ? `<img src="${pet.img}" class="w-full h-full rounded-full object-cover opacity-80">` : `<span class="text-xl text-gray-800">🐾</span>`}
+                <input type="text" id="${inputId}" value="${val}" 
+                    class="absolute inset-0 bg-transparent text-center text-[10px] text-white font-bold rounded-full outline-none p-1 placeholder-gray-700"
+                    placeholder="Pet"
+                    oninput="handleAdminPetSearch(this, '${row.rowId}', '${team}')"
+                    onkeydown="handleAdminEnter(event, '${row.rowId}', '${team}', 0, 'pet')"
+                    onfocus="this.select()" autocomplete="off">
+                <div id="list-${inputId}" class="autocomplete-list shadow-2xl" style="width:140px; top:100%;"></div>
+            </div>
+        `;
+    }
+
+    function handleAdminEnter(e, rowId, team, idx, type) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // กัน Form Submit
+
+            // 1. จำลองการเลือกตัวแรกสุด (Auto Select First Option)
+            // ถ้าเป็น Hero
+            if (type === 'hero') {
+                const listId = `list-adm-input-${team}-${idx}-${rowId}`;
+                const listEl = document.getElementById(listId);
+                
+                // ถ้ามีรายการค้นหาขึ้นอยู่ ให้เลือกตัวแรก
+                if (listEl && listEl.style.display === 'block' && listEl.children.length > 0) {
+                    // คลิกตัวแรก (ซึ่งจะไปเรียก selectAdminHero)
+                    // เราต้องส่ง Flag พิเศษไปบอกว่า "ให้ Focus ตัวต่อไปด้วยนะ"
+                    const firstItem = listEl.children[0];
+                    // ดึง ID จาก onclick attribute หรือใช้ logic select โดยตรง
+                    // เพื่อความง่าย เราจะเรียก logic select โดยตรงเลย
+                    const heroId = firstItem.getAttribute('data-id'); // ต้องแก้ render list ให้มี data-id ด้วย
+                    if(heroId) selectAdminHero(rowId, team, idx, heroId, true);
+                } 
+                // ถ้าไม่มีรายการ (อาจจะพิมพ์ชื่อเต็มถูกแล้ว) หรือ List ปิดอยู่
+                else {
+                     moveToNextAdminSlot(rowId, team, idx, type);
+                }
+            } 
+            // ถ้าเป็น Pet
+            else if (type === 'pet') {
+                const listId = `list-adm-pet-${team}-${rowId}`;
+                const listEl = document.getElementById(listId);
+                if (listEl && listEl.style.display === 'block' && listEl.children.length > 0) {
+                    const petId = listEl.children[0].getAttribute('data-id');
+                    if(petId) selectAdminPet(rowId, team, petId, true);
+                } else {
+                    moveToNextAdminSlot(rowId, team, idx, type);
+                }
+            }
+        }
+    }
+
+    function moveToNextAdminSlot(rowId, team, currentIdx, type) {
+        let nextId = null;
+
+        // --- Logic การเลื่อนภายในแถวเดิม ---
+        if (team === 'my') {
+            // Player 1 Side
+            if (type === 'hero') {
+                if (currentIdx < 2) nextId = `adm-input-my-${currentIdx + 1}-${rowId}`;
+                else nextId = `adm-pet-my-${rowId}`; // Hero 3 -> Pet
+            } else if (type === 'pet') {
+                nextId = `adm-input-enemy-0-${rowId}`; // P1 Pet -> P2 Hero 1
+            }
+        } 
+        else if (team === 'enemy') {
+            // Player 2 Side
+            if (type === 'hero') {
+                if (currentIdx < 2) nextId = `adm-input-enemy-${currentIdx + 1}-${rowId}`;
+                else nextId = `adm-pet-enemy-${rowId}`; // Hero 3 -> Pet
+            } 
+            else if (type === 'pet') {
+                // ✅ จุดตัดสินใจ: ถึงช่องสุดท้ายแล้ว (P2 Pet)
+                
+                // 1. หาว่าแถวปัจจุบันอยู่ที่ Index ไหนใน Array
+                const currentRowIndex = adminManualEntries.findIndex(r => r.rowId === rowId);
+
+                // 2. เช็คว่าเป็นแถวสุดท้ายหรือไม่
+                if (currentRowIndex === adminManualEntries.length - 1) {
+                    // 🎉 ถ้าเป็นแถวสุดท้าย -> สร้างแถวใหม่!
+                    addAdminRow();
+
+                    // รอ DOM สร้างเสร็จนิดนึง แล้วโฟกัสไปที่ช่องแรกของแถวใหม่
+                    setTimeout(() => {
+                        // ดึง rowId ของแถวใหม่ (ตัวสุดท้ายใน array)
+                        const newRow = adminManualEntries[adminManualEntries.length - 1];
+                        const firstInput = document.getElementById(`adm-input-my-0-${newRow.rowId}`);
+                        if (firstInput) {
+                            firstInput.focus();
+                            firstInput.select();
+                            // เลื่อน Scroll ลงไปหาด้วย
+                            firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
+                    
+                    return; // จบการทำงาน (ไม่ต้องหา nextId แบบปกติ)
+                } 
+                else {
+                    // ถ้าไม่ใช่แถวสุดท้าย (เช่น กลับมาแก้แถวบน) -> ให้โดดไปแถวถัดไป
+                    const nextRow = adminManualEntries[currentRowIndex + 1];
+                    nextId = `adm-input-my-0-${nextRow.rowId}`;
+                }
+            }
+        }
+
+        // --- สั่ง Focus (สำหรับเคสปกติที่ไม่ได้สร้างแถวใหม่) ---
+        if (nextId) {
+            setTimeout(() => {
+                const el = document.getElementById(nextId);
+                if (el) {
+                    el.focus();
+                    el.select();
+                }
+            }, 50);
+        }
+    }
+
+    // --- Logic Functions ---
+
+    function updateAdminVal(rowId, field, val) {
+        const r = adminManualEntries.find(x => x.rowId === rowId);
+        if(r) r[field] = val;
+    }
+
+    function toggleAdminSkill(rowId, key) {
+        const r = adminManualEntries.find(x => x.rowId === rowId);
+        if(r) {
+            if(r.skillQueue.includes(key)) r.skillQueue = r.skillQueue.filter(k => k !== key);
+            else {
+                // Limit 3 skills total per row? or per team?
+                // Let's limit 3 per team
+                const prefix = key.split('-')[0]; // 'my' or 'enemy'
+                const count = r.skillQueue.filter(k => k.startsWith(prefix)).length;
+                if(count < 3) r.skillQueue.push(key);
+            }
+            renderAdminRows();
+        }
+    }
+
+    // --- Search & Select Logic (Admin Version) ---
+
+    function handleAdminSearch(input, rowId, team, slotIdx) {
+        const query = input.value.toLowerCase();
+        const listEl = document.getElementById(`list-${input.id}`);
+        if(query.length < 1) { listEl.style.display = 'none'; return; }
+
+        const matches = heroesDB.filter(h => h.name.toLowerCase().includes(query)).slice(0, 5);
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map(h => `
+                <div class="autocomplete-item" data-id="${h.id}" onclick="selectAdminHero('${rowId}', '${team}', ${slotIdx}, '${h.id}', true)">
+                    <img src="${h.img}"> <span>${h.name}</span>
+                </div>
+            `).join('');
+            listEl.style.display = 'block';
+        } else {
+            listEl.style.display = 'none';
+        }
+    }
+
+    function selectAdminHero(rowId, team, slotIdx, heroId, doNext = false) {
+        const r = adminManualEntries.find(x => x.rowId === rowId);
+        const h = heroesDB.find(x => x.id === heroId);
+        if(r && h) {
+            if(team === 'my') r.myHeroes[slotIdx] = h;
+            else r.enemyHeroes[slotIdx] = h;
+            
+            renderAdminRows(); // วาดใหม่เพื่อโชว์รูป
+
+            // ถ้าเป็น Auto Select (กด Enter หรือคลิกเลือก) ให้เลื่อนไปช่องถัดไป
+            if (doNext) {
+                moveToNextAdminSlot(rowId, team, slotIdx, 'hero');
+            }
+        }
+    }
+
+    function handleAdminPetSearch(input, rowId, team) {
+        const query = input.value.toLowerCase();
+        const listEl = document.getElementById(`list-${input.id}`);
+        if(query.length < 1) { listEl.style.display = 'none'; return; }
+
+        const matches = petsDB.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3);
+        if(matches.length > 0) {
+            listEl.innerHTML = matches.map(p => `
+                <div class="autocomplete-item" data-id="${p.id}" onclick="selectAdminPet('${rowId}', '${team}', '${p.id}', true)">
+                    <img src="${p.img}"> <span>${p.name}</span>
+                </div>
+            `).join('');
+            listEl.style.display = 'block';
+        } else listEl.style.display = 'none';
+    }
+
+    function selectAdminPet(rowId, team, petId, doNext = false) {
+        const r = adminManualEntries.find(x => x.rowId === rowId);
+        const p = petsDB.find(x => x.id === petId);
+        if(r && p) {
+            if(team === 'my') r.myPet = p;
+            else r.enemyPet = p;
+            
+            renderAdminRows();
+
+            if (doNext) {
+                moveToNextAdminSlot(rowId, team, 0, 'pet');
+            }
+        }
+    }
+
+    // --- SAVE LOGIC ---
+
+    async function saveAdminBatch() {
+        if(adminManualEntries.length === 0) return alert("ไม่มีข้อมูลให้บันทึก");
+
+        if(!confirm(`ยืนยันการบันทึก ${adminManualEntries.length} รายการ?`)) return;
+
+        showLoading("กำลังบันทึกข้อมูล...");
+
+        const batchData = adminManualEntries.map((entry, i) => {
+            const formatHeroes = (heroes) => heroes.map(h => h ? { id: h.id, star: 10, type: h.type } : {}); 
+            const myData = formatHeroes(entry.myHeroes);
+            const enemyData = formatHeroes(entry.enemyHeroes);
+            const myIds = entry.myHeroes.map(h => h ? h.id : null);
+            const enemyIds = entry.enemyHeroes.map(h => h ? h.id : null);
+            const myQ = entry.skillQueue.filter(k => k.startsWith('my-')).map(k => k.replace('my-', ''));
+            const enemyQ = entry.skillQueue.filter(k => k.startsWith('enemy-')).map(k => k.replace('enemy-', ''));
+
+            return {
+                id: (Date.now() + i).toString(),
+                timestamp: Date.now(),
+                date: new Date().toLocaleString('th-TH'),
+                
+                castle: 'Admin Record', 
+                castleSlot: '-', 
+                castleKey: 'ADMIN',
+
+                myTeamId: `PLAYER-1`, 
+                myTeamName: `Player 1`, // ✅ Changed name
+                enemyName: "Player 2",  // ✅ Changed name
+
+                playerData: myData,
+                enemyData: enemyData,
+                playerIds: myIds,
+                enemyIds: enemyIds,
+                
+                myPet: entry.myPet ? { id: entry.myPet.id, name: entry.myPet.name } : null,
+                enemyPet: entry.enemyPet ? { id: entry.enemyPet.id, name: entry.enemyPet.name } : null,
+                
+                skillQueue: myQ,
+                enemySkillQueue: enemyQ,
+
+                status: entry.result, // Win = P1 Win, Lose = P2 Win
+                result: entry.result,
+
+                enemySignature: enemyIds.sort().join(',')
+            };
+        });
+
+        for(let i = batchData.length - 1; i >= 0; i--) {
+            battleHistoryDB.unshift(batchData[i]);
+        }
+        if(battleHistoryDB.length > 600) battleHistoryDB = battleHistoryDB.slice(0, 600);
+
+        try {
+            await pushData();
+            adminManualEntries = [];
+            addAdminRow(); 
+            alert("✅ บันทึกเรียบร้อย!");
+        } catch(e) {
+            alert("Error: " + e.message);
+        } finally {
+            hideLoading();
+        }
+    }
+    function setAdminWinner(rowId, result) {
+        const row = adminManualEntries.find(r => r.rowId === rowId);
+        if (row) {
+            row.result = result; // Win = เราชนะ, Lose = เราแพ้ (ศัตรูชนะ)
+            renderAdminRows(); // รีเฟรชเพื่อเปลี่ยนสีเขียว/แดง
+        }
+    }
     </script>
 </body>
 </html>
