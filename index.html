@@ -2153,13 +2153,18 @@
         let applicationsDB = []; // เก็บใบสมัครที่ส่งมา
 
         let adminManualEntries = [];
+        var activeSkillSelector = null;
 
         let currentView = 'home';
+
+        var activeQueueIndex = null;
 
         let isRegisterMode = false;
         let isTierDataLoaded = false;
 
         let tempOwnedHeroes = [];
+
+        var selectedStageSlot = null;
 
         // --- 🏰 GUILDS & ALLIANCES LOGIC ---
         let guildsDB = [{ id: 'G_MAIN', name: 'Main Guild (กิลด์หลัก)', type: 'main', members: [] }];
@@ -2673,6 +2678,33 @@
             }
         }
 
+        // เปิดหน้าต่างเลือกสกิล
+        function openSkillModal(qIdx) {
+            activeQueueIndex = qIdx;
+            render3v3Editor();
+        }
+
+        // ปิดหน้าต่าง
+        function closeSkillModal() {
+            activeQueueIndex = null;
+            render3v3Editor();
+        }
+
+        // ยืนยันการเลือกสกิล
+        function confirmSkillSelection(val) {
+            if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
+                const team = teams3v3DB[current3v3TeamIdx];
+                
+                // 🛡️ ป้องกันบั๊กทีมใหม่: ถ้ายังไม่มี skillQueue ให้สร้างใหม่เลย
+                if (!team.skillQueue || !Array.isArray(team.skillQueue)) {
+                    team.skillQueue = ['', '', ''];
+                }
+                
+                team.skillQueue[activeQueueIndex] = val;
+                save3v3Teams(); // บันทึก
+            }
+            closeSkillModal();
+        }
         // --- [3] AUDIT LOG SYSTEM ---
         function logAudit(action, target, details) {
             // ถ้าไม่มี User (Dev mode) ให้ใช้ System
@@ -5677,6 +5709,7 @@
 
         function switchGalleryTab(tab) { galleryTab = tab; document.getElementById('tab-gallery-hero').className = `tab-btn ${tab==='hero'?'active':''}`; document.getElementById('tab-gallery-pet').className = `tab-btn ${tab==='pet'?'active':''}`; document.getElementById('gallery-filters').style.display = 'flex'; galleryFilter = { rarity: null, type: null, aff: null }; renderGallery(); }
         function toggleGalleryFilter(key, val) { if (galleryFilter[key] === val) galleryFilter[key] = null; else galleryFilter[key] = val; renderGallery(); }
+
         function renderGallery() {
             const container = document.getElementById('gallery-container'); const search = document.getElementById('gallery-search').value.toLowerCase(); const filterContainer = document.getElementById('gallery-filters');
             let filterHTML = '';
@@ -13308,22 +13341,31 @@
             const content = document.getElementById('editor-3v3-content');
             const grid = document.getElementById('grid-3v3-slots');
 
+            // 1. เช็คความพร้อมของข้อมูลและ Element
+            if (!grid) return; 
             if (current3v3TeamIdx === -1 || !teams3v3DB[current3v3TeamIdx]) {
-                empty.classList.remove('hidden');
-                content.classList.add('hidden');
+                if (empty) empty.classList.remove('hidden');
+                if (content) content.classList.add('hidden');
                 return;
             }
 
-            empty.classList.add('hidden');
-            content.classList.remove('hidden');
+            if (empty) empty.classList.add('hidden');
+            if (content) content.classList.remove('hidden');
 
             const team = teams3v3DB[current3v3TeamIdx];
-            const formationVal = team.formation || 'F1-B2'; // ค่า Default
-            const skills = team.skillQueue || ['', '', '', ''];
 
-            // ==========================================
-            // 🟢 1. HEADER
-            // ==========================================
+            // 2. Initial ข้อมูลพื้นฐานถ้ายังไม่มี
+            if (!team.slots) team.slots = [{}, {}, {}];
+            if (!team.skillQueue) team.skillQueue = ['', '', ''];
+            if (team.isShared === undefined) team.isShared = false;
+
+            team.slots.forEach((s, idx) => {
+                if (s && s.pos === undefined) s.pos = idx;
+            });
+
+            // --- ส่วนประกอบ UI ---
+            
+            // Header
             const headerHTML = `
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-[#1f2937] p-4 rounded-xl border border-gray-700 shadow-lg mb-6">
                     <div class="flex items-center gap-3 w-full md:w-auto flex-1">
@@ -13343,250 +13385,260 @@
                 </div>
             `;
 
-            // ==========================================
-            // 🟢 2. VISUAL STAGE & FORMATION & QUEUE
-            // ==========================================
-            
-            // 2.1 สร้างปุ่มเลือก Formation
-            const formationsConfig = [
-                { id: 'F1-B2', label: 'หน้า 1 - หลัง 2', frontSlots: [0], backSlots: [1, 2] },
-                { id: 'F2-B1', label: 'หน้า 2 - หลัง 1', frontSlots: [0, 1], backSlots: [2] },
-                { id: 'F3-B0', label: 'หน้า 3 - หลัง 0', frontSlots: [0, 1, 2], backSlots: [] }, // Tank 3 ตัว
-                { id: 'F0-B3', label: 'หน้า 0 - หลัง 3', frontSlots: [], backSlots: [0, 1, 2] }  // หลังล้วน
-            ];
-            
-            // หา Config ปัจจุบัน
-            const currentFmtConfig = formationsConfig.find(f => f.id === formationVal) || formationsConfig[0];
+            // Team Type & Share
+            const teamType = team.teamType || 'Attack';
+            const isShared = team.isShared;
+            const btnAtkClass = (teamType === 'Attack') ? 'bg-red-600 text-white border-red-500 ring-2 ring-red-500/30 shadow-lg' : 'bg-[#1f2937] text-gray-400 border-gray-600 hover:bg-[#2d3748] hover:text-white';
+            const btnDefClass = (teamType === 'Defense') ? 'bg-blue-600 text-white border-blue-500 ring-2 ring-blue-500/30 shadow-lg' : 'bg-[#1f2937] text-gray-400 border-gray-600 hover:bg-[#2d3748] hover:text-white';
 
-            // สร้าง HTML ปุ่มเลือก Formation
+            const teamTypeSelectorHTML = `
+                <div class="mb-4">
+                    <label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">⚔️ Team Type</label>
+                    <div class="flex gap-2">
+                        <button onclick="update3v3TeamType('Attack')" class="${btnAtkClass} border flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2"><span>⚔️</span> โจมตี</button>
+                        <button onclick="update3v3TeamType('Defense')" class="${btnDefClass} border flex-1 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2"><span>🛡️</span> ป้องกัน</button>
+                    </div>
+                </div>
+                <div class="mb-4 p-3 bg-black/30 rounded-lg border border-gray-700/50">
+                    <label class="flex items-center gap-3 cursor-pointer group">
+                        <div class="relative">
+                            <input type="checkbox" class="hidden" onchange="toggle3v3Share(this.checked)" ${isShared ? 'checked' : ''}>
+                            <div class="w-10 h-5 bg-gray-600 rounded-full shadow-inner"></div>
+                            <div class="dot absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-transform duration-200 ${isShared ? 'translate-x-5 bg-green-400' : ''}"></div>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold ${isShared ? 'text-green-400' : 'text-gray-400'}">แชร์ทีมสู่สาธารณะ</span>
+                            <span class="text-[9px] text-gray-500 italic">ติ๊กเพื่อแสดงในหน้า Gallery</span>
+                        </div>
+                    </label>
+                </div>
+            `;
+
+            // Formations
+            const formationVal = team.formation || 'Basic';
+            const formationsConfig = [
+                { id: 'Basic',    label: 'รูปแบบพื้นฐาน', desc: 'หน้า 2 - หลัง 3', front: [0, 1],       back: [2, 3, 4] },
+                { id: 'Balanced', label: 'รูปแบบสมดุล',   desc: 'หน้า 3 - หลัง 2', front: [0, 1, 2],    back: [3, 4] },
+                { id: 'Attack',   label: 'รูปแบบโจมตี',   desc: 'หน้า 1 - หลัง 4', front: [0],          back: [1, 2, 3, 4] },
+                { id: 'Defense',  label: 'รูปแบบป้องกัน',  desc: 'หน้า 4 - หลัง 1', front: [0, 1, 2, 3], back: [4] }
+            ];
+            const currentFmt = formationsConfig.find(f => f.id === formationVal) || formationsConfig[0];
             const formationButtons = formationsConfig.map(fmt => {
                 const isActive = (formationVal === fmt.id);
-                const activeClass = isActive ? 'bg-blue-600 text-white border-blue-400' : 'bg-[#1f2937] text-gray-400 border-gray-600 hover:bg-[#2d3748]';
-                return `<button onclick="update3v3Formation('${fmt.id}')" class="${activeClass} border px-2 py-1 rounded text-[10px] font-bold transition whitespace-nowrap">${fmt.label}</button>`;
+                const activeClass = isActive ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-500/30 shadow-lg' : 'bg-[#1f2937] text-gray-400 border-gray-600 hover:bg-[#2d3748] hover:text-white';
+                return `<button onclick="update3v3Formation('${fmt.id}')" class="${activeClass} border px-4 py-3 rounded-xl text-left transition flex flex-col w-full group relative overflow-hidden"><span class="text-sm font-bold relative z-10">${fmt.label}</span><span class="text-[10px] opacity-70 font-normal relative z-10">${fmt.desc}</span>${isActive ? '<div class="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 text-3xl font-black">✓</div>' : ''}</button>`;
             }).join('');
 
-            const formationHtml = `
-                <div class="flex flex-col gap-2 mb-4 w-full max-w-[200px] mr-4">
-                    <label class="text-[10px] text-gray-400 font-bold uppercase">🚩 Formation</label>
-                    <div class="flex flex-col gap-1">
-                        ${formationButtons}
-                    </div>
-                </div>
-            `;
+            // Stage Blocks
+            const renderStageBlock = (gridPos) => {
+                const heroSlotIdx = team.slots.findIndex(s => s && s.id && s.pos === gridPos);
+                const isSelected = (typeof selectedStageSlot !== 'undefined' && selectedStageSlot === heroSlotIdx && heroSlotIdx !== -1);
+                let borderStyle = 'border-gray-700 border-dashed bg-black/80';
+                let content = `<div class="text-[36px] text-gray-700 font-bold select-none">${gridPos+1}</div>`;
 
-            // 2.2 Skill Queue HTML
-            const queueHtml = `
-                <div class="flex flex-col gap-2 mb-4 w-full max-w-[200px] mr-4">
-                    <label class="text-[10px] text-gray-400 font-bold uppercase">⚡ Skill Queue</label>
-                    <div class="flex flex-col gap-1">
-                        ${[0,1,2,3].map(i => `
-                            <div class="flex items-center bg-[#1f2937] border border-gray-600 rounded px-2 py-0.5">
-                                <span class="text-gray-500 text-[9px] mr-2 font-bold w-3">${i+1}</span>
-                                <input type="text" value="${skills[i]||''}" onchange="update3v3SkillQueue(${i}, this.value)" 
-                                    class="bg-transparent text-white text-[10px] w-full outline-none font-mono">
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-
-            // 2.3 Pet HTML (Placeholder)
-            const petHtml = `
-                <div class="flex flex-col justify-center items-center ml-4 gap-2">
-                     <div class="w-16 h-16 rounded-full border-2 border-dashed border-gray-600 bg-black/20 flex items-center justify-center text-gray-600 text-[9px] font-bold cursor-pointer hover:border-yellow-500 hover:text-yellow-500 transition">
-                        + PET
-                     </div>
-                </div>
-            `;
-
-            // 2.4 🟢 GENERATE HEROES ON STAGE
-            // ฟังก์ชันช่วยสร้าง HTML กล่องตัวละครใน Stage
-            const renderHeroOnStage = (slotIndex) => {
-                const slot = team.slots[slotIndex];
-                if (!slot || !slot.id) {
-                    return `
-                        <div class="w-16 h-16 md:w-20 md:h-20 rounded-lg border-2 border-dashed border-gray-700 bg-black/30 flex items-center justify-center text-gray-600 text-xs font-bold relative group">
-                            <span class="opacity-50">#${slotIndex+1}</span>
-                            <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition pointer-events-none"></div>
-                        </div>`;
+                if (heroSlotIdx !== -1) {
+                    const slot = team.slots[heroSlotIdx];
+                    const h = heroesDB.find(x => String(x.id) === String(slot.id));
+                    if (h) {
+                        const selectEffect = isSelected ? 'ring-4 ring-green-500 z-20 border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'border-gray-500 hover:border-white shadow-lg';
+                        borderStyle = `border-2 ${selectEffect} bg-black cursor-pointer`;
+                        content = `<img src="${h.img}" class="w-full h-full object-cover rounded-lg pointer-events-none"><div class="absolute -top-2 -right-2 w-5 h-5 bg-blue-600 text-white text-[9px] flex items-center justify-center rounded-full border border-blue-400 font-bold shadow z-10">#${heroSlotIdx+1}</div>`;
+                    }
+                } else if (typeof selectedStageSlot !== 'undefined' && selectedStageSlot !== null) {
+                    borderStyle = 'border-2 border-green-500/50 border-dashed bg-green-900/20 cursor-pointer animate-pulse';
+                    content = `<div class="text-[8px] text-green-400 font-bold text-center">Move<br>Here</div>`;
                 }
-                
-                const h = heroesDB.find(x => String(x.id) === String(slot.id));
-                const img = h ? h.img : '';
-                // 3 ระดับดาว (0=Yellow, 1-6=Blue, 7-13=Red)
-                let borderColor = 'border-gray-500';
-                if((slot.star||0) >= 7) borderColor = 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]';
-                else if((slot.star||0) >= 1) borderColor = 'border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]';
-                else borderColor = 'border-yellow-500';
+                return `<div onclick="handleStageClick(${gridPos})" class="w-16 h-16 md:w-24 md:h-24 rounded-xl relative flex items-center justify-center transition-all duration-200 ${borderStyle}">${content}</div>`;
+            };
 
-                return `
-                    <div onclick="document.getElementById('slot-card-${slotIndex}').scrollIntoView({behavior: 'smooth', block: 'center'})" 
-                        class="w-16 h-16 md:w-20 md:h-20 rounded-xl border-2 ${borderColor} bg-black relative cursor-pointer hover:scale-105 transition transform shadow-lg z-10">
-                        <img src="${img}" class="w-full h-full object-cover rounded-lg">
-                        <div class="absolute -bottom-2 -right-2 bg-black text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border border-gray-600 font-bold shadow">
-                            ${slotIndex+1}
+            const frontRowHTML = currentFmt.front.map(pos => renderStageBlock(pos)).join('');
+            const backRowHTML = currentFmt.back.map(pos => renderStageBlock(pos)).join('');
+
+            // Skill Queue Display
+            const skillQueueDisplay = [0, 1, 2].map(i => {
+                const val = team.skillQueue[i];
+                let inner = '';
+                const arrow = (i < 2) ? `<div class="text-gray-600 text-3xl font-black mx-2 animate-pulse">➔</div>` : ''; 
+
+                if (val) {
+                    const parts = val.split('_');
+                    const hIdx = parseInt(parts[0]);
+                    const type = parts[1];
+                    const slot = team.slots[hIdx];
+                    if(slot && slot.id) {
+                        const h = heroesDB.find(x => String(x.id) === String(slot.id));
+                        const img = h ? h.img : '';
+                        const typeText = (type === 'UP') ? 'สกิลบน' : 'สกิลล่าง';
+                        const typeClass = (type === 'UP') ? 'bg-yellow-600 border-yellow-400' : 'bg-cyan-600 border-cyan-400';
+                        inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 md:w-28 md:h-36 bg-[#0b0e14] border-2 border-gray-600 hover:border-yellow-500 hover:shadow-lg rounded-2xl relative cursor-pointer group overflow-hidden transition-all"><img src="${img}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"><div class="absolute top-0 left-0 bg-black/80 text-white text-[10px] px-2 py-1 rounded-br-lg font-bold border-r border-b border-gray-600">Q${i+1}</div><div class="absolute bottom-0 w-full p-2 bg-gradient-to-t from-black to-transparent pt-6"><div class="${typeClass} text-white text-[10px] font-bold text-center py-1 rounded border shadow-lg uppercase tracking-wider w-full">${typeText}</div></div></div>`;
+                    } else { inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 border-2 border-red-500 border-dashed rounded-2xl flex items-center justify-center text-red-500 font-bold bg-black/40 cursor-pointer">Empty</div>`; }
+                } else {
+                    inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 md:w-28 md:h-36 border-2 border-dashed border-gray-700 hover:border-yellow-500 hover:bg-[#1f2937] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition group bg-black/40"><span class="text-5xl text-gray-600 group-hover:text-yellow-500 font-light mb-2 transition">+</span><span class="text-[10px] text-gray-500 group-hover:text-yellow-500 font-bold uppercase tracking-wider">Select</span><span class="absolute top-2 left-2 text-[9px] text-gray-600 font-bold">Q${i+1}</span></div>`;
+                }
+                return `<div class="flex items-center">${inner}</div>${arrow}`;
+            }).join('');
+
+            // --- MODAL SELECTOR ---
+            let modalHTML = '';
+            if (activeQueueIndex !== null) {
+                let itemsHTML = '';
+                team.slots.forEach((slot, hIdx) => {
+                    if (slot && slot.id) {
+                        const h = heroesDB.find(x => String(x.id) === String(slot.id));
+                        const img = h ? h.img : '';
+                        const name = h ? h.name : 'Unknown';
+                        let btns = '';
+                        ['UP', 'DOWN'].forEach(type => {
+                            const val = `${hIdx}_${type}`;
+                            const isUsed = team.skillQueue.some((s, sIdx) => s === val && sIdx !== activeQueueIndex);
+                            const label = (type === 'UP') ? 'สกิลบน' : 'สกิลล่าง';
+                            if (isUsed) {
+                                btns += `<div class="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-3 flex flex-col items-center justify-center opacity-50 cursor-not-allowed"><span class="text-xs font-bold text-gray-500">${label}</span><span class="text-[8px] bg-red-900 text-red-200 px-1 rounded border border-red-700">USED</span></div>`;
+                            } else {
+                                const colorClass = (type === 'UP') ? 'bg-yellow-600 hover:bg-yellow-500 border-yellow-500 text-white' : 'bg-cyan-600 hover:bg-cyan-500 border-cyan-500 text-white';
+                                btns += `<button onclick="confirmSkillSelection('${val}')" class="flex-1 ${colorClass} border rounded px-3 py-3 flex items-center justify-center shadow-md transition transform hover:scale-105"><span class="text-sm font-bold">${label}</span></button>`;
+                            }
+                        });
+                        itemsHTML += `<div class="bg-[#1f2937] border border-gray-600 rounded-xl p-4 flex items-center gap-6 hover:border-gray-400 shadow-md"><div class="flex items-center gap-4 w-1/3 min-w-[140px]"><img src="${img}" class="w-20 h-20 rounded-xl border-2 border-gray-500 bg-black object-cover shadow-lg"><span class="text-lg text-gray-200 font-bold truncate">${name}</span></div><div class="flex flex-1 gap-3 h-full">${btns}</div></div>`;
+                    }
+                });
+                if (itemsHTML === '') itemsHTML = `<div class="text-center text-gray-500 py-10 bg-black/20 rounded-xl border border-dashed border-gray-700">กรุณาใส่ตัวละครในทีมก่อนเลือกสกิล</div>`;
+                modalHTML = `
+                    <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onclick="if(event.target === this) closeSkillModal()">
+                        <div class="bg-[#111827] border-2 border-gray-500 rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative m-4 max-h-[85vh] flex flex-col">
+                            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                                <h3 class="text-2xl font-bold text-white flex items-center gap-3"><span class="bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold">Q${activeQueueIndex+1}</span><span>เลือกลำดับสกิล</span></h3>
+                                <button onclick="closeSkillModal()" class="text-gray-400 hover:text-white text-3xl font-bold bg-gray-800 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
+                            </div>
+                            <div class="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 flex-1">${itemsHTML}</div>
+                            <div class="mt-6 pt-4 border-t border-gray-700 flex justify-between gap-3">
+                                <button onclick="confirmSkillSelection('')" class="px-6 py-2 bg-red-900/30 hover:bg-red-900/80 text-red-300 rounded-lg text-sm font-bold border border-red-800">Clear Slot</button>
+                                <button onclick="closeSkillModal()" class="px-8 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold">Cancel</button>
+                            </div>
                         </div>
                     </div>
                 `;
-            };
+            }
 
-            // แยก Hero ลง Front/Back ตาม Config ของ Formation
-            const slotsFront = currentFmtConfig.frontSlots.map(idx => renderHeroOnStage(idx)).join('');
-            const slotsBack = currentFmtConfig.backSlots.map(idx => renderHeroOnStage(idx)).join('');
-            
-            // 🟢 STAGE HTML (ตามที่คุณขอ)
-            const stageHTML = `
-                <div class="flex flex-col lg:flex-row items-stretch justify-center bg-[#111827] border border-gray-800 p-4 rounded-xl mb-8 shadow-2xl relative overflow-hidden">
-                    
-                    <div class="flex flex-col md:flex-row gap-2 z-10">
-                        ${formationHtml}
-                        ${queueHtml}
-                    </div>
-
-                    <div class="flex-1 flex items-stretch bg-[#0b0e14]/80 border border-gray-700 rounded-xl shadow-inner overflow-hidden mx-1 relative min-h-[220px]">
-                        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#4b5563 1px, transparent 1px); background-size: 20px 20px;"></div>
-
-                        <div class="flex-1 flex flex-col items-center justify-center py-4 relative z-0">
-                            
-                            <div class="flex gap-4 justify-center relative w-full items-center min-h-[90px]">
-                                <span class="absolute inset-0 flex items-center justify-center text-5xl font-black text-gray-800/30 uppercase tracking-[0.5em] select-none pointer-events-none transform -rotate-2">BACK</span>
-                                ${slotsBack}
+            // --- Inject Everything ---
+            const configSectionHTML = `
+                <div class="flex flex-col gap-4 mb-8">
+                    <div class="flex flex-col xl:flex-row gap-4 h-full">
+                        <div class="w-full xl:w-64 flex flex-col gap-2 bg-[#111827] border border-gray-700 p-4 rounded-xl shadow-lg shrink-0">
+                            ${teamTypeSelectorHTML}
+                            <div><label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">🚩 รูปแบบการยืน</label><div class="flex flex-col gap-2 h-full">${formationButtons}</div></div>
+                        </div>
+                        <div class="flex-1 bg-[#111827] border border-gray-700 rounded-xl shadow-[inset_0_0_30px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col min-h-[280px]">
+                            <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(#374151 1px, transparent 1px), linear-gradient(to right, #374151 1px, transparent 1px); background-size: 40px 40px;"></div>
+                            <div class="flex-1 flex flex-col justify-center items-center py-6 relative z-10 gap-6">
+                                <div class="relative w-full flex justify-center items-center py-2"><span class="absolute inset-0 flex items-center justify-center text-6xl md:text-8xl font-black text-white/5 uppercase tracking-[0.2em] select-none pointer-events-none z-0">BACK</span><div class="relative z-10 flex gap-4 text-xl">${backRowHTML}</div></div>
+                                <div class="w-[90%] h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent border-t border-dashed border-blue-900/50 relative"></div>
+                                <div class="relative w-full flex justify-center items-center py-2"><span class="absolute inset-0 flex items-center justify-center text-6xl md:text-8xl font-black text-white/5 uppercase tracking-[0.2em] select-none pointer-events-none z-0">FRONT</span><div class="relative z-10 flex gap-4">${frontRowHTML}</div></div>
                             </div>
-                            
-                            <div class="w-[90%] h-px bg-gray-700/50 border-t border-dashed border-gray-600 my-4 relative">
-                                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#0b0e14] px-2 text-[9px] text-gray-500 uppercase tracking-widest">Vs</div>
-                            </div>
-
-                            <div class="flex gap-4 justify-center relative w-full items-center min-h-[90px]">
-                                <span class="absolute inset-0 flex items-center justify-center text-5xl font-black text-gray-800/30 uppercase tracking-[0.5em] select-none pointer-events-none transform -rotate-2">FRONT</span>
-                                ${slotsFront}
-                            </div>
-
                         </div>
                     </div>
-
-                    ${petHtml}
+                    <div class="bg-[#111827] border border-gray-700 p-6 rounded-xl shadow-inner flex flex-col items-center gap-6 mt-4">
+                        <div class="flex items-center gap-3 text-yellow-500"><span class="text-3xl">⚡</span><div class="flex flex-col"><span class="text-sm font-black uppercase tracking-widest">Skill Combo</span><span class="text-[10px] text-gray-500">ลำดับการใช้สกิล 1 -> 2 -> 3</span></div></div>
+                        <div class="flex flex-row items-center justify-center w-full overflow-x-auto pb-2 custom-scrollbar gap-2 md:gap-4">${skillQueueDisplay}</div>
+                    </div>
                 </div>
             `;
 
             let headerDiv = document.getElementById('editor-3v3-header');
-            if(!headerDiv) {
+            if (!headerDiv) {
                 headerDiv = document.createElement('div');
                 headerDiv.id = 'editor-3v3-header';
                 content.insertBefore(headerDiv, grid);
             }
-            // ใส่ Header + Stage
-            headerDiv.innerHTML = headerHTML + stageHTML;
+            headerDiv.innerHTML = headerHTML + configSectionHTML + modalHTML;
 
+            // --- Render Hero Cards (ด้านล่าง) ---
             grid.innerHTML = '';
-            
-            // ==========================================
-            // 🟢 3. HERO SLOTS LOOP (EDITORS)
-            // ==========================================
             for (let i = 0; i < 3; i++) {
                 const slotData = team.slots[i];
                 let inner = '';
-
-                // กำหนด ID ให้ Card เพื่อให้กดจาก Stage แล้วเลื่อนมาหาได้
-                const cardId = `slot-card-${i}`;
-
                 if (slotData && slotData.id) {
                     const h = heroesDB.find(x => String(x.id) === String(slotData.id));
                     if (h) {
-                        const s = slotData.stats;
-                        
-                        // Status Config
+                        const s = slotData.stats || {};
                         const statConfig = [
-                            { key: 'atk', label: '⚔️ ATK', color: 'gray-400', border: 'gray-700', inputColor: 'white' },
-                            { key: 'def', label: '🛡️ DEF', color: 'gray-400', border: 'gray-700', inputColor: 'white' },
-                            { key: 'hp',  label: '❤️ HP',  color: 'gray-400', border: 'gray-700', inputColor: 'white' },
-                            { key: 'spd', label: '⚡ SPD', color: 'gray-400', border: 'gray-700', inputColor: 'white' },
-                            { key: 'cri', label: '🔥 CRI', color: 'orange-400', border: 'orange-900/50', inputColor: 'orange-300' },
-                            { key: 'cdmg', label: '💥 DMG', color: 'purple-400', border: 'purple-900/50', inputColor: 'purple-300' },
-                            { key: 'weakness', label: '🎯 WEAK', color: 'red-400', border: 'red-900/50', inputColor: 'red-300' },
-                            { key: 'block', label: '🛡️ BLOCK', color: 'blue-400', border: 'blue-900/50', inputColor: 'blue-300' },
-                            { key: 'dmgRed', label: '🧱 REDUCE', color: 'gray-400', border: 'gray-600', inputColor: 'gray-300' },
-                            { key: 'acc', label: '👁️ ACC', color: 'green-400', border: 'green-900/50', inputColor: 'green-300' },
-                            { key: 'resist', label: '🚫 RES', color: 'yellow-400', border: 'yellow-900/50', inputColor: 'yellow-300' }
+                            { key: 'atk', label: '⚔️ ATK' }, { key: 'def', label: '🛡️ DEF' }, { key: 'hp', label: '❤️ HP' },
+                            { key: 'spd', label: '⚡ SPD' }, { key: 'cri', label: '🔥 CRI' }, { key: 'cdmg', label: '💥 DMG' },
+                            { key: 'weakness', label: '🎯 WEAK' }, { key: 'block', label: '🛡️ BLOCK' }, { key: 'dmgRed', label: '🧱 REDUCE' },
+                            { key: 'acc', label: '👁️ ACC' }, { key: 'resist', label: '🚫 RES' }
                         ];
                         const group1 = statConfig.slice(0, 6);
                         const group2 = statConfig.slice(6);
-                        
-                        const renderStatRow = (cfg) => `
-                            <div class="flex items-center justify-between bg-[#0d1117] px-3 py-2 mb-2 rounded border border-${cfg.border} shadow-sm">
-                                <span class="text-xs font-bold text-${cfg.color} uppercase truncate w-16">${cfg.label}</span>
-                                <input type="number" value="${s[cfg.key] || 0}" onchange="update3v3Stat(${i}, '${cfg.key}', this.value)" class="bg-transparent text-${cfg.inputColor} font-mono text-right outline-none w-24 text-sm font-bold">
-                            </div>`;
+                        const renderStatRow = (cfg) => `<div class="flex items-center justify-between bg-[#0d1117] px-3 py-2 mb-2 rounded border border-gray-700 shadow-sm"><span class="text-[10px] font-bold text-gray-400 uppercase truncate w-16">${cfg.label}</span><input type="number" value="${s[cfg.key] || 0}" onchange="update3v3Stat(${i}, '${cfg.key}', this.value)" class="bg-transparent text-white font-mono text-right outline-none w-20 text-xs font-bold"></div>`;
 
-                        // Ring & Set
-                        let ringHtml = slotData.ring 
-                            ? `<img src="${(ringsDB.find(x=>String(x.id)===String(slotData.ring))||{}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-20 h-20 rounded border border-yellow-500 bg-black cursor-pointer object-cover hover:scale-105 transition">`
-                            : `<div onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-20 h-20 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer hover:border-yellow-400 hover:text-yellow-400 bg-black/30">Ring</div>`;
+                        let ringHtml = slotData.ring ? `<img src="${(ringsDB.find(x=>String(x.id)===String(slotData.ring))||{}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-16 h-16 rounded border border-yellow-500 bg-black cursor-pointer object-cover">` : `<div onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-16 h-16 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer bg-black/30">Ring</div>`;
+                        let equipHtml = slotData.equip ? `<img src="${(equipSetsDB.find(x=>String(x.id)===String(slotData.equip))||{img:''}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-16 h-16 rounded border border-cyan-500 bg-black cursor-pointer object-cover">` : `<div onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-16 h-16 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer bg-black/30">Set</div>`;
 
-                        let equipHtml = '';
-                        if(slotData.equip) {
-                            const eSet = equipSetsDB.find(x => x.id === slotData.equip);
-                            if(eSet) equipHtml = `<div onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-20 h-20 rounded border border-cyan-500 overflow-hidden cursor-pointer hover:scale-105 transition bg-black flex items-center justify-center">` + (eSet.img ? `<img src="${eSet.img}" class="w-full h-full object-cover">` : `<span class="text-[8px] text-cyan-300 text-center">${eSet.name}</span>`) + `</div>`;
+                        const currentStar = (slotData.star !== undefined && slotData.star !== null) ? parseInt(slotData.star) : 6;
+
+                        // 2. ปรับ Logic สีดาว: 1-6 เหลือง | 7-12 ฟ้า | 13 แดง
+                        let starColorClass = 'text-yellow-400'; 
+                        if (currentStar >= 13) {
+                            starColorClass = 'text-red-500';  // ดาวแดง
+                        } else if (currentStar >= 7) {
+                            starColorClass = 'text-blue-400'; // ดาวฟ้า
+                        } else if (currentStar === 0) {
+                            starColorClass = 'text-gray-500'; // ไม่มีดาว
                         }
-                        if(!equipHtml) equipHtml = `<div onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-20 h-20 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer hover:border-cyan-400 hover:text-cyan-400 bg-black/30">Set</div>`;
 
-                        // Star Logic (0-13)
-                        const currentStar = slotData.star !== undefined ? slotData.star : 0; 
-                        let starColorClass = 'text-yellow-400';
-                        if (currentStar >= 7) starColorClass = 'text-red-500';
-                        else if (currentStar >= 1) starColorClass = 'text-blue-400';
-                        
-                        let starOptionsHtml = '';
-                        for(let n=13; n>=0; n--) {
-                            let label = (n>=7) ? '★'.repeat(n-6) : (n>=1 ? '★'.repeat(n) : '★★★★★★');
-                            let colorStyle = (n>=7) ? '#ef4444' : (n>=1 ? '#60a5fa' : '#facc15');
-                            starOptionsHtml += `<option value="${n}" ${currentStar===n?'selected':''} style="color: ${colorStyle}; background-color: #1f2937; font-weight:bold;">${label}</option>`;
+                        // 3. วาดรายการตัวเลือกใน Select พร้อมใส่สีให้ชัดเจน
+                        let starOptions = '';
+                        for (let n = 13; n >= 0; n--) {
+                            let label = '';
+                            let styleColor = '';
+                            
+                            if (n >= 13) {
+                                label = '★';
+                                styleColor = '#ef4444';
+                            } else if (n >= 7) {
+                                label = '★'.repeat(n - 6);
+                                styleColor = '#60a5fa';
+                            } else if (n >= 1) {
+                                label = '★'.repeat(n); // ดาวเหลือง
+                                styleColor = '#facc15';
+                            } else {
+                                label = 'No Star';
+                                styleColor = '#9ca3af';
+                            }
+                            
+                            starOptions += `<option value="${n}" ${currentStar === n ? 'selected' : ''} style="color: ${styleColor}; background-color: #1f2937; font-weight: bold;">${label}</option>`;
                         }
-                        const starSelectHtml = `<select onchange="update3v3Star(${i}, this.value)" class="bg-transparent ${starColorClass} text-2xl border-none outline-none cursor-pointer font-bold w-auto hover:brightness-125 transition">${starOptionsHtml}</select>`;
 
                         inner = `
                             <div class="flex flex-col w-full h-full">
                                 <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700/50">
-                                    <div class="flex items-start gap-4">
-                                        <div onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="relative group cursor-pointer">
-                                            <img src="${h.img}" class="w-25 h-25 rounded-xl border-2 border-gray-500 bg-black object-cover shadow-lg group-hover:border-blue-400 transition">
-                                            <div class="absolute -top-2 -left-2 w-6 h-6 bg-gray-800 text-white border border-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md">#${i+1}</div>
-                                        </div>
+                                    <div class="flex items-start gap-3">
+                                        <div onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="relative cursor-pointer"><img src="${h.img}" class="w-20 h-20 rounded-xl border border-gray-500 object-cover shadow-lg"></div>
                                         <div>
-                                            <div class="text-white font-bold text-xl leading-tight mb-1 cursor-pointer hover:text-blue-400" onclick="openSelector('TEAM-3V3', ${i}, 'hero')">${h.name}</div>
-                                            <div class="flex items-center gap-1 h-8">${starSelectHtml}</div>
-                                            <div class="mt-2"><span class="text-[9px] bg-blue-900 text-blue-200 px-2 py-0.5 rounded border border-blue-700 uppercase font-bold tracking-wider">${h.type||'HERO'}</span></div>
-                                            <button onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="mt-2 text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded border border-gray-600 transition flex items-center gap-1"><span>🔄</span> Change</button>
+                                            <div class="text-white font-bold text-lg leading-tight mb-1">${h.name}</div>
+                                            <select onchange="update3v3Star(${i}, this.value)" class="bg-transparent ${starColorClass} text-xl outline-none cursor-pointer font-bold">${starOptions}</select>
                                         </div>
                                     </div>
-                                    <div class="flex gap-3">
-                                        <div class="flex flex-col items-center gap-1">${ringHtml}</div>
-                                        <div class="flex flex-col items-center gap-1">${equipHtml}</div>
-                                    </div>
+                                    <div class="flex gap-2">${ringHtml}${equipHtml}</div>
                                 </div>
-                                <div class="flex-1 mb-4">
-                                    <div class="flex gap-4">
-                                        <div class="w-1/2 flex flex-col">${group1.map(renderStatRow).join('')}</div>
-                                        <div class="w-1/2 flex flex-col">${group2.map(renderStatRow).join('')}</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <input type="text" value="${slotData.comment || ''}" onchange="update3v3Comment(${i}, this.value)" placeholder="📝 Add note..." class="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 outline-none focus:border-blue-500 transition">
-                                </div>
+                                <div class="flex gap-4 flex-1 mb-4"><div class="w-1/2">${group1.map(renderStatRow).join('')}</div><div class="w-1/2">${group2.map(renderStatRow).join('')}</div></div>
+                                <input type="text" value="${slotData.comment || ''}" onchange="update3v3Comment(${i}, this.value)" placeholder="Note..." class="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 outline-none">
                             </div>
                         `;
                     }
                 } else {
-                    inner = `
-                        <div onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="w-full h-full border-2 border-dashed border-gray-700 rounded-2xl flex flex-col items-center justify-center text-gray-500 hover:text-blue-400 hover:border-blue-500 hover:bg-[#1f2937] transition cursor-pointer gap-2 bg-black/20 min-h-[350px]">
-                            <span class="text-5xl font-light opacity-50">+</span>
-                            <span class="text-base font-bold uppercase tracking-wider">Select Hero</span>
-                            <span class="text-xs text-gray-600">Slot #${i+1}</span>
-                        </div>
-                    `;
+                    inner = `<div onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="w-full h-full border-2 border-dashed border-gray-700 rounded-2xl flex flex-col items-center justify-center text-gray-500 hover:text-blue-400 transition cursor-pointer gap-2 bg-black/20 min-h-[350px]"><span class="text-5xl font-light opacity-50">+</span><span class="text-sm font-bold uppercase tracking-wider">Select Hero Slot #${i+1}</span></div>`;
                 }
+                grid.innerHTML += `<div class="bg-[#1f2937] border border-gray-700 rounded-2xl p-5 shadow-xl relative min-h-[400px]">${inner}</div>`;
+            }
+        }
 
-                grid.innerHTML += `<div id="${cardId}" class="bg-[#1f2937] border border-gray-700 rounded-2xl p-5 shadow-xl relative min-h-[400px] scroll-mt-20">${inner}</div>`;
+        // 🟢 อย่าลืมใส่ฟังก์ชันจัดการ Share ไว้ข้างนอก render3v3Editor ด้วยครับ
+        function toggle3v3Share(val) {
+            if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
+                teams3v3DB[current3v3TeamIdx].isShared = val;
+                save3v3Teams();
+                render3v3Editor(); 
             }
         }
 
@@ -13648,13 +13700,44 @@
 
         // 7. อัปเดตสเตตัสจากการพิมพ์
         function update3v3Stat(slotIdx, statKey, val) {
-            const team = teams3v3DB[current3v3TeamIdx];
-            if (team && team.slots[slotIdx]) {
-                // แปลงค่าที่พิมพ์เป็นตัวเลข (Float)
-                team.slots[slotIdx].stats[statKey] = parseFloat(val) || 0;
+            // เช็คความถูกต้องของข้อมูล
+            if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
+                const slot = teams3v3DB[current3v3TeamIdx].slots[slotIdx];
                 
-                // บันทึกลง LocalStorage ทันที
-                save3v3Teams();
+                if (slot) {
+                    // 1. ตรวจสอบว่ามี object stats หรือยัง (กัน Error)
+                    if (!slot.stats) slot.stats = {};
+
+                    // 2. บันทึกค่า Stat ที่กรอก (แปลงเป็นตัวเลข, ถ้าลบจนว่างให้เป็น 0)
+                    const numVal = parseInt(val) || 0;
+                    slot.stats[statKey] = numVal;
+
+                    // ==================================================
+                    // 🟢 3. LOGIC ใหม่: คำนวณ activeStats (ค่า > 0)
+                    // ==================================================
+                    const activeList = [];
+                    
+                    // วนลูปดูทุก Stat ในตัวละครนี้
+                    // (ใช้ Object.keys เพื่อดูว่ามี stat ตัวไหนบ้างที่ถูกบันทึกไว้)
+                    Object.keys(slot.stats).forEach(key => {
+                        const value = slot.stats[key];
+                        // เงื่อนไข: ต้องมีค่ามากกว่า 0 ถึงจะถูกบันทึกชื่อลงไป
+                        if (value > 0) {
+                            activeList.push(key);
+                        }
+                    });
+
+                    // บันทึกผลลัพธ์ลงตัวแปร activeStats ใน Database
+                    slot.activeStats = activeList;
+
+                    // ==================================================
+
+                    // 4. บันทึกลง LocalStorage
+                    save3v3Teams();
+                    
+                    // (ไม่ต้อง render ใหม่ก็ได้ เพื่อให้พิมพ์ต่อเนื่องไม่สะดุด)
+                    // console.log(`Slot ${slotIdx} Updated:`, slot.stats, "Active:", slot.activeStats);
+                }
             }
         }
 
@@ -13662,6 +13745,7 @@
             if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
                 teams3v3DB[current3v3TeamIdx].formation = val;
                 save3v3Teams();
+                render3v3Editor(); // สั่งวาดหน้าจอใหม่ทันที
             }
         }
 
@@ -14018,8 +14102,7 @@
             if (current3v3TeamIdx === -1) return alert("กรุณาเลือกทีมก่อนแชร์");
             const team = teams3v3DB[current3v3TeamIdx];
             
-            // เช็คว่าทีมว่างเปล่าหรือไม่
-            const isEmpty = team.slots.every(s => s === null);
+            const isEmpty = !team.slots || team.slots.every(s => !s || !s.id);
             if (isEmpty) return alert("❌ ไม่สามารถแชร์ทีมว่างเปล่าได้");
 
             if (!confirm(`ต้องการแชร์ทีม "${team.name}" ไปยัง Community Gallery ใช่หรือไม่?`)) return;
@@ -14027,407 +14110,473 @@
             showLoading("Sharing to Gallery...");
             
             try {
-                // ใช้ URL ปัจจุบันเป็น Endpoint
-                const API_URL = SCRIPT_URL; 
+                const API_URL = GOOGLE_SCRIPT_URL; 
                 
-                // ส่งข้อมูลไปบันทึกใน Sheet "SharedTeams" (ต้องมี action นี้ใน Google Apps Script)
                 const response = await fetch(API_URL, {
                     method: 'POST',
+                    redirect: "follow", 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         action: 'shareTeam',
                         teamName: team.name,
-                        teamData: team
+                        teamType: team.teamType || 'Attack', // 🟢 เพิ่มการส่งประเภททีม
+                        teamData: team,
+                        teamId: team.shareId || null 
                     })
                 });
-                const res = await response.json();
+
+                const res = await response.json(); // อ่านผลลัพธ์
                 
                 hideLoading();
 
                 if (res.status === 'success') {
-                    if(confirm("🎉 แชร์สำเร็จ! ต้องการไปดูที่หน้า Gallery เลยหรือไม่?")) {
-                        // เปลี่ยนไปหน้า Gallery และโหลดข้อมูล
-                        switchView('gallery'); // สลับ Tab
-                        // ถ้าคุณแยกหน้า Gallery สำหรับ 3v3 โดยเฉพาะ (เช่น loadSharedGallery()) ให้เรียกฟังก์ชันนั้น
-                        // ตัวอย่าง:
-                        loadSharedGallery(); 
+                    // 🟢 สำคัญ: บันทึก ID กลับลงเครื่อง เพื่อใช้ในการอัปเดตครั้งหน้า
+                    team.shareId = res.teamId;
+                    save3v3Teams(); 
+
+                    if (res.action === 'updated') {
+                        alert("✅ อัปเดตข้อมูลทีมเดิมเรียบร้อยแล้ว!");
+                    } else {
+                        alert("🎉 แชร์ทีมใหม่เรียบร้อยแล้ว!");
                     }
                 } else {
-                    alert("เกิดข้อผิดพลาด: " + (res.message || "Unknown Error"));
+                    alert("❌ เกิดข้อผิดพลาดจาก Server: " + res.message);
                 }
+
             } catch(e) {
                 hideLoading();
+                console.error(e);
                 alert("Connection Error: " + e.message);
             }
         }
 
+        // ฟังก์ชันเปลี่ยนประเภททีม (Attack / Defense)
+        function update3v3TeamType(type) {
+            if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
+                teams3v3DB[current3v3TeamIdx].teamType = type;
+                save3v3Teams();
+                render3v3Editor(); // สั่งวาดหน้าจอใหม่เพื่ออัปเดตสีปุ่ม
+            }
+        }
+
         // 📚 SHARED GALLERY & PUBLIC VIEW SYSTEM
-    // =========================================================================
+        // =========================================================================
 
-    // 1. โหลดหน้ารายการทีม + Master Data (All in One)
-    async function loadSharedGallery() {
-        console.log("🚀 Starting loadSharedGallery...");
+        // 1. โหลดหน้ารายการทีม + Master Data (All in One)
+        async function loadSharedGallery() {
+            console.log("🚀 Starting loadSharedGallery...");
 
-        // 🟢 1. สั่งเปิด Loading ทันที (Force Show)
-        const overlay = document.getElementById('loading-overlay');
-        const text = document.getElementById('loading-text');
-        if (overlay && text) {
-            text.innerText = "📥 กำลังโหลดข้อมูล Community...";
-            overlay.classList.add('active'); // บังคับใส่ class active
-            overlay.style.display = 'flex';  // กันเหนียว เผื่อ CSS มีปัญหา
-        }
-
-        // ซ่อนหน้า Login/Sidebar
-        document.getElementById('login-screen').style.display = 'none';
-        const sidebar = document.getElementById('main-sidebar');
-        if(sidebar) sidebar.style.display = 'none';
-        
-        document.getElementById('main-content').classList.remove('hidden');
-
-        try {
-            // เรียก Server (ขอทีเดียวได้ครบทุกอย่าง)
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'getAllSharedTeams' })
-            });
-            const res = await response.json();
-
-            if (res.status === 'success') {
-                console.log("✅ Data Received");
-
-                // 🟢 2. อัปเดต Master Data เข้าสู่ระบบทันที
-                if (res.masterData) {
-                    const m = res.masterData;
-                    if(m.heroes) heroesDB = m.heroes;
-                    if(m.pets) petsDB = m.pets;
-                    if(m.rings) ringsDB = m.rings;
-                    if(m.equip_sets) equipSetsDB = m.equip_sets;
-                    // ... (อื่นๆ ถ้ามี)
-                    console.log("✅ Master Data Updated:", heroesDB.length, "Heroes");
-                }
-
-                // เก็บ Cache ทีม
-                galleryCacheDB = res.teams; 
-                
-                // วาดหน้าจอ
-                renderGalleryUI(galleryCacheDB);
-
-            } else {
-                document.getElementById('main-content').innerHTML = `<div class="text-white text-center mt-20">❌ Error: ${res.message}</div>`;
+            // 🟢 1. สั่งเปิด Loading ทันที (Force Show)
+            const overlay = document.getElementById('loading-overlay');
+            const text = document.getElementById('loading-text');
+            if (overlay && text) {
+                text.innerText = "📥 กำลังโหลดข้อมูล Community...";
+                overlay.classList.add('active'); // บังคับใส่ class active
+                overlay.style.display = 'flex';  // กันเหนียว เผื่อ CSS มีปัญหา
             }
 
-        } catch (e) {
-            console.error(e);
-            alert("Connection Error: " + e.message);
-        } finally {
-            // 🟢 3. ปิด Loading
-            if (overlay) {
-                overlay.classList.remove('active');
-                setTimeout(() => overlay.style.display = 'none', 300); // รอ Animation นิดนึง
-            }
-        }
-    }
+            // ซ่อนหน้า Login/Sidebar
+            document.getElementById('login-screen').style.display = 'none';
+            const sidebar = document.getElementById('main-sidebar');
+            if(sidebar) sidebar.style.display = 'none';
+            
+            document.getElementById('main-content').classList.remove('hidden');
 
-    // 2. วาดหน้าจอ Gallery Grid
-    function renderGalleryUI(teams) {
-        const container = document.getElementById('main-content');
-        
-        let listHtml = '';
-        if (!teams || teams.length === 0) {
-            listHtml = `<div class="col-span-full text-center text-gray-500 py-20 text-lg border-2 border-dashed border-gray-800 rounded-2xl">ยังไม่มีทีมที่ถูกแชร์ในขณะนี้</div>`;
-        } else {
-            teams.forEach(t => {
-                // รูปตัวละคร 3 ตัว
-                let heroesHtml = '';
-                if (t.data && t.data.slots) {
-                    for(let i=0; i<3; i++) {
-                        const s = t.data.slots[i];
-                        if (s && s.id) {
-                            const h = heroesDB.find(x => String(x.id) === String(s.id));
-                            if(h) {
-                                heroesHtml += `<img src="${h.img}" class="w-10 h-10 rounded-lg bg-black border border-gray-600 object-cover shadow-md -ml-2 first:ml-0 z-10 hover:z-20 hover:scale-110 transition relative">`;
-                            }
-                        } else {
-                            heroesHtml += `<div class="w-10 h-10 rounded-lg bg-gray-800 border border-gray-700 border-dashed -ml-2 first:ml-0"></div>`;
-                        }
+            try {
+                // เรียก Server (ขอทีเดียวได้ครบทุกอย่าง)
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getAllSharedTeams' })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    console.log("✅ Data Received");
+
+                    // 🟢 2. อัปเดต Master Data เข้าสู่ระบบทันที
+                    if (res.masterData) {
+                        const m = res.masterData;
+                        if(m.heroes) heroesDB = m.heroes;
+                        if(m.pets) petsDB = m.pets;
+                        if(m.rings) ringsDB = m.rings;
+                        if(m.equip_sets) equipSetsDB = m.equip_sets;
+                        // ... (อื่นๆ ถ้ามี)
+                        console.log("✅ Master Data Updated:", heroesDB.length, "Heroes");
                     }
+
+                    // เก็บ Cache ทีม
+                    galleryCacheDB = res.teams; 
+                    
+                    // วาดหน้าจอ
+                    renderGalleryUI(galleryCacheDB);
+
+                } else {
+                    document.getElementById('main-content').innerHTML = `<div class="text-white text-center mt-20">❌ Error: ${res.message}</div>`;
                 }
 
-                listHtml += `
-                    <div onclick="viewTeamFromGallery('${t.id}')" class="bg-[#1f2937] border border-gray-700 p-4 rounded-2xl shadow-lg hover:border-blue-500 hover:bg-[#252f3e] cursor-pointer transition group relative overflow-hidden flex flex-col justify-between min-h-[120px]">
-                        
-                        <div class="mb-3 relative z-10">
-                            <div class="font-bold text-lg text-white group-hover:text-blue-300 transition truncate">${t.name || 'Unnamed Team'}</div>
-                            <span class="bg-gray-800 px-2 py-0.5 rounded text-[10px] text-gray-500 border border-gray-700 mt-1 inline-block">3v3 Team</span>
-                        </div>
+            } catch (e) {
+                console.error(e);
+                alert("Connection Error: " + e.message);
+            } finally {
+                // 🟢 3. ปิด Loading
+                if (overlay) {
+                    overlay.classList.remove('active');
+                    setTimeout(() => overlay.style.display = 'none', 300); // รอ Animation นิดนึง
+                }
+            }
+        }
 
-                        <div class="flex items-center pl-2 relative z-10 mb-2">
-                            ${heroesHtml}
-                        </div>
+        // 2. วาดหน้าจอ Gallery Grid
+        function renderGalleryUI(teams) {
+            const container = document.getElementById('main-content'); // หรือ ID ที่คุณใช้แสดงเนื้อหาหลัก
+            if (!container) return;
 
-                        <div class="flex justify-end items-center border-t border-gray-700/50 pt-2 mt-auto">
-                             <span class="text-blue-400 text-[10px] font-bold flex items-center gap-1 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition">View Details ➔</span>
+            // 1. แยกกลุ่มข้อมูล
+            const attackTeams = teams.filter(t => t.data && t.data.teamType === 'Attack');
+            const defenseTeams = teams.filter(t => t.data && t.data.teamType === 'Defense');
+
+            // ฟังก์ชันย่อยสำหรับวาดแต่ละ Section
+            const renderSection = (teamList, title, color, icon) => {
+                if (teamList.length === 0) return '';
+                return `
+                    <div class="mb-12">
+                        <div class="flex items-center gap-3 mb-6 border-b border-${color}-500/30 pb-3">
+                            <span class="text-3xl">${icon}</span>
+                            <h2 class="text-2xl font-black text-${color}-400 uppercase tracking-tighter">${title}</h2>
+                            <span class="bg-${color}-900/50 text-${color}-300 px-3 py-0.5 rounded-full text-xs font-bold border border-${color}-500/30">${teamList.length} ทีม</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${teamList.map(t => `
+                                <div onclick="loadSharedTeamView('${t.id}', true)" 
+                                    class="bg-[#1f2937] border border-gray-700 rounded-2xl p-5 hover:border-${color}-500 transition-all cursor-pointer group shadow-xl relative overflow-hidden">
+                                    
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-white font-bold text-lg group-hover:text-${color}-400 transition leading-tight">${t.name}</h3>
+                                            <span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">${t.data.formation || 'Basic'}</span>
+                                        </div>
+                                        <div class="bg-black/40 p-2 rounded-lg text-[14px]">${icon}</div>
+                                    </div>
+
+                                    <div class="flex gap-2 justify-center bg-black/20 py-4 rounded-xl border border-gray-800/50 mb-4">
+                                        ${t.data.slots.map(s => {
+                                            if(!s || !s.id) return `<div class="w-12 h-12 rounded-lg border border-dashed border-gray-700 bg-black/10"></div>`;
+                                            const h = heroesDB.find(hero => String(hero.id) === String(s.id));
+                                            return `<img src="${h ? h.img : ''}" class="w-12 h-12 rounded-lg border border-gray-600 object-cover shadow-md group-hover:scale-105 transition-transform">`;
+                                        }).join('')}
+                                    </div>
+
+                                    <div class="flex justify-between items-center mt-2">
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] text-gray-500 font-bold uppercase">Shared Date</span>
+                                            <span class="text-[10px] text-gray-400">${new Date(t.date).toLocaleDateString('th-TH')}</span>
+                                        </div>
+                                        <span class="text-${color}-500 text-xs font-black uppercase flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                            View Detail <span>➔</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 `;
-            });
-        }
+            };
 
-        container.innerHTML = `
-            <div class="min-h-screen bg-[#0b0e14] p-4 md:p-8">
-                <div class="max-w-5xl mx-auto">
-                    <div class="mb-8 border-b border-gray-800 pb-4">
-                        <h1 class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500 mb-1">
-                            🌎 Community Gallery
-                        </h1>
-                        <p class="text-gray-500 text-xs">Shared Teams (${teams.length})</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${listHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        window.scrollTo(0, 0);
-    }
-
-    // 3. กดจาก Gallery เข้าไปดูทีม (เปลี่ยน URL แบบไม่รีเฟรช)
-    async function viewTeamFromGallery(id) {
-        
-        // ค้นหาข้อมูลใน Cache ที่โหลดมาแล้ว
-        const cachedTeam = galleryCacheDB.find(t => String(t.id) === String(id));
-
-        if (cachedTeam) {
-            console.log("⚡ Instant Load from Cache!");
-            
-            // วาดหน้าจอทันที ไม่ต้องรอ Server
-            renderPublicTeamDisplay(cachedTeam, true); // true = มีปุ่ม Back
-            
-            // เปลี่ยน URL เล่นๆ (เผื่อคนกด Refresh จะได้กลับมาหน้านี้)
-            window.history.pushState({ page: 'detail', id: id }, '', `?teamId=${id}`);
-            
-        } else {
-            // กรณีหาไม่เจอ (Rare Case) ค่อยวิ่งไป Server
-            showLoading("Fetching Data...");
-            await loadSharedTeamView(id, true);
-            hideLoading();
-        }
-    }
-    
-    // รองรับการกดปุ่ม Back ของ Browser
-    window.onpopstate = function(event) {
-        if(event.state && event.state.page === 'detail') {
-            loadSharedTeamView(event.state.id, true);
-        } else {
-            // ถ้า Back กลับมาหน้าแรกหรือหน้า Gallery
-            const urlParams = new URLSearchParams(window.location.search);
-            if(urlParams.get('mode') === 'gallery') loadSharedGallery();
-            else location.reload();
-        }
-    };
-
-    // 4. โหลดข้อมูลทีม (Shared View Logic)
-    async function loadSharedTeamView(id, showBackButton = false) {
-        // เริ่ม Loading
-        showLoading("📥 กำลังดึงข้อมูลทีม...");
-
-        const loginScreen = document.getElementById('login-screen');
-        if(loginScreen) loginScreen.style.display = 'none';
-        
-        document.getElementById('main-content').classList.remove('hidden');
-
-        try {
-             // 🟢 1. เช็คข้อมูล Master Data (Hero/Item) ก่อนเสมอ
-            if (heroesDB.length === 0) {
-                console.log("📥 Fetching Master Data for Direct Link...");
-                await fetchCloudData('getAllData', false);
-            }
-
-            // 2. ดึงข้อมูลทีม
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'getSharedTeam', teamId: id })
-            });
-            const res = await response.json();
-
-            if (res.status === 'success') {
-                // อัปเดต Master Data อีกรอบเพื่อความชัวร์ (ถ้า Server ส่งมาให้)
-                const m = res.masterData;
-                if(m) {
-                    if(m.heroes) heroesDB = m.heroes;
-                    if(m.rings) ringsDB = m.rings;
-                    if(m.equip_sets) equipSetsDB = m.equip_sets;
-                }
-                
-                // แสดงผล
-                renderPublicTeamDisplay(res.team, showBackButton);
-            } else {
-                alert("ไม่พบข้อมูลทีม หรือลิงก์อาจหมดอายุ");
-                // ถ้าไม่เจอ ให้เด้งไปหน้า Gallery แทน
-                window.history.pushState({}, '', '?mode=gallery');
-                await loadSharedGallery();
-            }
-
-        } catch (e) {
-            console.error(e);
-            alert("Connection Error");
-        } finally {
-            // ปิด Loading
-            hideLoading();
-        }
-    }
-
-    // 5. แสดงผลหน้าทีม (Detail View)
-    function renderPublicTeamDisplay(teamWrapper, showBackButton) {
-        const container = document.getElementById('main-content');
-        
-        let team = null;
-        if (teamWrapper.data && teamWrapper.data.slots) team = teamWrapper.data;
-        else if (teamWrapper.slots) team = teamWrapper;
-        else if (teamWrapper.name && !teamWrapper.slots) team = { ...teamWrapper, slots: [null,null,null] };
-
-        if (!team || !team.slots) {
-             container.innerHTML = `<div class="text-red-400 text-center mt-20">❌ Invalid Data</div>`;
-             return;
-        }
-
-        let navBtn = '';
-        if (showBackButton) {
-            // 🟢 แก้ไขตรงนี้: สร้างรหัสลับแล้วใส่ใน URL แทน ?mode=gallery
-            const secretCode = btoa("public_gallery"); // ผลลัพธ์: cHVibGljX2dhbGxlcnk=
-            
-            navBtn = `
-            <button onclick="window.history.pushState({}, '', '?k=${secretCode}'); renderGalleryUI(galleryCacheDB);" 
-                class="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 text-sm border border-gray-600 transition">
-                ⬅ Back to Gallery
-            </button>`;
-        } else {
-            navBtn = `<a href="${window.location.href.split('?')[0]}" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl font-bold shadow-lg text-sm">✨ Create Your Own</a>`;
-        }
-        
-        const dateStr = teamWrapper.date ? new Date(teamWrapper.date).toLocaleDateString('th-TH') : '';
-
-        // (ส่วนแสดงผล HTML ด้านล่างเหมือนเดิมครับ ขยายรูปของให้แล้ว)
-        let html = `
-            <div class="min-h-screen bg-[#0b0e14] p-4 pb-20">
-                <div class="max-w-3xl mx-auto">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-gray-800 pb-6">
+            // 2. รวม HTML ทั้งหมด
+            container.innerHTML = `
+                <div class="p-6 md:p-10 max-w-7xl mx-auto overflow-y-auto no-scroll h-full">
+                    <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
                         <div>
-                            <div class="flex items-center gap-3 mb-1">
-                                <span class="text-3xl">🛡️</span>
-                                <h1 class="text-2xl md:text-3xl font-bold text-white break-all">
-                                    ${team.name || 'Shared Team'}
-                                </h1>
-                            </div>
-                            <p class="text-gray-500 text-xs pl-1">Created Date: ${dateStr}</p>
+                            <h1 class="text-4xl font-black text-white uppercase tracking-tighter">Community Gallery</h1>
+                            <p class="text-gray-500 text-sm font-bold uppercase tracking-widest">รวมเทคนิคการจัดทีมจากผู้เล่นทั้งหมด</p>
                         </div>
-                        ${navBtn}
                     </div>
                     
-                    <div class="flex flex-col gap-4">
-        `;
+                    ${renderSection(attackTeams, 'ทีมโจมตี (Arena Attack)', 'red', '⚔️')}
+                    ${renderSection(defenseTeams, 'ทีมป้องกัน (Arena Defense)', 'blue', '🛡️')}
 
-        // Loop Slots
-        for (let i = 0; i < 3; i++) {
-            const slot = team.slots[i];
+                    ${teams.length === 0 ? `
+                        <div class="text-center py-20 text-gray-600">
+                            <div class="text-6xl mb-4">🏜️</div>
+                            <p class="font-bold text-xl uppercase">No shared teams found.</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        // 3. กดจาก Gallery เข้าไปดูทีม (เปลี่ยน URL แบบไม่รีเฟรช)
+        async function viewTeamFromGallery(id) {
             
-            if (slot && slot.id) {
-                const h = heroesDB.find(x => String(x.id) === String(slot.id)) || { name: 'Unknown', img: '' };
+            // ค้นหาข้อมูลใน Cache ที่โหลดมาแล้ว
+            const cachedTeam = galleryCacheDB.find(t => String(t.id) === String(id));
+
+            if (cachedTeam) {
+                console.log("⚡ Instant Load from Cache!");
                 
-                // Stats Grid
-                let statsHtml = '';
-                if(slot.activeStats && slot.activeStats.length > 0) {
-                    statsHtml = `<div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">`;
-                    slot.activeStats.forEach(k => {
-                        const val = slot.stats[k] || 0;
-                        let color = 'text-gray-300';
-                        if(['cri','cdmg'].includes(k)) color = 'text-orange-300';
-                        statsHtml += `
-                            <div class="flex justify-between items-center text-xs border-b border-gray-700/50 pb-0.5">
-                                <span class="text-gray-500 font-bold uppercase text-[10px]">${k}</span>
-                                <span class="font-mono ${color} font-bold">${val.toLocaleString()}</span>
-                            </div>`;
-                    });
-                    statsHtml += `</div>`;
-                } else {
-                    statsHtml = `<div class="text-gray-600 text-xs italic mt-2">- No Stats Configured -</div>`;
-                }
-
-                // Equipment (Large Size)
-                const itemSizeClass = "w-14 h-14 md:w-16 md:h-16"; 
+                // วาดหน้าจอทันที ไม่ต้องรอ Server
+                renderPublicTeamDisplay(cachedTeam, true); // true = มีปุ่ม Back
                 
-                let equipHtml = '';
-                // Ring
-                if(slot.ring) {
-                    const r = ringsDB.find(x => String(x.id) === String(slot.ring));
-                    if(r) equipHtml += `<img src="${r.img}" class="${itemSizeClass} rounded-lg border-2 border-yellow-600 bg-black shadow-md object-cover" title="${r.name}">`;
-                } else {
-                    equipHtml += `<div class="${itemSizeClass} rounded-lg border-2 border-dashed border-gray-700 bg-black/30 flex items-center justify-center text-[10px] text-gray-600 font-bold">Ring</div>`;
-                }
-                // Set
-                if(slot.equip) {
-                    const e = equipSetsDB.find(x => x.id === slot.equip);
-                    if(e) {
-                         if(e.img) equipHtml += `<img src="${e.img}" class="${itemSizeClass} rounded-lg border-2 border-cyan-500 bg-black shadow-md object-cover" title="${e.name}">`;
-                         else equipHtml += `<div class="${itemSizeClass} rounded-lg border-2 border-cyan-500 bg-[#161b22] flex items-center justify-center text-[9px] text-cyan-300 text-center leading-none p-1 font-bold break-words">${e.name}</div>`;
-                    }
-                } else {
-                    equipHtml += `<div class="${itemSizeClass} rounded-lg border-2 border-dashed border-gray-700 bg-black/30 flex items-center justify-center text-[10px] text-gray-600 font-bold">Set</div>`;
-                }
-
-                html += `
-                    <div class="bg-[#1f2937] rounded-xl border border-gray-700 p-4 shadow-lg flex flex-row gap-4 items-start relative overflow-hidden group hover:border-blue-500/50 transition">
-                        <div class="flex-shrink-0 relative">
-                            <img src="${h.img}" class="w-24 h-24 md:w-28 md:h-28 rounded-xl bg-black object-cover border-2 border-gray-600 shadow-md">
-                            <div class="absolute -top-2 -left-2 bg-blue-600 text-white text-[10px] w-6 h-6 flex items-center justify-center rounded-full font-bold shadow border border-blue-400 z-10">#${i+1}</div>
-                        </div>
-
-                        <div class="flex-1 min-w-0">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="text-white font-bold text-lg leading-tight truncate">${h.name}</h3>
-                                    <span class="text-[10px] text-gray-400 bg-black/30 px-1.5 rounded border border-gray-700 uppercase">${h.type || 'Hero'}</span>
-                                </div>
-                            </div>
-                            ${statsHtml}
-                        </div>
-
-                        <div class="flex flex-col items-center gap-2 pl-3 border-l border-gray-700/50 ml-1">
-                            <div class="flex gap-2 mb-1">
-                                ${equipHtml}
-                            </div>
-                            ${slot.comment ? `
-                                <div class="bg-black/20 p-2 rounded-lg border border-gray-700 w-full text-right">
-                                    <div class="text-[9px] text-gray-500 uppercase font-bold mb-0.5">Note</div>
-                                    <div class="text-xs text-gray-300 italic leading-tight max-w-[120px] truncate">"${slot.comment}"</div>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-
+                // เปลี่ยน URL เล่นๆ (เผื่อคนกด Refresh จะได้กลับมาหน้านี้)
+                window.history.pushState({ page: 'detail', id: id }, '', `?teamId=${id}`);
+                
             } else {
-                html += `
-                    <div class="bg-[#1f2937]/30 border-2 border-dashed border-gray-800 rounded-xl p-6 flex items-center justify-center gap-3 min-h-[100px]">
-                        <span class="text-3xl opacity-20">🛡️</span>
-                        <span class="text-gray-600 font-bold uppercase text-sm tracking-wider">Empty Slot ${i+1}</span>
-                    </div>
-                `;
+                // กรณีหาไม่เจอ (Rare Case) ค่อยวิ่งไป Server
+                showLoading("Fetching Data...");
+                await loadSharedTeamView(id, true);
+                hideLoading();
+            }
+        }
+        
+        // รองรับการกดปุ่ม Back ของ Browser
+        window.onpopstate = function(event) {
+            if(event.state && event.state.page === 'detail') {
+                loadSharedTeamView(event.state.id, true);
+            } else {
+                // ถ้า Back กลับมาหน้าแรกหรือหน้า Gallery
+                const urlParams = new URLSearchParams(window.location.search);
+                if(urlParams.get('mode') === 'gallery') loadSharedGallery();
+                else location.reload();
+            }
+        };
+
+        // 4. โหลดข้อมูลทีม (Shared View Logic)
+        async function loadSharedTeamView(id, showBackButton = false) {
+            // เริ่ม Loading
+            showLoading("📥 กำลังดึงข้อมูลทีม...");
+
+            const loginScreen = document.getElementById('login-screen');
+            if(loginScreen) loginScreen.style.display = 'none';
+            
+            document.getElementById('main-content').classList.remove('hidden');
+
+            try {
+                // 🟢 1. เช็คข้อมูล Master Data (Hero/Item) ก่อนเสมอ
+                if (heroesDB.length === 0) {
+                    console.log("📥 Fetching Master Data for Direct Link...");
+                    await fetchCloudData('getAllData', false);
+                }
+
+                // 2. ดึงข้อมูลทีม
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getSharedTeam', teamId: id })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    // อัปเดต Master Data อีกรอบเพื่อความชัวร์ (ถ้า Server ส่งมาให้)
+                    const m = res.masterData;
+                    if(m) {
+                        if(m.heroes) heroesDB = m.heroes;
+                        if(m.rings) ringsDB = m.rings;
+                        if(m.equip_sets) equipSetsDB = m.equip_sets;
+                    }
+                    
+                    // แสดงผล
+                    renderPublicTeamDisplay(res.team, showBackButton);
+                } else {
+                    alert("ไม่พบข้อมูลทีม หรือลิงก์อาจหมดอายุ");
+                    // ถ้าไม่เจอ ให้เด้งไปหน้า Gallery แทน
+                    window.history.pushState({}, '', '?mode=gallery');
+                    await loadSharedGallery();
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert("Connection Error");
+            } finally {
+                // ปิด Loading
+                hideLoading();
             }
         }
 
-        html += `
+        // 5. แสดงผลหน้าทีม (Detail View)
+        function renderPublicTeamDisplay(sharedData, showBackButton = false) {
+            const container = document.getElementById('main-content');
+            if (!container) return;
+
+            const team = sharedData.data;
+            const teamName = sharedData.name;
+            const teamType = team.teamType || 'Attack';
+            const color = teamType === 'Attack' ? 'red' : 'blue';
+            const icon = teamType === 'Attack' ? '⚔️' : '🛡️';
+
+            let html = `
+                <div class="h-full flex flex-col bg-[#0b0e14]">
+                    <div class="p-4 md:p-6 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0">
+                        <div class="flex items-center gap-4">
+                            <button onclick="loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-full transition">❮</button>
+                            <div>
+                                <h2 class="text-white font-black text-xl leading-none uppercase tracking-tighter">${teamName}</h2>
+                                <span class="text-[10px] text-${color}-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                                    ${icon} ${teamType} Strategy
+                                </span>
+                            </div>
+                        </div>
+                        <div class="hidden md:flex flex-col items-end">
+                            <span class="text-[9px] text-gray-500 uppercase font-black">Shared by Community</span>
+                            <span class="text-[10px] text-gray-400">${new Date(sharedData.date).toLocaleString('th-TH')}</span>
+                        </div>
                     </div>
-                    <div class="mt-8 text-center text-gray-600 text-xs">
-                        Generated by 7K 3v3 Builder
+
+                    <div class="flex-1 overflow-y-auto p-4 md:p-8 no-scroll">
+                        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            
+                            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${team.slots.map((slot, i) => {
+                                    if (!slot || !slot.id) return '';
+                                    const h = heroesDB.find(x => String(x.id) === String(slot.id));
+                                    if (!h) return '';
+
+                                    const currentStar = slot.star || 6;
+                                    const starColor = currentStar >= 13 ? 'text-red-500' : (currentStar >= 7 ? 'text-blue-400' : 'text-yellow-400');
+                                    const starLabel = currentStar >= 13 ? '★' : (currentStar >= 7 ? '★'.repeat(currentStar - 6) : '★'.repeat(currentStar));
+
+                                    return `
+                                        <div class="bg-[#1f2937] border border-gray-700 rounded-3xl p-5 shadow-2xl relative">
+                                            <div class="flex gap-5 mb-5 pb-5 border-b border-gray-700/50">
+                                                <img src="${h.img}" class="w-24 h-24 rounded-2xl border-2 border-gray-600 object-cover shadow-lg">
+                                                <div class="flex-1">
+                                                    <h4 class="text-white font-bold text-xl leading-tight mb-1">${h.name}</h4>
+                                                    <div class="${starColor} text-2xl drop-shadow-md">${starLabel}</div>
+                                                    <div class="flex gap-2 mt-3">
+                                                        ${slot.ring ? `<img src="${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).img}" class="w-10 h-10 rounded border border-yellow-600 bg-black p-1 shadow-inner">` : ''}
+                                                        ${slot.equip ? `<img src="${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).img}" class="w-10 h-10 rounded border border-cyan-600 bg-black p-1 shadow-inner">` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                                ${Object.entries(slot.stats || {}).map(([key, val]) => val > 0 ? `
+                                                    <div class="flex justify-between items-center bg-black/40 px-3 py-2 rounded-xl border border-gray-800/50">
+                                                        <span class="text-[10px] text-gray-500 font-black uppercase">${key}</span>
+                                                        <span class="text-white font-mono text-sm font-bold">${val.toLocaleString()}</span>
+                                                    </div>
+                                                ` : '').join('')}
+                                            </div>
+
+                                            ${slot.comment ? `
+                                                <div class="p-3 bg-blue-900/10 border border-blue-900/30 rounded-2xl text-blue-300 text-xs italic">
+                                                    📝 ${slot.comment}
+                                                </div>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="bg-[#111827] border border-gray-700 rounded-3xl p-6 shadow-2xl">
+                                    <h4 class="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-4 text-center">Tactical Formation: ${team.formation}</h4>
+                                    <div class="grid grid-cols-3 gap-3 p-4 bg-black/40 rounded-2xl border border-gray-800">
+                                        ${[2,3,4,0,1].map(pos => {
+                                            const s = team.slots.find(x => x && x.pos === pos);
+                                            const h = s ? heroesDB.find(hero => String(hero.id) === String(s.id)) : null;
+                                            return h ? `<img src="${h.img}" class="w-full aspect-square rounded-lg border-2 border-blue-500 shadow-lg scale-100">` : `<div class="w-full aspect-square rounded-lg border border-dashed border-gray-800 bg-black/20"></div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="bg-[#111827] border border-gray-700 rounded-3xl p-6 shadow-2xl">
+                                    <h4 class="text-yellow-500 font-black uppercase tracking-widest text-xs mb-5 flex items-center gap-2">
+                                        <span>⚡</span> Skill Execution Sequence
+                                    </h4>
+                                    <div class="space-y-4">
+                                        ${(team.skillQueue || []).map((sq, idx) => {
+                                            if(!sq) return '';
+                                            const [hIdx, type] = sq.split('_');
+                                            const targetSlot = team.slots[hIdx];
+                                            if(!targetSlot) return '';
+                                            const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
+                                            return `
+                                                <div class="flex items-center gap-4 bg-black/60 p-4 rounded-2xl border border-gray-800">
+                                                    <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">${idx+1}</div>
+                                                    <img src="${h ? h.img : ''}" class="w-12 h-12 rounded-xl border border-gray-700">
+                                                    <div class="flex flex-col">
+                                                        <span class="text-white text-xs font-bold">${h ? h.name : 'Unknown'}</span>
+                                                        <span class="text-[10px] ${type === 'UP' ? 'text-yellow-500' : 'text-cyan-400'} font-black uppercase tracking-widest">
+                                                            ${type === 'UP' ? 'Active Skill A' : 'Active Skill B'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).filter(x => x !== '').join('') || '<p class="text-gray-600 text-center text-xs">ไม่ได้ตั้งค่าลำดับสกิล</p>'}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
-            </div>`;
-        
-        container.innerHTML = html;
-        window.scrollTo(0, 0);
-    }
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function handleStageClick(targetPos) {
+            if (current3v3TeamIdx === -1) return;
+            const team = teams3v3DB[current3v3TeamIdx];
+            
+            // ตรวจสอบว่ามี Hero ยืนอยู่ที่ช่องปลายทางไหม?
+            let targetHeroIdx = -1;
+            for(let i=0; i<3; i++) {
+                if (team.slots[i] && team.slots[i].pos === targetPos) {
+                    targetHeroIdx = i;
+                    break;
+                }
+            }
+
+            // กรณี A: ยังไม่ได้เลือกใคร -> ให้เลือก Hero ในช่องนั้น (ถ้ามี)
+            if (selectedStageSlot === null) {
+                if (targetHeroIdx !== -1) {
+                    selectedStageSlot = targetHeroIdx; // จำไว้ว่าเลือก Hero คนนี้
+                    render3v3Editor(); // Render เพื่อโชว์กรอบสีเขียว
+                }
+            } 
+            // กรณี B: เลือก Hero ไว้แล้ว -> ทำการย้าย
+            else {
+                // ถ้าคลิกที่ตัวเอง -> ยกเลิกการเลือก
+                if (selectedStageSlot === targetHeroIdx) {
+                    selectedStageSlot = null;
+                } 
+                // ถ้าปลายทางมีคนยืน -> สลับที่กัน (Swap)
+                else if (targetHeroIdx !== -1) {
+                    const tempPos = team.slots[selectedStageSlot].pos;
+                    team.slots[selectedStageSlot].pos = team.slots[targetHeroIdx].pos;
+                    team.slots[targetHeroIdx].pos = tempPos;
+                    selectedStageSlot = null; // ย้ายเสร็จ เลิกเลือก
+                } 
+                // ถ้าปลายทางว่าง -> ย้ายไปเลย (Move)
+                else {
+                    team.slots[selectedStageSlot].pos = targetPos;
+                    selectedStageSlot = null; // ย้ายเสร็จ เลิกเลือก
+                }
+
+                save3v3Teams();
+                render3v3Editor();
+            }
+        }
+        function toggleSkillSelector(qIdx) {
+            if (activeSkillSelector === qIdx) {
+                activeSkillSelector = null; // ถ้าเปิดอยู่แล้ว ให้ปิด
+            } else {
+                activeSkillSelector = qIdx; // เปิดช่องที่เลือก
+            }
+            render3v3Editor();
+        }
+
+        // ฟังก์ชันเลือกสกิลแล้วบันทึก
+        function selectSkillForQueue(qIdx, val) {
+            if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
+                if (!teams3v3DB[current3v3TeamIdx].skillQueue) {
+                    teams3v3DB[current3v3TeamIdx].skillQueue = ['', '', ''];
+                }
+                teams3v3DB[current3v3TeamIdx].skillQueue[qIdx] = val;
+                save3v3Teams();
+            }
+            activeSkillSelector = null; // ปิดหน้าเลือก
+            render3v3Editor();
+        }
+
     </script>
 </body>
 </html>
