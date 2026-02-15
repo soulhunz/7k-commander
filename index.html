@@ -14163,27 +14163,32 @@
         // =========================================================================
 
         // 1. โหลดหน้ารายการทีม + Master Data (All in One)
-        async function loadSharedGallery() {
+        async function loadSharedGallery(forceRefresh = false) {
             console.log("🚀 Starting loadSharedGallery...");
 
-            // 🟢 1. สั่งเปิด Loading ทันที (Force Show)
+            // เตรียมหน้าจอ
+            document.getElementById('login-screen').style.display = 'none';
+            const sidebar = document.getElementById('main-sidebar');
+            if(sidebar) sidebar.style.display = 'none';
+            document.getElementById('main-content').classList.remove('hidden');
+
+            // 🟢 1. เช็คว่ามีข้อมูลใน Cache ไหม (และไม่ได้กดปุ่ม Refresh)
+            if (!forceRefresh && galleryCacheDB && galleryCacheDB.length > 0) {
+                console.log("⚡ Using Cached Gallery Data");
+                renderGalleryUI(galleryCacheDB); // วาดหน้าจอจากข้อมูลเดิมทันที
+                return; // จบฟังก์ชัน ไม่ต้องเรียก Server
+            }
+
+            // ถ้าไม่มี Cache หรือกด Refresh ค่อยโหลดใหม่
             const overlay = document.getElementById('loading-overlay');
             const text = document.getElementById('loading-text');
             if (overlay && text) {
                 text.innerText = "📥 กำลังโหลดข้อมูล Community...";
-                overlay.classList.add('active'); // บังคับใส่ class active
-                overlay.style.display = 'flex';  // กันเหนียว เผื่อ CSS มีปัญหา
+                overlay.classList.add('active');
+                overlay.style.display = 'flex';
             }
 
-            // ซ่อนหน้า Login/Sidebar
-            document.getElementById('login-screen').style.display = 'none';
-            const sidebar = document.getElementById('main-sidebar');
-            if(sidebar) sidebar.style.display = 'none';
-            
-            document.getElementById('main-content').classList.remove('hidden');
-
             try {
-                // เรียก Server (ขอทีเดียวได้ครบทุกอย่าง)
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'getAllSharedTeams' })
@@ -14191,25 +14196,19 @@
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    console.log("✅ Data Received");
-
-                    // 🟢 2. อัปเดต Master Data เข้าสู่ระบบทันที
+                    // อัปเดต Master Data (ถ้ามี)
                     if (res.masterData) {
                         const m = res.masterData;
                         if(m.heroes) heroesDB = m.heroes;
                         if(m.pets) petsDB = m.pets;
                         if(m.rings) ringsDB = m.rings;
                         if(m.equip_sets) equipSetsDB = m.equip_sets;
-                        // ... (อื่นๆ ถ้ามี)
-                        console.log("✅ Master Data Updated:", heroesDB.length, "Heroes");
                     }
 
-                    // เก็บ Cache ทีม
+                    // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
                     galleryCacheDB = res.teams; 
                     
-                    // วาดหน้าจอ
                     renderGalleryUI(galleryCacheDB);
-
                 } else {
                     document.getElementById('main-content').innerHTML = `<div class="text-white text-center mt-20">❌ Error: ${res.message}</div>`;
                 }
@@ -14218,10 +14217,9 @@
                 console.error(e);
                 alert("Connection Error: " + e.message);
             } finally {
-                // 🟢 3. ปิด Loading
                 if (overlay) {
                     overlay.classList.remove('active');
-                    setTimeout(() => overlay.style.display = 'none', 300); // รอ Animation นิดนึง
+                    setTimeout(() => overlay.style.display = 'none', 300);
                 }
             }
         }
@@ -14248,7 +14246,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             ${teamList.map(t => `
                                 <div onclick="loadSharedTeamView('${t.id}', true)" 
-                                    class="bg-[#1f2937] border border-gray-700 rounded-2xl p-5 hover:border-${color}-500 transition-all cursor-pointer group shadow-xl relative overflow-hidden">
+                                    class="bg-[#1f2937] border border-gray-700 rounded-2xl p-4 hover:border-${color}-500 transition-all cursor-pointer group shadow-xl relative overflow-hidden">
                                     
                                     <div class="flex justify-between items-start mb-4">
                                         <div>
@@ -14260,9 +14258,9 @@
 
                                     <div class="flex gap-2 justify-center bg-black/20 py-4 rounded-xl border border-gray-800/50 mb-4">
                                         ${t.data.slots.map(s => {
-                                            if(!s || !s.id) return `<div class="w-12 h-12 rounded-lg border border-dashed border-gray-700 bg-black/10"></div>`;
+                                            if(!s || !s.id) return `<div class="rounded-lg border border-dashed border-gray-700 bg-black/10"></div>`;
                                             const h = heroesDB.find(hero => String(hero.id) === String(s.id));
-                                            return `<img src="${h ? h.img : ''}" class="w-12 h-12 rounded-lg border border-gray-600 object-cover shadow-md group-hover:scale-105 transition-transform">`;
+                                            return `<img src="${h ? h.img : ''}" style="width:70px;height:70px;" class="rounded-lg border border-gray-600 object-cover shadow-md group-hover:scale-105 transition-transform">`;
                                         }).join('')}
                                     </div>
 
@@ -14292,8 +14290,8 @@
                         </div>
                     </div>
                     
-                    ${renderSection(attackTeams, 'ทีมโจมตี (Arena Attack)', 'red', '⚔️')}
-                    ${renderSection(defenseTeams, 'ทีมป้องกัน (Arena Defense)', 'blue', '🛡️')}
+                    ${renderSection(attackTeams, 'ทีมโจมตี', 'red', '⚔️')}
+                    ${renderSection(defenseTeams, 'ทีมป้องกัน', 'blue', '🛡️')}
 
                     ${teams.length === 0 ? `
                         <div class="text-center py-20 text-gray-600">
@@ -14341,22 +14339,38 @@
 
         // 4. โหลดข้อมูลทีม (Shared View Logic)
         async function loadSharedTeamView(id, showBackButton = false) {
-            // เริ่ม Loading
+    
+            // 🟢 1. ลองหาใน Cache ก่อน (ไม่ต้องโหลด Server)
+            if (galleryCacheDB && galleryCacheDB.length > 0) {
+                const cachedTeam = galleryCacheDB.find(t => String(t.id) === String(id));
+                
+                if (cachedTeam) {
+                    console.log("⚡ Load Team from Cache:", id);
+                    
+                    // เตรียมหน้าจอ (เผื่อกรณีเข้ามาจากลิงก์ตรง)
+                    const loginScreen = document.getElementById('login-screen');
+                    if(loginScreen) loginScreen.style.display = 'none';
+                    document.getElementById('main-content').classList.remove('hidden');
+
+                    // แสดงผลทันที
+                    renderPublicTeamDisplay(cachedTeam, showBackButton);
+                    return; // จบการทำงาน
+                }
+            }
+
+            // 🟢 2. ถ้าไม่เจอใน Cache (เช่น Cache ว่าง หรือเข้าผ่านลิงก์ตรง) ค่อยโหลดจาก Server
             showLoading("📥 กำลังดึงข้อมูลทีม...");
 
             const loginScreen = document.getElementById('login-screen');
             if(loginScreen) loginScreen.style.display = 'none';
-            
             document.getElementById('main-content').classList.remove('hidden');
 
             try {
-                // 🟢 1. เช็คข้อมูล Master Data (Hero/Item) ก่อนเสมอ
+                // เช็ค Master Data
                 if (heroesDB.length === 0) {
-                    console.log("📥 Fetching Master Data for Direct Link...");
                     await fetchCloudData('getAllData', false);
                 }
 
-                // 2. ดึงข้อมูลทีม
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'getSharedTeam', teamId: id })
@@ -14364,33 +14378,27 @@
                 const res = await response.json();
 
                 if (res.status === 'success') {
-                    // อัปเดต Master Data อีกรอบเพื่อความชัวร์ (ถ้า Server ส่งมาให้)
-                    const m = res.masterData;
-                    if(m) {
+                    if (res.masterData) {
+                        // อัปเดต Master Data เผื่อมีอะไรใหม่
+                        const m = res.masterData;
                         if(m.heroes) heroesDB = m.heroes;
                         if(m.rings) ringsDB = m.rings;
                         if(m.equip_sets) equipSetsDB = m.equip_sets;
                     }
-                    
-                    // แสดงผล
                     renderPublicTeamDisplay(res.team, showBackButton);
                 } else {
                     alert("ไม่พบข้อมูลทีม หรือลิงก์อาจหมดอายุ");
-                    // ถ้าไม่เจอ ให้เด้งไปหน้า Gallery แทน
                     window.history.pushState({}, '', '?mode=gallery');
                     await loadSharedGallery();
                 }
-
             } catch (e) {
                 console.error(e);
                 alert("Connection Error");
             } finally {
-                // ปิด Loading
                 hideLoading();
             }
         }
 
-        // 5. แสดงผลหน้าทีม (Detail View)
         function renderPublicTeamDisplay(sharedData, showBackButton = false) {
             const container = document.getElementById('main-content');
             if (!container) return;
@@ -14401,109 +14409,210 @@
             const color = teamType === 'Attack' ? 'red' : 'blue';
             const icon = teamType === 'Attack' ? '⚔️' : '🛡️';
 
+            // 1. Formation Config (แปลไทย)
+            const formationVal = team.formation || 'Basic';
+            
+            // Map ชื่อไทย
+            const fmtNameMap = {
+                'Basic': 'พื้นฐาน (Basic)',
+                'Balanced': 'สมดุล (Balanced)',
+                'Attack': 'โจมตี (Attack)',
+                'Defense': 'ป้องกัน (Defense)'
+            };
+
+            const formationsConfig = [
+                { id: 'Basic',    label: 'Basic',    back: [2, 3, 4],       front: [0, 1] },
+                { id: 'Balanced', label: 'Balanced', back: [3, 4],          front: [0, 1, 2] },
+                { id: 'Attack',   label: 'Attack',   back: [1, 2, 3, 4],    front: [0] },
+                { id: 'Defense',  label: 'Defense',  back: [4],             front: [0, 1, 2, 3] }
+            ];
+            const currentFmt = formationsConfig.find(f => f.id === formationVal) || formationsConfig[0];
+            const fmtThaiName = fmtNameMap[currentFmt.label] || currentFmt.label;
+
+            // Helper: สร้าง Slot Formation (ย่อส่วนในแผนผัง)
+            const renderFormationSlot = (posIndex) => {
+                const s = team.slots.find(x => x && x.pos === posIndex);
+                const h = s ? heroesDB.find(hero => String(hero.id) === String(s.id)) : null;
+                
+                if (h) {
+                    return `
+                        <div class="relative rounded-lg border-2 border-${color}-500 shadow-md overflow-hidden bg-black group" style="width:80px;height:80px;">
+                            <img src="${h.img}" class="w-full h-full object-cover">
+                        </div>`;
+                } else {
+                    return `
+                        <div class="rounded-lg border-2 border-dashed border-gray-700 bg-gray-800/30 flex items-center justify-center" style="width:80px;height:80px;">
+                            <div class="text-gray-600 text-sm font-bold">${posIndex+1}</div>
+                        </div>`;
+                }
+            };
+
+            // Helper: Labels
+            const STAT_LABELS = {
+                atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว',
+                cri: '🔥 อัตราคริติคอล', cdmg: '💥 ความเสียหายคริติคอล', weakness: '🎯 อัตราโจมตีจุดอ่อน',
+                block: '🛡️ อัตราบล็อก', dmgRed: '🧱 ลดความเสียหายที่ได้รับ', acc: '👁️ ผลเข้าเป้า', resist: '🚫 ต้านทานผล'
+            };
+            const PERCENT_STATS = ['cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'];
+
+            // 2. Skill Queue (ขยายใหญ่ + จัดกลาง + ตัวหนังสือใหญ่)
+            const skillQueueHTML = (team.skillQueue || []).map((sq, idx) => {
+                if(!sq) return '';
+                const [hIdx, type] = sq.split('_');
+                const targetSlot = team.slots[hIdx];
+                if(!targetSlot) return '';
+                const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
+                
+                const typeText = type === 'UP' ? 'บน' : 'ล่าง';
+                const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30 border-yellow-700' : 'text-cyan-300 bg-cyan-900/30 border-cyan-700';
+
+                return `
+                    <div class="flex flex-col items-center relative group mx-1">
+                        <div class="relative rounded-2xl border-2 border-gray-500 bg-black shadow-xl overflow-hidden" style="width:80px;height:80px;">
+                            <img src="${h ? h.img : ''}" class="w-full h-full object-cover opacity-90">
+                        </div>
+                        <div class="text-sm font-bold text-center ${typeClass} mt-2 px-3 py-0.5 rounded-full border w-full">
+                            ${typeText}
+                        </div>
+                    </div>
+                `;
+            }).filter(x => x !== '').join('<div class="text-gray-600 text-2xl font-bold pt-6 mx-1">➜</div>');
+
+            // 3. Render HTML Layout
             let html = `
                 <div class="h-full flex flex-col bg-[#0b0e14]">
-                    <div class="p-4 md:p-6 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0">
+                    <div class="p-4 md:p-6 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0 sticky top-0 z-50 shadow-md">
                         <div class="flex items-center gap-4">
-                            <button onclick="loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-full transition">❮</button>
+                            <button onclick="loadSharedGallery()" class="w-12 h-12 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-full transition text-xl">❮</button>
                             <div>
-                                <h2 class="text-white font-black text-xl leading-none uppercase tracking-tighter">${teamName}</h2>
-                                <span class="text-[10px] text-${color}-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                                    ${icon} ${teamType} Strategy
+                                <div class="text-white font-black text-3xl leading-none uppercase tracking-tighter">${teamName}</div>
+                                <span class="text-sm text-${color}-400 font-bold uppercase tracking-widest flex items-center gap-1 mt-1">
+                                    ${icon} ${teamType == "Attack" ? 'ทีมโจมตี' : 'ทีมป้องกัน'}
                                 </span>
                             </div>
                         </div>
-                        <div class="hidden md:flex flex-col items-end">
-                            <span class="text-[9px] text-gray-500 uppercase font-black">Shared by Community</span>
-                            <span class="text-[10px] text-gray-400">${new Date(sharedData.date).toLocaleString('th-TH')}</span>
-                        </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto p-4 md:p-8 no-scroll">
-                        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
+                        <div class="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
                             
-                            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="lg:col-span-8 space-y-6">
+                                <div class="text-gray-400 text-base font-bold uppercase mb-2 ml-1 flex items-center gap-2">
+                                    <span>Heroes List</span>
+                                    <div class="h-px bg-gray-800 flex-1"></div>
+                                </div>
+                                
                                 ${team.slots.map((slot, i) => {
                                     if (!slot || !slot.id) return '';
                                     const h = heroesDB.find(x => String(x.id) === String(slot.id));
                                     if (!h) return '';
 
-                                    const currentStar = slot.star || 6;
-                                    const starColor = currentStar >= 13 ? 'text-red-500' : (currentStar >= 7 ? 'text-blue-400' : 'text-yellow-400');
-                                    const starLabel = currentStar >= 13 ? '★' : (currentStar >= 7 ? '★'.repeat(currentStar - 6) : '★'.repeat(currentStar));
+                                    // Logic ดาว
+                                    const currentStar = slot.star !== undefined ? parseInt(slot.star) : 6;
+                                    let starColor = 'text-yellow-400';
+                                    let starLabel = '★'.repeat(currentStar);
+                                    if (currentStar >= 13) { starColor = 'text-red-500'; starLabel = '★'; } 
+                                    else if (currentStar >= 7) { starColor = 'text-blue-400'; starLabel = '★'.repeat(currentStar - 6); } 
+
+                                    // Stats Grid (ตัวเลขใหญ่ขึ้น text-xl)
+                                    const statsHTML = Object.entries(slot.stats || {}).map(([key, val]) => {
+                                        if (val <= 0) return ''; 
+                                        const label = STAT_LABELS[key] || key.toUpperCase();
+                                        const isPercent = PERCENT_STATS.includes(key);
+                                        const valText = val.toLocaleString() + (isPercent ? '%' : '');
+                                        const valColor = isPercent ? 'text-orange-300' : 'text-white';
+                                        
+                                        return `
+                                            <div class="flex flex-col justify-center bg-black/20 px-3 py-2 rounded border border-gray-700/50">
+                                                <span class="text-[14px] text-gray-500 font-bold uppercase tracking-wide">${label}</span>
+                                                <span class="text-xl font-mono font-bold ${valColor} leading-tight">${valText}</span>
+                                            </div>
+                                        `;
+                                    }).join('');
 
                                     return `
-                                        <div class="bg-[#1f2937] border border-gray-700 rounded-3xl p-5 shadow-2xl relative">
-                                            <div class="flex gap-5 mb-5 pb-5 border-b border-gray-700/50">
-                                                <img src="${h.img}" class="w-24 h-24 rounded-2xl border-2 border-gray-600 object-cover shadow-lg">
-                                                <div class="flex-1">
-                                                    <h4 class="text-white font-bold text-xl leading-tight mb-1">${h.name}</h4>
-                                                    <div class="${starColor} text-2xl drop-shadow-md">${starLabel}</div>
-                                                    <div class="flex gap-2 mt-3">
-                                                        ${slot.ring ? `<img src="${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).img}" class="w-10 h-10 rounded border border-yellow-600 bg-black p-1 shadow-inner">` : ''}
-                                                        ${slot.equip ? `<img src="${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).img}" class="w-10 h-10 rounded border border-cyan-600 bg-black p-1 shadow-inner">` : ''}
+                                        <div class="bg-[#1f2937] border border-gray-700 rounded-3xl p-4 shadow-xl flex flex-col md:flex-row gap-4 relative overflow-hidden hover:border-gray-500 transition">
+                                            
+                                            <div class="items-start gap-4 md:w-70 shrink-0 border-b md:border-b-0 md:border-r border-gray-700 pb-4 md:pb-0 md:pr-4">
+                                                <div class="relative w-30 h-30 shrink-0">
+                                                    <img src="${h.img}" class="w-full h-full rounded-2xl border-4 border-gray-500 object-cover bg-black shadow-2xl">
+                                                    <div class="absolute -top-3 -left-3 bg-[#111827] text-white text-base w-10 h-10 flex items-center justify-center rounded-full border-2 border-gray-600 font-black shadow-lg z-10">
+                                                        #${i+1}
                                                     </div>
+                                                </div>
+                                                <div class="justify-center min-w-0 mt-4" align="center">
+                                                    <div class="text-white font-black text-2xl truncate leading-tight">${h.name}</div>
+                                                    <div class="${starColor} text-xl drop-shadow-md leading-none mb-2 mt-1">${starLabel}</div>
+                                                    <div class="text-xs text-gray-400 bg-black/30 px-3 py-1 rounded w-fit mt-1 border border-gray-700">${h.type || 'Hero'}</div>
                                                 </div>
                                             </div>
 
-                                            <div class="grid grid-cols-2 gap-3 mb-4">
-                                                ${Object.entries(slot.stats || {}).map(([key, val]) => val > 0 ? `
-                                                    <div class="flex justify-between items-center bg-black/40 px-3 py-2 rounded-xl border border-gray-800/50">
-                                                        <span class="text-[10px] text-gray-500 font-black uppercase">${key}</span>
-                                                        <span class="text-white font-mono text-sm font-bold">${val.toLocaleString()}</span>
-                                                    </div>
-                                                ` : '').join('')}
+                                            <div class="w-full">
+                                                <div>
+                                                    ${statsHTML}
+                                                </div>
+                                                ${slot.comment ? `<div class="mt-4 text-sm text-gray-400 bg-blue-900/10 p-3 rounded-lg border border-blue-900/30 italic">📝 "${slot.comment}"</div>` : ''}
                                             </div>
 
-                                            ${slot.comment ? `
-                                                <div class="p-3 bg-blue-900/10 border border-blue-900/30 rounded-2xl text-blue-300 text-xs italic">
-                                                    📝 ${slot.comment}
-                                                </div>` : ''}
+                                            <div class="flex flex-row md:flex-col gap-4 items-center justify-center border-t md:border-t-0 md:border-l border-gray-700 pt-4 md:pt-0 md:pl-4 shrink-0 min-w-[100px]">
+                                                ${slot.ring ? `
+                                                    <div class="relative group cursor-help text-center">
+                                                        <img src="${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).img}" class="w-20 h-20 rounded-2xl border-2 border-yellow-600 bg-black shadow-lg">
+                                                        <div class="text-[12px] text-yellow-500 font-bold mt-1 bg-black/50 px-2 rounded-full inline-block">${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).name}</div>
+                                                    </div>
+                                                ` : '<div class="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center text-gray-700 font-bold"><span class="text-2xl">💍</span><span>RING</span></div>'}
+                                                
+                                                ${slot.equip ? `
+                                                    <div class="relative group cursor-help text-center">
+                                                        <img src="${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).img}" class="w-20 h-20 rounded-2xl border-2 border-cyan-600 bg-black shadow-lg">
+                                                        <div class="text-[12px] text-cyan-400 font-bold mt-1 bg-black/50 px-2 rounded-full inline-block">${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).name}</div>
+                                                    </div>
+                                                ` : `<div class="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center text-gray-700 font-bold"><span class="text-2xl">🛡️</span><span>SET</span></div>`}
+                                            </div>
+
                                         </div>
                                     `;
                                 }).join('')}
                             </div>
 
-                            <div class="space-y-6">
-                                <div class="bg-[#111827] border border-gray-700 rounded-3xl p-6 shadow-2xl">
-                                    <h4 class="text-gray-500 font-black uppercase tracking-widest text-[10px] mb-4 text-center">Tactical Formation: ${team.formation}</h4>
-                                    <div class="grid grid-cols-3 gap-3 p-4 bg-black/40 rounded-2xl border border-gray-800">
-                                        ${[2,3,4,0,1].map(pos => {
-                                            const s = team.slots.find(x => x && x.pos === pos);
-                                            const h = s ? heroesDB.find(hero => String(hero.id) === String(s.id)) : null;
-                                            return h ? `<img src="${h.img}" class="w-full aspect-square rounded-lg border-2 border-blue-500 shadow-lg scale-100">` : `<div class="w-full aspect-square rounded-lg border border-dashed border-gray-800 bg-black/20"></div>`;
-                                        }).join('')}
-                                    </div>
-                                </div>
+                            <div class="lg:col-span-4 flex flex-col gap-6">
+                                <div class="sticky top-6 space-y-6">
+                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-3 pt-5 shadow-2xl relative overflow-hidden">
+                                        <h4 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4 text-center">
+                                            Formation: <span class="text-white text-sm">${fmtThaiName}</span>
+                                        </h4>
 
-                                <div class="bg-[#111827] border border-gray-700 rounded-3xl p-6 shadow-2xl">
-                                    <h4 class="text-yellow-500 font-black uppercase tracking-widest text-xs mb-5 flex items-center gap-2">
-                                        <span>⚡</span> Skill Execution Sequence
-                                    </h4>
-                                    <div class="space-y-4">
-                                        ${(team.skillQueue || []).map((sq, idx) => {
-                                            if(!sq) return '';
-                                            const [hIdx, type] = sq.split('_');
-                                            const targetSlot = team.slots[hIdx];
-                                            if(!targetSlot) return '';
-                                            const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
-                                            return `
-                                                <div class="flex items-center gap-4 bg-black/60 p-4 rounded-2xl border border-gray-800">
-                                                    <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-lg">${idx+1}</div>
-                                                    <img src="${h ? h.img : ''}" class="w-12 h-12 rounded-xl border border-gray-700">
-                                                    <div class="flex flex-col">
-                                                        <span class="text-white text-xs font-bold">${h ? h.name : 'Unknown'}</span>
-                                                        <span class="text-[10px] ${type === 'UP' ? 'text-yellow-500' : 'text-cyan-400'} font-black uppercase tracking-widest">
-                                                            ${type === 'UP' ? 'Active Skill A' : 'Active Skill B'}
-                                                        </span>
-                                                    </div>
+                                        <div class="flex justify-center items-stretch px-2 py-2 pb-4 bg-black/40 rounded-2xl border border-gray-800">
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-[12px] text-white font-bold uppercase tracking-widest p-2 pb-4">หลัง (Back)</span>
+                                                <div class="flex flex-col gap-3 min-w-[100px] items-center justify-center h-full">
+                                                    ${currentFmt.back.map(pos => renderFormationSlot(pos)).join('')}
                                                 </div>
-                                            `;
-                                        }).filter(x => x !== '').join('') || '<p class="text-gray-600 text-center text-xs">ไม่ได้ตั้งค่าลำดับสกิล</p>'}
+                                            </div>
+
+                                            <div class="w-px bg-gradient-to-b from-transparent via-gray-600 to-transparent"></div>
+
+                                            <div class="flex flex-col items-center">
+                                                <span class="text-[12px] text-white font-bold uppercase tracking-widest p-2 pb-4">หน้า (Front)</span>
+                                                <div class="flex flex-col gap-3 min-w-[100px] justify-center items-center h-full">
+                                                    ${currentFmt.front.map(pos => renderFormationSlot(pos)).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-3 shadow-2xl">
+                                        <h4 class="text-yellow-500 font-bold uppercase tracking-widest text-xs mb-4 flex items-center justify-center gap-2">
+                                            <span>⚡</span> Skill Combo
+                                        </h4>
+                                        
+                                        <div class="bg-black/20 p-4 rounded-2xl border border-gray-800 flex justify-center items-start gap-2 flex-wrap">
+                                            ${skillQueueHTML || '<span class="text-gray-500 text-xs">ยังไม่ได้ตั้งค่าลำดับสกิล</span>'}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
+                            </div>
                         </div>
                     </div>
                 </div>
