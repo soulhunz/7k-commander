@@ -851,6 +851,14 @@
             display: none;
             pointer-events: none;
         }
+
+        /* ใส่ในแท็ก <style> ที่ส่วนหัวของ HTML */
+        .drag-over-active {
+            border-color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            transform: scale(1.1) !important;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3) !important;
+        }
     </style>
 </head>
 <body class="flex" onclick="closeContextMenu(); closeTextContextMenu();">
@@ -952,10 +960,11 @@
             <div class="menu-section-title">Main</div>
             <div onclick="switchView('preparation')" class="menu-item" id="nav-preparation">🧠 PREPARATION (AI)</div>
             <div onclick="switchView('team-builder-3v3')" class="menu-item" id="nav-team-builder-3v3">⚔️ 3v3 Team Builder</div>
+            <div onclick="switchView('enemy-manager')" class="menu-item" id="nav-enemy-manager">🎯 Enemy Patterns</div>
             <div onclick="switchView('simulator')" class="menu-item" id="nav-simulator">🎮 Battle Simulator</div>
             <div onclick="switchView('hero-lists')" class="menu-item" id="nav-hero-lists">📋 Hero Lists & Usage</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ Gallery</div>
-            <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🧩 Customize</div>
+            <!-- <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🧩 Customize</div> -->
             <div class="menu-item" id="nav-catalog"> Catalog</div>
             <!-- onclick="switchView('catalog')" -->
 
@@ -1335,9 +1344,13 @@
                     <h2 class="text-2xl font-bold text-white flex items-center gap-2"><span>⚔️</span> 3v3 Detailed Builder</h2>
                     <p class="text-xs text-gray-500 mt-1">จัดทีม 3 ตัวละคร ปรับแต่ง Status อัตโนมัติ และดู Preview</p>
                 </div>
-                <button onclick="createNew3v3Team()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition hover:scale-105">
-                    <span>+</span> สร้างทีมใหม่
-                </button>
+
+                <div class="flex">
+                    <button onclick="openPublicGallery()" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-bold mr-2">🌎 Link Gallery</button>
+                    <button onclick="createNew3v3Team()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2">
+                        <span>+</span> สร้างทีมใหม่
+                    </button>
+                </div>
             </header>
 
             <div class="flex flex-1 overflow-hidden bg-[#0d1117]">
@@ -1351,10 +1364,9 @@
                 <div class="flex-1 overflow-auto p-6 custom-scroll bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] relative">
                     <div id="editor-3v3-empty" class="text-center py-20 text-gray-600">
                         <div class="text-4xl mb-2 opacity-30">⚔️</div>
-                        <p>เลือกทีมจากด้านซ้าย หรือกดปุ่ม "สร้างทีมใหม่"</p>
                     </div>
                     
-                    <div id="editor-3v3-content" class="hidden max-w-5xl mx-auto">
+                    <div id="editor-3v3-content" class="hidden max-w-[1200px] mx-auto">
                         <!-- <div class="flex justify-between items-center mb-6 bg-[#161b22] p-4 rounded-xl border border-gray-700 shadow-md">
                             <input type="text" id="input-3v3-team-name" onchange="update3v3TeamName(this.value)" class="bg-transparent text-xl font-bold text-white border-b border-transparent focus:border-blue-500 outline-none w-1/2 transition placeholder-gray-600" placeholder="ชื่อทีม...">
                             <button onclick="delete3v3Team()" class="text-red-500 hover:text-white border border-red-900/50 hover:bg-red-900/50 px-4 py-2 rounded text-xs transition font-bold">🗑️ ลบทีมนี้</button>
@@ -1391,6 +1403,116 @@
                     <div id="prev-ring" class="absolute top-6 right-6 z-20 hidden"></div>
                     
                     <button onclick="close3v3Preview()" class="absolute top-3 right-3 text-white bg-black/50 hover:bg-red-600 rounded-full w-8 h-8 flex items-center justify-center transition backdrop-blur z-20">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-enemy-manager" class="h-full flex flex-col hidden animate-fade-in bg-[#0b0e14]">
+    
+            <div class="p-6 border-b border-gray-800 bg-[#111827] flex justify-between items-center shadow-md">
+                <div>
+                    <h2 class="text-3xl font-black text-red-500 uppercase tracking-tighter flex items-center gap-3">
+                        <span>🎯</span> Enemy Patterns
+                    </h2>
+                    <p class="text-gray-400 text-xs mt-1">จัดการรูปแบบทีมศัตรู เพื่อใช้ในการวิเคราะห์และแก้ทาง</p>
+                </div>
+                <button onclick="createNewEnemyPattern()" class="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg transition flex items-center gap-2">
+                    <span>+</span> สร้างรูปแบบใหม่
+                </button>
+            </div>
+
+            <div class="flex-1 flex overflow-hidden">
+                
+                <div class="w-80 bg-[#111827] border-r border-gray-800 flex flex-col flex-shrink-0">
+                    <div class="p-4 border-b border-gray-800">
+                        <input type="text" id="enemy-search" oninput="renderEnemyPatternList()" placeholder="🔍 ค้นหาทีม..." class="w-full bg-[#0b0e14] border border-gray-700 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-red-500 transition">
+                    </div>
+                    <div id="enemy-pattern-list" class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2">
+                        </div>
+                </div>
+
+                <div class="flex-1 bg-[#0b0e14] overflow-y-auto custom-scroll relative p-8">
+                    
+                    <div id="enemy-editor-empty" class="flex flex-col items-center justify-center h-full text-gray-600 opacity-50 select-none">
+                        <span class="text-8xl mb-4 grayscale">🕵️</span>
+                        <p class="font-bold text-xl uppercase tracking-widest">Select a Pattern to Edit</p>
+                    </div>
+
+                    <div id="enemy-editor-content" class="hidden max-w-4xl mx-auto">
+                        <div class="flex flex-col md:flex-row justify-between items-start gap-6 mb-8 border-b border-gray-800 pb-6">
+                            <div class="flex-1 w-full">
+                                <label class="text-[10px] text-gray-500 font-bold uppercase mb-1 block">Pattern Name</label>
+                                <input type="text" id="ep-name" oninput="updateEnemyPattern('name', this.value)" class="text-3xl font-black text-white bg-transparent border-none outline-none w-full placeholder-gray-700" placeholder="ตั้งชื่อทีมศัตรู...">
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="saveEnemyPatterns()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow-lg">บันทึก (Save)</button>
+                                <button onclick="deleteEnemyPattern()" class="px-6 py-2 bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-900/50 rounded-lg text-xs font-bold transition">ลบทีม</button>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            
+                            <div class="lg:col-span-4 space-y-6">
+                                
+                                <div class="bg-[#161b22] p-5 rounded-2xl border border-gray-700 shadow-lg">
+                                    <label class="text-[10px] text-red-400 font-bold uppercase mb-3 block flex items-center gap-2">
+                                        <span>🚩</span> เลือกรูปแบบทัพ (Formation)
+                                    </label>
+                                    <div class="grid grid-cols-2 gap-2" id="ep-formation-selector">
+                                        </div>
+                                </div>
+
+                                <div class="bg-[#161b22] p-5 rounded-2xl border border-gray-700 shadow-lg">
+                                    <label class="text-[10px] text-gray-400 font-bold uppercase mb-3 block">📝 รายละเอียด / จุดเด่น</label>
+                                    <textarea id="ep-note" oninput="updateEnemyPattern('note', this.value)" class="w-full h-32 bg-[#0b0e14] border border-gray-600 rounded-xl p-3 text-sm text-gray-300 outline-none focus:border-red-500 transition resize-none" placeholder="เช่น เน้นถึก, มีตัวล้วงหลัง, ระวัง CC..."></textarea>
+                                </div>
+
+                            </div>
+
+                            <div class="lg:col-span-8">
+                                <div class="bg-[#161b22] border border-gray-700 rounded-3xl p-8 shadow-2xl relative overflow-hidden min-h-[500px] flex flex-col">
+                                    
+                                    <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+                                    
+                                    <div class="relative z-10 flex justify-between items-center mb-8">
+                                        <h3 class="text-white font-bold text-lg flex items-center gap-2">
+                                            <span class="bg-red-600 text-white w-8 h-8 flex items-center justify-center rounded-lg text-sm shadow">VS</span>
+                                            <span>Formation Layout</span>
+                                        </h3>
+                                        <div id="ep-formation-badge" class="px-3 py-1 bg-red-900/30 text-red-300 rounded border border-red-900/50 text-xs font-bold uppercase">Basic</div>
+                                    </div>
+
+                                    <div class="flex-1 flex justify-center items-center gap-8 relative z-10">
+                                        
+                                        <div class="flex flex-col items-center gap-4">
+                                            <span class="text-[10px] text-gray-600 font-black uppercase tracking-[0.3em]">BACK</span>
+                                            <div id="ep-board-back" class="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-gray-800/50">
+                                                </div>
+                                        </div>
+
+                                        <div class="w-px h-64 bg-gradient-to-b from-transparent via-red-900/50 to-transparent border-r border-dashed border-red-800/30"></div>
+
+                                        <div class="flex flex-col items-center gap-4">
+                                            <span class="text-[10px] text-gray-600 font-black uppercase tracking-[0.3em]">FRONT</span>
+                                            <div id="ep-board-front" class="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-gray-800/50">
+                                                </div>
+                                        </div>
+
+                                    </div>
+
+                                    <div class="absolute bottom-6 right-6 z-10" style="display: none;">
+                                        <div onclick="openSelector('ENEMY-PATTERN', 'pet', 'pet')" class="w-16 h-16 rounded-full border-2 border-dashed border-purple-500/50 bg-[#0b0e14] hover:bg-[#1f2937] cursor-pointer flex items-center justify-center shadow-lg transition group relative">
+                                            <img id="ep-pet-img" src="" class="w-full h-full rounded-full object-cover hidden">
+                                            <span id="ep-pet-placeholder" class="text-2xl opacity-50 group-hover:opacity-100 transition">🐾</span>
+                                            <div class="absolute -bottom-6 text-[9px] text-purple-400 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition">PET</div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2152,6 +2274,9 @@
         let surveyConfig = []; // เก็บโครงสร้างคำถาม [{id, question, type}]
         let applicationsDB = []; // เก็บใบสมัครที่ส่งมา
 
+        let currentCastle = 'Default'; // กำหนดค่าเริ่มต้นกัน Error
+        let currentCap = 10;
+
         let adminManualEntries = [];
         var activeSkillSelector = null;
 
@@ -2237,6 +2362,7 @@
             { id: 'nav-tier-viewer',  label: '🧩 Customize', default: true },
             { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
             { id: 'nav-hero-lists',   label: '📜 Hero Lists',        default: true },
+            { id: 'nav-enemy-manager', label: '🎯 Enemy Patterns', default: true },
             
             // Database Manager
             { id: 'nav-hero-manager', label: '🦸 Manage Heroes',    default: false },
@@ -2425,6 +2551,20 @@
         let contextItemTarget = null; // เก็บว่าคลิกขวาที่ Hero ตัวไหน
 
         if(localStorage.getItem('7k_tier_bg')) setTimeout(() => setTierBg(localStorage.getItem('7k_tier_bg')), 100);
+
+
+        // --- 🎯 ENEMY PATTERN MANAGER LOGIC ---
+
+        // 1. ตัวแปร Global และการโหลดข้อมูล
+        let enemyPatternsDB = JSON.parse(localStorage.getItem('7k_enemy_patterns')) || [];
+        let currentPatternIdx = -1;
+
+        // เพิ่มเมนูนี้เข้าไปใน ALL_MENUS (ถ้ายังไม่มี)
+        const enemyMenuExists = ALL_MENUS.find(m => m.id === 'nav-enemy-manager');
+        if (!enemyMenuExists) {
+            // แทรกต่อจาก Simulator
+            ALL_MENUS.splice(1, 0, { id: 'nav-enemy-manager', label: '🎯 Enemy Patterns', default: true });
+        }
         
         async function initLogin() {
             console.log("🔍 Checking System Mode...");
@@ -3047,6 +3187,7 @@
                     guilds: guildsDB,
                     equip_sets: equipSetsDB,
                     teams_3v3: teams3v3DB,
+                    enemyPatterns: enemyPatternsDB,
                 };
             }
 
@@ -3151,6 +3292,7 @@
                 'gallery': 'view-gallery',
                 'tier-viewer': 'view-tier-viewer',
                 'hero-lists': 'view-hero-lists',
+
                 
                 // Database & Admin
                 'hero-manager': 'view-manager',
@@ -3164,6 +3306,7 @@
                 'application-form': 'view-application-form',
 
                 'team-builder-3v3': 'view-team-builder-3v3',
+                'enemy-manager' : 'view-enemy-manager'
             };
 
             const targetId = targetViewMap[v];
@@ -3180,6 +3323,9 @@
                 else if (v === 'user-manager') renderUserManager();
                 else if (v === 'guild-manager') renderGuildManagerView();
                 else if (v === 'equip-manager') renderEquipManager();
+                else if (v === 'enemy-manager') {
+                    renderEnemyManager();
+                }
                 else if (v === 'team-builder-3v3') {
                     render3v3TeamsList();
                     if (teams3v3DB.length > 0 && current3v3TeamIdx === -1) {
@@ -5134,13 +5280,96 @@
         }
 
         function selectItem(id) {
+            console.log("Selecting Item:", id, "Context:", editContext);
 
-            // 1. กรณี: หน้า Add/Edit Guild Member (Admin)
+            // 🟢 1. เลือกตัวละครให้ Enemy Pattern (หน้าเมนูใหม่)
+            if (editContext && editContext.i === 'ENEMY-PATTERN') {
+                if (currentPatternIdx !== -1 && enemyPatternsDB[currentPatternIdx]) {
+                    const data = enemyPatternsDB[currentPatternIdx];
+
+                    if (editContext.type === 'pet') {
+                        data.pet = id ? { id: String(id) } : null;
+                    } else {
+                        // กรณีเลือก Hero
+                        if (id) {
+                            // 🛡️ เช็คตัวซ้ำ: วนลูปดูว่า ID นี้มีอยู่ใน Slot อื่นที่ไม่ใช่ Slot ปัจจุบันไหม
+                            const isDuplicate = Object.keys(data.slots).some(pos => {
+                                const s = data.slots[pos];
+                                // ต้องมีข้อมูล, ID ตรงกัน, และไม่ใช่ตำแหน่งเดิมที่กำลังแก้อยู่
+                                return s && s.id === String(id) && parseInt(pos) !== parseInt(editContext.p);
+                            });
+
+                            if (isDuplicate) {
+                                alert("⛔ ตัวละครนี้มีอยู่ในทีมแล้ว ไม่สามารถเลือกซ้ำได้ครับ");
+                                return; // หยุดการทำงาน ไม่บันทึก
+                            }
+
+                            data.slots[editContext.p] = { id: String(id) };
+                        } else {
+                            data.slots[editContext.p] = null;
+                        }
+                    }
+                    renderEnemyManager();
+                }
+                closeSelector();
+                return;
+            }
+
+            // 🟢 2. เลือกตัวละครให้ Enemy List (ในหน้า 3v3 Editor)
+            if (editContext && editContext.i === 'TEAM-3V3-ENEMY') {
+                const team = teams3v3DB[current3v3TeamIdx];
+                if (!team.enemyTeams) team.enemyTeams = [];
+                
+                const enemyTeam = team.enemyTeams[editContext.enemyTeamIdx];
+                if (enemyTeam) {
+                    if (id) enemyTeam.slots[editContext.p] = { id: String(id) };
+                    else enemyTeam.slots[editContext.p] = {};
+                    
+                    save3v3Teams();
+                    render3v3Editor();
+                }
+                closeSelector();
+                return;
+            }
+
+            // 🟢 3. เลือกตัวละครให้ Team 3v3 (My Team)
+            if (editContext && editContext.i === 'TEAM-3V3') {
+                const team = teams3v3DB[current3v3TeamIdx];
+                if (team) {
+                    if (editContext.type === 'ring') {
+                        if (id) team.slots[editContext.p].ring = String(id);
+                        else team.slots[editContext.p].ring = null;
+                    } 
+                    else if (editContext.type === 'equip') {
+                        if (id) team.slots[editContext.p].equip = String(id);
+                        else team.slots[editContext.p].equip = null;
+                    }
+                    else if (editContext.type === 'hero') {
+                        if (id) {
+                            // ถ้ายังไม่มี object ให้สร้างใหม่ พร้อมค่า default
+                            team.slots[editContext.p] = {
+                                id: String(id), ring: null, equip: null, comment: '', 
+                                activeStats: ['atk', 'def', 'hp', 'spd', 'cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'],
+                                stats: { atk: 0, def: 0, hp: 0, spd: 0, cri: 0, cdmg: 0, weakness: 0, block: 0, dmgRed: 0, acc: 0, resist: 0 }
+                            };
+                        } else {
+                            team.slots[editContext.p] = null;
+                        }
+                    }
+                    save3v3Teams();
+                    render3v3Editor();
+                    render3v3TeamsList();
+                }
+                closeSelector();
+                return;
+            }
+
+            // 🟢 4. เพิ่ม Guild Member (Admin)
             if (editContext && editContext.i === 'GUILD-MEMBER-ADD') {
                 if(id) {
                     if(!tempOwnedHeroes.some(h => String(h.id) === String(id))) {
-                        tempOwnedHeroes.push({ id: String(id), star: 0 }); // Default 0 ดาว
-                        renderGmOwnedList(); // วาดรูปตัวละครที่เพิ่มใหม่
+                        tempOwnedHeroes.push({ id: String(id), star: 0 });
+                        renderGmOwnedList();
                     } else {
                         alert("ตัวละครนี้มีอยู่แล้ว");
                     }
@@ -5149,92 +5378,39 @@
                 return;
             }
 
-            if (editContext && editContext.i === 'TEAM-3V3') {
-                
-                if (editContext.type === 'ring') {
-                    if (id) teams3v3DB[current3v3TeamIdx].slots[editContext.p].ring = String(id);
-                    else teams3v3DB[current3v3TeamIdx].slots[editContext.p].ring = null;
-                } 
-                else if (editContext.type === 'equip') {
-                    if (id) teams3v3DB[current3v3TeamIdx].slots[editContext.p].equip = String(id);
-                    else teams3v3DB[current3v3TeamIdx].slots[editContext.p].equip = null;
-                }
-                else if (editContext.type === 'hero') {
-                    if (id) {
-                        const h = heroesDB.find(x => String(x.id) === String(id));
-                        if (h) {
-                            const base = h.baseStats || {};
-                            
-                            teams3v3DB[current3v3TeamIdx].slots[editContext.p] = {
-                                id: String(id),
-                                ring: null, 
-                                equip: null,
-                                comment: '',
-                                
-                                // 1. สั่งให้โชว์ Stat ทั้งหมด
-                                activeStats: ['atk', 'def', 'hp', 'spd', 'cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'],
-                                
-                                // 2. ดึงค่าตามที่คุณต้องการ
-                                stats: {
-                                    atk: 0, 
-                                    def: 0,
-                                    hp:  0, 
-                                    spd: 0,
-                                    cri: 0, // critRate -> cri
-                                    cdmg: 0,  // critDmg -> cdmg
-                                    
-                                    // ค่าเพิ่มเติม
-                                    weakness: 0,
-                                    block: 0,
-                                    dmgRed: 0,
-                                    acc: 0,
-                                    resist: 0
-                                }
-                            };
-                        }
-                    } else {
-                        teams3v3DB[current3v3TeamIdx].slots[editContext.p] = null;
-                    }
-                }
-                
-                save3v3Teams();
-                render3v3Editor();
-                render3v3TeamsList();
+            // 🟢 5. Hero Checklist
+            if (editContext && editContext.i === 'HERO-LIST') {
+                if (id) addHeroByIdToHelper(editContext.p, id);
                 closeSelector();
                 return;
             }
 
-            // 2. กรณี: หน้า Hero Checklist 
-            if (editContext && editContext.i === 'HERO-LIST') {
-                if (id) {
-                    addHeroByIdToHelper(editContext.p, id);
-                }
-                closeSelector();
-                return;
-            }
-            
-            // 3. กรณี: หน้าจัดทีมปกติ (War Room, Simulator, My Teams)
-            let t = getTeam(editContext.i);
-            const p = editContext.p;
+            // 🟢 6. General Logic (War Room / Sim / Old Systems)
+            let t = null;
+            if (editContext.i === 'PREP-ENEMY') t = prepData.enemy;
+            else if (editContext.i === 'PREP-MY') t = prepData.my;
+            else if (editContext.i === 'BATTLE-TEMP') t = battleTempTeam; 
+            else t = getTeam(editContext.i);
 
             if (t) {
                 if (editContext.type === 'hero') {
-                    if (id === null) t.slots[p] = null;
-                    else t.slots[p] = { id: String(id), star: 0, ring: null };
+                    if (id === null) t.slots[editContext.p] = null;
+                    else t.slots[editContext.p] = { id: String(id), star: 0, ring: null };
                 } else if (editContext.type === 'pet') {
                     if (id === null) t.pet = null;
                     else t.pet = { id: String(id), star: 0 };
                 } else { // Ring
-                    if (t.slots[p]) t.slots[p].ring = id;
+                    if (t.slots[editContext.p]) t.slots[editContext.p].ring = id;
                 }
 
-                // *** REFRESH LOGIC ***
+                // Refresh UI
                 if (editContext.i === 'BW-ENEMY' || editContext.i === 'BW-MY') renderBattleWar();
                 else if (editContext.i === 'PREP-ENEMY' || editContext.i === 'PREP-MY') renderPreparation();
                 else if (editContext.i === 'BATTLE-TEMP') renderBattleBuilder();
                 else if (typeof editContext.i === 'string' && editContext.i.startsWith('SIM-')) renderSimulatorTeams();
                 else { updateCurrentViewUI(); triggerAutoSave(); }
             }
+
             closeSelector();
         }
 
@@ -5468,36 +5644,60 @@
         function openSelector(i, p, type, e) { 
             if(e) e.stopPropagation(); 
 
+            // 🟢 1. กรณี: Enemy Pattern Manager (เพิ่มใหม่ ดักไว้บนสุด)
+            if (i === 'ENEMY-PATTERN') {
+                editContext = { i, p, type }; 
+                selectorActiveCategory = 'All';
+                selectorExcludedIds = [];
+                
+                // ถ้าเป็น Pet ให้เปลี่ยนหัวข้อ
+                if (type === 'pet') {
+                    document.getElementById('selector-title').innerText = 'Select Pet for Pattern';
+                    selectorCurrentData = [...petsDB]; 
+                } else {
+                    document.getElementById('selector-title').innerText = 'Select Hero for Pattern';
+                    selectorCurrentData = [...heroesDB];
+                }
+
+                document.getElementById('selector-search').value = '';
+                if(typeof renderSelectorTabs === 'function') renderSelectorTabs();
+                document.getElementById('selectorModal').style.display = 'flex';
+                if(typeof filterSelector === 'function') filterSelector('');
+                return; // ⛔ จบการทำงานทันที ไม่ต้องไปยุ่งกับ currentCastle
+            }
+
+            // 2. กรณี: Team 3v3 Editor (ดักไว้เหมือนเดิม)
             if (i === 'TEAM-3V3') {
                 editContext = { i, p, type };
-                
                 if (type === 'ring') {
                     selectorActiveCategory = 'All'; 
                     document.getElementById('selector-title').innerText = 'Select Ring';
                     selectorCurrentData = [...ringsDB]; 
-                } 
-                // 🟢 เพิ่มส่วนนี้ (เลือก Set)
-                else if (type === 'equip') {
+                } else if (type === 'equip') {
                     selectorActiveCategory = 'All'; 
                     document.getElementById('selector-title').innerText = 'Select Equipment Set';
-                    // ดึงข้อมูล Equip Sets มาใส่
                     selectorCurrentData = (typeof equipSetsDB !== 'undefined') ? [...equipSetsDB] : [];
-                }
-                else {
+                } else {
                     selectorActiveCategory = 'All';
                     document.getElementById('selector-title').innerText = 'Select Hero';
                     selectorCurrentData = [...heroesDB];
                 }
-
                 selectorExcludedIds = [];
                 document.getElementById('selector-search').value = '';
-                renderSelectorTabs(); // (ถ้ามี Tab Categories มันจะ render ปกติ)
+                renderSelectorTabs(); 
                 document.getElementById('selectorModal').style.display = 'flex';
                 filterSelector('');
                 return;
             }
 
-            // 1. กรณี: หน้า Hero Checklist
+            // 3. กรณี: TEAM-3V3-ENEMY (เลือกศัตรูในหน้า 3v3)
+            if (i === 'TEAM-3V3-ENEMY') {
+                // ... (Logic เดิมที่มีอยู่แล้ว หรือใช้ตัวใหม่ที่ผมเคยให้)
+                // แต่ถ้ายังไม่มี ให้ใส่ดักไว้ตรงนี้เพื่อความปลอดภัย
+                /* (ใส่ Logic แบบเดียวกับ ENEMY-PATTERN ได้เลยถ้าจำเป็น) */
+            }
+
+            // 4. กรณี: หน้า Hero Checklist
             if (i === 'HERO-LIST') {
                 editContext = { i, p, type }; 
                 selectorActiveCategory = 'All';
@@ -5511,13 +5711,11 @@
                 return; 
             }
 
-            // 🟢 2. กรณี: หน้าเพิ่มตัวละครให้ Guild Member (แก้บั๊กกดไม่ขึ้น)
+            // 5. กรณี: หน้าเพิ่ม Guild Member
             if (i === 'GUILD-MEMBER-ADD') {
                 editContext = { i, p, type };
                 selectorActiveCategory = 'All';
-                // กรองตัวละครที่มีอยู่แล้วออกไป จะได้ไม่กดซ้ำ
                 selectorExcludedIds = tempOwnedHeroes.map(h => String(h.id));
-                
                 document.getElementById('selector-title').innerText = 'Select Hero';
                 document.getElementById('selector-search').value = '';
                 renderSelectorTabs();
@@ -5527,31 +5725,41 @@
                 return;
             }
 
-            // 3. กรณี: หน้าจัดทีมปกติ (War Room, Simulator)
+            // 6. กรณี: หน้าจัดทีมปกติ (War Room / Simulator) -- จุดที่เคย Error
+            // เราจะให้มันทำงานต่อเมื่อไม่เข้าเคสข้างบน
             let t = null;
             if (i === 'PREP-ENEMY') t = prepData.enemy;
             else if (i === 'PREP-MY') t = prepData.my;
             else if (i === 'BATTLE-TEMP') t = battleTempTeam; 
-            else t = getTeam(i);
+            else {
+                // 🛡️ ป้องกัน Error: ถ้า i เป็น ID ประหลาดๆ ให้หยุด
+                // แต่ถ้าเป็น ID ปกติ (เช่น 0, 1, 2) มันจะไปเรียก getTeam ซึ่งใช้ currentCastle
+                // ดังนั้นเราต้องมั่นใจว่า currentCastle มีค่า หรือถ้าไม่มีก็ต้องไม่เรียก getTeam
+                try {
+                    t = getTeam(i);
+                } catch(e) {
+                    console.warn("getTeam Error ignored:", e);
+                    return;
+                }
+            }
 
             if (typeof i === 'string' && i.startsWith('G-')) {
                 const parts = i.split('-');
                 const team = guildMembersDB[parseInt(parts[1])].teams[parseInt(parts[2])];
                 if (team && team.isDead) return alert("⛔ ทีมนี้จบการต่อสู้ไปแล้ว");
             }
-            if (typeof i !== 'string' && t.isCleared) return;
-            if(type==='ring'&&!t.slots[p])return; 
+            
+            // Logic ทั่วไป
+            if (typeof i !== 'string' && t && t.isCleared) return;
+            if(type==='ring' && (!t || !t.slots[p])) return; 
 
             const prevType = editContext ? editContext.type : null;
             editContext={i,p,type}; 
 
-            if (prevType !== type) {
-                selectorActiveCategory = 'All';
-            }
+            if (prevType !== type) { selectorActiveCategory = 'All'; }
             if (!prevType) selectorActiveCategory = 'All';
 
             selectorExcludedIds = []; 
-
             document.getElementById('selector-title').innerText = 'Select ' + type; 
             document.getElementById('selector-search').value = ''; 
             renderSelectorTabs();
@@ -10353,6 +10561,11 @@
             // ถ้าไม่มีข้อมูลใน DB ให้ใช้ค่าเริ่มต้น
             equipSetsDB = [];
         }
+        if (data.enemyPatterns) {
+            enemyPatternsDB = data.enemyPatterns;
+            // บันทึกลง LocalStorage สำรองไว้ด้วย
+            localStorage.setItem('7k_enemy_patterns', JSON.stringify(enemyPatternsDB));
+        }
         
         if (data.affiliations) affiliationsDB = data.affiliations;
         if (data.tierModes) {
@@ -13358,6 +13571,9 @@
             if (!team.slots) team.slots = [{}, {}, {}];
             if (!team.skillQueue) team.skillQueue = ['', '', ''];
             if (team.isShared === undefined) team.isShared = false;
+            
+            // 🟢 เพิ่มส่วนจัดการ Enemy Teams
+            if (!team.enemyTeams) team.enemyTeams = []; 
 
             team.slots.forEach((s, idx) => {
                 if (s && s.pos === undefined) s.pos = idx;
@@ -13371,21 +13587,18 @@
                     <div class="flex items-center gap-3 w-full md:w-auto flex-1">
                         <div class="bg-blue-600 text-white p-2 rounded-lg shadow shrink-0"><span class="text-xl">🛡️</span></div>
                         <div class="w-full">
-                            <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Team Name</label>
                             <input type="text" value="${team.name}" onchange="update3v3TeamName(this.value)" 
                                 class="bg-[#0b0e14] border border-gray-600 text-white px-3 py-1.5 rounded-lg outline-none focus:border-blue-500 font-bold w-full text-sm shadow-inner transition">
                         </div>
                     </div>
                     <div class="flex gap-2 w-full md:w-auto justify-end mt-2 md:mt-0 flex-wrap">
                         <button onclick="manualSave3v3Data()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-xs font-bold">💾 Save</button>
-                        <button onclick="shareMyTeam()" class="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded text-xs font-bold">🚀 Share</button>
-                        <button onclick="openPublicGallery()" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded text-xs font-bold">🌎 Gallery</button>
                         <button onclick="delete3v3Team()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded text-xs font-bold">🗑️ Del</button>
                     </div>
                 </div>
             `;
 
-            // Team Type & Share
+            // Controls Left
             const teamType = team.teamType || 'Attack';
             const isShared = team.isShared;
             const btnAtkClass = (teamType === 'Attack') ? 'bg-red-600 text-white border-red-500 ring-2 ring-red-500/30 shadow-lg' : 'bg-[#1f2937] text-gray-400 border-gray-600 hover:bg-[#2d3748] hover:text-white';
@@ -13426,7 +13639,7 @@
             const formationButtons = formationsConfig.map(fmt => {
                 const isActive = (formationVal === fmt.id);
                 const activeClass = isActive ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-500/30 shadow-lg' : 'bg-[#1f2937] text-gray-400 border-gray-600 hover:bg-[#2d3748] hover:text-white';
-                return `<button onclick="update3v3Formation('${fmt.id}')" class="${activeClass} border px-4 py-3 rounded-xl text-left transition flex flex-col w-full group relative overflow-hidden"><span class="text-sm font-bold relative z-10">${fmt.label}</span><span class="text-[10px] opacity-70 font-normal relative z-10">${fmt.desc}</span>${isActive ? '<div class="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 text-3xl font-black">✓</div>' : ''}</button>`;
+                return `<button onclick="update3v3Formation('${fmt.id}')" class="${activeClass} border px-2 py-2 rounded-xl text-left transition flex flex-col w-full group relative overflow-hidden"><span class="text-sm font-bold relative z-10">${fmt.label}</span><span class="text-[10px] opacity-70 font-normal relative z-10">${fmt.desc}</span>${isActive ? '<div class="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 text-3xl font-black">✓</div>' : ''}</button>`;
             }).join('');
 
             // Stage Blocks
@@ -13442,7 +13655,7 @@
                     if (h) {
                         const selectEffect = isSelected ? 'ring-4 ring-green-500 z-20 border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'border-gray-500 hover:border-white shadow-lg';
                         borderStyle = `border-2 ${selectEffect} bg-black cursor-pointer`;
-                        content = `<img src="${h.img}" class="w-full h-full object-cover rounded-lg pointer-events-none"><div class="absolute -top-2 -right-2 w-5 h-5 bg-blue-600 text-white text-[9px] flex items-center justify-center rounded-full border border-blue-400 font-bold shadow z-10">#${heroSlotIdx+1}</div>`;
+                        content = `<img src="${h.img}" class="w-full h-full object-cover rounded-lg pointer-events-none">`;
                     }
                 } else if (typeof selectedStageSlot !== 'undefined' && selectedStageSlot !== null) {
                     borderStyle = 'border-2 border-green-500/50 border-dashed bg-green-900/20 cursor-pointer animate-pulse';
@@ -13470,15 +13683,57 @@
                         const img = h ? h.img : '';
                         const typeText = (type === 'UP') ? 'สกิลบน' : 'สกิลล่าง';
                         const typeClass = (type === 'UP') ? 'bg-yellow-600 border-yellow-400' : 'bg-cyan-600 border-cyan-400';
-                        inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 md:w-28 md:h-36 bg-[#0b0e14] border-2 border-gray-600 hover:border-yellow-500 hover:shadow-lg rounded-2xl relative cursor-pointer group overflow-hidden transition-all"><img src="${img}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"><div class="absolute top-0 left-0 bg-black/80 text-white text-[10px] px-2 py-1 rounded-br-lg font-bold border-r border-b border-gray-600">Q${i+1}</div><div class="absolute bottom-0 w-full p-2 bg-gradient-to-t from-black to-transparent pt-6"><div class="${typeClass} text-white text-[10px] font-bold text-center py-1 rounded border shadow-lg uppercase tracking-wider w-full">${typeText}</div></div></div>`;
+                        inner = `<div onclick="openSkillModal(${i})" style="width:120px;height:120px;" class="bg-[#0b0e14] border-2 border-gray-600 hover:border-yellow-500 hover:shadow-lg rounded-2xl relative cursor-pointer group overflow-hidden transition-all"><img src="${img}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"><div class="absolute top-0 left-0 bg-black/80 text-white text-[10px] px-2 py-1 rounded-br-lg font-bold border-r border-b border-gray-600">Q${i+1}</div><div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent pt-6"><div class="bg-black/50 text-white text-[14px] font-bold text-center py-2 uppercase tracking-wider w-full">${typeText}</div></div></div>`;
                     } else { inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 border-2 border-red-500 border-dashed rounded-2xl flex items-center justify-center text-red-500 font-bold bg-black/40 cursor-pointer">Empty</div>`; }
                 } else {
-                    inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 md:w-28 md:h-36 border-2 border-dashed border-gray-700 hover:border-yellow-500 hover:bg-[#1f2937] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition group bg-black/40"><span class="text-5xl text-gray-600 group-hover:text-yellow-500 font-light mb-2 transition">+</span><span class="text-[10px] text-gray-500 group-hover:text-yellow-500 font-bold uppercase tracking-wider">Select</span><span class="absolute top-2 left-2 text-[9px] text-gray-600 font-bold">Q${i+1}</span></div>`;
+                    inner = `<div onclick="openSkillModal(${i})" style="width:120px;height:120px;" class="border-2 border-dashed border-gray-700 hover:border-yellow-500 hover:bg-[#1f2937] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition group bg-black/40"><span class="text-5xl text-gray-600 group-hover:text-yellow-500 font-light mb-2 transition">+</span><span class="text-[10px] text-gray-500 group-hover:text-yellow-500 font-bold uppercase tracking-wider">Select</span><span class="absolute top-2 left-2 text-[9px] text-gray-600 font-bold">Q${i+1}</span></div>`;
                 }
                 return `<div class="flex items-center">${inner}</div>${arrow}`;
             }).join('');
 
-            // --- MODAL SELECTOR ---
+            // --- 🟢 NEW: ENEMY TARGETS RENDERING ---
+            let enemySectionHTML = '';
+            if (team.enemyTeams && team.enemyTeams.length > 0) {
+                enemySectionHTML = team.enemyTeams.map((et, eIdx) => {
+                    // สร้าง 3 ช่องสำหรับศัตรู
+                    let slotsHTML = '';
+                    for(let k=0; k<3; k++) {
+                        const s = et.slots[k];
+                        if (s && s.id) {
+                            const h = heroesDB.find(x => String(x.id) === String(s.id));
+                            slotsHTML += `
+                                <div onclick="open3v3EnemySelector(${eIdx}, ${k})" class="w-14 h-14 rounded-lg border border-red-500 bg-black cursor-pointer relative group overflow-hidden">
+                                    <img src="${h.img}" class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-red-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-[10px] font-bold">Edit</div>
+                                </div>`;
+                        } else {
+                            slotsHTML += `
+                                <div onclick="open3v3EnemySelector(${eIdx}, ${k})" class="w-14 h-14 rounded-lg border border-dashed border-gray-600 bg-gray-800/40 cursor-pointer flex items-center justify-center hover:border-red-500 hover:text-red-400 text-gray-600 transition">
+                                    <span class="text-xl">+</span>
+                                </div>`;
+                        }
+                    }
+
+                    return `
+                        <div class="bg-[#0b0e14] border border-gray-700 p-2 rounded-lg flex items-center justify-between mb-2">
+                            <div class="flex gap-2">
+                                <div class="flex flex-col justify-center items-center px-2 border-r border-gray-700">
+                                    <span class="text-[9px] text-gray-500 font-bold">TARGET</span>
+                                    <span class="text-lg font-black text-red-500 leading-none">#${eIdx+1}</span>
+                                </div>
+                                <div class="flex gap-1">
+                                    ${slotsHTML}
+                                </div>
+                            </div>
+                            <button onclick="remove3v3EnemyTeam(${eIdx})" class="text-gray-600 hover:text-red-500 px-2 transition font-bold">×</button>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                enemySectionHTML = `<div class="text-center py-6 text-gray-600 text-xs italic border-2 border-dashed border-gray-800 rounded-lg">ยังไม่มีรายการศัตรูที่แก้ทาง</div>`;
+            }
+
+            // --- 🟢 MODAL SELECTOR (แก้คืนให้แล้วครับ) ---
             let modalHTML = '';
             if (activeQueueIndex !== null) {
                 let itemsHTML = '';
@@ -13503,6 +13758,7 @@
                     }
                 });
                 if (itemsHTML === '') itemsHTML = `<div class="text-center text-gray-500 py-10 bg-black/20 rounded-xl border border-dashed border-gray-700">กรุณาใส่ตัวละครในทีมก่อนเลือกสกิล</div>`;
+                
                 modalHTML = `
                     <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm" onclick="if(event.target === this) closeSkillModal()">
                         <div class="bg-[#111827] border-2 border-gray-500 rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative m-4 max-h-[85vh] flex flex-col">
@@ -13520,7 +13776,7 @@
                 `;
             }
 
-            // --- Inject Everything ---
+            // --- Inject Layout ---
             const configSectionHTML = `
                 <div class="flex flex-col gap-4 mb-8">
                     <div class="flex flex-col xl:flex-row gap-4 h-full">
@@ -13528,6 +13784,7 @@
                             ${teamTypeSelectorHTML}
                             <div><label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 block">🚩 รูปแบบการยืน</label><div class="flex flex-col gap-2 h-full">${formationButtons}</div></div>
                         </div>
+
                         <div class="flex-1 bg-[#111827] border border-gray-700 rounded-xl shadow-[inset_0_0_30px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col min-h-[280px]">
                             <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(#374151 1px, transparent 1px), linear-gradient(to right, #374151 1px, transparent 1px); background-size: 40px 40px;"></div>
                             <div class="flex-1 flex flex-col justify-center items-center py-6 relative z-10 gap-6">
@@ -13536,7 +13793,25 @@
                                 <div class="relative w-full flex justify-center items-center py-2"><span class="absolute inset-0 flex items-center justify-center text-6xl md:text-8xl font-black text-white/5 uppercase tracking-[0.2em] select-none pointer-events-none z-0">FRONT</span><div class="relative z-10 flex gap-4">${frontRowHTML}</div></div>
                             </div>
                         </div>
+
+                        <div class="w-full xl:w-80 bg-[#111827] border border-gray-700 p-4 rounded-xl shadow-lg flex flex-col shrink-0">
+                            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                                <div class="text-[10px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                                    <span>🎯</span> Target Enemies
+                                </div>
+                                <span class="text-[9px] bg-red-900/30 text-red-400 px-2 py-0.5 rounded border border-red-900/50">${team.enemyTeams.length} Teams</span>
+                            </div>
+                            
+                            <div class="flex-1 overflow-y-auto custom-scrollbar max-h-[300px] pr-1 space-y-2">
+                                ${enemySectionHTML}
+                            </div>
+
+                            <button onclick="add3v3EnemyTeam()" class="mt-4 w-full py-2 bg-red-900/20 hover:bg-red-900/40 border border-red-800 text-red-300 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2">
+                                <span>+</span> Add Enemy Team
+                            </button>
+                        </div>
                     </div>
+
                     <div class="bg-[#111827] border border-gray-700 p-6 rounded-xl shadow-inner flex flex-col items-center gap-6 mt-4">
                         <div class="flex items-center gap-3 text-yellow-500"><span class="text-3xl">⚡</span><div class="flex flex-col"><span class="text-sm font-black uppercase tracking-widest">Skill Combo</span><span class="text-[10px] text-gray-500">ลำดับการใช้สกิล 1 -> 2 -> 3</span></div></div>
                         <div class="flex flex-row items-center justify-center w-full overflow-x-auto pb-2 custom-scrollbar gap-2 md:gap-4">${skillQueueDisplay}</div>
@@ -13569,43 +13844,30 @@
                         ];
                         const group1 = statConfig.slice(0, 6);
                         const group2 = statConfig.slice(6);
-                        const renderStatRow = (cfg) => `<div class="flex items-center justify-between bg-[#0d1117] px-3 py-2 mb-2 rounded border border-gray-700 shadow-sm"><span class="text-[10px] font-bold text-gray-400 uppercase truncate w-16">${cfg.label}</span><input type="number" value="${s[cfg.key] || 0}" onchange="update3v3Stat(${i}, '${cfg.key}', this.value)" class="bg-transparent text-white font-mono text-right outline-none w-20 text-xs font-bold"></div>`;
+                        const renderStatRow = (cfg) => `<div class="flex items-center justify-between bg-[#0d1117] px-3 py-2 mb-2 rounded border border-gray-700 shadow-sm"><span class="text-[14px] font-bold text-gray-400 uppercase truncate w-20">${cfg.label}</span><input type="number" value="${s[cfg.key] || 0}" onchange="update3v3Stat(${i}, '${cfg.key}', this.value)" class="bg-transparent text-white font-mono text-right outline-none w-80 text-sm font-bold"></div>`;
 
-                        let ringHtml = slotData.ring ? `<img src="${(ringsDB.find(x=>String(x.id)===String(slotData.ring))||{}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-16 h-16 rounded border border-yellow-500 bg-black cursor-pointer object-cover">` : `<div onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-16 h-16 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer bg-black/30">Ring</div>`;
-                        let equipHtml = slotData.equip ? `<img src="${(equipSetsDB.find(x=>String(x.id)===String(slotData.equip))||{img:''}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-16 h-16 rounded border border-cyan-500 bg-black cursor-pointer object-cover">` : `<div onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-16 h-16 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer bg-black/30">Set</div>`;
+                        let ringHtml = slotData.ring ? `<img src="${(ringsDB.find(x=>String(x.id)===String(slotData.ring))||{}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-20 h-20 rounded border border-yellow-500 bg-black cursor-pointer object-cover">` : `<div onclick="openSelector('TEAM-3V3', ${i}, 'ring')" class="w-20 h-20 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer bg-black/30">Ring</div>`;
+                        let equipHtml = slotData.equip ? `<img src="${(equipSetsDB.find(x=>String(x.id)===String(slotData.equip))||{img:''}).img}" onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-20 h-20 rounded border border-cyan-500 bg-black cursor-pointer object-cover">` : `<div onclick="openSelector('TEAM-3V3', ${i}, 'equip')" class="w-20 h-20 rounded border border-dashed border-gray-600 flex items-center justify-center text-[10px] text-gray-500 cursor-pointer bg-black/30">Set</div>`;
 
                         const currentStar = (slotData.star !== undefined && slotData.star !== null) ? parseInt(slotData.star) : 6;
 
-                        // 2. ปรับ Logic สีดาว: 1-6 เหลือง | 7-12 ฟ้า | 13 แดง
-                        let starColorClass = 'text-yellow-400'; 
+                        let starColorClass = 'text-yellow-400';
                         if (currentStar >= 13) {
-                            starColorClass = 'text-red-500';  // ดาวแดง
+                            starColorClass = 'text-red-500';  
                         } else if (currentStar >= 7) {
-                            starColorClass = 'text-blue-400'; // ดาวฟ้า
+                            starColorClass = 'text-blue-400'; 
                         } else if (currentStar === 0) {
-                            starColorClass = 'text-gray-500'; // ไม่มีดาว
+                            starColorClass = 'text-gray-500'; 
                         }
 
-                        // 3. วาดรายการตัวเลือกใน Select พร้อมใส่สีให้ชัดเจน
                         let starOptions = '';
                         for (let n = 13; n >= 0; n--) {
                             let label = '';
                             let styleColor = '';
-                            
-                            if (n >= 13) {
-                                label = '★';
-                                styleColor = '#ef4444';
-                            } else if (n >= 7) {
-                                label = '★'.repeat(n - 6);
-                                styleColor = '#60a5fa';
-                            } else if (n >= 1) {
-                                label = '★'.repeat(n); // ดาวเหลือง
-                                styleColor = '#facc15';
-                            } else {
-                                label = 'No Star';
-                                styleColor = '#9ca3af';
-                            }
-                            
+                            if (n >= 13) { label = '★'; styleColor = '#ef4444'; } 
+                            else if (n >= 7) { label = '★'.repeat(n - 6); styleColor = '#60a5fa'; } 
+                            else if (n >= 1) { label = '★'.repeat(n); styleColor = '#facc15'; } 
+                            else { label = 'No Star'; styleColor = '#9ca3af'; }
                             starOptions += `<option value="${n}" ${currentStar === n ? 'selected' : ''} style="color: ${styleColor}; background-color: #1f2937; font-weight: bold;">${label}</option>`;
                         }
 
@@ -13613,7 +13875,7 @@
                             <div class="flex flex-col w-full h-full">
                                 <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700/50">
                                     <div class="flex items-start gap-3">
-                                        <div onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="relative cursor-pointer"><img src="${h.img}" class="w-20 h-20 rounded-xl border border-gray-500 object-cover shadow-lg"></div>
+                                        <div onclick="openSelector('TEAM-3V3', ${i}, 'hero')" class="relative cursor-pointer"><img src="${h.img}" class="w-30 h-30 rounded-xl border border-gray-500 object-cover shadow-lg"></div>
                                         <div>
                                             <div class="text-white font-bold text-lg leading-tight mb-1">${h.name}</div>
                                             <select onchange="update3v3Star(${i}, this.value)" class="bg-transparent ${starColorClass} text-xl outline-none cursor-pointer font-bold">${starOptions}</select>
@@ -13622,7 +13884,7 @@
                                     <div class="flex gap-2">${ringHtml}${equipHtml}</div>
                                 </div>
                                 <div class="flex gap-4 flex-1 mb-4"><div class="w-1/2">${group1.map(renderStatRow).join('')}</div><div class="w-1/2">${group2.map(renderStatRow).join('')}</div></div>
-                                <input type="text" value="${slotData.comment || ''}" onchange="update3v3Comment(${i}, this.value)" placeholder="Note..." class="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 outline-none">
+                                <textarea onchange="update3v3Comment(${i}, this.value)" placeholder="Note..." class="w-full bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 outline-none min-h-[100px]">${slotData.comment || ''}</textarea>
                             </div>
                         `;
                     }
@@ -14226,7 +14488,7 @@
 
         // 2. วาดหน้าจอ Gallery Grid
         function renderGalleryUI(teams) {
-            const container = document.getElementById('main-content'); // หรือ ID ที่คุณใช้แสดงเนื้อหาหลัก
+            const container = document.getElementById('main-content'); 
             if (!container) return;
 
             // 1. แยกกลุ่มข้อมูล
@@ -14236,45 +14498,90 @@
             // ฟังก์ชันย่อยสำหรับวาดแต่ละ Section
             const renderSection = (teamList, title, color, icon) => {
                 if (teamList.length === 0) return '';
+                
+                // กำหนดธีมสี
+                const themeColor = color === 'red' ? 'text-red-400 border-red-500/30' : 'text-blue-400 border-blue-500/30';
+                const glowColor = color === 'red' ? 'hover:shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:border-red-500' : 'hover:shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:border-blue-500';
+
                 return `
-                    <div class="mb-12">
-                        <div class="flex items-center gap-3 mb-6 border-b border-${color}-500/30 pb-3">
-                            <span class="text-3xl">${icon}</span>
-                            <h2 class="text-2xl font-black text-${color}-400 uppercase tracking-tighter">${title}</h2>
-                            <span class="bg-${color}-900/50 text-${color}-300 px-3 py-0.5 rounded-full text-xs font-bold border border-${color}-500/30">${teamList.length} ทีม</span>
+                    <div class="mb-16 animate-fade-in-up">
+                        <div class="flex items-center gap-4 mb-8 pb-2 border-b border-gray-800">
+                            <div class="p-3 bg-[#0d1117] rounded-2xl border ${themeColor} shadow-lg">
+                                <span class="text-3xl filter drop-shadow">${icon}</span>
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-black text-white uppercase tracking-tighter">${title}</h2>
+                                <span class="text-xs ${themeColor.split(' ')[0]} font-bold uppercase tracking-widest bg-black/30 px-2 py-0.5 rounded border border-gray-800">${teamList.length} Teams</span>
+                            </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            ${teamList.map(t => `
-                                <div onclick="loadSharedTeamView('${t.id}', true)" 
-                                    class="bg-[#1f2937] border border-gray-700 rounded-2xl p-4 hover:border-${color}-500 transition-all cursor-pointer group shadow-xl relative overflow-hidden">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            ${teamList.map(t => {
+                                // --- 1. ส่วนทีมเรา (My Team) - แสดงเป็นแถวเล็กด้านบน ---
+                                const mainHeroes = t.data.slots.map(s => {
+                                    if(!s || !s.id) return `<div class="w-8 h-8 rounded bg-gray-800/50 border border-dashed border-gray-700"></div>`;
+                                    const h = heroesDB.find(hero => String(hero.id) === String(s.id));
+                                    return `<img src="${h ? h.img : ''}" class="w-8 h-8 rounded border border-gray-600 bg-black object-cover">`;
+                                }).join('');
+
+                                // --- 2. ส่วนทีมศัตรู (Target) - แสดงรูปใหญ่ ---
+                                let targetHTML = '';
+                                if (t.data.enemyTeams && t.data.enemyTeams.length > 0) {
+                                    // ดึงทีมเป้าหมายทีมแรกมาโชว์
+                                    const firstTarget = t.data.enemyTeams[0];
+                                    const targetIcons = firstTarget.slots.map(s => {
+                                        if (!s || !s.id) return `<div class="w-14 h-14 rounded-xl border-2 border-dashed border-gray-800 bg-black/20 flex items-center justify-center"><span class="text-gray-700 font-bold">?</span></div>`;
+                                        const h = heroesDB.find(hero => String(hero.id) === String(s.id));
+                                        // รูปใหญ่ w-14 (56px)
+                                        return h ? `<div class="relative w-14 h-14 rounded-xl border-2 border-red-500/60 bg-black overflow-hidden shadow-md"><img src="${h.img}" class="w-full h-full object-cover"></div>` : '';
+                                    }).join('');
                                     
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 class="text-white font-bold text-lg group-hover:text-${color}-400 transition leading-tight">${t.name}</h3>
-                                            <span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">${t.data.formation || 'Basic'}</span>
+                                    targetHTML = `
+                                        <div class="mt-4 pt-3 border-t border-gray-800/50">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-[10px] text-red-400 font-black uppercase tracking-widest flex items-center gap-1">
+                                                    <span>🎯</span> TARGET LIST
+                                                </span>
+                                                ${t.data.enemyTeams.length > 1 ? `<span class="text-[9px] bg-red-900/30 text-red-300 px-1.5 rounded border border-red-900/50">+${t.data.enemyTeams.length-1} more</span>` : ''}
+                                            </div>
+                                            <div class="flex gap-2 justify-center bg-red-900/5 p-3 rounded-2xl border border-red-900/20">
+                                                ${targetIcons}
+                                            </div>
                                         </div>
-                                        <div class="bg-black/40 p-2 rounded-lg text-[14px]">${icon}</div>
-                                    </div>
-
-                                    <div class="flex gap-2 justify-center bg-black/20 py-4 rounded-xl border border-gray-800/50 mb-4">
-                                        ${t.data.slots.map(s => {
-                                            if(!s || !s.id) return `<div class="rounded-lg border border-dashed border-gray-700 bg-black/10"></div>`;
-                                            const h = heroesDB.find(hero => String(hero.id) === String(s.id));
-                                            return `<img src="${h ? h.img : ''}" style="width:70px;height:70px;" class="rounded-lg border border-gray-600 object-cover shadow-md group-hover:scale-105 transition-transform">`;
-                                        }).join('')}
-                                    </div>
-
-                                    <div class="flex justify-between items-center mt-2">
-                                        <div class="flex flex-col">
-                                            <span class="text-[9px] text-gray-500 font-bold uppercase">Shared Date</span>
-                                            <span class="text-[10px] text-gray-400">${new Date(t.date).toLocaleDateString('th-TH')}</span>
+                                    `;
+                                } else {
+                                    // กรณีไม่มี Target
+                                    targetHTML = `
+                                        <div class="mt-4 pt-3 border-t border-gray-800/50 opacity-50">
+                                            <div class="text-[10px] text-gray-500 font-bold uppercase mb-2">🎯 TARGET</div>
+                                            <div class="h-[74px] bg-black/10 rounded-2xl border border-dashed border-gray-800 flex items-center justify-center">
+                                                <span class="text-[10px] text-gray-600">Any / Universal</span>
+                                            </div>
                                         </div>
-                                        <span class="text-${color}-500 text-xs font-black uppercase flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                            View Detail <span>➔</span>
-                                        </span>
+                                    `;
+                                }
+
+                                // --- 3. Render Card ---
+                                return `
+                                    <div onclick="viewTeamFromGallery('${t.id}')" 
+                                        class="bg-[#161b22] border border-gray-700 rounded-3xl p-5 ${glowColor} transition-all duration-300 cursor-pointer group flex flex-col relative overflow-hidden h-full">
+                                        
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="w-full">
+                                                <h3 class="text-white font-bold text-base leading-tight group-hover:text-blue-300 transition truncate pr-2">${t.name}</h3>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="text-[9px] text-gray-400 uppercase font-bold bg-black/40 px-2 py-0.5 rounded border border-gray-800">${t.data.formation || 'Basic'}</span>
+                                                    <span class="text-[9px] text-gray-500">${new Date(t.date).toLocaleDateString('th-TH')}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        ${targetHTML}
+
+                                        <div class="absolute inset-0 border-2 border-blue-500/0 group-hover:border-blue-500/50 rounded-3xl transition pointer-events-none"></div>
                                     </div>
-                                </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -14282,26 +14589,34 @@
 
             // 2. รวม HTML ทั้งหมด
             container.innerHTML = `
-                <div class="p-6 md:p-10 max-w-7xl mx-auto overflow-y-auto no-scroll h-full">
-                    <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-4">
+                <div class="p-6 md:p-10 max-w-[1920px] mx-auto overflow-y-auto no-scroll h-full">
+                    <div class="flex flex-col md:flex-row justify-between items-end mb-10 gap-4 border-b border-gray-800 pb-6">
                         <div>
-                            <h1 class="text-4xl font-black text-white uppercase tracking-tighter">Community Gallery</h1>
-                            <p class="text-gray-500 text-sm font-bold uppercase tracking-widest">รวมเทคนิคการจัดทีมจากผู้เล่นทั้งหมด</p>
+                            <h1 class="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-2">
+                                Community <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Gallery</span>
+                            </h1>
+                            <p class="text-gray-400 text-sm font-bold uppercase tracking-widest pl-1">
+                                รวมเทคนิคการจัดทีมจากผู้เล่นทั้งหมด
+                            </p>
                         </div>
+                        <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg group">
+                            <span class="text-lg group-hover:rotate-180 transition duration-500">↻</span> Refresh Gallery
+                        </button>
                     </div>
                     
-                    ${renderSection(attackTeams, 'ทีมโจมตี', 'red', '⚔️')}
-                    ${renderSection(defenseTeams, 'ทีมป้องกัน', 'blue', '🛡️')}
+                    ${renderSection(attackTeams, 'Attack Strategies', 'red', '⚔️')}
+                    ${renderSection(defenseTeams, 'Defense Strategies', 'blue', '🛡️')}
 
                     ${teams.length === 0 ? `
-                        <div class="text-center py-20 text-gray-600">
-                            <div class="text-6xl mb-4">🏜️</div>
-                            <p class="font-bold text-xl uppercase">No shared teams found.</p>
+                        <div class="flex flex-col items-center justify-center py-40 text-gray-700 opacity-50 select-none">
+                            <span class="text-8xl mb-4 grayscale">🏜️</span>
+                            <p class="font-black text-2xl uppercase tracking-widest">No Shared Teams Found</p>
                         </div>
                     ` : ''}
                 </div>
             `;
         }
+        
         // 3. กดจาก Gallery เข้าไปดูทีม (เปลี่ยน URL แบบไม่รีเฟรช)
         async function viewTeamFromGallery(id) {
             
@@ -14495,6 +14810,13 @@
 
                     <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
                         <div class="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                            <div class="lg:col-span-8 space-y-6 mb-6">
+                                <div class="text-gray-400 text-base font-bold uppercase mb-2 ml-1 flex items-center gap-2">
+                                    <span>Enemy Target</span>
+                                    <div class="h-px bg-gray-800 flex-1"></div>
+                                </div>
+                            </div>
                             
                             <div class="lg:col-span-8 space-y-6">
                                 <div class="text-gray-400 text-base font-bold uppercase mb-2 ml-1 flex items-center gap-2">
@@ -14664,6 +14986,7 @@
                 render3v3Editor();
             }
         }
+        
         function toggleSkillSelector(qIdx) {
             if (activeSkillSelector === qIdx) {
                 activeSkillSelector = null; // ถ้าเปิดอยู่แล้ว ให้ปิด
@@ -14686,6 +15009,432 @@
             render3v3Editor();
         }
 
+        // 1. เพิ่มทีมศัตรูใหม่
+        function add3v3EnemyTeam() {
+            if (current3v3TeamIdx === -1) return;
+            const team = teams3v3DB[current3v3TeamIdx];
+            
+            // สร้าง Object ทีมศัตรูใหม่ (มี 3 Slots ว่าง)
+            team.enemyTeams.push({
+                id: Date.now().toString(), // สร้าง ID มั่วๆ ไว้ก่อน
+                slots: [{}, {}, {}] 
+            });
+
+            save3v3Teams();
+            render3v3Editor();
+        }
+
+        // 2. ลบทีมศัตรู
+        function remove3v3EnemyTeam(eIdx) {
+            if (current3v3TeamIdx === -1) return;
+            if(!confirm("ลบรายชื่อศัตรูทีมนี้?")) return;
+
+            const team = teams3v3DB[current3v3TeamIdx];
+            team.enemyTeams.splice(eIdx, 1);
+
+            save3v3Teams();
+            render3v3Editor();
+        }
+
+        // 3. เปิด Selector เลือกตัวละครให้ศัตรู
+        function open3v3EnemySelector(eIdx, slotIdx) {
+            // ใช้ openSelector เดิม แต่ส่ง Context พิเศษ
+            // i: 'TEAM-3V3-ENEMY'
+            // p: slotIdx (ตำแหน่ง 0-2)
+            // extra: eIdx (Index ของทีมศัตรู 0,1,2...)
+            
+            // หมายเหตุ: เนื่องจาก openSelector เดิมอาจไม่รองรับ param ที่ 4 เราต้องแก้ selectItem หรือใช้ global variable ช่วย
+            // วิธีที่ง่ายที่สุดคือ ยัด eIdx ลงไปใน editContext
+            
+            editContext = { 
+                i: 'TEAM-3V3-ENEMY', 
+                p: slotIdx, 
+                type: 'hero',
+                enemyTeamIdx: eIdx // 🟢 เพิ่ม Field นี้
+            };
+
+            selectorActiveCategory = 'All';
+            selectorExcludedIds = [];
+            document.getElementById('selector-title').innerText = 'Select Enemy Hero';
+            document.getElementById('selector-search').value = '';
+            renderSelectorTabs();
+            selectorCurrentData = [...heroesDB];
+            document.getElementById('selectorModal').style.display = 'flex';
+            filterSelector('');
+        }
+    
+        // --- 🌐 PUBLIC INTERFACE SYSTEM (MENU & TABS) ---
+
+        // 1. สร้างโครงหน้าต่างสาธารณะ (Menu Bar + Content Area)
+        function initPublicLayout() {
+            const mainContainer = document.getElementById('main-content');
+            
+            // เช็คว่ามีเมนูอยู่แล้วหรือยัง? ถ้ามีแล้วไม่ต้องสร้างใหม่
+            if (document.getElementById('public-navbar')) return;
+
+            mainContainer.innerHTML = `
+                <div class="h-full flex flex-col bg-[#0b0e14]">
+                    
+                    <div id="public-navbar" class="bg-[#111827] border-b border-gray-800 p-4 shrink-0 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-0 z-50 shadow-md">
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">🛡️</div>
+                            <div>
+                                <h1 class="text-xl font-black text-white uppercase tracking-tighter leading-none">7K Commander</h1>
+                                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Public Access</span>
+                            </div>
+                        </div>
+
+                        <div class="flex bg-black/40 p-1 rounded-xl border border-gray-700/50 backdrop-blur-sm">
+                            <button onclick="switchPublicTab('gallery')" id="pub-tab-gallery" class="px-6 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-white bg-gray-700 shadow">
+                                <span>🖼️</span> Community Gallery
+                            </button>
+                            <button onclick="switchPublicTab('ai')" id="pub-tab-ai" class="px-6 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-gray-400 hover:text-white hover:bg-white/5">
+                                <span>🤖</span> AI Team Builder
+                            </button>
+                        </div>
+
+                        <div id="public-tools">
+                            <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition border border-gray-600 flex items-center gap-2 group">
+                                <span class="group-hover:rotate-180 transition duration-500">↻</span> Reload Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="public-body" class="flex-1 overflow-hidden relative">
+                        </div>
+                </div>
+            `;
+        }
+
+        // 2. ฟังก์ชันสลับแท็บ (Gallery <-> AI)
+        function switchPublicTab(tab) {
+            const btnGallery = document.getElementById('pub-tab-gallery');
+            const btnAI = document.getElementById('pub-tab-ai');
+            const container = document.getElementById('public-body');
+
+            // Reset Style
+            const activeClass = "bg-blue-600 text-white shadow-lg shadow-blue-900/50";
+            const inactiveClass = "text-gray-400 hover:text-white hover:bg-white/5";
+
+            if (tab === 'gallery') {
+                btnGallery.className = `px-6 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${activeClass}`;
+                btnAI.className = `px-6 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${inactiveClass}`;
+                
+                // Render Gallery (ดึงจาก Cache)
+                if (galleryCacheDB) {
+                    renderGalleryUI(galleryCacheDB);
+                } else {
+                    loadSharedGallery(); // ถ้าไม่มี cache ให้โหลดใหม่
+                }
+
+            } else if (tab === 'ai') {
+                btnGallery.className = `px-6 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${inactiveClass}`;
+                btnAI.className = `px-6 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 ${activeClass}`;
+                
+                // Render AI Builder (ใช้ฟังก์ชัน renderPreparation เดิม แต่เปลี่ยนเป้าหมายการวาด)
+                renderPublicAIBuilder(); 
+            }
+        }
+
+        // 3. ฟังก์ชัน Render AI แบบ Public (Reuse Code เดิม)
+        function renderPublicAIBuilder() {
+            const container = document.getElementById('public-body');
+            if(!container) return;
+            
+            // สร้าง Container ย่อยเพื่อให้ renderPreparation ทำงานได้ (เพราะ renderPreparation มักจะมองหา ID เดิม)
+            container.innerHTML = `<div id="view-preparation" class="h-full w-full flex flex-col"><div class="flex-1 flex overflow-hidden"></div></div>`;
+            
+            // เรียกฟังก์ชันเดิมของคุณ (มันจะวาดลงใน #view-preparation > .flex-1)
+            renderPreparation(); 
+            
+            // ซ่อน Sidebar ขวาของ AI (ที่เป็น History) ถ้าเป็น Public User เพราะเขาไม่มีประวัติส่วนตัว
+            // หรือคุณอาจจะปล่อยไว้ก็ได้ถ้าอยากโชว์หน้าว่างๆ
+            const aiPanel = document.getElementById('prep-ai-panel');
+            if(aiPanel) {
+                aiPanel.parentElement.innerHTML = `
+                    <div class="p-6 text-center text-gray-500 mt-10">
+                        <div class="text-4xl mb-2">🔒</div>
+                        <div class="text-sm font-bold">Login Required</div>
+                        <div class="text-xs">เข้าสู่ระบบเพื่อดูประวัติการต่อสู้และ AI Analysis</div>
+                    </div>
+                `;
+            }
+        }
+    
+        // 2. ฟังก์ชันหลักสำหรับ Render หน้าจอ
+        function renderEnemyManager() {
+            renderEnemyPatternList();
+            if (currentPatternIdx !== -1 && enemyPatternsDB[currentPatternIdx]) {
+                renderEnemyEditor(currentPatternIdx);
+            } else {
+                document.getElementById('enemy-editor-empty').classList.remove('hidden');
+                document.getElementById('enemy-editor-content').classList.add('hidden');
+            }
+        }
+
+        // 3. Render List ทางซ้าย
+        function renderEnemyPatternList() {
+            const container = document.getElementById('enemy-pattern-list');
+            const search = document.getElementById('enemy-search').value.toLowerCase();
+            
+            if(!container) return;
+            container.innerHTML = '';
+
+            enemyPatternsDB.forEach((p, idx) => {
+                if (p.name.toLowerCase().includes(search)) {
+                    const activeClass = idx === currentPatternIdx ? 'bg-red-900/20 border-red-600 shadow-md' : 'bg-[#161b22] border-transparent hover:border-gray-600';
+                    
+                    // สร้างไอคอนตัวละคร 3 ตัวแรก
+                    let icons = '';
+                    let count = 0;
+                    for(let i=0; i<5; i++) {
+                        if(p.slots[i] && p.slots[i].id && count < 3) {
+                            const h = heroesDB.find(x => String(x.id) === String(p.slots[i].id));
+                            if(h) {
+                                icons += `<img src="${h.img}" class="w-6 h-6 rounded border border-gray-600 bg-black object-cover">`;
+                                count++;
+                            }
+                        }
+                    }
+
+                    container.innerHTML += `
+                        <div onclick="selectEnemyPattern(${idx})" class="p-3 rounded-xl border cursor-pointer transition ${activeClass} group flex flex-col gap-2">
+                            <div class="flex justify-between items-start">
+                                <span class="font-bold text-gray-200 text-sm group-hover:text-white truncate">${p.name}</span>
+                                <span class="text-[9px] bg-black/40 px-1.5 py-0.5 rounded text-gray-500 border border-gray-700">${p.formation.substring(0,3)}</span>
+                            </div>
+                            <div class="flex gap-1 h-6 items-center">
+                                ${icons || '<span class="text-[9px] text-gray-600 italic">Empty</span>'}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // 4. Select & Create Logic
+        function selectEnemyPattern(idx) {
+            currentPatternIdx = idx;
+            renderEnemyManager();
+        }
+
+        function createNewEnemyPattern() {
+            enemyPatternsDB.unshift({
+                id: 'EP_' + Date.now(),
+                name: 'New Enemy Pattern',
+                formation: 'Basic',
+                note: '',
+                slots: {0:null, 1:null, 2:null, 3:null, 4:null}, // 0-4 ตำแหน่ง
+                pet: null
+            });
+            currentPatternIdx = 0;
+            // saveEnemyPatterns();
+            renderEnemyManager();
+        }
+
+        function deleteEnemyPattern() {
+            if(confirm("ลบรูปแบบนี้?")) {
+                enemyPatternsDB.splice(currentPatternIdx, 1);
+                currentPatternIdx = -1;
+                saveEnemyPatterns();
+                renderEnemyManager();
+            }
+        }
+
+        function renderEnemyEditor(idx) {
+            const data = enemyPatternsDB[idx];
+            document.getElementById('enemy-editor-empty').classList.add('hidden');
+            document.getElementById('enemy-editor-content').classList.remove('hidden');
+
+            // Inputs
+            document.getElementById('ep-name').value = data.name;
+            document.getElementById('ep-note').value = data.note;
+            document.getElementById('ep-formation-badge').innerText = data.formation;
+
+            // Formation Selector
+            const fmtContainer = document.getElementById('ep-formation-selector');
+            const formationsConfig = [
+                { id: 'Basic',    back: [2, 3, 4],       front: [0, 1] },
+                { id: 'Balanced', back: [3, 4],          front: [0, 1, 2] },
+                { id: 'Attack',   back: [1, 2, 3, 4],    front: [0] },
+                { id: 'Defense',  back: [4],             front: [0, 1, 2, 3] }
+            ];
+
+            fmtContainer.innerHTML = formationsConfig.map(f => {
+                const isActive = data.formation === f.id;
+                const style = isActive ? 'bg-red-600 text-white border-red-500 shadow-lg ring-1 ring-red-400' : 'bg-[#0d1117] text-gray-400 border-gray-600 hover:text-white hover:border-gray-500';
+                return `<button onclick="updateEnemyPattern('formation', '${f.id}')" class="py-2 rounded-lg text-xs font-bold border transition ${style}">${f.id}</button>`;
+            }).join('');
+
+            // Board Rendering
+            const currentFmt = formationsConfig.find(f => f.id === data.formation) || formationsConfig[0];
+            
+            const renderSlot = (pos) => {
+                const slot = data.slots[pos];
+                const h = (slot && slot.id) ? heroesDB.find(x => String(x.id) === String(slot.id)) : null;
+                
+                // Common Drag Events
+                const dragEvents = `
+                    draggable="true" 
+                    ondragstart="handleEnemyDragStart(event, ${pos})" 
+                    ondragend="handleEnemyDragEnd(event)"
+                    ondragover="handleEnemyDragOver(event)" 
+                    ondragenter="handleEnemyDragEnter(event)" 
+                    ondragleave="handleEnemyDragLeave(event)" 
+                    ondrop="handleEnemyDrop(event, ${pos})"
+                `;
+
+                // CSS สำหรับ Effect ตอน Drop (ต้องเพิ่ม CSS นี้ใน style หรือใส่ inline ก็ได้ แต่ผมใช้ Tailwind class แทนใน js Logic)
+                const baseClass = "w-16 h-16 md:w-20 md:h-20 rounded-xl cursor-pointer relative group shadow-lg overflow-hidden transition-all transform hover:scale-105 select-none";
+
+                if (h) {
+                    return `
+                        <div ${dragEvents} onclick="openSelector('ENEMY-PATTERN', ${pos}, 'hero')" class="${baseClass} border-2 border-red-500 bg-black">
+                            <img src="${h.img}" class="w-full h-full object-cover pointer-events-none"> <div class="absolute inset-0 bg-red-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center font-bold text-xs transition text-white pointer-events-none">CHANGE</div>
+                            <div class="absolute top-0 right-0 bg-red-600 text-white text-[9px] px-1.5 font-bold rounded-bl shadow pointer-events-none">#${pos+1}</div>
+                        </div>`;
+                } else {
+                    return `
+                        <div ${dragEvents} onclick="openSelector('ENEMY-PATTERN', ${pos}, 'hero')" class="${baseClass} border-2 border-dashed border-gray-700 bg-gray-800/30 flex flex-col items-center justify-center text-gray-500 hover:text-red-400 hover:border-red-500/50 gap-1">
+                            <span class="text-3xl font-light group-hover:scale-110 transition pointer-events-none">+</span>
+                            <span class="text-[9px] font-bold uppercase pointer-events-none">Slot ${pos+1}</span>
+                        </div>`;
+                }
+            };
+
+            // Layout Vertical
+            const containerClass = "flex flex-col justify-center items-center gap-6 relative z-10 w-full py-4";
+            
+            const boardHTML = `
+                <div class="${containerClass}">
+                    <div class="flex flex-col items-center gap-2 w-full">
+                        <span class="text-[10px] text-gray-600 font-black uppercase tracking-[0.3em]">BACK (หลัง)</span>
+                        <div class="flex flex-row justify-center gap-4 p-4 rounded-2xl bg-black/20 border border-gray-800/50 flex-wrap min-h-[100px] w-full max-w-lg">
+                            ${currentFmt.back.map(renderSlot).join('')}
+                        </div>
+                    </div>
+
+                    <div class="w-[80%] h-px bg-gradient-to-r from-transparent via-red-900/50 to-transparent border-t border-dashed border-red-800/30"></div>
+
+                    <div class="flex flex-col items-center gap-2 w-full">
+                        <div class="flex flex-row justify-center gap-4 p-4 rounded-2xl bg-black/20 border border-gray-800/50 flex-wrap min-h-[100px] w-full max-w-lg">
+                            ${currentFmt.front.map(renderSlot).join('')}
+                        </div>
+                        <span class="text-[10px] text-gray-600 font-black uppercase tracking-[0.3em]">FRONT (หน้า)</span>
+                    </div>
+                </div>
+            `;
+            
+            const boardContainer = document.querySelector('#enemy-editor-content .lg\\:col-span-8 .relative.z-10.flex-1');
+            if(boardContainer) {
+                boardContainer.className = "flex-1 flex flex-col justify-center items-center relative z-10"; 
+                boardContainer.innerHTML = boardHTML;
+            }
+
+            // Pet Logic
+            const petImg = document.getElementById('ep-pet-img');
+            const petPlace = document.getElementById('ep-pet-placeholder');
+            if (petImg && petPlace) {
+                if (data.pet && data.pet.id) {
+                    const p = petsDB.find(x => String(x.id) === String(data.pet.id));
+                    if (p) {
+                        petImg.src = p.img;
+                        petImg.classList.remove('hidden');
+                        petPlace.classList.add('hidden');
+                    } else {
+                        petImg.classList.add('hidden');
+                        petPlace.classList.remove('hidden');
+                    }
+                } else {
+                    petImg.classList.add('hidden');
+                    petPlace.classList.remove('hidden');
+                }
+            }
+        }
+
+        // 6. Update & Save Logic
+        function updateEnemyPattern(field, val) {
+            if (currentPatternIdx !== -1) {
+                enemyPatternsDB[currentPatternIdx][field] = val;
+                // saveEnemyPatterns();
+                if(field === 'formation' || field === 'name') renderEnemyManager(); // Re-render for visual changes
+            }
+        }
+
+        async function saveEnemyPatterns() {
+            
+            showLoading("Saving to Cloud...");
+            try {
+                await pushData();
+                localStorage.setItem('7k_enemy_patterns', JSON.stringify(enemyPatternsDB));
+                alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+            } catch (e) {
+                alert("❌ เกิดข้อผิดพลาด: " + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        let enemyDragSrcIndex = null; // เก็บตำแหน่งต้นทาง
+
+        function handleEnemyDragStart(e, pos) {
+            enemyDragSrcIndex = pos;
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.style.opacity = '0.5'; // ทำให้จางลงขณะลาก
+            e.target.classList.add('scale-90'); // ย่อลงนิดนึง
+        }
+
+        function handleEnemyDragEnd(e) {
+            e.target.style.opacity = '1'; // คืนค่าความชัด
+            e.target.classList.remove('scale-90');
+            
+            // ลบ Highlight ปลายทางทั้งหมด (ถ้ามี)
+            document.querySelectorAll('.drag-over-active').forEach(el => el.classList.remove('drag-over-active'));
+        }
+
+        function handleEnemyDragOver(e) {
+            if (e.preventDefault) e.preventDefault(); // จำเป็นต้องใส่เพื่อให้ Drop ได้
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleEnemyDragEnter(e) {
+            // เพิ่ม Effect ให้ช่องปลายทางเมื่อลากผ่าน
+            e.currentTarget.classList.add('drag-over-active'); 
+        }
+
+        function handleEnemyDragLeave(e) {
+            // ลบ Effect เมื่อลากออก
+            e.currentTarget.classList.remove('drag-over-active');
+        }
+
+        function handleEnemyDrop(e, targetPos) {
+            if (e.stopPropagation) e.stopPropagation();
+            
+            // คืนค่า UI
+            handleEnemyDragEnd(e);
+
+            // ถ้าลากมาวางที่เดิม หรือไม่มีต้นทาง ให้จบ
+            if (enemyDragSrcIndex === null || enemyDragSrcIndex === targetPos) {
+                return false;
+            }
+
+            // สลับข้อมูลใน Database
+            if (currentPatternIdx !== -1 && enemyPatternsDB[currentPatternIdx]) {
+                const data = enemyPatternsDB[currentPatternIdx];
+                
+                // Swap Logic
+                const temp = data.slots[enemyDragSrcIndex];
+                data.slots[enemyDragSrcIndex] = data.slots[targetPos];
+                data.slots[targetPos] = temp;
+
+                renderEnemyManager(); // Render ใหม่
+            }
+            
+            enemyDragSrcIndex = null; // Reset
+            return false;
+        }
     </script>
 </body>
 </html>
