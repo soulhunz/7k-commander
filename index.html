@@ -12716,26 +12716,26 @@
         }
     };
 
+    // ==========================================
+    // 🛠️ BATTLE LOGGER: AUTOCOMPLETE FIX
+    // ==========================================
+
     // 2. Add Row
     function addAdminRow() {
         const rowId = 'ADM-' + Date.now() + Math.random().toString(36).substr(2, 5);
-        
         const newEntry = {
             rowId: rowId,
             memberIdx: "",
             castle: "",
             slot: 1,
-            // 3 Hero Slots + 1 Pet
             myHeroes: [null, null, null], 
             myPet: null,
-            // 3 Hero Slots + 1 Pet
             enemyHeroes: [null, null, null],
             enemyPet: null,
-            // Skill Queue
             skillQueue: [], 
-            result: 'Win'
+            result: 'Win',
+            isCollapsed: false // 🟢 เพิ่มสถานะนี้
         };
-        
         adminManualEntries.push(newEntry);
         renderAdminRows();
     }
@@ -12749,134 +12749,172 @@
     // 4. Render Table
     function renderAdminRows() {
         const tbody = document.getElementById('admin-battle-tbody');
-        const empty = document.getElementById('admin-battle-empty');
         const badge = document.getElementById('admin-row-count');
-
-        if(badge) badge.innerText = adminManualEntries.length;
-
-        if (adminManualEntries.length === 0) {
-            tbody.innerHTML = '';
-            empty.classList.remove('hidden');
-            return;
-        }
-        empty.classList.add('hidden');
+        if (badge) badge.innerText = adminManualEntries.length;
+        if (adminManualEntries.length === 0) { tbody.innerHTML = ''; return; }
 
         tbody.innerHTML = adminManualEntries.map((row, idx) => {
-            const isMyWin = row.result === 'Win';
+            const isAtkWin = row.result === 'Win'; // Win หมายถึง ทีมบุกชนะ
+            const statusColor = isAtkWin ? 'border-green-500 bg-green-900/10' : 'border-red-500 bg-red-900/10';
             
-            // Style ตามผลแพ้ชนะ
-            const p1Style = isMyWin 
-                ? 'border-green-600 bg-green-900/10 shadow-[0_0_15px_rgba(22,163,74,0.2)]' 
-                : 'border-red-900/30 bg-red-900/5 opacity-80';
-            
-            const p2Style = !isMyWin 
-                ? 'border-green-600 bg-green-900/10 shadow-[0_0_15px_rgba(22,163,74,0.2)]' 
-                : 'border-red-900/30 bg-red-900/5 opacity-80';
+            const atkSkillCount = row.skillQueue.filter(k => k.startsWith('my-')).length;
+            const defSkillCount = row.skillQueue.filter(k => k.startsWith('enemy-')).length;
 
-            const p1Label = isMyWin ? '<span class="text-green-400 font-bold">🏆 WINNER</span>' : '<span class="text-red-500 font-bold">DEFEAT</span>';
-            const p2Label = !isMyWin ? '<span class="text-green-400 font-bold">🏆 WINNER</span>' : '<span class="text-red-500 font-bold">DEFEAT</span>';
+            // 🟢 1. โหมดหด (Collapsed View)
+            if (row.isCollapsed) {
+                return `
+                <tr class="border-b border-gray-800 transition-all duration-300">
+                    <td class="p-2 text-center text-gray-600 font-mono text-xs">${idx + 1}</td>
+                    <td colspan="3" class="p-2">
+                        <div onclick="toggleRowExpand('${row.rowId}')" class="flex items-center justify-between bg-[#161b22] border-2 ${statusColor} rounded-xl px-4 py-2 shadow-lg cursor-pointer hover:bg-[#1f2937] transition-all relative overflow-hidden">
+                            <div class="flex items-center gap-4">
+                                <div class="flex -space-x-2">${renderSummaryIcons(row.myHeroes, false)}</div>
+                                
+                                <div class="flex flex-col items-center min-w-[50px]">
+                                    <span class="text-gray-700 font-black italic text-[10px]">VS</span>
+                                    ${atkSkillCount > 0 ? `<span class="text-yellow-500 text-[8px] font-black">⚡ ${atkSkillCount}</span>` : ''}
+                                </div>
 
+                                <div class="flex -space-x-2">${renderSummaryIcons(row.enemyHeroes, true)}</div>
+                                ${defSkillCount > 0 ? `<span class="text-purple-400 text-[9px] font-black">⚡ ${defSkillCount}</span>` : ''}
+                            </div>
+
+                            <div class="flex items-center gap-6">
+                                <span class="text-[10px] font-black ${isAtkWin ? 'text-green-400' : 'text-red-400'} uppercase tracking-widest">
+                                    ${isAtkWin ? '🏆 ATTACK WIN' : '🏆 DEFENSE WIN'}
+                                </span>
+                                <span class="text-blue-500 text-[9px] font-bold border border-blue-900/50 px-2 py-0.5 rounded-full bg-blue-900/10">EDIT</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-2 text-center">
+                        <button onclick="removeAdminRow('${row.rowId}')" class="text-gray-700 hover:text-red-500 text-xl font-bold">×</button>
+                    </td>
+                </tr>`;
+            }
+
+            // 🔴 2. โหมดขยาย (Expanded View)
             return `
-            <tr class="hover:bg-[#111827] transition group align-top border-b border-gray-800">
-                <td class="p-3 text-center text-gray-500 font-mono font-bold pt-16">${idx + 1}</td>
-                
-                <td class="p-2 transition-all duration-300">
-                    <div class="border-2 rounded-xl p-2 relative ${p1Style}">
-                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-700/50">
-                            <span class="text-[10px] text-blue-300 font-bold uppercase">PLAYER 1</span>
-                            <label class="flex items-center gap-2 cursor-pointer bg-black/40 px-2 py-1 rounded border border-gray-600 hover:border-blue-500 transition">
-                                <input type="radio" name="winner-${row.rowId}" class="accent-green-500" 
-                                    onchange="setAdminWinner('${row.rowId}', 'Win')" ${isMyWin ? 'checked' : ''}>
-                                <span class="text-xs text-white">${p1Label}</span>
-                            </label>
+                <tr class="hover:bg-[#111827] transition group align-top border-b border-gray-800">
+                    <td class="p-3 text-center text-gray-500 font-mono font-bold pt-16">
+                        ${idx + 1}
+                        <button onclick="toggleRowExpand('${row.rowId}')" class="block mt-2 text-[10px] text-gray-600 hover:text-white underline">Collapse</button>
+                    </td>
+                    
+                    <td class="p-2 transition-all duration-300">
+                        <div class="border-2 rounded-xl p-3 relative ${isAtkWin ? 'border-green-600 bg-green-900/10 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'border-gray-800 bg-black/20 opacity-60'}">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] text-red-400 font-black uppercase tracking-tighter">⚔️ ATTACK TEAM</span>
+                                ${atkSkillCount > 0 ? `<span class="text-[9px] text-yellow-500 font-bold bg-yellow-900/20 px-1.5 rounded">⚡ Queue: ${atkSkillCount}</span>` : ''}
+                            </div>
+                            <div class="flex justify-center items-end gap-2 pb-1">
+                                ${[0, 1, 2].map(i => renderAdminSlot(row, 'my', i)).join('')}
+                                ${renderAdminPetSlot(row, 'my')}
+                            </div>
                         </div>
+                    </td>
 
-                        <div class="flex justify-center items-end gap-2 pb-1">
-                            ${[0,1,2].map(i => renderAdminSlot(row, 'my', i)).join('')}
-                            ${renderAdminPetSlot(row, 'my')}
+                    <td class="p-2 text-center align-middle pt-10 min-w-[130px]">
+                        <div class="flex flex-col items-center gap-3">
+                            <span class="text-gray-700 font-black italic text-2xl">VS</span>
+                            <button onclick="toggleAdminResult('${row.rowId}')" 
+                                class="px-4 py-2 rounded-full text-[10px] font-black transition-all shadow-xl border-2 active:scale-90 ${isAtkWin ? 'bg-green-600 border-green-400 text-white' : 'bg-blue-600 border-blue-400 text-white'}">
+                                ${isAtkWin ? 'ATTACK WIN' : 'DEFENSE WIN'}
+                            </button>
                         </div>
-                    </div>
-                </td>
+                    </td>
 
-                <td class="p-2 text-center align-middle font-black text-gray-700 italic text-xl pt-16">VS</td>
-
-                <td class="p-2 transition-all duration-300">
-                    <div class="border-2 rounded-xl p-2 relative ${p2Style}">
-                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-700/50">
-                            <label class="flex items-center gap-2 cursor-pointer bg-black/40 px-2 py-1 rounded border border-gray-600 hover:border-blue-500 transition">
-                                <span class="text-xs text-white">${p2Label}</span>
-                                <input type="radio" name="winner-${row.rowId}" class="accent-green-500" 
-                                    onchange="setAdminWinner('${row.rowId}', 'Lose')" ${!isMyWin ? 'checked' : ''}>
-                            </label>
-                            <span class="text-[10px] text-purple-300 font-bold uppercase">PLAYER 2</span>
+                    <td class="p-2 transition-all duration-300">
+                        <div class="border-2 rounded-xl p-3 relative ${!isAtkWin ? 'border-green-600 bg-green-900/10 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'border-gray-800 bg-black/20 opacity-60'}">
+                            <div class="flex justify-between items-center mb-2">
+                                ${defSkillCount > 0 ? `<span class="text-[9px] text-purple-400 font-bold bg-purple-900/20 px-1.5 rounded">⚡ Queue: ${defSkillCount}</span>` : '<span></span>'}
+                                <span class="text-[10px] text-blue-400 font-black uppercase tracking-tighter">🛡️ DEFENSE TEAM</span>
+                            </div>
+                            <div class="flex justify-center items-end gap-2 pb-1">
+                                ${renderAdminPetSlot(row, 'enemy')}
+                                ${[0, 1, 2].map(i => renderAdminSlot(row, 'enemy', i)).join('')}
+                            </div>
                         </div>
+                    </td>
 
-                        <div class="flex justify-center items-end gap-2 pb-1">
-                            ${renderAdminPetSlot(row, 'enemy')}
-                            ${[0,1,2].map(i => renderAdminSlot(row, 'enemy', i)).join('')}
-                        </div>
-                    </div>
-                </td>
-
-                <td class="p-3 text-center align-middle">
-                    <button onclick="removeAdminRow('${row.rowId}')" class="text-gray-600 hover:text-red-500 font-bold text-xl px-2 transition pt-10">×</button>
-                </td>
-            </tr>`;
+                    <td class="p-3 text-center align-middle pt-16">
+                        <button onclick="removeAdminRow('${row.rowId}')" class="text-gray-600 hover:text-red-500 font-bold text-xl px-2 transition">×</button>
+                    </td>
+                </tr>
+            `;
         }).join('');
     }
 
-    // --- HTML Generators for Slots (Reuse Logic) ---
+    // 🟢 ฟังก์ชันสำหรับสลับผลแพ้ชนะ
+    function toggleAdminResult(rowId) {
+        const row = adminManualEntries.find(r => r.rowId === rowId);
+        if (row) {
+            row.result = (row.result === 'Win') ? 'Lose' : 'Win';
+            renderAdminRows(); // วาดใหม่เพื่ออัปเดตสี
+        }
+    }
 
+    // ฟังก์ชันสลับหด/ขยาย
+    function toggleRowExpand(rowId) {
+        const row = adminManualEntries.find(r => r.rowId === rowId);
+        if (row) {
+            row.isCollapsed = !row.isCollapsed;
+            renderAdminRows();
+        }
+    }
+
+    // ฟังก์ชันวาดรูป Hero เล็กๆ สำหรับแถวที่หดอยู่
+    function renderSummaryIcons(heroes, isGray) {
+        let html = heroes.map(h => {
+            if (!h) return '';
+            return `<img src="${h.img}" class="w-7 h-7 rounded-full border border-gray-800 bg-black object-cover ${isGray ? 'grayscale opacity-60' : ''}">`;
+        }).join('');
+        return html;
+    }
+
+    // 1. ปรับปรุงช่องกรอก Hero
     function renderAdminSlot(row, team, slotIdx) {
         const hero = team === 'my' ? row.myHeroes[slotIdx] : row.enemyHeroes[slotIdx];
         const val = hero ? hero.name : '';
         const inputId = `adm-input-${team}-${slotIdx}-${row.rowId}`;
         const borderClass = team === 'my' ? (hero ? 'border-blue-500/50' : 'border-gray-700') : (hero ? 'border-red-500/50' : 'border-gray-700');
         
-        // --- 🟢 Logic คำนวณลำดับสกิล (1, 2, 3) ---
-        const s1Key = `${team}-${slotIdx}-1`; // ล่าง (Lower)
-        const s2Key = `${team}-${slotIdx}-2`; // บน (Upper)
+        const s1Key = `${team}-${slotIdx}-1`; 
+        const s2Key = `${team}-${slotIdx}-2`; 
         
-        // 1. ดึงคิวทั้งหมดของแถวนี้
         const fullQueue = row.skillQueue || [];
-        
-        // 2. กรองเฉพาะคิวของทีมนี้ (my หรือ enemy) เพื่อหาลำดับที่ถูกต้อง
         const teamQueue = fullQueue.filter(k => k.startsWith(team + '-'));
-
-        // 3. หา Index ของสกิล (ถ้าเจอจะได้เลข 0, 1, 2 -> แปลงเป็น 1, 2, 3)
         const s1Index = teamQueue.indexOf(s1Key);
         const s2Index = teamQueue.indexOf(s2Key);
 
-        // 4. กำหนดข้อความที่จะแสดง
         const labelS1 = s1Index > -1 ? (s1Index + 1) : 'ล่าง';
         const labelS2 = s2Index > -1 ? (s2Index + 1) : 'บน';
 
-        // 5. กำหนดสีปุ่ม
         const inactive = 'bg-[#1f2937] text-gray-500 hover:bg-gray-700';
-        
-        // สีเมื่อถูกเลือก (Active)
-        const activeTop = 'bg-yellow-500 text-black border-yellow-400 font-black text-xs'; // บน = เหลือง
-        const activeBot = 'bg-blue-600 text-white border-blue-400 font-black text-xs';   // ล่าง = ฟ้า
+        const activeTop = 'bg-yellow-500 text-black border-yellow-400 font-black text-xs'; 
+        const activeBot = 'bg-blue-600 text-white border-blue-400 font-black text-xs';
 
         const classS1 = s1Index > -1 ? activeBot : inactive;
         const classS2 = s2Index > -1 ? activeTop : inactive;
 
         return `
             <div class="flex flex-col items-center w-20">
-                <div class="rec-slot-container ${borderClass} group/slot w-full h-20 mb-0 relative">
+                <div class="rec-slot-container ${borderClass} group/slot w-full h-20 mb-0 relative z-20">
                     ${hero ? `<img src="${hero.img}" class="rec-slot-img w-full h-full object-cover opacity-80">` : `<span class="text-2xl text-gray-800 font-bold">+</span>`}
                     
                     <input type="text" id="${inputId}" value="${val}" 
-                        class="rec-slot-input absolute inset-0 bg-transparent text-center text-xs text-white font-bold p-1 outline-none"
+                        class="rec-slot-input absolute inset-0 bg-transparent text-center text-xs text-white font-bold p-1 outline-none w-full h-full"
                         placeholder="Hero"
                         oninput="handleAdminSearch(this, '${row.rowId}', '${team}', ${slotIdx})"
                         onkeydown="handleAdminEnter(event, '${row.rowId}', '${team}', ${slotIdx}, 'hero')" 
-                        onfocus="this.select()" autocomplete="off">
+                        onfocus="this.select(); handleAdminSearch(this, '${row.rowId}', '${team}', ${slotIdx})"
+                        onblur="setTimeout(() => { const l = document.getElementById('list-${inputId}'); if(l) l.style.display='none'; }, 200)"
+                        autocomplete="off">
                     
-                    <div id="list-${inputId}" class="autocomplete-list shadow-2xl"></div>
+                    <div id="list-${inputId}" class="autocomplete-list shadow-2xl z-[100] text-left"></div>
                 </div>
                 
-                <div class="flex w-full border border-gray-700 border-t-0 rounded-b-lg overflow-hidden h-6">
+                <div class="flex w-full border border-gray-700 border-t-0 rounded-b-lg overflow-hidden h-6 z-10 relative">
                     <button onclick="toggleAdminSkill('${row.rowId}', '${s2Key}')" class="flex-1 text-[9px] font-bold ${classS2} border-r border-gray-700 transition-all duration-100">
                         ${labelS2}
                     </button>
@@ -12888,6 +12926,7 @@
         `;
     }
 
+    // 2. ปรับปรุงช่องกรอก Pet
     function renderAdminPetSlot(row, team) {
         const pet = team === 'my' ? row.myPet : row.enemyPet;
         const val = pet ? pet.name : '';
@@ -12895,119 +12934,80 @@
         const borderClass = team === 'my' ? 'border-purple-500/50' : 'border-orange-500/50';
 
         return `
-            <div class="flex flex-col items-center justify-center w-16 h-16 rounded-full border-2 ${borderClass} bg-[#0d1117] relative shadow-lg mb-6">
+            <div class="flex flex-col items-center justify-center w-16 h-16 rounded-full border-2 ${borderClass} bg-[#0d1117] relative shadow-lg mb-6 z-20">
                 ${pet ? `<img src="${pet.img}" class="w-full h-full rounded-full object-cover opacity-80">` : `<span class="text-xl text-gray-800">🐾</span>`}
                 <input type="text" id="${inputId}" value="${val}" 
-                    class="absolute inset-0 bg-transparent text-center text-[10px] text-white font-bold rounded-full outline-none p-1 placeholder-gray-700"
+                    class="absolute inset-0 bg-transparent text-center text-[10px] text-white font-bold rounded-full outline-none p-1 placeholder-gray-700 w-full h-full"
                     placeholder="Pet"
                     oninput="handleAdminPetSearch(this, '${row.rowId}', '${team}')"
                     onkeydown="handleAdminEnter(event, '${row.rowId}', '${team}', 0, 'pet')"
-                    onfocus="this.select()" autocomplete="off">
-                <div id="list-${inputId}" class="autocomplete-list shadow-2xl" style="width:140px; top:100%;"></div>
+                    onfocus="this.select(); handleAdminPetSearch(this, '${row.rowId}', '${team}')"
+                    onblur="setTimeout(() => { const l = document.getElementById('list-${inputId}'); if(l) l.style.display='none'; }, 200)"
+                    autocomplete="off">
+                <div id="list-${inputId}" class="autocomplete-list shadow-2xl z-[100] text-left" style="width:140px; top:100%; left:50%; transform:translateX(-50%);"></div>
             </div>
         `;
     }
 
+    // 7. ควบคุมปุ่ม Enter ในช่องกรอก
     function handleAdminEnter(e, rowId, team, idx, type) {
         if (e.key === 'Enter') {
-            e.preventDefault(); // กัน Form Submit
-
-            // 1. จำลองการเลือกตัวแรกสุด (Auto Select First Option)
-            // ถ้าเป็น Hero
-            if (type === 'hero') {
-                const listId = `list-adm-input-${team}-${idx}-${rowId}`;
-                const listEl = document.getElementById(listId);
+            e.preventDefault(); 
+            const listId = type === 'hero' ? `list-adm-input-${team}-${idx}-${rowId}` : `list-adm-pet-${team}-${rowId}`;
+            const listEl = document.getElementById(listId);
+            
+            // ถ้า Dropdown เปิดอยู่ ให้ดึงตัวละครอันแรกสุดมาเลือกทันที
+            if (listEl && listEl.style.display === 'block' && listEl.children.length > 0) {
+                const firstItem = listEl.children[0];
+                const itemId = firstItem.getAttribute('data-id'); 
                 
-                // ถ้ามีรายการค้นหาขึ้นอยู่ ให้เลือกตัวแรก
-                if (listEl && listEl.style.display === 'block' && listEl.children.length > 0) {
-                    // คลิกตัวแรก (ซึ่งจะไปเรียก selectAdminHero)
-                    // เราต้องส่ง Flag พิเศษไปบอกว่า "ให้ Focus ตัวต่อไปด้วยนะ"
-                    const firstItem = listEl.children[0];
-                    // ดึง ID จาก onclick attribute หรือใช้ logic select โดยตรง
-                    // เพื่อความง่าย เราจะเรียก logic select โดยตรงเลย
-                    const heroId = firstItem.getAttribute('data-id'); // ต้องแก้ render list ให้มี data-id ด้วย
-                    if(heroId) selectAdminHero(rowId, team, idx, heroId, true);
-                } 
-                // ถ้าไม่มีรายการ (อาจจะพิมพ์ชื่อเต็มถูกแล้ว) หรือ List ปิดอยู่
-                else {
-                     moveToNextAdminSlot(rowId, team, idx, type);
+                if (type === 'hero' && itemId) {
+                    selectAdminHero(rowId, team, idx, itemId, true);
+                } else if (type === 'pet' && itemId) {
+                    selectAdminPet(rowId, team, itemId, true);
                 }
-            } 
-            // ถ้าเป็น Pet
-            else if (type === 'pet') {
-                const listId = `list-adm-pet-${team}-${rowId}`;
-                const listEl = document.getElementById(listId);
-                if (listEl && listEl.style.display === 'block' && listEl.children.length > 0) {
-                    const petId = listEl.children[0].getAttribute('data-id');
-                    if(petId) selectAdminPet(rowId, team, petId, true);
-                } else {
-                    moveToNextAdminSlot(rowId, team, idx, type);
-                }
+            } else {
+                // ถ้าไม่ได้พิมพ์อะไร แค่กด Enter เฉยๆ ให้ข้ามไปช่องถัดไปเลย
+                moveToNextAdminSlot(rowId, team, idx, type);
             }
         }
     }
 
     function moveToNextAdminSlot(rowId, team, currentIdx, type) {
         let nextId = null;
+        const currentRowIndex = adminManualEntries.findIndex(r => r.rowId === rowId);
 
-        // --- Logic การเลื่อนภายในแถวเดิม ---
-        if (team === 'my') {
-            // Player 1 Side
-            if (type === 'hero') {
-                if (currentIdx < 2) nextId = `adm-input-my-${currentIdx + 1}-${rowId}`;
-                else nextId = `adm-pet-my-${rowId}`; // Hero 3 -> Pet
-            } else if (type === 'pet') {
-                nextId = `adm-input-enemy-0-${rowId}`; // P1 Pet -> P2 Hero 1
+        if (team === 'enemy' && type === 'pet') {
+            // เมื่อถึงช่องสุดท้ายของแถวปัจจุบัน
+            if (currentRowIndex === adminManualEntries.length - 1) {
+                // 🟢 หดแถวปัจจุบันก่อนสร้างแถวใหม่
+                adminManualEntries[currentRowIndex].isCollapsed = true;
+                addAdminRow();
+                // ... (Logic focus แถวใหม่เหมือนเดิม) ...
+            } else {
+                // ถ้ากลับไปแก้แถวบนๆ แล้วกด Enter จนจบแถว ให้หดแถวนั้นด้วย
+                adminManualEntries[currentRowIndex].isCollapsed = true;
+                const nextRow = adminManualEntries[currentRowIndex + 1];
+                nextId = `adm-input-my-0-${nextRow.rowId}`;
+                renderAdminRows();
             }
-        } 
-        else if (team === 'enemy') {
-            // Player 2 Side
-            if (type === 'hero') {
+        } else {
+            // เลื่อนช่องปกติ (Logic เดิมของคุณ)
+            if (team === 'my') {
+                if (type === 'hero') {
+                    if (currentIdx < 2) nextId = `adm-input-my-${currentIdx + 1}-${rowId}`;
+                    else nextId = `adm-pet-my-${rowId}`;
+                } else if (type === 'pet') nextId = `adm-input-enemy-0-${rowId}`;
+            } else if (team === 'enemy' && type === 'hero') {
                 if (currentIdx < 2) nextId = `adm-input-enemy-${currentIdx + 1}-${rowId}`;
-                else nextId = `adm-pet-enemy-${rowId}`; // Hero 3 -> Pet
-            } 
-            else if (type === 'pet') {
-                // ✅ จุดตัดสินใจ: ถึงช่องสุดท้ายแล้ว (P2 Pet)
-                
-                // 1. หาว่าแถวปัจจุบันอยู่ที่ Index ไหนใน Array
-                const currentRowIndex = adminManualEntries.findIndex(r => r.rowId === rowId);
-
-                // 2. เช็คว่าเป็นแถวสุดท้ายหรือไม่
-                if (currentRowIndex === adminManualEntries.length - 1) {
-                    // 🎉 ถ้าเป็นแถวสุดท้าย -> สร้างแถวใหม่!
-                    addAdminRow();
-
-                    // รอ DOM สร้างเสร็จนิดนึง แล้วโฟกัสไปที่ช่องแรกของแถวใหม่
-                    setTimeout(() => {
-                        // ดึง rowId ของแถวใหม่ (ตัวสุดท้ายใน array)
-                        const newRow = adminManualEntries[adminManualEntries.length - 1];
-                        const firstInput = document.getElementById(`adm-input-my-0-${newRow.rowId}`);
-                        if (firstInput) {
-                            firstInput.focus();
-                            firstInput.select();
-                            // เลื่อน Scroll ลงไปหาด้วย
-                            firstInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }, 100);
-                    
-                    return; // จบการทำงาน (ไม่ต้องหา nextId แบบปกติ)
-                } 
-                else {
-                    // ถ้าไม่ใช่แถวสุดท้าย (เช่น กลับมาแก้แถวบน) -> ให้โดดไปแถวถัดไป
-                    const nextRow = adminManualEntries[currentRowIndex + 1];
-                    nextId = `adm-input-my-0-${nextRow.rowId}`;
-                }
+                else nextId = `adm-pet-enemy-${rowId}`;
             }
         }
 
-        // --- สั่ง Focus (สำหรับเคสปกติที่ไม่ได้สร้างแถวใหม่) ---
         if (nextId) {
             setTimeout(() => {
                 const el = document.getElementById(nextId);
-                if (el) {
-                    el.focus();
-                    el.select();
-                }
+                if (el) { el.focus(); el.select(); }
             }, 50);
         }
     }
@@ -13020,32 +13020,47 @@
     }
 
     function toggleAdminSkill(rowId, key) {
-        const r = adminManualEntries.find(x => x.rowId === rowId);
-        if(r) {
-            if(r.skillQueue.includes(key)) r.skillQueue = r.skillQueue.filter(k => k !== key);
-            else {
-                // Limit 3 skills total per row? or per team?
-                // Let's limit 3 per team
-                const prefix = key.split('-')[0]; // 'my' or 'enemy'
-                const count = r.skillQueue.filter(k => k.startsWith(prefix)).length;
-                if(count < 3) r.skillQueue.push(key);
+        const row = adminManualEntries.find(r => r.rowId === rowId);
+        if (row) {
+            const existIdx = row.skillQueue.indexOf(key);
+            if (existIdx > -1) {
+                // ถ้ากดซ้ำตัวเดิม ให้ยกเลิกการจอง
+                row.skillQueue.splice(existIdx, 1);
+            } else {
+                // เช็คว่าทีมนี้ (my หรือ enemy) จองครบ 3 หรือยัง
+                const teamPrefix = key.split('-')[0];
+                const currentTeamSkills = row.skillQueue.filter(k => k.startsWith(teamPrefix));
+                
+                if (currentTeamSkills.length < 3) {
+                    row.skillQueue.push(key);
+                } else {
+                    // ถ้าเต็ม 3 แล้ว ให้เปลี่ยนตัวสุดท้ายเป็นตัวใหม่ที่เพิ่งกด
+                    const lastIdx = row.skillQueue.findLastIndex(k => k.startsWith(teamPrefix));
+                    row.skillQueue[lastIdx] = key;
+                }
             }
-            renderAdminRows();
+            renderAdminRows(); // วาดใหม่เพื่อโชว์เลขลำดับบนปุ่ม
         }
     }
 
-    // --- Search & Select Logic (Admin Version) ---
-
+    // 3. ปรับปรุงระบบค้นหา Hero
     function handleAdminSearch(input, rowId, team, slotIdx) {
-        const query = input.value.toLowerCase();
+        const query = input.value.toLowerCase().trim();
         const listEl = document.getElementById(`list-${input.id}`);
-        if(query.length < 1) { listEl.style.display = 'none'; return; }
+        if (!listEl) return;
 
-        const matches = heroesDB.filter(h => h.name.toLowerCase().includes(query)).slice(0, 5);
-        if(matches.length > 0) {
-            listEl.innerHTML = matches.map(h => `
-                <div class="autocomplete-item" data-id="${h.id}" onclick="selectAdminHero('${rowId}', '${team}', ${slotIdx}, '${h.id}', true)">
-                    <img src="${h.img}"> <span>${h.name}</span>
+        if (query.length === 0) { listEl.style.display = 'none'; return; }
+
+        const matches = heroesDB.filter(h => (h.name || '').toLowerCase().includes(query)).slice(0, 6);
+        
+        if (matches.length > 0) {
+            // 🟢 เปลี่ยนจาก onclick เป็น onmousedown เพื่อหลบ Event onblur
+            listEl.innerHTML = matches.map((h, i) => `
+                <div class="autocomplete-item ${i===0 ? 'bg-blue-900/30' : ''}" 
+                    data-id="${h.id}" 
+                    onmousedown="event.preventDefault(); selectAdminHero('${rowId}', '${team}', ${slotIdx}, '${h.id}', true)">
+                    <img src="${h.img}" class="w-6 h-6 rounded bg-black object-cover"> 
+                    <span class="truncate">${h.name}</span>
                 </div>
             `).join('');
             listEl.style.display = 'block';
@@ -13054,50 +13069,55 @@
         }
     }
 
+    // 5. ระบบเลือก Hero
     function selectAdminHero(rowId, team, slotIdx, heroId, doNext = false) {
         const r = adminManualEntries.find(x => x.rowId === rowId);
-        const h = heroesDB.find(x => x.id === heroId);
-        if(r && h) {
-            if(team === 'my') r.myHeroes[slotIdx] = h;
+        const h = heroesDB.find(x => String(x.id) === String(heroId));
+        if (r && h) {
+            if (team === 'my') r.myHeroes[slotIdx] = h;
             else r.enemyHeroes[slotIdx] = h;
             
-            renderAdminRows(); // วาดใหม่เพื่อโชว์รูป
+            renderAdminRows(); // วาดใหม่
 
-            // ถ้าเป็น Auto Select (กด Enter หรือคลิกเลือก) ให้เลื่อนไปช่องถัดไป
-            if (doNext) {
-                moveToNextAdminSlot(rowId, team, slotIdx, 'hero');
-            }
+            if (doNext) moveToNextAdminSlot(rowId, team, slotIdx, 'hero');
         }
     }
 
+    // 4. ปรับปรุงระบบค้นหา Pet
     function handleAdminPetSearch(input, rowId, team) {
-        const query = input.value.toLowerCase();
+        const query = input.value.toLowerCase().trim();
         const listEl = document.getElementById(`list-${input.id}`);
-        if(query.length < 1) { listEl.style.display = 'none'; return; }
+        if (!listEl) return;
 
-        const matches = petsDB.filter(p => p.name.toLowerCase().includes(query)).slice(0, 3);
-        if(matches.length > 0) {
-            listEl.innerHTML = matches.map(p => `
-                <div class="autocomplete-item" data-id="${p.id}" onclick="selectAdminPet('${rowId}', '${team}', '${p.id}', true)">
-                    <img src="${p.img}"> <span>${p.name}</span>
+        if (query.length === 0) { listEl.style.display = 'none'; return; }
+
+        const matches = petsDB.filter(p => (p.name || '').toLowerCase().includes(query)).slice(0, 4);
+        if (matches.length > 0) {
+            listEl.innerHTML = matches.map((p, i) => `
+                <div class="autocomplete-item ${i===0 ? 'bg-blue-900/30' : ''}" 
+                    data-id="${p.id}" 
+                    onmousedown="event.preventDefault(); selectAdminPet('${rowId}', '${team}', '${p.id}', true)">
+                    <img src="${p.img}" class="w-6 h-6 rounded bg-black object-cover"> 
+                    <span class="truncate">${p.name}</span>
                 </div>
             `).join('');
             listEl.style.display = 'block';
-        } else listEl.style.display = 'none';
+        } else {
+            listEl.style.display = 'none';
+        }
     }
 
+    // 6. ระบบเลือก Pet
     function selectAdminPet(rowId, team, petId, doNext = false) {
         const r = adminManualEntries.find(x => x.rowId === rowId);
-        const p = petsDB.find(x => x.id === petId);
-        if(r && p) {
-            if(team === 'my') r.myPet = p;
+        const p = petsDB.find(x => String(x.id) === String(petId));
+        if (r && p) {
+            if (team === 'my') r.myPet = p;
             else r.enemyPet = p;
             
             renderAdminRows();
 
-            if (doNext) {
-                moveToNextAdminSlot(rowId, team, 0, 'pet');
-            }
+            if (doNext) moveToNextAdminSlot(rowId, team, 0, 'pet');
         }
     }
 
@@ -15126,7 +15146,6 @@
                     const isActive = t.id === currentTeamData.id;
                     const borderClass = isActive ? 'border-blue-500 bg-blue-900/20 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'border-gray-700 bg-[#1f2937] hover:border-gray-500 opacity-60 hover:opacity-100';
                     
-                    // ดึงรูป 3 ตัวแรกของทีมนี้มาโชว์เป็น Preview
                     const miniIcons = [0,1,2].map(i => {
                         const s = t.data.slots[i]; 
                         const hId = s ? s.id : null;
@@ -15134,18 +15153,14 @@
                         return img ? `<img src="${img}" style="width:70px; height:70px;" class="rounded border border-gray-600 bg-black">` : '';
                     }).join('');
 
-                    // 🟢 [แก้ไขจุดนี้] เปลี่ยนวิธีหาข้อมูลทีมให้ปลอดภัยขึ้น และใช้ window.currentCounterList ให้ถูกจังหวะ
                     return `
                         <div onclick="const selected = window.currentCounterList.find(x => String(x.id) === '${t.id}'); if(selected) renderPublicTeamDisplay(selected, window.currentCounterList, '${targetName}')" 
-                            class="flex flex-col gap-2 min-w-[160px] p-3 rounded-xl border-2 ${borderClass} cursor-pointer transition-all duration-200 shadow-lg relative group">
-                            
+                            class="flex flex-col gap-2 w-[300px] p-3 rounded-xl border-2 ${borderClass} cursor-pointer transition-all duration-200 shadow-lg relative group">
                             <div class="flex justify-between items-center">
                                 <span class="text-[14px] font-bold text-gray-400 uppercase">Option #${idx+1}</span>
                                 ${isActive ? '<span class="text-[10px] text-blue-400 font-bold">SELECTED</span>' : ''}
                             </div>
-                            
                             <div class="text-white font-bold text-sm truncate">${t.name}</div>
-                            
                             <div class="flex gap-1 justify-center bg-black/20 p-1.5 rounded-lg mt-1">
                                 ${miniIcons || '<span class="text-[9px] text-gray-600">Empty</span>'}
                             </div>
@@ -15179,18 +15194,15 @@
                 const slotWithPet = team.slots.find(s => s && s.pet);
                 if(slotWithPet) activePetId = slotWithPet.pet;
             }
-            // ตรวจสอบว่า ID เป็น String หรือ Object แล้วดึงค่ามาหาใน petsDB
             const finalPetId = (activePetId && typeof activePetId === 'object') ? activePetId.id : activePetId;
             const petData = finalPetId ? petsDB.find(p => String(p.id) === String(finalPetId)) : null;
 
-            // Stat Labels
             const STAT_LABELS = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ แม่นยำ', resist: '🚫 ต้านทาน' };
             const PERCENT_STATS = ['cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'];
 
             // --- 3. Render HTML ---
             let html = `
                 <div class="h-full flex flex-col bg-[#0b0e14]">
-                    
                     <div class="p-4 md:p-6 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0 sticky top-0 z-50 shadow-md">
                         <div class="flex items-center gap-4">
                             <button onclick="loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition text-lg border border-gray-700 shadow">❮</button>
@@ -15230,7 +15242,6 @@
                                     const h = heroesDB.find(x => String(x.id) === String(slot.id));
                                     if (!h) return '';
 
-                                    // Stars & Stats Logic
                                     const currentStar = slot.star !== undefined ? parseInt(slot.star) : 6;
                                     let starColor = currentStar >= 13 ? 'text-red-500' : (currentStar >= 7 ? 'text-blue-400' : 'text-yellow-400');
                                     let starLabel = currentStar >= 13 ? '★' : (currentStar >= 7 ? '★'.repeat(currentStar - 6) : '★'.repeat(currentStar));
@@ -15242,8 +15253,16 @@
                                         return `<div class="flex flex-col justify-center bg-black/20 px-2 py-1.5 rounded border border-gray-700/50"><span class="text-[16px] text-gray-500 font-bold uppercase">${STAT_LABELS[key]||key}</span><span class="text-sm font-mono font-bold ${valColor}">${val.toLocaleString()}${isPercent?'%':''}</span></div>`;
                                     }).join('');
 
+                                    // 💬 ส่วนที่เพิ่มเข้าไป: การแสดงผล Comment
+                                    const commentBlock = slot.comment ? `
+                                        <div style="margin-top: 12px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3b82f6; border-radius: 0 8px 8px 0;">
+                                            <div style="font-size: 10px; color: #60a5fa; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">💡 Hero Note</div>
+                                            <div style="font-size: 13px; color: #d1d5db; font-style: italic;">"${slot.comment}"</div>
+                                        </div>
+                                    ` : '';
+
                                     return `
-                                        <div class="bg-[#1f2937] border border-gray-700 rounded-3xl p-4 shadow-xl flex flex-col md:flex-row gap-4 relative overflow-hidden">
+                                        <div class="bg-[#1f2937] border border-gray-700 rounded-3xl p-4 shadow-xl flex flex-col md:flex-row gap-3 relative overflow-hidden">
                                             <div class="items-start gap-4 shrink-0 border-b md:border-b-0 md:border-r border-gray-700 pb-4 md:pb-0 md:pr-3 text-center md:text-left">
                                                 <div class="relative shrink-0 mx-auto md:mx-0 mb-2" style="width: 130px; height: 130px;">
                                                     <img src="${h.img}" class="w-full h-full rounded-2xl border-4 border-gray-500 object-cover bg-black">
@@ -15251,23 +15270,23 @@
                                                 <div class="text-white font-bold text-xl truncate" style="text-align: center;">${h.name}</div>
                                                 <div class="${starColor} text-base shadow-black drop-shadow-md" style="text-align: center;">${starLabel}</div>
                                             </div>
-                                            <div class="w-full">
+                                            <div class="w-full flex flex-col justify-between">
                                                 <div class="">${statsHTML}</div>
+                                                ${commentBlock}
                                             </div>
                                             <div class="flex flex-row md:flex-col gap-2 items-center justify-center border-t md:border-t-0 md:border-l border-gray-700 pt-4 md:pt-0 md:pl-3 shrink-0 min-w-[70px]">
                                                 ${slot.ring ? `<img src="${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).img}" style="width:80px;height:80px;" class="rounded-lg border border-yellow-600 bg-black" title="Ring">` : ''}
-                                                <div class="text-[10px] rounded-lg border p-1">${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).name}</div>
+                                                <div class="text-[10px] rounded-lg border p-1" style="color:#ca8a04; border-color:#ca8a04;">${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{name:'No Ring'}).name}</div>
                                                 ${slot.equip ? `<img src="${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).img}" style="width:80px;height:80px;" class="rounded-lg border border-cyan-600 bg-black" title="Set">` : ''}
-                                                <div class="text-[10px] rounded-lg border p-1">${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).name}</div>
+                                                <div class="text-[10px] rounded-lg border p-1" style="color:#0891b2; border-color:#0891b2;">${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{name:'No Set'}).name}</div>
                                             </div>
                                         </div>`;
                                 }).join('')}
                             </div>
 
                             <div class="lg:col-span-3 flex flex-col gap-6">
-                                <div class="sticky top-24 space-y-6">
-                                    
-                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-4 shadow-2xl">
+                                <div class="top-24 space-y-5">
+                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
                                         <h4 class="text-gray-400 font-bold uppercase text-xs mb-4 text-center">Formation: ${formationVal}</h4>
                                         <div class="flex justify-center items-stretch bg-black/40 rounded-2xl border border-gray-800 min-h-[200px] p-2">
                                             <div class="flex flex-col items-center w-1/2 border-r border-gray-700/50"><span class="text-[9px] text-gray-500 font-bold uppercase mb-2">Back</span><div class="flex flex-col gap-2 items-center justify-center h-full">${currentFmt.back.map(pos => renderFormationSlot(pos)).join('')}</div></div>
@@ -15275,9 +15294,9 @@
                                         </div>
                                     </div>
 
-                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-4 shadow-2xl">
+                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
                                         <h4 class="text-yellow-500 font-bold uppercase text-xs mb-4 text-center">⚡ Skill Combo</h4>
-                                        <div class="bg-black/20 p-4 rounded-2xl border border-gray-800 flex justify-center items-start gap-2 flex-wrap">
+                                        <div class="bg-black/20 p-3 rounded-2xl border border-gray-800 flex justify-center items-start gap-1 flex-wrap">
                                             ${(team.skillQueue || []).map((sq) => {
                                                 if(!sq) return '';
                                                 const [hIdx, type] = sq.split('_');
@@ -15286,8 +15305,8 @@
                                                 const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
                                                 const typeText = type === 'UP' ? 'บน' : 'ล่าง';
                                                 const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
-                                                return `<div class="flex flex-col items-center mx-0.5"><div class="w-10 h-10 rounded-lg border border-gray-600 bg-black overflow-hidden"><img src="${h?h.img:''}" class="w-full h-full object-cover"></div><div class="text-[8px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${typeText}</div></div>`;
-                                            }).join('<div class="text-gray-600 pt-3">➜</div>') || '<span class="text-gray-500 text-xs">No Data</span>'}
+                                                return `<div class="flex flex-col items-center mx-0.5"><div class="w-[70px] h-[70px] rounded-lg border border-gray-600 bg-black overflow-hidden"><img src="${h?h.img:''}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${typeText}</div></div>`;
+                                            }).join('<div class="text-gray-600 pt-6">➜</div>') || '<span class="text-gray-500 text-xs">No Data</span>'}
                                         </div>
                                     </div>
 
