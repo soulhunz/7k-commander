@@ -5034,31 +5034,6 @@
             closeCtxMenus();
         }
 
-        function updateRankName(rankKey, newName) {
-            if(!tierRankConfigs[rankKey]) tierRankConfigs[rankKey] = { name: rankKey, color: '#ffffff', opacity: 60, bg: '' };
-            tierRankConfigs[rankKey].name = newName;
-            saveTierConfig();
-        }
-
-        function resetTierNames() {
-            if(confirm("ล้างค่าทั้งหมดกลับเป็นค่าเริ่มต้น?")) {
-                // คืนค่า Default S, A, B...
-                activeTiers = ['S', 'A', 'B', 'C', 'D'];
-                tierRankConfigs = {
-                    S: { name: 'S', color: '#ffffff', headerBg: '#ef4444', opacity: 60 },
-                    A: { name: 'A', color: '#ffffff', headerBg: '#f97316', opacity: 60 },
-                    B: { name: 'B', color: '#ffffff', headerBg: '#eab308', opacity: 60 },
-                    C: { name: 'C', color: '#ffffff', headerBg: '#22c55e', opacity: 60 },
-                    D: { name: 'D', color: '#ffffff', headerBg: '#64748b', opacity: 60 }
-                };
-                
-                // ✅ บันทึกทันที
-                autoSaveTierList();
-                
-                renderTierViewer();
-                renderManagerRows();
-            }
-        }
 
         function saveTierConfig() {
             localStorage.setItem('7k_active_tiers', JSON.stringify(activeTiers));
@@ -5306,53 +5281,6 @@
             closeCtxMenus();
         }
 
-        // อัปเดต Drag Logic ให้รองรับ Transform
-        function makeDraggable(elmnt) {
-        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        
-        // ถ้าคลิกที่ตัว Object ให้เริ่มฟังก์ชัน dragMouseDown
-        elmnt.onmousedown = dragMouseDown;
-
-        function dragMouseDown(e) {
-            // ถ้ากำลังพิมพ์ข้อความ หรือจิ้ม Input สี ห้ามลาก
-            if (e.target.isContentEditable || e.target.tagName === 'INPUT') {
-                return; 
-            }
-            
-            e = e || window.event;
-            e.preventDefault();
-            // เก็บตำแหน่งเมาส์เริ่มต้น
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            
-            // เมื่อปล่อยเมาส์ หรือขยับเมาส์
-            document.onmouseup = closeDragElement;
-            document.onmousemove = elementDrag;
-        }
-
-        function elementDrag(e) {
-            e = e || window.event;
-            e.preventDefault();
-            // คำนวณตำแหน่งใหม่
-            pos1 = pos3 - e.clientX;
-            pos2 = pos4 - e.clientY;
-            pos3 = e.clientX;
-            pos4 = e.clientY;
-            
-            // ขยับ Object
-            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-        }
-
-        function closeDragElement() {
-            document.onmouseup = null;
-            document.onmousemove = null;
-            
-            // ✅ บันทึกทันทีที่ปล่อยเมาส์
-            saveLocalTierData(); 
-        }
-    }
-
         // --- 2. BACKGROUND LOGIC (ปรับให้ชัด 100%) ---
         function setTierBg(url, save = true) {
             const container = document.getElementById('tier-bg-container');
@@ -5521,7 +5449,9 @@
                     }
                 } 
                 else if (editContext.type === 'pet') {
-                    team.pet = id ? { id: String(id) } : null;
+                    const petIdx = editContext.p;
+                    if (!team.pets) team.pets = [null, null, null];
+                    team.pets[petIdx] = id ? { id: String(id) } : null;
                 } 
                 else if (editContext.type === 'ring') {
                     if (team.slots[slotIdx]) team.slots[slotIdx].ring = id;
@@ -6150,7 +6080,6 @@
         function closeTextContextMenu() { document.getElementById('textEditorMenu').style.display = 'none'; }
         function applyTextColor(cls) { if(!activeTextarea) return; const start = activeTextarea.selectionStart, end = activeTextarea.selectionEnd, text = activeTextarea.value, selection = text.substring(start, end), replacement = `<span class="${cls}">${selection || 'TEXT'}</span>`; activeTextarea.value = text.substring(0, start) + replacement + text.substring(end); closeTextContextMenu(); }
 
-        function switchGalleryTab(tab) { galleryTab = tab; document.getElementById('tab-gallery-hero').className = `tab-btn ${tab==='hero'?'active':''}`; document.getElementById('tab-gallery-pet').className = `tab-btn ${tab==='pet'?'active':''}`; document.getElementById('gallery-filters').style.display = 'flex'; galleryFilter = { rarity: null, type: null, aff: null }; renderGallery(); }
         function toggleGalleryFilter(key, val) { if (galleryFilter[key] === val) galleryFilter[key] = null; else galleryFilter[key] = val; renderGallery(); }
 
         function renderGallery() {
@@ -7083,52 +7012,6 @@
             activeTextarea.selectionStart = activeTextarea.selectionEnd = start + html.length;
             closeTextContextMenu();
             activeTextarea.dispatchEvent(new Event('change'));
-        }
-        
-        function setTextBackground() {
-            if(!activeFloatingText) return;
-            
-            const url = prompt("กรุณาวางลิงก์รูปภาพ (Image URL):\n(แนะนำรูปแนวนอน / Banner)");
-            if(url) {
-                activeFloatingText.style.backgroundImage = `url('${url}')`;
-                // ปรับแต่งให้สวยงามเมื่อมีรูป
-                activeFloatingText.style.backgroundColor = 'transparent';
-                activeFloatingText.style.border = 'none'; // ซ่อนเส้นประ
-                activeFloatingText.style.color = '#ffffff'; 
-                
-                // ขยายกล่องหน่อยถ้ามันเล็กไป
-                if(activeFloatingText.offsetWidth < 120) {
-                    activeFloatingText.style.minWidth = '150px';
-                    activeFloatingText.style.minHeight = '60px';
-                    activeFloatingText.style.display = 'flex';
-                    activeFloatingText.style.alignItems = 'center';
-                    activeFloatingText.style.justifyContent = 'center';
-                }
-            }
-            closeTierTextMenu();
-        }
-
-        function clearTextBackground() {
-            if(!activeFloatingText) return;
-            activeFloatingText.style.backgroundImage = '';
-            activeFloatingText.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            activeFloatingText.style.border = '1px dashed #fbbf24';
-            activeFloatingText.style.color = '#fbbf24';
-            activeFloatingText.style.minWidth = '50px';
-            activeFloatingText.style.minHeight = 'auto';
-            closeTierTextMenu();
-        }
-
-        function deleteFloatingText() {
-            if(activeFloatingText) {
-                activeFloatingText.remove(); // ลบออกจากหน้าจอ
-                autoSaveTierList();          // ✅ บันทึกทันทีหลังจากลบ
-            }
-            closeCtxMenus();
-        }
-
-        function closeTierTextMenu() {
-            document.getElementById('tier-text-menu').classList.add('hidden');
         }
         
         // ฟังก์ชันแปลงชื่อย่อเป็นชื่อเต็ม
@@ -9104,41 +8987,6 @@
         // --- LOCAL TIER LIST SYSTEM ---
 
         // ฟังก์ชันบันทึก Tier List ลงเครื่องตัวเอง (ไม่ส่งขึ้น Server)
-       function saveLocalTierData() {
-            // 🔒 CHECKPOINT: ถ้ายังโหลดไม่เสร็จ ห้ามเซฟเด็ดขาด!
-            if (!isTierDataLoaded) {
-                console.warn("⚠️ Prevented save: Data not fully loaded yet.");
-                return;
-            }
-
-            if (!currentTierMode) return;
-
-            // 1. เตรียม Object Config ของโหมดนี้
-            if (!tierConfigDB[currentTierMode]) tierConfigDB[currentTierMode] = getDefaultTierStruct();
-            
-            // 2. อัปเดตข้อมูลล่าสุดจากหน้าจอลงตัวแปร
-            const modeConfig = tierConfigDB[currentTierMode];
-            modeConfig.ranks = [...activeTiers]; 
-            modeConfig.configs = JSON.parse(JSON.stringify(tierRankConfigs));
-            
-            // ดึง BG
-            const bgContainer = document.getElementById('tier-bg-container');
-            let currentBg = bgContainer ? bgContainer.style.backgroundImage : '';
-            if (currentBg && currentBg !== 'none') currentBg = currentBg.slice(5, -2).replace(/"/g, "");
-            else currentBg = '';
-            modeConfig.bg = currentBg;
-
-            // ดึง Sticker/Text
-            modeConfig.objects = getCurrentTierObjects();
-
-            // 3. บันทึกลง LocalStorage
-            localStorage.setItem('7k_local_tier_full_config', JSON.stringify(tierConfigDB));
-            localStorage.setItem('7k_local_tier_db', JSON.stringify(tierListsDB));
-            localStorage.setItem('7k_last_tier_mode', currentTierMode);
-
-            console.log(`💾 Saved data for mode: ${currentTierMode}`);
-        }
-
         function saveLocalTierData() {
             // ก่อนบันทึก ต้องแน่ใจว่า Config ปัจจุบันถูกอัปเดตลง tierConfigDB แล้ว
             // (เราจะอัปเดตเฉพาะส่วน Config, ส่วน Data ตัวละคร tierListsDB มันอัปเดต realtime อยู่แล้ว)
@@ -9981,94 +9829,6 @@
     // ==========================================
     // ⚔️ BATTLE WAR (MANUAL RECORDER) LOGIC
     // ==========================================
-
-    function renderBattleWar() {
-        // 1. Render Enemy (ใช้ generateSimCardHTML เดิม)
-        const enemyHTML = generateSimCardHTML(battleWarData.enemy, 'BW-ENEMY', false, false); // false, false = ไม่ใช่ฝ่ายบุก, แก้ไขได้
-        document.getElementById('bw-enemy-area').innerHTML = enemyHTML;
-
-        // 2. Render My Team
-        const myHTML = generateSimCardHTML(battleWarData.my, 'BW-MY', true, false); // true, false = ฝ่ายบุก, แก้ไขได้
-        document.getElementById('bw-my-area').innerHTML = myHTML;
-    }
-
-    async function recordBattleWarResult(result) {
-        const myTeam = battleWarData.my;
-        const enemyTeam = battleWarData.enemy;
-        
-        // 1. Validation Checks
-        const hasMy = Object.values(myTeam.slots).some(s=>s!==null);
-        const hasEnemy = Object.values(enemyTeam.slots).some(s=>s!==null);
-        if(!hasMy || !hasEnemy) return alert("⚠️ กรุณาจัดทีมให้ครบทั้ง 2 ฝั่ง");
-
-        if(!confirm(`บันทึกผล: ${result}?`)) return;
-        showLoading("Saving...");
-
-        // 2. Create Record Data
-        const createLogData = (teamSource) => {
-            let data=[], ids=[];
-            for(let i=0; i<5; i++) {
-                const s = teamSource.slots[i];
-                if(s) {
-                    const h = heroesDB.find(x=>x.id===s.id);
-                    data.push({ id:s.id, star:s.star||0, type: h?h.type:'Unknown', ring:s.ring||null });
-                    ids.push(s.id);
-                }
-            }
-            return {data, ids};
-        };
-        const myLog = createLogData(myTeam);
-        const enemyLog = createLogData(enemyTeam);
-
-        const record = {
-            id: Date.now().toString(),
-            timestamp: Date.now(),
-            date: new Date().toLocaleString('th-TH'),
-            castle: 'Manual', castleSlot: '-', castleKey: 'MANUAL',
-            myTeamId: 'MANUAL-MY', myTeamName: myTeam.name,
-            playerData: myLog.data, enemyData: enemyLog.data,
-            playerIds: myLog.ids, enemyIds: enemyLog.ids,
-            enemySignature: enemyLog.ids.sort().join(','),
-            myTeamStars: calculateTotalTeamStars(myTeam),
-            enemyTeamStars: calculateTotalTeamStars(enemyTeam),
-            skillQueue: myTeam.skillQueue||[], enemySkillQueue: enemyTeam.skillQueue||[],
-            enemyName: (enemyTeam.name && enemyTeam.name.trim()!=='') ? enemyTeam.name : "Unknown Enemy",
-            status: result, result: result
-        };
-
-        // 3. Save to History
-        battleHistoryDB.unshift(record);
-        if(battleHistoryDB.length > 500) battleHistoryDB.pop();
-
-        await pushData();
-
-        // 4. Update Logs UI
-        renderBattleWarLogs();
-
-        // ✅ [เพิ่มส่วนนี้] 5. Clear Battle War Data (Reset Forms)
-        battleWarData.enemy = { 
-            id: 'BW-ENEMY', 
-            name: 'Enemy Team', 
-            formation: 'basic', 
-            slots: {0:null,1:null,2:null,3:null,4:null}, 
-            pet: null, 
-            skillQueue: [] 
-        };
-        
-        battleWarData.my = { 
-            id: 'BW-MY', 
-            name: 'My Team', 
-            formation: 'basic', 
-            slots: {0:null,1:null,2:null,3:null,4:null}, 
-            pet: null, 
-            skillQueue: [] 
-        };
-
-        // สั่งวาดหน้าจอใหม่ (จะเห็นเป็นหน้าโล่งๆ)
-        renderBattleWar();
-
-        hideLoading();
-    }
 
     function renderBattleWar() {
         const enemyHTML = generateSimCardHTML(battleWarData.enemy, 'BW-ENEMY', false, false);
@@ -11266,19 +11026,6 @@
         
         closeCtxMenus();
         saveLocalTierData(); // เซฟทันทีที่สร้างเสร็จ
-    }
-
-    // 6. ฟังก์ชันเปิดเมนูแก้ไขข้อความ
-    function openTierTextMenu(e, element) {
-        activeFloatingText = element; 
-        closeCtxMenus(); // ปิดเมนูอื่น
-
-        const menu = document.getElementById('tier-text-menu');
-        menu.style.display = 'block';
-        menu.classList.remove('hidden');
-        
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
     }
 
     // 7. ฟังก์ชันจัดการ Text/Background
@@ -13706,18 +13453,119 @@
             }
         };
 
-        function save3v3Teams() {
+        // =========================================================
+        // 🎯 SAVE QUEUE SYSTEM for 3v3 Teams
+        // =========================================================
+        let save3v3Queue = [];
+        let isProcessing3v3Queue = false;
+        let last3v3SaveTime = 0;
+
+        // เพิ่ม request เข้าคิว
+        function queueSave3v3Teams(immediate = false) {
+            const timestamp = Date.now();
+            last3v3SaveTime = timestamp;
+
+            // อัพเดท lastModified ของทีมที่กำลังแก้ไข
+            if (current3v3TeamIdx >= 0 && teams3v3DB[current3v3TeamIdx]) {
+                teams3v3DB[current3v3TeamIdx].lastModified = timestamp;
+            }
+
+            // บันทึกลง LocalStorage ทันที
             localStorage.setItem('7k_teams_3v3', JSON.stringify(teams3v3DB));
+
+            // เพิ่มเข้าคิวสำหรับส่งขึ้น server
+            save3v3Queue.push({
+                timestamp: timestamp,
+                teams: JSON.parse(JSON.stringify(teams3v3DB)) // Deep copy
+            });
+
+            // รวม request ที่ใกล้เคียงกัน (debounce)
+            if (!isProcessing3v3Queue) {
+                if (immediate) {
+                    process3v3SaveQueue();
+                } else {
+                    setTimeout(process3v3SaveQueue, 500); // รอ 500ms ก่อนส่ง
+                }
+            }
+        }
+
+        // ประมวลผลคิว
+        async function process3v3SaveQueue() {
+            if (isProcessing3v3Queue || save3v3Queue.length === 0) return;
+            if (!USE_CLOUD) return;
+
+            isProcessing3v3Queue = true;
+
+            // เอา request ล่าสุดที่สุด (ข้อมูลใหม่สุด)
+            const latestRequest = save3v3Queue[save3v3Queue.length - 1];
+            save3v3Queue = []; // เคลียร์คิว
+
+            try {
+                // 🟢 ใช้ Action ใหม่ save3v3Teams แทนการใช้ pushData ทั่วไป
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'save3v3Teams',
+                        teams_3v3: latestRequest.teams,
+                        timestamp: latestRequest.timestamp
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // 🟢 อัพเดทข้อมูล local ด้วยข้อมูลล่าสุดจาก server
+                    if (result.teams_3v3 && Array.isArray(result.teams_3v3)) {
+                        teams3v3DB = result.teams_3v3;
+                        localStorage.setItem('7k_teams_3v3', JSON.stringify(teams3v3DB));
+
+                        // รีเฟรช UI ถ้าจำเป็น
+                        if (current3v3TeamIdx >= 0) {
+                            const currentId = teams3v3DB[current3v3TeamIdx]?.id;
+                            // หา index ใหม่ถ้าลำดับเปลี่ยน
+                            const newIndex = teams3v3DB.findIndex(t => t.id === currentId);
+                            if (newIndex !== -1 && newIndex !== current3v3TeamIdx) {
+                                current3v3TeamIdx = newIndex;
+                                render3v3TeamsList();
+                            }
+                        }
+                    }
+                    console.log('✅ 3v3 Teams saved with queue system');
+                } else {
+                    console.warn('⚠️ Save warning:', result.message);
+                }
+            } catch (err) {
+                console.error('❌ Save error:', err);
+                // คืนค่าเข้าคิวเพื่อลองใหม่ครั้งหน้า
+                save3v3Queue.unshift(latestRequest);
+            } finally {
+                isProcessing3v3Queue = false;
+
+                // ถ้ามี request ใหม่เข้ามาระหว่างประมวลผล ให้ประมวลผลต่อ
+                if (save3v3Queue.length > 0) {
+                    setTimeout(process3v3SaveQueue, 100);
+                }
+            }
+        }
+
+        // ฟังก์ชันเก่า - ยังใช้สำหรับ local save
+        function save3v3Teams() {
+            queueSave3v3Teams(false);
         }
 
         // 4. สร้างทีมใหม่
         function createNew3v3Team() {
+            const now = Date.now();
             teams3v3DB.unshift({
-                id: '3V3_' + Date.now(),
+                id: '3V3_' + now,
                 name: "New 3v3 Team",
-                slots: [null, null, null] // 3 ช่อง
+                note: "",
+                slots: [null, null, null], // 3 ช่อง
+                pets: [null, null, null], // 3 สัตว์เลี้ยง
+                lastModified: now // 🟢 Timestamp สำหรับ Queue System
             });
-            save3v3Teams();
+            queueSave3v3Teams(true); // immediate save
             select3v3Team(0); // เลือกทีมล่าสุดที่เพิ่งสร้าง
         }
 
@@ -13744,8 +13592,8 @@
                 render3v3TeamsList();
                 render3v3Editor();
 
-                // 5. 🟢 ส่งข้อมูลล่าสุด (ที่ลบแล้ว) ขึ้นไปทับบน Database
-                await pushData(); 
+                // 5. 🟢 ส่งข้อมูลล่าสุด (ที่ลบแล้ว) ขึ้นไปทับบน Database ด้วย Queue
+                await queueSave3v3Teams(true); // immediate save 
                 
                 // alert("✅ ลบทีมเรียบร้อยแล้ว"); // (เลือกเปิด/ปิดแจ้งเตือนได้)
 
@@ -13762,6 +13610,13 @@
                 teams3v3DB[current3v3TeamIdx].name = val;
                 save3v3Teams();
                 render3v3TeamsList();
+            }
+        }
+
+        function update3v3TeamNote(val) {
+            if (current3v3TeamIdx > -1 && teams3v3DB[current3v3TeamIdx]) {
+                teams3v3DB[current3v3TeamIdx].note = val;
+                save3v3Teams();
             }
         }
 
@@ -13885,7 +13740,9 @@
             if (!team.slots) team.slots = [{}, {}, {}];
             if (!team.skillQueue) team.skillQueue = ['', '', ''];
             if (team.isShared === undefined) team.isShared = false;
-            if (!team.enemyTeams) team.enemyTeams = []; 
+            if (!team.enemyTeams) team.enemyTeams = [];
+            if (team.note === undefined) team.note = '';
+            if (!team.pets) team.pets = [null, null, null];
 
             // Fix Position
             let usedPos = new Set();
@@ -13900,7 +13757,8 @@
 
             // --- Header HTML ---
             const headerHTML = `
-                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-[#1f2937] p-4 rounded-xl border border-gray-700 shadow-lg mb-6">
+                <div class="flex flex-col gap-4 bg-[#1f2937] p-4 rounded-xl border border-gray-700 shadow-lg mb-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="flex items-center gap-3 w-full md:w-auto flex-1">
                         <div class="bg-blue-600 text-white p-2 rounded-lg shadow shrink-0"><span class="text-xl">🛡️</span></div>
                         <div class="w-full">
@@ -13912,6 +13770,11 @@
                     <div class="flex gap-2 w-full md:w-auto justify-end mt-2 md:mt-0 flex-wrap">
                         <button onclick="manualSave3v3Data()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-xs font-bold">💾 Save</button>
                         <button onclick="delete3v3Team()" class="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded text-xs font-bold">🗑️ Del</button>
+                    </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Team Details / Note</label>
+                        <textarea onchange="update3v3TeamNote(this.value)" placeholder="รายละเอียดแผนทีม, จุดเด่น, วิธีเล่น..." class="bg-[#0b0e14] border border-gray-600 text-gray-200 px-3 py-2 rounded-lg outline-none focus:border-blue-500 w-full text-sm shadow-inner transition min-h-[78px]">${team.note || ''}</textarea>
                     </div>
                 </div>
             `;
@@ -13994,20 +13857,21 @@
             const frontRowHTML = currentFmt.front.map(pos => renderStageBlock(pos)).join('');
             const backRowHTML = currentFmt.back.map(pos => renderStageBlock(pos)).join('');
 
-            let petDisplay = `<div class="w-full h-full rounded-full border-2 border-dashed border-gray-600 bg-black/40 flex items-center justify-center text-xl hover:border-purple-500 transition">🐾</div>`;
-            if (team.pet && team.pet.id) {
-                const p = petsDB.find(x => String(x.id) === String(team.pet.id));
-                if (p) petDisplay = `<img src="${p.img}" class="w-full h-full object-cover rounded-full border-2 border-purple-500 shadow-lg">`;
-            }
-            const petHTML = `
-                <div class="absolute bottom-4 right-4 z-20 flex flex-col items-center gap-1 group">
-                    <div onclick="openSelector('TEAM-3V3', 'pet', 'pet')" class="w-14 h-14 cursor-pointer transition transform group-hover:scale-110">
+            // --- 3 Pets Display ---
+            if (!team.pets) team.pets = [null, null, null];
+            const renderPetSlot = (petIdx) => {
+                const petData = team.pets[petIdx];
+                let petDisplay = `<div class="w-full h-full rounded-full border-2 border-dashed border-gray-600 bg-black/40 flex items-center justify-center text-xl hover:border-purple-500 transition">🐾</div>`;
+                if (petData && petData.id) {
+                    const p = petsDB.find(x => String(x.id) === String(petData.id));
+                    if (p) petDisplay = `<img src="${p.img}" class="w-full h-full object-cover rounded-full border-2 border-purple-500 shadow-lg">`;
+                }
+                return `
+                    <div onclick="openSelector('TEAM-3V3', ${petIdx}, 'pet')" class="w-12 h-12 cursor-pointer transition transform hover:scale-110">
                         ${petDisplay}
                     </div>
-                    <span class="text-[9px] font-bold text-purple-400 bg-black/60 px-2 rounded backdrop-blur-sm pointer-events-none">PET</span>
-                </div>
-            `;
-
+                `;
+            };
             // Skill Queue Display
             const skillQueueDisplay = [0, 1, 2].map(i => {
                 const val = team.skillQueue[i];
@@ -14169,8 +14033,8 @@
                                 <div class="w-[90%] h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent border-t border-dashed border-blue-900/50 relative"></div>
                                 <div class="relative w-full flex justify-center items-center py-2"><span class="absolute inset-0 flex items-center justify-center text-6xl md:text-8xl font-black text-white/5 uppercase tracking-[0.2em] select-none pointer-events-none z-0">FRONT</span><div class="relative z-10 flex gap-4">${frontRowHTML}</div></div>
                             </div>
-                            ${petHTML}
                         </div>
+                        ${teamType === 'Attack' ? `
                         <div class="w-full xl:w-80 bg-[#111827] border border-gray-700 p-4 rounded-xl shadow-lg flex flex-col shrink-0">
                             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
                                 <div class="text-[10px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-2"><span>🎯</span> Target Enemies</div>
@@ -14180,7 +14044,29 @@
                             <button onclick="openSelector('TEAM-3V3', 'new', 'pattern')" class="mt-4 w-full py-3 bg-red-900/20 hover:bg-red-900/40 border border-red-800 text-red-300 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg">
     <span class="text-lg font-bold">+</span> Import Enemy Pattern
 </button>
+                            <!-- Pets Section -->
+                            <div class="mt-4 pt-4 border-t border-gray-700">
+                                <div class="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-2 mb-3"><span>🐾</span> Pets</div>
+                                <div class="flex justify-center gap-3">
+                                    ${renderPetSlot(0)}
+                                    ${renderPetSlot(1)}
+                                    ${renderPetSlot(2)}
+                                </div>
+                            </div>
                         </div>
+                        ` : `
+                        <!-- Defense Type: Pets Only -->
+                        <div class="w-full xl:w-80 bg-[#111827] border border-gray-700 p-4 rounded-xl shadow-lg flex flex-col shrink-0">
+                            <div class="text-[10px] text-purple-400 font-bold uppercase tracking-wider flex items-center gap-2 mb-4 pb-2 border-b border-gray-700"><span>🐾</span> PETS</div>
+                            <div class="flex-1 flex flex-col justify-center">
+                                <div class="flex justify-center gap-3">
+                                    ${renderPetSlot(0)}
+                                    ${renderPetSlot(1)}
+                                    ${renderPetSlot(2)}
+                                </div>
+                            </div>
+                        </div>
+                        `}
                     </div>
                     <div class="bg-[#111827] border border-gray-700 p-6 rounded-xl shadow-inner flex flex-col items-center gap-6 mt-4">
                         <div class="flex items-center gap-3 text-yellow-500"><span class="text-3xl">⚡</span><div class="flex flex-col"><span class="text-sm font-black uppercase tracking-widest">Skill Combo</span><span class="text-[10px] text-gray-500">ลำดับการใช้สกิล 1 -> 2 -> 3</span></div></div>
@@ -14899,12 +14785,10 @@
                 return h ? h.img : null;
             };
 
-            // 🟢 [FUNCTION ใหม่] วาดรูปฮีโร่ 3 ตัว + สัตว์เลี้ยง 1 ตัว
-            const renderHeroesAndPet = (teamData, isEnemy) => {
+            // 🟢 [FUNCTION] วาดรูปฮีโร่ 3 ตัว + สัตว์เลี้ยง 1 ตัว (ใช้สำหรับ Counter Team List)
+            const renderHeroesAndPets = (teamData, isEnemy) => {
                 const slots = teamData.slots;
-                // ดึง ID สัตว์เลี้ยง (รองรับทั้ง object และ string)
-                const petId = teamData.pet ? (typeof teamData.pet === 'object' ? teamData.pet.id : teamData.pet) : null;
-                
+
                 // 1. ดึงฮีโร่ 3 ตัวแรกที่มีข้อมูล
                 let validHeroIds = [];
                 for (let i = 0; i < 5; i++) {
@@ -14919,21 +14803,31 @@
                     return img ? `<img src="${img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">` : '';
                 }).join('');
 
-                // 2. ดึงสัตว์เลี้ยง
-                let petHTML = '';
-                if (petId) {
-                    const pet = petsDB.find(p => String(p.id) === String(petId));
+                // 2. ดึงสัตว์เลี้ยงแค่ 1 ตัว (รองรับทั้ง pets array และ pet เดี่ยว)
+                let petsArray = [];
+                if (teamData.pets && Array.isArray(teamData.pets) && teamData.pets.length > 0) {
+                    petsArray = teamData.pets.filter(p => p && p.id);
+                } else if (teamData.pet) {
+                    const petId = typeof teamData.pet === 'object' ? teamData.pet.id : teamData.pet;
+                    if (petId) petsArray.push({ id: petId });
+                }
+
+                let petsHTML = '';
+                if (petsArray.length > 0) {
+                    const firstPet = petsArray[0];
+                    const pet = petsDB.find(p => String(p.id) === String(firstPet.id));
                     if (pet && pet.img) {
                         const petBorder = isEnemy ? 'border-red-400' : 'border-purple-500';
-                        petHTML = `
-                            <div class="relative flex items-center justify-center ml-1 border-l border-gray-700 pl-3">
-                                <img src="${pet.img}" class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 ${petBorder} bg-black object-cover shadow-lg" title="${pet.name}">
-                                <span class="absolute -bottom-1 text-[7px] text-white bg-black/80 px-1 rounded font-bold uppercase">Pet</span>
+                        const petBg = isEnemy ? 'bg-red-900/20' : 'bg-purple-900/20';
+                        petsHTML = `
+                            <div class="flex flex-col items-center ml-2 border-l-2 ${isEnemy ? 'border-red-500/30' : 'border-purple-500/30'} pl-3 gap-1">
+                                <div class="text-[8px] font-bold uppercase tracking-wider ${isEnemy ? 'text-red-400' : 'text-purple-400'}">🐾 Pet</div>
+                                <img src="${pet.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 ${petBorder} ${petBg} object-cover shadow-lg" title="${pet.name}">
                             </div>`;
                     }
                 }
 
-                return `<div class="flex justify-center items-center gap-2">${heroesHTML}${petHTML}</div>`;
+                return `<div class="flex justify-center items-center gap-2">${heroesHTML}${petsHTML}</div>`;
             };
 
             const renderCard = (item) => {
@@ -14944,6 +14838,8 @@
                 if (item.type === 'Target') {
                     const enemy = item.enemyData;
                     clickAction = `viewTargetDetail('${enemy.name}', '${item.sourceId}')`;
+
+                    // 🟢 Attack/Target mode: ใช้ renderHeroesAndPets (แสดง Heroes 3 ตัว + Pet 1 ตัว)
                     cardContent = `
                         <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
                             <div class="flex items-center gap-2 overflow-hidden">
@@ -14952,11 +14848,26 @@
                             </div>
                         </div>
                         <div class="flex-1 flex flex-col justify-center items-center py-4 bg-black/20 rounded-xl border border-gray-800/50">
-                            ${renderHeroesAndPet(enemy, true)}
+                            ${renderHeroesAndPets(enemy, true)}
                         </div>`;
                 } else {
                     const team = item.data;
+                    const shortNote = team && team.data && team.data.note ? team.data.note : '';
                     clickAction = `viewTeamFromGallery('${item.sourceId}')`;
+
+                    // 🟢 DEFENSE mode: แสดงเฉพาะ Heroes (ไม่แสดงสัตว์เลี้ยงในหน้า Gallery)
+                    const slots = team.data && team.data.slots ? team.data.slots : [];
+                    let validHeroIds = [];
+                    for (let i = 0; i < 5; i++) {
+                        let s = Array.isArray(slots) ? slots[i] : (slots ? slots[i] : null);
+                        if (s && s.id) validHeroIds.push(s.id);
+                    }
+                    const top3 = validHeroIds.slice(0, 3);
+                    const defenseHeroesHTML = top3.map(hid => {
+                        const img = getHeroImg(hid);
+                        return img ? `<img src="${img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 border-blue-500 bg-black object-cover shadow-md">` : '';
+                    }).join('');
+
                     cardContent = `
                         <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
                             <div class="flex flex-col w-full">
@@ -14965,7 +14876,11 @@
                             </div>
                         </div>
                         <div class="flex-1 flex flex-col justify-center items-center py-4 bg-black/20 rounded-xl border border-gray-800/50">
-                            ${renderHeroesAndPet(team.data, false)}
+                            <div class="flex justify-center items-center gap-2">${defenseHeroesHTML}</div>
+                        </div>
+                        <div class="mt-3 bg-black/20 border border-gray-800/60 rounded-lg px-2 py-1.5 min-h-[44px]">
+                            <div class="text-[9px] uppercase tracking-wider text-gray-500 mb-0.5">Note</div>
+                            <div class="text-[11px] text-gray-300 leading-snug line-clamp-2">${shortNote || '-'}</div>
                         </div>`;
                 }
 
@@ -15126,6 +15041,23 @@
             if (currentKey) newUrl += `&k=${currentKey}`;
             window.history.pushState({ page: 'detail', id: id }, '', newUrl);
         }
+
+        // Toggle function for mobile enemy panel visibility
+        let isMobileEnemyExpanded = true;
+        function toggleMobileEnemyPanel() {
+            const imagesDiv = document.getElementById('mobile-enemy-images');
+            const arrow = document.getElementById('mobile-enemy-arrow');
+            if (imagesDiv && arrow) {
+                isMobileEnemyExpanded = !isMobileEnemyExpanded;
+                if (isMobileEnemyExpanded) {
+                    imagesDiv.classList.remove('hidden');
+                    arrow.textContent = '↓';
+                } else {
+                    imagesDiv.classList.add('hidden');
+                    arrow.textContent = '↑';
+                }
+            }
+        }
         
         // parameter: currentTeam (ทีมที่โชว์อยู่), allCounterTeams (ลิสต์ทีมแก้ทางทั้งหมด), targetName (ชื่อศัตรู)
         function renderPublicTeamDisplay(currentTeamData, allCounterTeams = [], targetName = '') {
@@ -15137,6 +15069,24 @@
             const teamName = currentTeamData.name;
             const teamOwner = currentTeamData.owner || 'Unknown'; // ชื่อคนจัดทีม (ถ้ามี)
             const color = 'red'; // ทีมบุกสีแดงเสมอ
+            const hideCounterSection = team && team.teamType === 'Defense';
+            const targetPreview = (!hideCounterSection && team && Array.isArray(team.enemyTeams)) ? (function() {
+                const enemy = team.enemyTeams.find(e => e && e.name === targetName) || team.enemyTeams[0] || null;
+                if (!enemy) return null;
+                const heroImgs = [];
+                var enemySlots = [];
+                if (Array.isArray(enemy.slots)) {
+                    enemySlots = enemy.slots;
+                } else if (enemy.slots && typeof enemy.slots === 'object') {
+                    enemySlots = Object.keys(enemy.slots).map(function(k) { return enemy.slots[k]; });
+                }
+                enemySlots.forEach(function(s) {
+                    if (!s || !s.id) return;
+                    var h = heroesDB.find(function(hero) { return String(hero.id) === String(s.id); });
+                    if (h && h.img) heroImgs.push(h.img);
+                });
+                return { name: enemy.name || targetName || 'Unknown', heroImgs: heroImgs.slice(0, 3) };
+            })() : null;
 
             // --- 1. Top Bar Navigation (Counter Teams List) ---
             const renderCounterTeamList = () => {
@@ -15156,10 +15106,6 @@
                     return `
                         <div onclick="const selected = window.currentCounterList.find(x => String(x.id) === '${t.id}'); if(selected) renderPublicTeamDisplay(selected, window.currentCounterList, '${targetName}')" 
                             class="flex flex-col gap-2 w-[300px] p-3 rounded-xl border-2 ${borderClass} cursor-pointer transition-all duration-200 shadow-lg relative group">
-                            <div class="flex justify-between items-center">
-                                <span class="text-[14px] font-bold text-gray-400 uppercase">Option #${idx+1}</span>
-                                ${isActive ? '<span class="text-[10px] text-blue-400 font-bold">SELECTED</span>' : ''}
-                            </div>
                             <div class="text-white font-bold text-sm truncate">${t.name}</div>
                             <div class="flex gap-1 justify-center bg-black/20 p-1.5 rounded-lg mt-1">
                                 ${miniIcons || '<span class="text-[9px] text-gray-600">Empty</span>'}
@@ -15172,10 +15118,10 @@
             // --- 2. ข้อมูลพื้นฐานสำหรับแสดงผล (Formation, Stats, Pet) ---
             const formationVal = team.formation || 'Basic';
             const formationsConfig = [
-                { id: 'Basic',    back: [2, 3, 4],       front: [0, 1] },
-                { id: 'Balanced', back: [3, 4],          front: [0, 1, 2] },
-                { id: 'Attack',   back: [1, 2, 3, 4],    front: [0] },
-                { id: 'Defense',  back: [4],             front: [0, 1, 2, 3] }
+                { id: 'Basic',    label: 'พื้นฐาน',    back: [2, 3, 4],       front: [0, 1] },
+                { id: 'Balanced', label: 'สมดุล',      back: [3, 4],          front: [0, 1, 2] },
+                { id: 'Attack',   label: 'โจมตี',      back: [1, 2, 3, 4],    front: [0] },
+                { id: 'Defense',  label: 'ป้องกัน',    back: [4],             front: [0, 1, 2, 3] }
             ];
             const currentFmt = formationsConfig.find(f => f.id === formationVal) || formationsConfig[0];
 
@@ -15188,38 +15134,83 @@
                 return `<div class="rounded-lg border-2 border-dashed border-gray-700 bg-gray-800/30 flex items-center justify-center" style="width:70px;height:70px;"><div class="text-gray-600 text-xs font-bold">${posIndex+1}</div></div>`;
             };
 
-            // Pet Logic
-            let activePetId = team.pet; 
-            if (!activePetId) {
-                const slotWithPet = team.slots.find(s => s && s.pet);
-                if(slotWithPet) activePetId = slotWithPet.pet;
-            }
-            const finalPetId = (activePetId && typeof activePetId === 'object') ? activePetId.id : activePetId;
-            const petData = finalPetId ? petsDB.find(p => String(p.id) === String(finalPetId)) : null;
+            // Pet Logic - Support 3 pets (รองรับทั้ง pets array และ pet เดี่ยว backwards compatibility)
+            const renderPetsList = () => {
+                let petsArray = [];
+
+                // ใช้ pets array ใหม่ถ้ามี
+                if (team.pets && Array.isArray(team.pets) && team.pets.length > 0) {
+                    petsArray = team.pets.filter(p => p && p.id);
+                }
+                // Backwards compatibility: ถ้าไม่มี pets แต่มี pet เดี่ยว
+                else if (team.pet) {
+                    const petId = typeof team.pet === 'object' ? team.pet.id : team.pet;
+                    if (petId) petsArray.push({ id: petId });
+                }
+
+                if (petsArray.length === 0) return '';
+
+                return petsArray.map((pet, idx) => {
+                    const p = petsDB.find(x => String(x.id) === String(pet.id));
+                    if (!p) return '';
+                    return `<div class="flex flex-col items-center mx-1"><div class="w-16 h-16 rounded-full border-2 border-purple-600 bg-black overflow-hidden mb-1 p-0.5"><img src="${p.img}" class="w-full h-full object-cover rounded-full" title="${p.name}"></div></div>`;
+                }).join('');
+            };
+            const petsListHTML = renderPetsList();
 
             const STAT_LABELS = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ แม่นยำ', resist: '🚫 ต้านทาน' };
             const PERCENT_STATS = ['cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'];
 
             // --- 3. Render HTML ---
             let html = `
-                <div class="h-full flex flex-col bg-[#0b0e14]">
-                    <div class="p-4 md:p-6 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0 sticky top-0 z-50 shadow-md">
+                <div class="sticky top-0 z-50  flex flex-col bg-[#0b0e14]">
+                    <div class="p-4 md:px-4 md:py-3 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0 shadow-md">
                         <div class="flex items-center gap-4">
                             <button onclick="loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition text-lg border border-gray-700 shadow">❮</button>
                             <div>
-                                <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">TARGET ENEMY</div>
-                                <div class="text-white font-black text-2xl md:text-3xl leading-none uppercase tracking-tighter truncate max-w-[200px] md:max-w-md" title="${targetName}">${targetName}</div>
+                                <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">${hideCounterSection ? 'SELECTED TEAM' : 'TARGET ENEMY'}</div>
+                                <div class="text-white font-black text-2xl md:text-3xl leading-none uppercase tracking-tighter truncate max-w-[200px] md:max-w-md" title="${hideCounterSection ? teamName : targetName}">${hideCounterSection ? teamName : targetName}</div>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-red-500 font-bold text-lg">${allCounterTeams.length}</div>
-                            <div class="text-gray-500 text-[9px] uppercase">Teams Found</div>
+                        ${hideCounterSection ? `<div></div>` : `
+                        <div class="hidden md:flex items-center gap-3 bg-black/20 border border-gray-700 rounded-xl px-3 py-2">
+                                <div class="text-[10px] font-black uppercase tracking-widest text-red-400">Enemy</div>
+                                ${targetPreview && targetPreview.heroImgs && targetPreview.heroImgs.length > 0
+                                    ? `<div class="flex items-center gap-1.5">
+                                        ${targetPreview.heroImgs.map(function(img, idx) {
+                                            return `<img src="${img}" class="w-12 h-12 rounded-lg border border-red-500 bg-black object-cover shadow">`;
+                                        }).join('')}
+                                       </div>`
+                                    : `<div class="w-12 h-12 rounded-lg border border-dashed border-gray-600 bg-black/40 flex items-center justify-center text-xl">🎯</div>`
+                                }
+                                <div class="text-left leading-tight max-w-[180px]"></div>
+                            </div>
+                        </div>
+                        `}
+                    </div>
+                    ${hideCounterSection ? '' : `
+                    <div id="mobile-enemy-panel" class="md:hidden sticky top-[73px] z-40 w-full bg-[#111827] border-b border-gray-800">
+                        <div onclick="toggleMobileEnemyPanel()" id="mobile-enemy-header" class="flex items-center justify-center gap-2 py-2 cursor-pointer bg-red-900/20 hover:bg-red-900/30 active:bg-red-900/40 transition-colors">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-red-400">ENEMY</span>
+                            <span id="mobile-enemy-arrow" class="text-red-400 text-sm">↓</span>
+                        </div>
+                        <div id="mobile-enemy-images" class="flex flex-col items-center justify-center gap-1.5 px-4 py-3 border-t border-gray-800/50">
+                            ${targetPreview && targetPreview.heroImgs && targetPreview.heroImgs.length > 0
+                                ? `<div class="flex items-center gap-2">
+                                    ${targetPreview.heroImgs.map(function(img, idx) {
+                                        return `<img src="${img}" class="w-14 h-14 rounded-lg border-2 border-red-500 bg-black object-cover shadow">`;
+                                    }).join('')}
+                                   </div>`
+                                : `<div class="w-14 h-14 rounded-lg border-2 border-dashed border-gray-600 bg-black/40 flex items-center justify-center text-xl">🎯</div>`
+                            }
                         </div>
                     </div>
+                    `}
 
                     <div class="flex-1 overflow-y-auto p-4 md:p-8 custom-scroll">
                         <div class="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
 
+                            ${hideCounterSection ? '' : `
                             <div class="lg:col-span-12 space-y-2 mb-4">
                                 <div class="text-blue-400 text-sm font-bold uppercase ml-1 flex items-center gap-2">
                                     <span>⚔️ Counter Teams</span>
@@ -15231,10 +15222,17 @@
                                     </div>
                                 </div>
                             </div>
+                            `}
 
                             <div class="lg:col-span-9 space-y-6">
+                                ${hideCounterSection ? '' : `
                                 <div class="flex items-center justify-between px-2">
-                                    <h3 class="text-xl font-bold text-white"><span class="text-gray-500 text-sm mr-2">SELECTED:</span> ${teamName}</h3>
+                                    <h3 class="text-xl font-bold text-white"><span class="text-gray-500 text-sm mr-2">SELECTED:</span>${teamName}</h3>
+                                </div>
+                                `}
+                                <div class="mx-2 bg-[#111827] border border-gray-700 rounded-2xl p-4 shadow-lg">
+                                    <div class="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-1">Team Note</div>
+                                    <div class="text-sm text-gray-200 whitespace-pre-line break-words">${team.note || '-'}</div>
                                 </div>
 
                                 ${team.slots.map((slot, i) => {
@@ -15287,15 +15285,15 @@
                             <div class="lg:col-span-3 flex flex-col gap-6">
                                 <div class="top-24 space-y-5">
                                     <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
-                                        <h4 class="text-gray-400 font-bold uppercase text-xs mb-4 text-center">Formation: ${formationVal}</h4>
+                                        <h4 class="text-yellow-500 font-bold uppercase text-xl mb-4 text-center">Formation : ${currentFmt.label}</h4>
                                         <div class="flex justify-center items-stretch bg-black/40 rounded-2xl border border-gray-800 min-h-[200px] p-2">
-                                            <div class="flex flex-col items-center w-1/2 border-r border-gray-700/50"><span class="text-[9px] text-gray-500 font-bold uppercase mb-2">Back</span><div class="flex flex-col gap-2 items-center justify-center h-full">${currentFmt.back.map(pos => renderFormationSlot(pos)).join('')}</div></div>
-                                            <div class="flex flex-col items-center w-1/2"><span class="text-[9px] text-gray-500 font-bold uppercase mb-2">Front</span><div class="flex flex-col gap-2 items-center justify-center h-full">${currentFmt.front.map(pos => renderFormationSlot(pos)).join('')}</div></div>
+                                            <div class="flex flex-col items-center w-1/2 border-r border-gray-700/50"><span class="text-[16px] text-gray-500 font-bold uppercase mb-2">หลัง</span><div class="flex flex-col gap-2 items-center justify-center h-full">${currentFmt.back.slice().reverse().map(pos => renderFormationSlot(pos)).join('')}</div></div>
+                                            <div class="flex flex-col items-center w-1/2"><span class="text-[16px] text-gray-500 font-bold uppercase mb-2">หน้า</span><div class="flex flex-col gap-2 items-center justify-center h-full">${currentFmt.front.slice().reverse().map(pos => renderFormationSlot(pos)).join('')}</div></div>
                                         </div>
                                     </div>
 
                                     <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
-                                        <h4 class="text-yellow-500 font-bold uppercase text-xs mb-4 text-center">⚡ Skill Combo</h4>
+                                        <h4 class="text-yellow-500 font-bold uppercase text-xl mb-4 text-center">SKILL QUEUE : จองสกิล </h4>
                                         <div class="bg-black/20 p-3 rounded-2xl border border-gray-800 flex justify-center items-start gap-1 flex-wrap">
                                             ${(team.skillQueue || []).map((sq) => {
                                                 if(!sq) return '';
@@ -15310,18 +15308,12 @@
                                         </div>
                                     </div>
 
-                                    <div class="bg-[#111827] border border-purple-900/30 rounded-3xl p-4 shadow-2xl group hover:border-purple-500/50 transition">
-                                        <h4 class="text-purple-400 font-bold uppercase text-xs mb-4 text-center">🐾 Active Pet</h4>
-                                        <div class="flex flex-col items-center justify-center">
-                                            ${petData ? `
-                                                <div class="w-24 h-24 rounded-full border-4 border-purple-600 bg-black shadow-[0_0_20px_rgba(147,51,234,0.3)] overflow-hidden mb-3 p-1">
-                                                    <img src="${petData.img}" class="w-full h-full object-cover rounded-full">
-                                                </div>
-                                                <div class="text-white font-black text-lg">${petData.name}</div>
-                                            ` : `<div class="w-20 h-20 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center opacity-30 text-3xl">🐾</div><div class="text-gray-500 text-xs mt-2">No Pet</div>`}
+                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
+                                        <h4 class="text-yellow-500 font-bold uppercase text-xl mb-4 text-center">PETS : สัตว์เลี้ยง</h4>
+                                        <div class="bg-black/20 p-3 rounded-2xl border border-gray-800 flex justify-center items-start gap-1 flex-wrap">
+                                            ${petsListHTML || '<div class="text-gray-500 text-xs">ไม่มีสัตว์เลี้ยง</div>'}
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
