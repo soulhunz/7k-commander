@@ -3415,7 +3415,7 @@
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(payload)
                 });
                 
@@ -16381,9 +16381,10 @@
                 // 🟢 กับ Server-Side Merge: ส่งเฉพาะข้อมูลกิลนี้ ไม่ต้อง merge ฝั่ง client
                 const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
                 
-                const response = await fetch(SCRIPT_URL, {
+                await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         action: 'saveEnemyPatterns',
                         enemyPatterns: enemyPatternsDB, // 🟢 ส่งเฉพาะข้อมูลกิลนี้ (กรองแล้ว)
@@ -16392,34 +16393,57 @@
                     })
                 });
                 
-                const result = await response.json();
+                // 🟢 no-cors mode ทำให้อ่าน response ไม่ได้ ให้ reload ข้อมูลใหม่แทน
+                await loadEnemyPatternsFromCloud();
+                alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+            } catch (e) {
+                alert("❌ เกิดข้อผิดพลาด: " + e.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 🟢 โหลด Enemy Patterns ใหม่จาก Cloud
+        async function loadEnemyPatternsFromCloud() {
+            console.log('🔄 Reloading Enemy Patterns from Cloud...');
+            try {
+                const response = await fetch(SCRIPT_URL + '?action=getAllData', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
                 
-                if (result.status === 'success') {
-                    // 🟢 อัพเดทข้อมูล local ด้วยข้อมูลล่าสุดจาก server (ทุกกิล)
-                    if (result.enemyPatterns && Array.isArray(result.enemyPatterns)) {
-                        allEnemyPatternsDB = result.enemyPatterns;
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // 🟢 อัพเดทเฉพาะ Enemy Patterns
+                    if (data.enemyPatterns && Array.isArray(data.enemyPatterns)) {
+                        allEnemyPatternsDB = data.enemyPatterns;
                         
-                        // กรองใหม่ตามกิลปัจจุบัน
+                        // กรองตาม Guild ของ User ปัจจุบัน
+                        const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
                         const isAdmin = CURRENT_USER?.role === 'admin';
+                        
                         if (!isAdmin && userGuild !== 'all') {
                             enemyPatternsDB = allEnemyPatternsDB.filter(pattern => {
                                 const patternGuild = pattern.guild_name || pattern.guildId || 'all';
                                 return !patternGuild || patternGuild === userGuild || patternGuild === 'all';
                             });
+                            console.log('🔒 Filtered Enemy Patterns: ' + allEnemyPatternsDB.length + ' → ' + enemyPatternsDB.length + ' items');
                         } else {
                             enemyPatternsDB = allEnemyPatternsDB;
                         }
+                        
+                        localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB));
+                        console.log('✅ Enemy Patterns reloaded: ' + allEnemyPatternsDB.length + ' total');
+                        
+                        // Refresh UI ถ้ากำลังแสดงอยู่
+                        if (document.getElementById('enemy-patterns-page')?.classList.contains('active')) {
+                            renderEnemyPatterns();
+                        }
                     }
-                    
-                    localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB));
-                    alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
-                } else {
-                    throw new Error(result.message || 'Save failed');
                 }
             } catch (e) {
-                alert("❌ เกิดข้อผิดพลาด: " + e.message);
-            } finally {
-                hideLoading();
+                console.error('❌ Failed to reload Enemy Patterns:', e);
             }
         }
 
