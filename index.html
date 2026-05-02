@@ -968,7 +968,7 @@
             <div class="menu-item" id="nav-catalog"> Catalog</div>
             <!-- onclick="switchView('catalog')" -->
 
-            <div class="my-4 pt-4 border-t border-gray-800">
+            <div id="database-menu-group" class="my-4 pt-4 border-t border-gray-800">
                 <div class="menu-section-title">Database Manager</div>
                 <div onclick="switchView('hero-manager')" class="menu-item" id="nav-hero-manager">🦸 Heroes</div>
                 <div onclick="switchView('pet-manager')" class="menu-item" id="nav-pet-manager">🐾 Pets</div>
@@ -1132,8 +1132,8 @@
                     <div class="relative"><span class="absolute left-3 top-2.5 text-gray-500">🔍</span><input type="text" id="gallery-search" onkeyup="renderGallery()" placeholder="ค้นหา ชื่อ..." class="bg-[#0d1117] border border-gray-600 text-white pl-10 pr-4 py-2 rounded-lg outline-none w-64 focus:border-blue-500"></div>
                 </div>
                 <div class="flex border-b border-gray-700 mb-4">
-                    <div onclick="switchGalleryTab('hero')" class="tab-btn active" id="tab-gallery-hero">HEROES</div>
-                    <div onclick="switchGalleryTab('pet')" class="tab-btn" id="tab-gallery-pet">PETS</div>
+                    <div onclick="switchLocalGalleryTab('hero')" class="tab-btn active" id="tab-gallery-hero">HEROES</div>
+                    <div onclick="switchLocalGalleryTab('pet')" class="tab-btn" id="tab-gallery-pet">PETS</div>
                 </div>
                 <div id="gallery-filters" class="flex flex-col gap-3"></div>
             </header>
@@ -1347,7 +1347,7 @@
 
                 <div class="flex">
                     <button onclick="openPublicGallery()" class="bg-purple-600 text-white px-3 py-2 rounded-lg text-xs font-bold mr-2">🌎 Link Gallery</button>
-                    <button onclick="createNew3v3Team()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2">
+                    <button onclick="event.stopPropagation(); createNew3v3Team();" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2">
                         <span>+</span> สร้างทีมใหม่
                     </button>
                 </div>
@@ -2325,6 +2325,7 @@
         // ⚔️ 3V3 TEAM BUILDER LOGIC
         // 1. ตัวแปรเก็บข้อมูลทีม 3V3 (บันทึกในเครื่อง)
         let teams3v3DB = JSON.parse(localStorage.getItem('7k_3v3_teams_db')) || [];
+        let allTeams3v3DB = JSON.parse(localStorage.getItem('7k_3v3_teams_db')) || []; // 🟢 ข้อมูลดิบทั้งหมด (ไม่กรอง)
         let current3v3TeamIdx = -1;
 
         let equipSetsDB = JSON.parse(localStorage.getItem('7k_equip_sets')) || [];
@@ -2420,26 +2421,33 @@
             my: { id: 'PREP-MY', name: 'My Draft Team', formation: 'basic', slots: {0:null,1:null,2:null,3:null,4:null}, pet: null, skillQueue: [] }
         };
 
+
+        // const USER_PERMISSIONS = ["nav-preparation","nav-team-builder-3v3","nav-enemy-manager","nav-simulator","nav-hero-lists","nav-gallery","nav-tier-viewer","nav-catalog"];
+
+        // ["nav-preparation","nav-team-builder-3v3","nav-enemy-manager","nav-simulator","nav-hero-lists","nav-gallery","nav-tier-viewer","nav-catalog","nav-hero-manager","nav-pet-manager","nav-ring-manager","nav-equip-manager","nav-guild-manager","nav-user-manager","nav-survey-admin","nav-add-battle"]
         // --- LOGIN SYSTEM ---
         let CURRENT_USER = null; // เก็บข้อมูลผู้ใช้ปัจจุบัน
         const ALL_MENUS = [
-            { id: 'nav-simulator',    label: '🎮 Simulator',        default: true },
-            { id: 'nav-team-builder-3v3', label: '⚔️ 3v3 Team Builder', default: true },
-            { id: 'nav-tier-viewer',  label: '🧩 Customize', default: true },
-            { id: 'nav-gallery',      label: '🖼️ Gallery',          default: true },
-            { id: 'nav-hero-lists',   label: '📜 Hero Lists',        default: true },
-            { id: 'nav-enemy-manager', label: '🎯 Enemy Patterns', default: true },
+            { id: 'nav-preparation', label: '🧠 PREPARATION (AI)', default: false },
+            { id: 'nav-team-builder-3v3', label: '⚔️ 3v3 Team Builder', default: false },
+            { id: 'nav-enemy-manager', label: '🎯 Enemy Patterns', default: false },
+            { id: 'nav-simulator', label: '🎮 Battle Simulator', default: false },
+            { id: 'nav-hero-lists', label: '📋 Hero Lists & Usage', default: false },
+            { id: 'nav-gallery', label: '🖼️ Gallery', default: false },
+            { id: 'nav-tier-viewer', label: '🧩 Customize', default: false },
+            { id: 'nav-catalog', label: ' Catalog', default: false },
             
             // Database Manager
-            { id: 'nav-hero-manager', label: '🦸 Manage Heroes',    default: false },
-            { id: 'nav-pet-manager',  label: '🐾 Manage Pets',      default: false },
-            { id: 'nav-ring-manager', label: '💍 Manage Rings',     default: false },
-            // { id: 'nav-guild-members', label: '👥 Guild Members', default: true },
-            { id: 'nav-guild-manager', label: '🏰 Guilds & Alliances', default: true },
+            { id: 'nav-hero-manager', label: '🦸 Manage Heroes', default: false },
+            { id: 'nav-pet-manager', label: '🐾 Manage Pets', default: false },
+            { id: 'nav-ring-manager', label: '💍 Manage Rings', default: false },
+            { id: 'nav-equip-manager', label: '🛡️ Equipment Sets', default: false },
+            { id: 'nav-guild-manager', label: '🏰 Guilds & Alliances', default: false },
             
             // Admin Zone
-            { id: 'nav-user-manager', label: '👥 User Manager',     default: false },
-            { id: 'nav-survey-admin', label: '📝 Survey Builder',   default: false },
+            { id: 'nav-user-manager', label: '👥 User Manager', default: false },
+            { id: 'nav-survey-admin', label: '📝 Survey Builder', default: false },
+            { id: 'nav-add-battle', label: '➕ Add Battle Manual', default: false },
         ];
 
         // --- AUTO-SAVE SYSTEM ---
@@ -2623,17 +2631,24 @@
 
         // 1. ตัวแปร Global และการโหลดข้อมูล
         let enemyPatternsDB = JSON.parse(localStorage.getItem('7k_enemy_patterns')) || [];
+        let allEnemyPatternsDB = null; // 🟢 เก็บข้อมูลดิบทั้งหมด (ไม่กรอง)
         let currentPatternIdx = -1;
 
         // เพิ่มเมนูนี้เข้าไปใน ALL_MENUS (ถ้ายังไม่มี)
         const enemyMenuExists = ALL_MENUS.find(m => m.id === 'nav-enemy-manager');
         if (!enemyMenuExists) {
             // แทรกต่อจาก Simulator
-            ALL_MENUS.splice(1, 0, { id: 'nav-enemy-manager', label: '🎯 Enemy Patterns', default: true });
+            ALL_MENUS.splice(1, 0, { id: 'nav-enemy-manager', label: '🎯 Enemy Patterns', default: false });
         }
         
         async function initLogin() {
             console.log("🔍 Checking System Mode...");
+            
+            // 🟢 ซ่อนทุกเมนูก่อน จนกว่าจะโหลดข้อมูลเสร็จ
+            ALL_MENUS.forEach(menu => {
+                const el = document.getElementById(menu.id);
+                if (el) el.style.display = 'none';
+            });
 
             // A. เช็คโหมดสมัครสมาชิก (?mode=apply)
             const urlParams = new URLSearchParams(window.location.search);
@@ -2659,12 +2674,17 @@
                 console.log("👤 Session Found -> Auto Login");
                 CURRENT_USER = JSON.parse(savedUser);
                 document.getElementById('login-screen').style.display = 'none';
-                
+
                 // 🔥 มีสิทธิ์แล้ว -> ดึงข้อมูลทั้งหมด
                 if (heroesDB.length === 0) {
+                    // 🟢 ดึงจาก Cloud -> fetchCloudData จัดการ show/hide Loading เอง
                     await fetchCloudData('getAllData', true);
                 } else {
+                    // 🟢 ใช้ข้อมูลจาก localStorage -> แสดง Loading แล้ว initApp
+                    showLoading("กำลังโหลดข้อมูล...");
+                    if (typeof filterGuildAccessByUser === "function") filterGuildAccessByUser();
                     initApp();
+                    hideLoading();
                 }
             } else {
                 // C. ยังไม่ Login -> แสดงหน้า Login และไม่โหลดข้อมูลใดๆ
@@ -2693,6 +2713,7 @@
             btn.disabled = true;
             btn.innerHTML = `<div class="spinner w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Checking...`;
             msg.innerText = "";
+            showLoading("กำลังเข้าสู่ระบบ...");
 
             try {
                 // 3. ส่งข้อมูลไปตรวจสอบที่ Server (Google Apps Script)
@@ -2738,17 +2759,19 @@
                 msg.className = "text-green-400 text-xs mt-4";
                 
                 // 1. บันทึก Session (ใช้ข้อมูลที่ได้จาก Server)
-                const userData = { 
+                const userData = {
                     username: user.username, // หรือ user.id ตามที่ Server ส่งกลับมา
-                    name: user.name, 
+                    name: user.name,
                     role: user.role,
-                    permissions: user.permissions || [] 
+                    permissions: user.permissions || [],
+                    guild_name: user.guild_name || 'all' // 🟢 เพิ่ม: บันทึก guild_name
                 };
                 sessionStorage.setItem('7k_user_session', JSON.stringify(userData));
                 CURRENT_USER = userData;
 
-                // 2. ตั้งค่าเมนูตามสิทธิ์
+                // 2. ตั้งค่าเมนูตามสิทธิ์ และกรองการเข้าถึง Guild
                 if (typeof applyUserRole === "function") applyUserRole();
+                if (typeof filterGuildAccessByUser === "function") filterGuildAccessByUser(); // 🟢 กรอง Guild หลัง login
 
                 // 3. ปิดหน้า Login และเข้าสู่ระบบ
                 // หน่วงเวลาเล็กน้อยเพื่อให้เห็นข้อความต้อนรับ
@@ -2860,8 +2883,10 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-content').classList.remove('hidden');
 
-                // Logic กลับหน้าหลักเมื่อ Refresh
-                const cleanUrl = window.location.pathname + '?k=' + encodedKey;
+                // Logic กลับหน้าหลักเมื่อ Refresh - เก็บทั้ง k และ g
+                const urlParams = new URLSearchParams(window.location.search);
+                const encodedGuild = urlParams.get('g');
+                const cleanUrl = window.location.pathname + '?k=' + encodedKey + (encodedGuild ? '&g=' + encodedGuild : '');
                 window.history.replaceState({}, '', cleanUrl);
 
                 console.log("📂 Loading Gallery...");
@@ -2963,11 +2988,16 @@
         };
 
         function initApp() {
+            console.log("🚀 initApp() called, CURRENT_USER:", CURRENT_USER);
             // อัปเดตชื่อ User
             if (CURRENT_USER) {
                 const nameEl = document.getElementById('display-username');
                 if (nameEl) nameEl.innerText = `${CURRENT_USER.name} (${CURRENT_USER.role})`;
-                if (typeof applyUserRole === 'function') applyUserRole();
+                if (typeof applyUserRole === 'function') {
+                    console.log("📋 Calling applyUserRole()...");
+                    applyUserRole();
+                    console.log("✅ applyUserRole() completed");
+                }
             }
 
             // --- ❌ ลบบรรทัดพวกนี้ออกให้หมด เพื่อกัน Loop ---
@@ -3230,15 +3260,26 @@
 
             // 2. ดึงสิทธิ์ User ปัจจุบัน
             let myPerms = CURRENT_USER.permissions || [];
+            console.log("🔑 User permissions from CURRENT_USER:", myPerms);
 
-            // Fallback: ถ้าเป็น User เก่าที่ยังไม่มี permission array
-            if (CURRENT_USER.role === 'admin') myPerms = ALL_MENUS.map(m => m.id);
-            else myPerms = ALL_MENUS.filter(m => m.default).map(m => m.id);
+            // 🟢 Fallback: ใช้ก็ต่อเมื่อยังไม่มี permissions เท่านั้น
+            if (myPerms.length === 0) {
+                console.log("⚠️ No permissions found, using fallback");
+                if (CURRENT_USER.role === 'admin') myPerms = ALL_MENUS.map(m => m.id);
+                else myPerms = ALL_MENUS.filter(m => m.default).map(m => m.id);
+            }
+
+            console.log("📋 Final permissions to apply:", myPerms);
 
             // 3. เปิดเฉพาะเมนูที่มีสิทธิ์
             myPerms.forEach(menuId => {
                 const el = document.getElementById(menuId);
-                if (el) el.style.display = 'flex';
+                if (el) {
+                    el.style.display = 'flex';
+                    console.log("✅ Showed menu:", menuId);
+                } else {
+                    console.log("❌ Menu element not found:", menuId);
+                }
             });
 
             const canManageWar = CURRENT_USER.role === 'admin';
@@ -3254,8 +3295,14 @@
                 if (btnClear) btnClear.style.display = 'none';
             }
 
-            // 4. จัดการ Group Admin Zone (ถ้ามีเมนู admin อย่างน้อย 1 อัน ให้โชว์หัวข้อ)
-            const adminMenuIds = ['nav-user-manager', 'nav-audit-logs'];
+            // 4. จัดการ Group Database Manager (ถ้ามีเมนู database อย่างน้อย 1 อัน ให้โชว์หัวข้อ)
+            const databaseMenuIds = ['nav-hero-manager', 'nav-pet-manager', 'nav-ring-manager', 'nav-equip-manager'];
+            const hasDatabase = databaseMenuIds.some(id => myPerms.includes(id));
+            const databaseGroup = document.getElementById('database-menu-group');
+            if (databaseGroup) databaseGroup.style.display = hasDatabase ? 'block' : 'none';
+
+            // 5. จัดการ Group Admin Zone (ถ้ามีเมนู admin อย่างน้อย 1 อัน ให้โชว์หัวข้อ)
+            const adminMenuIds = ['nav-user-manager', 'nav-audit-logs', 'nav-guild-manager', 'nav-survey-admin', 'nav-add-battle'];
             const hasAdmin = adminMenuIds.some(id => myPerms.includes(id));
             const adminGroup = document.getElementById('admin-menu-group');
             if (adminGroup) adminGroup.style.display = hasAdmin ? 'block' : 'none';
@@ -3328,6 +3375,8 @@
 
             let payload = null
 
+            const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+            
             if(isRegisterMode){
                 payload = {
                     timestamp: Date.now(),
@@ -3355,6 +3404,10 @@
                     equip_sets: equipSetsDB,
                     teams_3v3: teams3v3DB,
                     enemyPatterns: enemyPatternsDB,
+                    // 🟢 Server-Side Merge: บอก server ให้ merge ฝั่ง server
+                    _mergeMode: 'server',
+                    _userGuild: userGuild,
+                    _userRole: CURRENT_USER?.role || 'user'
                 };
             }
 
@@ -6081,6 +6134,17 @@
         function applyTextColor(cls) { if(!activeTextarea) return; const start = activeTextarea.selectionStart, end = activeTextarea.selectionEnd, text = activeTextarea.value, selection = text.substring(start, end), replacement = `<span class="${cls}">${selection || 'TEXT'}</span>`; activeTextarea.value = text.substring(0, start) + replacement + text.substring(end); closeTextContextMenu(); }
 
         function toggleGalleryFilter(key, val) { if (galleryFilter[key] === val) galleryFilter[key] = null; else galleryFilter[key] = val; renderGallery(); }
+
+        // 🟢 ฟังก์ชันสลับ Tab สำหรับหน้า Gallery (Hero/Pet)
+        function switchLocalGalleryTab(tabName) {
+            galleryTab = tabName;
+            // อัปเดต UI ของ Tab
+            document.getElementById('tab-gallery-hero').classList.toggle('active', tabName === 'hero');
+            document.getElementById('tab-gallery-pet').classList.toggle('active', tabName === 'pet');
+            // รีเซ็ต filter เมื่อสลับ tab
+            galleryFilter = { rarity: null, type: null, aff: null };
+            renderGallery();
+        }
 
         function renderGallery() {
             const container = document.getElementById('gallery-container'); const search = document.getElementById('gallery-search').value.toLowerCase(); const filterContainer = document.getElementById('gallery-filters');
@@ -10556,10 +10620,13 @@
             // ถ้าไม่มีข้อมูลใน DB ให้ใช้ค่าเริ่มต้น
             equipSetsDB = [];
         }
-        if (data.enemyPatterns) {
-            enemyPatternsDB = data.enemyPatterns;
-            // บันทึกลง LocalStorage สำรองไว้ด้วย
-            localStorage.setItem('7k_enemy_patterns', JSON.stringify(enemyPatternsDB));
+        // 🟢 เก็บข้อมูลดิบทั้งหมดไว้ในตัวแปร allEnemyPatternsDB (ไม่กรอง)
+        if (data.enemyPatterns && Array.isArray(data.enemyPatterns) && data.enemyPatterns.length > 0) {
+            console.log("Loaded Enemy Patterns from Database");
+            allEnemyPatternsDB = data.enemyPatterns;
+            enemyPatternsDB = [...data.enemyPatterns]; // 🟢 สร้าง copy ใหม่ ไม่ใช่ reference เดียวกัน!
+            // บันทึกลง LocalStorage ทับไปเลยเพื่อให้ข้อมูลตรงกัน
+            localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB));
         }
         
         if (data.affiliations) affiliationsDB = data.affiliations;
@@ -10582,6 +10649,9 @@
         if (data.heroLists) tempHeroLists = data.heroLists;
         if (data.manualUsage) manualUsageOffsets = data.manualUsage;
 
+
+        console.log("*** data",data)
+
         // =========================================================
         // 🟢 ระบบจัดการ Guilds & Alliances (โอนย้ายข้อมูลเก่าอัตโนมัติ)
         // =========================================================
@@ -10596,13 +10666,54 @@
         guildMembersDB = guildsDB[activeGuildIndex].members;
         // =========================================================
 
+        // 🟢 เก็บข้อมูลดิบทั้งหมดไว้ในตัวแปร allTeams3v3DB (ไม่กรอง)
         if (data.teams_3v3 && Array.isArray(data.teams_3v3) && data.teams_3v3.length > 0) {
             console.log("Loaded 3v3 Teams from Database");
-            teams3v3DB = data.teams_3v3;
+            allTeams3v3DB = data.teams_3v3;
+            teams3v3DB = [...data.teams_3v3]; // 🟢 สร้าง copy ใหม่ ไม่ใช่ reference เดียวกัน!
             // บันทึกลง LocalStorage ทับไปเลยเพื่อให้ข้อมูลตรงกัน
-            localStorage.setItem('7k_teams_3v3', JSON.stringify(teams3v3DB));
+            localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB));
         }
 
+        // 🟢 กรองข้อมูลตาม Guild ของ User หลังโหลดข้อมูลเสร็จ (แค่สำหรับแสดงผล)
+        console.log('🔍 DEBUG processLoadedData - CURRENT_USER:', CURRENT_USER);
+        if (CURRENT_USER) {
+            const isAdmin = CURRENT_USER.role === 'admin';
+            const userGuild = CURRENT_USER.guild_name || CURRENT_USER.guildId || 'all';
+            console.log(`🔍 DEBUG - isAdmin: ${isAdmin}, userGuild: ${userGuild}`);
+            console.log(`🔍 DEBUG - allTeams3v3DB.length: ${allTeams3v3DB.length}, enemyPatternsDB.length: ${enemyPatternsDB.length}`);
+
+            if (!isAdmin && userGuild !== 'all') {
+                // กรอง 3v3 Teams สำหรับแสดงผล (ไม่เปลี่ยน allTeams3v3DB)
+                if (allTeams3v3DB.length > 0) {
+                    const originalCount = allTeams3v3DB.length;
+                    teams3v3DB = allTeams3v3DB.filter(team => {
+                        const teamGuild = team.guild_name || team.guildId;
+                        const shouldShow = !teamGuild || teamGuild === userGuild || teamGuild === 'all';
+                        console.log(`🔍 Team ${team.name}: guild=${teamGuild}, show=${shouldShow}`);
+                        return shouldShow;
+                    });
+                    console.log(`🔒 Filtered 3v3 Teams: ${originalCount} → ${teams3v3DB.length} items`);
+                }
+            } else {
+                console.log('⚠️ No CURRENT_USER - Guild filtering skipped');
+                teams3v3DB = allTeams3v3DB;
+            }
+            
+            // 🟢 กรอง Enemy Patterns ด้วย
+            if (!isAdmin && userGuild !== 'all') {
+                if (allEnemyPatternsDB && allEnemyPatternsDB.length > 0) {
+                    const originalCount = allEnemyPatternsDB.length;
+                    enemyPatternsDB = allEnemyPatternsDB.filter(pattern => {
+                        const patternGuild = pattern.guild_name || pattern.guildId;
+                        return !patternGuild || patternGuild === userGuild || patternGuild === 'all';
+                    });
+                    console.log(`🔒 Filtered Enemy Patterns: ${originalCount} → ${enemyPatternsDB.length} items`);
+                }
+            } else {
+                enemyPatternsDB = allEnemyPatternsDB || [];
+            }
+        }
 
         // --- Refresh UI ---
         updateCurrentViewUI();
@@ -13460,6 +13571,25 @@
         let isProcessing3v3Queue = false;
         let last3v3SaveTime = 0;
 
+        // 🟢 ฟังก์ชันรวมข้อมูลทีม 3v3 จาก allTeams3v3DB (ข้อมูลดิบ) กับ teams3v3DB (ที่อาจถูกกรอง/แก้ไข)
+        function mergeTeams3v3(allTeams, filteredTeams) {
+            if (!allTeams || allTeams.length === 0) return filteredTeams || [];
+            if (!filteredTeams || filteredTeams.length === 0) return allTeams;
+            
+            // สร้าง Map จาก allTeams เพื่อง่ายต่อการค้นหา
+            const merged = new Map();
+            allTeams.forEach(team => {
+                merged.set(String(team.id), team);
+            });
+            
+            // อัปเดตด้วยข้อมูลจาก filteredTeams (ที่อาจถูกแก้ไขล่าสุด)
+            filteredTeams.forEach(team => {
+                merged.set(String(team.id), team);
+            });
+            
+            return Array.from(merged.values());
+        }
+
         // เพิ่ม request เข้าคิว
         function queueSave3v3Teams(immediate = false) {
             const timestamp = Date.now();
@@ -13470,13 +13600,17 @@
                 teams3v3DB[current3v3TeamIdx].lastModified = timestamp;
             }
 
+            // 🟢 รวมข้อมูลจาก teams3v3DB (ที่อาจถูกกรอง) เข้ากับ allTeams3v3DB (ข้อมูลดิบทั้งหมด)
+            // เพื่อให้ส่งข้อมูลทั้งหมดไปยัง server ไม่ใช่แค่ข้อมูลที่กรองแล้ว
+            const teamsToSave = mergeTeams3v3(allTeams3v3DB, teams3v3DB);
+            
             // บันทึกลง LocalStorage ทันที
-            localStorage.setItem('7k_teams_3v3', JSON.stringify(teams3v3DB));
+            localStorage.setItem('7k_teams_3v3', JSON.stringify(teamsToSave));
 
             // เพิ่มเข้าคิวสำหรับส่งขึ้น server
             save3v3Queue.push({
                 timestamp: timestamp,
-                teams: JSON.parse(JSON.stringify(teams3v3DB)) // Deep copy
+                teams: JSON.parse(JSON.stringify(teamsToSave)) // Deep copy
             });
 
             // รวม request ที่ใกล้เคียงกัน (debounce)
@@ -13490,9 +13624,21 @@
         }
 
         // ประมวลผลคิว
-        async function process3v3SaveQueue() {
+        async function process3v3SaveQueue(retryCount = 0) {
             if (isProcessing3v3Queue || save3v3Queue.length === 0) return;
-            if (!USE_CLOUD) return;
+            if (!USE_CLOUD) {
+                console.log('☁️ USE_CLOUD is false, skipping save');
+                save3v3Queue = []; // เคลียร์คิว
+                return;
+            }
+            
+            // 🟢 จำกัด retry สูงสุด 3 ครั้ง
+            if (retryCount > 3) {
+                console.error('❌ Max retry reached, giving up');
+                save3v3Queue = []; // เคลียร์คิวเพื่อหยุด loop
+                isProcessing3v3Queue = false;
+                return;
+            }
 
             isProcessing3v3Queue = true;
 
@@ -13502,13 +13648,16 @@
 
             try {
                 // 🟢 ใช้ Action ใหม่ save3v3Teams แทนการใช้ pushData ทั่วไป
+                const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'save3v3Teams',
                         teams_3v3: latestRequest.teams,
-                        timestamp: latestRequest.timestamp
+                        timestamp: latestRequest.timestamp,
+                        _userGuild: userGuild,
+                        _userRole: CURRENT_USER?.role || 'user'
                     })
                 });
 
@@ -13517,8 +13666,27 @@
                 if (result.status === 'success') {
                     // 🟢 อัพเดทข้อมูล local ด้วยข้อมูลล่าสุดจาก server
                     if (result.teams_3v3 && Array.isArray(result.teams_3v3)) {
-                        teams3v3DB = result.teams_3v3;
-                        localStorage.setItem('7k_teams_3v3', JSON.stringify(teams3v3DB));
+                        allTeams3v3DB = result.teams_3v3; // 🟢 อัปเดตข้อมูลดิบทั้งหมด
+                        
+                        // กรองข้อมูลสำหรับแสดงผลตาม Guild อีกครั้ง
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const encodedGuild = urlParams.get('g');
+                        const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)).toLowerCase() : null;
+                        const userGuild = CURRENT_USER ? (CURRENT_USER.guild_name || CURRENT_USER.guildId || 'all').toLowerCase() : null;
+                        const isAdmin = CURRENT_USER?.role === 'admin';
+                        
+                        if (!isAdmin && (urlGuild || userGuild) && userGuild !== 'all') {
+                            const targetGuild = urlGuild || userGuild;
+                            teams3v3DB = allTeams3v3DB.filter(team => {
+                                const teamGuild = (team.guild_name || team.guildId || 'all').toString().toLowerCase();
+                                return teamGuild === targetGuild || teamGuild === 'all';
+                            });
+                            console.log(`🔒 Post-save filter: ${allTeams3v3DB.length} → ${teams3v3DB.length} teams`);
+                        } else {
+                            teams3v3DB = allTeams3v3DB;
+                        }
+                        
+                        localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB));
 
                         // รีเฟรช UI ถ้าจำเป็น
                         if (current3v3TeamIdx >= 0) {
@@ -13532,19 +13700,26 @@
                         }
                     }
                     console.log('✅ 3v3 Teams saved with queue system');
+                    retryCount = 0; // รีเซ็ต retry count เมื่อสำเร็จ
                 } else {
                     console.warn('⚠️ Save warning:', result.message);
                 }
             } catch (err) {
                 console.error('❌ Save error:', err);
-                // คืนค่าเข้าคิวเพื่อลองใหม่ครั้งหน้า
-                save3v3Queue.unshift(latestRequest);
+                // 🟢 ถ้าเป็น CORS error ไม่ต้อง retry (เปิดผ่าน file://)
+                if (err.message && err.message.includes('Failed to fetch')) {
+                    console.log('⚠️ Network error, stopping retries (use Live Server to fix CORS)');
+                    save3v3Queue = []; // เคลียร์คิว
+                } else {
+                    // คืนค่าเข้าคิวเพื่อลองใหม่ครั้งหน้า (แต่จำกัด retry)
+                    save3v3Queue.unshift(latestRequest);
+                }
             } finally {
                 isProcessing3v3Queue = false;
 
-                // ถ้ามี request ใหม่เข้ามาระหว่างประมวลผล ให้ประมวลผลต่อ
+                // 🟢 ตรวจสอบคิวใหม่และเรียกด้วย retry count
                 if (save3v3Queue.length > 0) {
-                    setTimeout(process3v3SaveQueue, 100);
+                    setTimeout(() => process3v3SaveQueue(retryCount + 1), 1000); // รอ 1 วินาทีก่อน retry
                 }
             }
         }
@@ -13555,18 +13730,65 @@
         }
 
         // 4. สร้างทีมใหม่
+        let isCreating3v3Team = false; // 🟢 ป้องกัน double click
+        
         function createNew3v3Team() {
+            // 🟢 ป้องกันการสร้างซ้ำถ้ากำลังสร้างอยู่
+            console.log('🎯 createNew3v3Team called, isCreating3v3Team =', isCreating3v3Team);
+            if (isCreating3v3Team) {
+                console.log('⏳ BLOCKED: Already creating team');
+                return;
+            }
+            isCreating3v3Team = true;
+            console.log('✅ Creating team NOW');
+            
             const now = Date.now();
-            teams3v3DB.unshift({
+            // 🟢 ดึง guild_name ของ User ปัจจุบัน
+            const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+
+            const newTeam = {
                 id: '3V3_' + now,
                 name: "New 3v3 Team",
                 note: "",
-                slots: [null, null, null], // 3 ช่อง
-                pets: [null, null, null], // 3 สัตว์เลี้ยง
-                lastModified: now // 🟢 Timestamp สำหรับ Queue System
-            });
+                formation: "basic",
+                slots: [{}, {}, {}],
+                pet: null,
+                teamType: "Attack",
+                isShared: false,
+                enemyTeams: [],
+                createdAt: now,
+                lastModified: now,
+                guild_name: userGuild // 🟢 เพิ่ม: บันทึกกิลด์ที่สร้าง
+            };
+            
+            // 🟢 ตรวจสอบว่าทีมนี้มีอยู่แล้วหรือไม่ (ป้องกัน duplicate)
+            const existingIndex = teams3v3DB.findIndex(t => t.id === newTeam.id);
+            if (existingIndex === -1) {
+                teams3v3DB.unshift(newTeam);
+                console.log('➕ Added to teams3v3DB, now:', teams3v3DB.length);
+            } else {
+                console.log('⚠️ Team already exists in teams3v3DB, skipping');
+            }
+            
+            // 🟢 เพิ่มลง allTeams3v3DB ด้วย (ข้อมูลดิบทั้งหมด)
+            if (!allTeams3v3DB) allTeams3v3DB = [];
+            const existingAllIndex = allTeams3v3DB.findIndex(t => t.id === newTeam.id);
+            if (existingAllIndex === -1) {
+                allTeams3v3DB.unshift(newTeam);
+                console.log('➕ Added to allTeams3v3DB, total:', allTeams3v3DB.length);
+            } else {
+                console.log('⚠️ Team already exists in allTeams3v3DB, skipping');
+            }
+            
+            console.log('🔍 Team IDs in allTeams3v3DB:', allTeams3v3DB.map(t => t.id));
+            
             queueSave3v3Teams(true); // immediate save
             select3v3Team(0); // เลือกทีมล่าสุดที่เพิ่งสร้าง
+            
+            // 🟢 รีเซ็ต flag หลังจากเสร็จสิ้น (หน่วงเล็กน้อยเพื่อป้องกัน double-click)
+            setTimeout(() => {
+                isCreating3v3Team = false;
+            }, 500);
         }
 
         async function delete3v3Team() {
@@ -13579,8 +13801,20 @@
             showLoading("Deleting Team...");
 
             try {
-                // 1. ลบข้อมูลจากตัวแปรในเครื่อง
+                // 🟢 หา ID ของทีมที่จะลบก่อน
+                const deletedTeamId = teams3v3DB[current3v3TeamIdx]?.id;
+                
+                // 1. ลบข้อมูลจากตัวแปรในเครื่อง (ทั้งสองตัวแปร)
                 teams3v3DB.splice(current3v3TeamIdx, 1);
+                
+                // 🟢 ลบจาก allTeams3v3DB ด้วย (ถ้ามี)
+                if (deletedTeamId && allTeams3v3DB && allTeams3v3DB.length > 0) {
+                    const allIdx = allTeams3v3DB.findIndex(t => t.id === deletedTeamId);
+                    if (allIdx !== -1) {
+                        allTeams3v3DB.splice(allIdx, 1);
+                        console.log(`🗑️ Deleted team ${deletedTeamId} from allTeams3v3DB`);
+                    }
+                }
                 
                 // 2. รีเซ็ตการเลือกทีม
                 current3v3TeamIdx = -1;
@@ -13626,11 +13860,102 @@
             render3v3Editor();
         }
 
+        // 🟢 [HELPER] กรองข้อมูลตาม Guild ของ User
+        function filterByUserGuild(dataArray) {
+            console.log(`🔍 DEBUG filterByUserGuild - Input: ${dataArray?.length || 0} items`);
+            if (!CURRENT_USER) {
+                console.log('🔍 DEBUG filterByUserGuild - No CURRENT_USER, returning all');
+                return dataArray;
+            }
+            const isAdmin = CURRENT_USER.role === 'admin';
+            const userGuild = CURRENT_USER.guild_name || CURRENT_USER.guildId || 'all';
+            console.log(`🔍 DEBUG filterByUserGuild - isAdmin: ${isAdmin}, userGuild: ${userGuild}`);
+
+            // Admin เห็นทั้งหมด
+            if (isAdmin || userGuild === 'all') {
+                console.log('🔍 DEBUG filterByUserGuild - Admin/All guild, no filtering');
+                return dataArray;
+            }
+
+            // User ธรรมดาเห็นเฉพาะกิลด์ตัวเอง + ที่ไม่มีกิลด์ (เก่า)
+            const result = dataArray.filter(item => {
+                const itemGuild = item.guild_name || item.guildId;
+                const shouldShow = !itemGuild || itemGuild === userGuild || itemGuild === 'all';
+                if (!shouldShow) {
+                    console.log(`🔍 DEBUG filterByUserGuild - Hiding item: ${item.name || item.id}, guild: ${itemGuild}`);
+                }
+                return shouldShow;
+            });
+            console.log(`🔍 DEBUG filterByUserGuild - Output: ${result.length} items (filtered ${dataArray.length - result.length})`);
+            return result;
+        }
+
+        // 🟢 [HELPER] กรองการเข้าถึง Guild หลังจาก Login
+        function filterGuildAccessByUser() {
+            console.log('🔍 DEBUG filterGuildAccessByUser - CURRENT_USER:', CURRENT_USER);
+            if (!CURRENT_USER) {
+                console.log('⚠️ filterGuildAccessByUser: No CURRENT_USER');
+                return;
+            }
+
+            const isAdmin = CURRENT_USER.role === 'admin';
+            const userGuild = CURRENT_USER.guild_name || CURRENT_USER.guildId || 'all';
+            console.log(`🔍 DEBUG filterGuildAccessByUser - isAdmin: ${isAdmin}, userGuild: ${userGuild}`);
+            console.log(`🔍 DEBUG filterGuildAccessByUser - teams3v3DB.length: ${teams3v3DB?.length || 0}, enemyPatternsDB.length: ${enemyPatternsDB?.length || 0}`);
+
+            // Admin หรือ guild = 'all' ไม่ต้องกรอง
+            if (isAdmin || userGuild === 'all') {
+                console.log('🔓 Guild Access: Admin or All Guild - No filtering');
+                return;
+            }
+
+            console.log(`🔒 Guild Access: Filtering for guild "${userGuild}"`);
+
+            // กรอง 3v3 Teams ที่โหลดมาแล้ว
+            if (typeof teams3v3DB !== 'undefined' && teams3v3DB.length > 0) {
+                const originalCount = teams3v3DB.length;
+                // เก็บเฉพาะทีมที่ตรงกับ guild ตัวเอง หรือไม่มี guild (เก่า)
+                teams3v3DB = teams3v3DB.filter(team => {
+                    const teamGuild = team.guild_name || team.guildId;
+                    return !teamGuild || teamGuild === userGuild || teamGuild === 'all';
+                });
+                console.log(`🎯 3v3 Teams: ${originalCount} → ${teams3v3DB.length} (filtered by guild)`);
+
+                // รีเซ็ต index ที่เลือก
+                if (current3v3TeamIdx >= teams3v3DB.length) {
+                    current3v3TeamIdx = teams3v3DB.length > 0 ? 0 : -1;
+                }
+            }
+
+            // กรอง Enemy Patterns ที่โหลดมาแล้ว
+            if (typeof enemyPatternsDB !== 'undefined' && enemyPatternsDB.length > 0) {
+                const originalCount = enemyPatternsDB.length;
+                enemyPatternsDB = enemyPatternsDB.filter(pattern => {
+                    const patternGuild = pattern.guild_name || pattern.guildId;
+                    return !patternGuild || patternGuild === userGuild || patternGuild === 'all';
+                });
+                console.log(`🎯 Enemy Patterns: ${originalCount} → ${enemyPatternsDB.length} (filtered by guild)`);
+
+                // รีเซ็ต index ที่เลือก
+                if (currentPatternIdx >= enemyPatternsDB.length) {
+                    currentPatternIdx = enemyPatternsDB.length > 0 ? 0 : -1;
+                }
+            }
+
+            // รีเฟรช UI ถ้าจำเป็น
+            if (typeof render3v3TeamsList === "function") render3v3TeamsList();
+            if (typeof renderEnemyManager === "function") renderEnemyManager();
+        }
+
         // 3. ฟังก์ชันวาดรายชื่อทีม (วางทับตัวเดิมได้เลย)
         function render3v3TeamsList() {
+            console.log(`🔍 DEBUG render3v3TeamsList - teams3v3DB.length: ${teams3v3DB?.length || 0}`);
             // ⚠️ ถ้า ID ของ container คุณชื่ออื่น ให้แก้ตรง 'list-3v3-teams' นะครับ (ส่วนใหญ่มักจะชื่อนี้)
-            const container = document.getElementById('list-3v3-teams'); 
-            if (!container) return;
+            const container = document.getElementById('list-3v3-teams');
+            if (!container) {
+                console.log('🔍 DEBUG render3v3TeamsList - No container found');
+                return;
+            }
 
             // --- ส่วนที่ 1: สร้างปุ่ม Filter (All / Attack / Defense) ---
             const filterHTML = `
@@ -13641,10 +13966,16 @@
                 </div>
             `;
 
+            // 🟢 กรองข้อมูลตาม Guild ก่อนแสดง
+            const filteredTeams = filterByUserGuild(teams3v3DB);
+            console.log(`🔍 DEBUG render3v3TeamsList - filteredTeams.length: ${filteredTeams?.length || 0}`);
+
             // --- ส่วนที่ 2: สร้างรายชื่อทีม (กรองตามปุ่มที่กด) ---
             let listHTML = '';
-            
-            teams3v3DB.forEach((team, idx) => {
+
+            filteredTeams.forEach((team, filteredIdx) => {
+                // หา index จริงใน teams3v3DB เพื่อใช้กับ select3v3Team
+                const idx = teams3v3DB.findIndex(t => t.id === team.id);
                 const tType = team.teamType || 'Attack';
                 
                 // 🛑 ถ้าไม่ตรงกับ Filter ที่เลือก ให้ข้ามไปเลย
@@ -14178,17 +14509,21 @@
 
         function openPublicGallery() {
             // 1. เรียกใช้ฟังก์ชันสร้าง Key รายวัน (YYYY-MM-DD)
-            const dailyKey = getDailyKey(); 
-            
-            // 2. สร้าง URL
+            const dailyKey = getDailyKey();
+
+            // 🟢 2. เข้ารหัส Guild ของผู้ใช้ (ถ้ามี)
+            const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+            const encodedGuild = btoa(encodeURIComponent(userGuild));
+
+            // 3. สร้าง URL มีทั้ง Key และ Guild
             const baseUrl = window.location.href.split('?')[0];
-            const url = `${baseUrl}?k=${dailyKey}`;
-            
-            // 3. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
+            const url = `${baseUrl}?k=${dailyKey}&g=${encodedGuild}`;
+
+            // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
             navigator.clipboard.writeText(url).then(() => {
                 alert(`✅ คัดลอกลิงก์รายวันเรียบร้อย!\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
-                
-                // 4. เปิดหน้าเว็บในแท็บใหม่
+
+                // 5. เปิดหน้าเว็บในแท็บใหม่
                 window.open(url, '_blank');
             }).catch(err => {
                 // กรณีคัดลอกไม่ได้ ให้เปิดอย่างเดียว
@@ -14629,16 +14964,23 @@
             try {
                 const API_URL = GOOGLE_SCRIPT_URL; 
                 
+                // 🟢 ดึง guild_name ของ User
+                const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+                const isAdmin = CURRENT_USER?.role === 'admin';
+
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    redirect: "follow", 
+                    redirect: "follow",
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         action: 'shareTeam',
                         teamName: team.name,
                         teamType: team.teamType || 'Attack', // 🟢 เพิ่มการส่งประเภททีม
                         teamData: team,
-                        teamId: team.shareId || null 
+                        teamId: team.shareId || null,
+                        guild_name: userGuild, // 🟢 ส่ง guild_name
+                        isShared: true,
+                        isAdmin: isAdmin
                     })
                 });
 
@@ -14690,10 +15032,26 @@
             if(sidebar) sidebar.style.display = 'none';
             document.getElementById('main-content').classList.remove('hidden');
 
+            // 🟢 ดึง Guild จาก URL (ถ้าเป็น Public Mode)
+            console.log("🔍 Full URL:", window.location.href);
+            console.log("🔍 Search params:", window.location.search);
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedGuild = urlParams.get('g');
+            const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+
+            console.log("🔍 encodedGuild:", encodedGuild);
+            console.log("🔍 urlGuild:", urlGuild);
+
             // 🟢 1. เช็คว่ามีข้อมูลใน Cache ไหม (และไม่ได้กดปุ่ม Refresh)
             if (!forceRefresh && galleryCacheDB && galleryCacheDB.length > 0) {
                 console.log("⚡ Using Cached Gallery Data");
-                renderGalleryUI(galleryCacheDB); // วาดหน้าจอจากข้อมูลเดิมทันที
+                // 🟢 ถ้า heroesDB ว่าง ให้โหลดก่อนแสดงผล
+                if (!heroesDB || heroesDB.length === 0) {
+                    console.log("🔄 Loading heroesDB for Gallery...");
+                    await loadMasterData();
+                }
+                renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 return; // จบฟังก์ชัน ไม่ต้องเรียก Server
             }
 
@@ -14707,11 +15065,23 @@
             }
 
             try {
+                // 🟢 ดึง guild_name และ role ของ User (หรือใช้จาก URL ถ้าเป็น Public)
+                const userGuild = urlGuild || CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+                const isAdmin = CURRENT_USER?.role === 'admin';
+
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'getAllSharedTeams' })
+                    body: JSON.stringify({
+                        action: 'getAllSharedTeams',
+                        userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
+                        isAdmin: isAdmin      // 🟢 ส่งสถานะ admin
+                    })
                 });
                 const res = await response.json();
+
+                // 🟢 DEBUG: ดูข้อมูลที่ได้จาก Server
+                console.log('🔍 Server response teams:', res.teams?.length);
+                console.log('🔍 First team from server:', res.teams?.[0]);
 
                 if (res.status === 'success') {
                     // อัปเดต Master Data (ถ้ามี)
@@ -14726,7 +15096,7 @@
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
                     galleryCacheDB = res.teams; 
                     
-                    renderGalleryUI(galleryCacheDB);
+                    renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 } else {
                     document.getElementById('main-content').innerHTML = `<div class="text-white text-center mt-20">❌ Error: ${res.message}</div>`;
                 }
@@ -14742,11 +15112,35 @@
             }
         }
 
-        function renderGalleryUI(teams) {
-            const container = document.getElementById('main-content'); 
+        function renderGalleryUI(teams, urlGuild = null) {
+            const container = document.getElementById('main-content');
             if (!container) return;
 
             if (!teams) teams = [];
+
+            // 🟢 DEBUG: ตรวจสอบข้อมูลเข้า
+            console.log('🔍 renderGalleryUI called with teams:', teams?.length, 'urlGuild:', urlGuild);
+            console.log('🔍 heroesDB length:', heroesDB?.length);
+
+            // 🟢 กรองทีมตาม Guild
+            const isPublicMode = new URLSearchParams(window.location.search).get('mode') === 'gallery';
+            const hasUrlGuild = !!urlGuild;
+
+            console.log("hasUrlGuild",hasUrlGuild)
+
+            if (hasUrlGuild) {
+                // 🌍 Public Mode: กรองตาม Guild จาก URL (case-insensitive)
+                const urlGuildLower = urlGuild.toLowerCase();
+                teams = teams.filter(t => {
+                    const teamGuild = (t.guild_name || t.guildId || 'all').toString().toLowerCase();
+                    return teamGuild === urlGuildLower || teamGuild === 'all';
+                });
+                console.log('🔍 After Public Guild filter (case-insensitive):', teams?.length, 'for guild:', urlGuild);
+            } else if (!isPublicMode && CURRENT_USER) {
+                // 🔐 Login Mode: กรองตาม Guild ของผู้ใช้
+                teams = filterByUserGuild(teams);
+                console.log('🔍 After User Guild filter:', teams?.length);
+            }
 
             const btnInactive = 'bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-gray-500';
             const btnActiveRed = 'bg-red-600 text-white shadow-lg shadow-red-900/40';
@@ -14920,9 +15314,50 @@
             if (cachedTeam) {
                 console.log("⚡ Instant Load from Cache!");
                 
-                // 🟢 [จุดที่แก้]: ส่ง cachedTeam เข้าไปในช่อง array ด้วย (เพื่อให้มันโชว์ตัวเองใน List ด้านบน)
-                // พารามิเตอร์: (CurrentTeam, AllList, TargetName)
-                renderPublicTeamDisplay(cachedTeam, [cachedTeam], ''); 
+                // 🟢 ดึง Guild จาก URL สำหรับกรอง Counter Teams
+                const urlParams = new URLSearchParams(window.location.search);
+                const encodedGuild = urlParams.get('g');
+                const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+                const urlGuildLower = urlGuild ? urlGuild.toLowerCase() : null;
+                
+                // 🟢 หาทีมทั้งหมดที่ Counter เป้าหมายเดียวกัน (ถ้าเป็น Attack mode)
+                let allCounterTeams = [cachedTeam];
+                if (cachedTeam.data?.teamType === 'Attack' && cachedTeam.data?.enemyTeams?.length > 0) {
+                    const targetName = cachedTeam.data.enemyTeams[0].name;
+                    
+                    console.log('🔍 Looking for teams targeting:', targetName);
+                    console.log('🔍 urlGuildLower:', urlGuildLower);
+                    console.log('🔍 galleryCacheDB length:', galleryCacheDB.length);
+                    
+                    // หาทีมอื่นๆ ที่ Counter เป้าหมายเดียวกันจาก Cache
+                    allCounterTeams = galleryCacheDB.filter(t => {
+                        if (t.data?.teamType !== 'Attack') return false;
+                        if (!t.data?.enemyTeams) return false;
+                        return t.data.enemyTeams.some(e => e.name === targetName);
+                    });
+                    
+                    console.log('🔍 Found counter teams (before guild filter):', allCounterTeams.length);
+                    allCounterTeams.forEach((t, i) => {
+                        console.log(`🔍 Team ${i}: ${t.name}, guild_name: ${t.guild_name}`);
+                    });
+                    
+                    // 🟢 กรองตาม Guild (ถ้าเป็น Public Mode)
+                    if (urlGuildLower) {
+                        allCounterTeams = allCounterTeams.filter(t => {
+                            const teamGuild = (t.guild_name || 'all').toString().toLowerCase();
+                            const match = teamGuild === urlGuildLower || teamGuild === 'all';
+                            console.log(`🔍 Filtering ${t.name}: teamGuild=${teamGuild}, urlGuild=${urlGuildLower}, match=${match}`);
+                            return match;
+                        });
+                        console.log('🔍 After guild filter:', allCounterTeams.length);
+                    }
+                }
+                
+                // 🟢 [จุดที่แก้]: ส่งทีมที่กรองแล้ว
+                const targetName = cachedTeam.data?.enemyTeams?.[0]?.name || '';
+                console.log('🔍 FINAL - Sending to render:', allCounterTeams.length, 'teams, target:', targetName);
+                console.log('🔍 Team IDs:', allCounterTeams.map(t => t.name + '(' + t.guild_name + ')').join(', '));
+                renderPublicTeamDisplay(cachedTeam, allCounterTeams, targetName); 
                 
                 // อัปเดต URL
                 updateUrl(id);
@@ -14949,6 +15384,13 @@
         // 4. โหลดข้อมูลทีม (Shared View Logic)
         async function loadSharedTeamView(id, showBackButton = false) {
     
+            // 🟢 ดึง Guild จาก URL สำหรับกรอง Counter Teams
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedGuild = urlParams.get('g');
+            const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+            const urlGuildLower = urlGuild ? urlGuild.toLowerCase() : null;
+            console.log('🎯 loadSharedTeamView - urlGuild:', urlGuild);
+    
             // 🟢 1. ลองหาใน Cache ก่อน (ไม่ต้องโหลด Server)
             if (galleryCacheDB && galleryCacheDB.length > 0) {
                 const cachedTeam = galleryCacheDB.find(t => String(t.id) === String(id));
@@ -14961,8 +15403,28 @@
                     if(loginScreen) loginScreen.style.display = 'none';
                     document.getElementById('main-content').classList.remove('hidden');
 
+                    // 🟢 หาทีมทั้งหมดที่ Counter เป้าหมายเดียวกัน + กรองตาม Guild
+                    let allCounterTeams = [cachedTeam];
+                    if (cachedTeam.data?.teamType === 'Attack' && cachedTeam.data?.enemyTeams?.length > 0) {
+                        const targetName = cachedTeam.data.enemyTeams[0].name;
+                        allCounterTeams = galleryCacheDB.filter(t => {
+                            if (t.data?.teamType !== 'Attack') return false;
+                            if (!t.data?.enemyTeams) return false;
+                            return t.data.enemyTeams.some(e => e.name === targetName);
+                        });
+                        
+                        if (urlGuildLower) {
+                            allCounterTeams = allCounterTeams.filter(t => {
+                                const teamGuild = (t.guild_name || 'all').toString().toLowerCase();
+                                return teamGuild === urlGuildLower || teamGuild === 'all';
+                            });
+                            console.log('🔍 Cache - Filtered by guild:', urlGuild, 'count:', allCounterTeams.length);
+                        }
+                    }
+
                     // แสดงผลทันที
-                    renderPublicTeamDisplay(cachedTeam, showBackButton);
+                    const targetName = cachedTeam.data?.enemyTeams?.[0]?.name || '';
+                    renderPublicTeamDisplay(cachedTeam, allCounterTeams, targetName);
                     return; // จบการทำงาน
                 }
             }
@@ -14994,7 +15456,26 @@
                         if(m.rings) ringsDB = m.rings;
                         if(m.equip_sets) equipSetsDB = m.equip_sets;
                     }
-                    renderPublicTeamDisplay(res.team, showBackButton);
+                    
+                    // 🟢 กรอง Counter Teams ตาม Guild ถ้ามี masterData.teams
+                    let allCounterTeams = [res.team];
+                    if (urlGuildLower && res.masterData?.teams) {
+                        const targetName = res.team.data?.enemyTeams?.[0]?.name;
+                        if (targetName) {
+                            allCounterTeams = res.masterData.teams.filter(t => {
+                                if (t.data?.teamType !== 'Attack') return false;
+                                if (!t.data?.enemyTeams) return false;
+                                const hasTarget = t.data.enemyTeams.some(e => e.name === targetName);
+                                if (!hasTarget) return false;
+                                const teamGuild = (t.guild_name || 'all').toString().toLowerCase();
+                                return teamGuild === urlGuildLower || teamGuild === 'all';
+                            });
+                            console.log('🔍 Server - Filtered by guild:', urlGuild, 'count:', allCounterTeams.length);
+                        }
+                    }
+                    
+                    const targetName = res.team.data?.enemyTeams?.[0]?.name || '';
+                    renderPublicTeamDisplay(res.team, allCounterTeams, targetName);
                 } else {
                     alert("ไม่พบข้อมูลทีม หรือลิงก์อาจหมดอายุ");
                     window.history.pushState({}, '', '?mode=gallery');
@@ -15036,8 +15517,10 @@
         function updateUrl(id) {
             const urlParams = new URLSearchParams(window.location.search);
             const currentKey = urlParams.get('k');
+            const encodedGuild = urlParams.get('g'); // 🟢 ดึง g ด้วย
             let newUrl = `?teamId=${id}`;
             if (currentKey) newUrl += `&k=${currentKey}`;
+            if (encodedGuild) newUrl += `&g=${encodedGuild}`; // 🟢 เก็บ g ไว้
             window.history.pushState({ page: 'detail', id: id }, '', newUrl);
         }
 
@@ -15060,6 +15543,9 @@
         
         // parameter: currentTeam (ทีมที่โชว์อยู่), allCounterTeams (ลิสต์ทีมแก้ทางทั้งหมด), targetName (ชื่อศัตรู)
         function renderPublicTeamDisplay(currentTeamData, allCounterTeams = [], targetName = '') {
+            console.log('🔍 renderPublicTeamDisplay called with', allCounterTeams.length, 'teams');
+            console.log('🔍 Teams:', allCounterTeams.map(t => t.name + '(' + t.guild_name + ')').join(', '));
+            
             const container = document.getElementById('main-content');
             if (!container) return;
 
@@ -15091,7 +15577,21 @@
             const renderCounterTeamList = () => {
                 if (!allCounterTeams || allCounterTeams.length === 0) return '';
 
-                return allCounterTeams.map((t, idx) => {
+                // 🟢 กรองตาม Guild อีกครั้งเพื่อความแน่ใจ
+                const urlParams = new URLSearchParams(window.location.search);
+                const encodedGuild = urlParams.get('g');
+                const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)).toLowerCase() : null;
+                
+                let filteredTeams = allCounterTeams;
+                if (urlGuild) {
+                    filteredTeams = allCounterTeams.filter(t => {
+                        const teamGuild = (t.guild_name || 'all').toString().toLowerCase();
+                        return teamGuild === urlGuild || teamGuild === 'all';
+                    });
+                    console.log('🔍 renderCounterTeamList filtered:', filteredTeams.length, 'of', allCounterTeams.length, 'for guild:', urlGuild);
+                }
+
+                return filteredTeams.map((t, idx) => {
                     const isActive = t.id === currentTeamData.id;
                     const borderClass = isActive ? 'border-blue-500 bg-blue-900/20 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'border-gray-700 bg-[#1f2937] hover:border-gray-500 opacity-60 hover:opacity-100';
                     
@@ -15559,11 +16059,17 @@
         function renderEnemyPatternList() {
             const container = document.getElementById('enemy-pattern-list');
             const search = document.getElementById('enemy-search').value.toLowerCase();
-            
+
             if(!container) return;
             container.innerHTML = '';
 
-            enemyPatternsDB.forEach((p, idx) => {
+            // 🟢 กรองข้อมูลตาม Guild ก่อนแสดง
+            const filteredPatterns = filterByUserGuild(enemyPatternsDB);
+
+            filteredPatterns.forEach((p, filteredIdx) => {
+                // หา index จริงใน enemyPatternsDB
+                const idx = enemyPatternsDB.findIndex(pattern => pattern.id === p.id);
+
                 if (p.name.toLowerCase().includes(search)) {
                     const activeClass = idx === currentPatternIdx ? 'bg-red-900/20 border-red-600 shadow-md' : 'bg-[#161b22] border-transparent hover:border-gray-600';
                     
@@ -15602,13 +16108,17 @@
         }
 
         function createNewEnemyPattern() {
+            // 🟢 ดึง guild_name ของ User ปัจจุบัน
+            const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+
             enemyPatternsDB.unshift({
                 id: 'EP_' + Date.now(),
                 name: 'New Enemy Pattern',
                 formation: 'Basic',
                 note: '',
                 slots: {0:null, 1:null, 2:null, 3:null, 4:null}, // 0-4 ตำแหน่ง
-                pet: null
+                pet: null,
+                guild_name: userGuild // 🟢 เพิ่ม: บันทึกกิลด์ที่สร้าง
             });
             currentPatternIdx = 0;
             // saveEnemyPatterns();
@@ -15868,14 +16378,78 @@
             
             showLoading("Saving to Cloud...");
             try {
-                await pushData();
-                localStorage.setItem('7k_enemy_patterns', JSON.stringify(enemyPatternsDB));
-                alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+                // 🟢 กับ Server-Side Merge: ส่งเฉพาะข้อมูลกิลนี้ ไม่ต้อง merge ฝั่ง client
+                const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+                
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveEnemyPatterns',
+                        enemyPatterns: enemyPatternsDB, // 🟢 ส่งเฉพาะข้อมูลกิลนี้ (กรองแล้ว)
+                        _userGuild: userGuild,
+                        _userRole: CURRENT_USER?.role || 'user'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // 🟢 อัพเดทข้อมูล local ด้วยข้อมูลล่าสุดจาก server (ทุกกิล)
+                    if (result.enemyPatterns && Array.isArray(result.enemyPatterns)) {
+                        allEnemyPatternsDB = result.enemyPatterns;
+                        
+                        // กรองใหม่ตามกิลปัจจุบัน
+                        const isAdmin = CURRENT_USER?.role === 'admin';
+                        if (!isAdmin && userGuild !== 'all') {
+                            enemyPatternsDB = allEnemyPatternsDB.filter(pattern => {
+                                const patternGuild = pattern.guild_name || pattern.guildId || 'all';
+                                return !patternGuild || patternGuild === userGuild || patternGuild === 'all';
+                            });
+                        } else {
+                            enemyPatternsDB = allEnemyPatternsDB;
+                        }
+                    }
+                    
+                    localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB));
+                    alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+                } else {
+                    throw new Error(result.message || 'Save failed');
+                }
             } catch (e) {
                 alert("❌ เกิดข้อผิดพลาด: " + e.message);
             } finally {
                 hideLoading();
             }
+        }
+
+        // 🟢 Merge Enemy Patterns (แบบเดียวกับ 3v3 Teams)
+        function mergeEnemyPatterns() {
+            if (!allEnemyPatternsDB || allEnemyPatternsDB.length === 0) {
+                return enemyPatternsDB; // ไม่มีข้อมูลเดิม ใช้ข้อมูลปัจจุบัน
+            }
+            
+            const merged = [...allEnemyPatternsDB]; // เริ่มจากข้อมูลดิบทั้งหมด
+            const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+            
+            enemyPatternsDB.forEach(localPattern => {
+                const patternGuild = localPattern.guild_name || localPattern.guildId || 'all';
+                
+                // Admin/All guild สามารถแก้ไขทุกทีม
+                if (CURRENT_USER?.role === 'admin' || userGuild === 'all' || patternGuild === userGuild || patternGuild === 'all') {
+                    const idx = merged.findIndex(t => t.id === localPattern.id);
+                    if (idx >= 0) {
+                        merged[idx] = localPattern; // อัปเดต
+                    } else {
+                        merged.push(localPattern); // เพิ่มใหม่
+                    }
+                }
+            });
+            
+            // อัปเดต allEnemyPatternsDB ด้วย
+            allEnemyPatternsDB = merged;
+            
+            return merged;
         }
 
         let enemyDragSrcIndex = null; // เก็บตำแหน่งต้นทาง
@@ -16112,7 +16686,14 @@
         currentGalleryTab = tabName;
         // เรียกวาดหน้าจอใหม่โดยใช้ข้อมูลเดิมจาก Cache
         if (galleryCacheDB) {
-            renderGalleryUI(galleryCacheDB);
+            // 🟢 ดึง guild จาก URL (ถ้ามี) เพื่อส่งต่อให้ renderGalleryUI
+            const urlParams = new URLSearchParams(window.location.search);
+            const encodedGuild = urlParams.get('g');
+            const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+
+            console.log("urlGuild",urlGuild)
+
+            renderGalleryUI(galleryCacheDB, urlGuild);
         }
     }
 
@@ -16121,9 +16702,6 @@
         if (!sidebar) return;
 
         // 🟢 เลือก Config ตามโหมด URL
-        const currentConfig = isPublicView ? publicMenuConfig : userMenuConfig;
-        
-        // 🟢 ตั้งชื่อ User ด้านล่าง
         const currentUser = isPublicView ? 'Guest Viewer' : (document.getElementById('display-username')?.innerText || 'Commander');
         const statusText = isPublicView ? 'View Only' : 'Online';
         const statusColor = isPublicView ? 'text-gray-500' : 'text-green-400';
@@ -16216,12 +16794,16 @@
     // ฟังก์ชันก๊อปปี้ลิงก์รายวัน
     function copyDailyPublicLink() {
         const key = getDailyKey();
-        // สร้าง URL โดยตัด parameter เก่าออกให้หมด แล้วใส่ k ใหม่
+        // 🟢 เพิ่ม Guild เข้ารหัส
+        const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+        const encodedGuild = btoa(encodeURIComponent(userGuild));
+
+        // สร้าง URL โดยตัด parameter เก่าออกให้หมด แล้วใส่ k และ g ใหม่
         const baseUrl = window.location.href.split('?')[0];
-        const finalUrl = `${baseUrl}?k=${key}`;
-        
+        const finalUrl = `${baseUrl}?k=${key}&g=${encodedGuild}`;
+
         navigator.clipboard.writeText(finalUrl).then(() => {
-            alert(`✅ คัดลอกลิงก์สำหรับวันนี้แล้ว!\n\n${finalUrl}\n\n(ลิงก์นี้จะใช้ได้เฉพาะวันนี้เท่านั้น)`);
+            alert(`✅ คัดลอกลิงก์สำหรับวันนี้แล้ว!\n\n${finalUrl}\n\n(ลิงก์นี้จะใช้ได้เฉพาะวันนี้และกิล ${userGuild} เท่านั้น)`);
         });
     }
 
