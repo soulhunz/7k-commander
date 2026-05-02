@@ -15637,14 +15637,20 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const encodedGuild = urlParams.get('g');
                 const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)).toLowerCase() : null;
+
+                console.log("allCounterTeams",allCounterTeams)
                 
                 let filteredTeams = allCounterTeams;
-                if (urlGuild) {
+                if (urlGuild?.toLowerCase() === 'all') {
+                    // 🟢 g=All: แสดงทั้งหมดไม่กรอง
+                    console.log('🔍 All mode - showing all', allCounterTeams.length, 'teams');
+                } else if (urlGuild) {
+                    // 🟢 g=กิลเฉพาะ: กรองเฉพาะกิลนั้น (ไม่รวม 'all')
                     filteredTeams = allCounterTeams.filter(t => {
-                        const teamGuild = (t.guild_name || 'all').toString().toLowerCase();
-                        return teamGuild === urlGuild || teamGuild === 'all';
+                        const teamGuild = (t.guild_name || t.guildId || '').toString().toLowerCase();
+                        return teamGuild === urlGuild;
                     });
-                    console.log('🔍 renderCounterTeamList filtered:', filteredTeams.length, 'of', allCounterTeams.length, 'for guild:', urlGuild);
+                    console.log('🔍 Filtered:', filteredTeams.length, 'teams for guild:', urlGuild);
                 }
 
                 return filteredTeams.map((t, idx) => {
