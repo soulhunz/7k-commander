@@ -2745,12 +2745,13 @@
 
             } catch (err) {
                 console.error("Login Error:", err);
-                msg.innerText = err.message || "การเชื่อมต่อมีปัญหา กรุณาลองใหม่";
+                msg.innerText = err.message || "Username หรือ Password ไม่ถูกต้อง";
                 msg.className = "text-red-400 text-xs mt-4";
                 
-                // คืนค่าปุ่ม
+                // คืนค่าปุ่ม และซ่อน loading
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
+                hideLoading(); // 🟢 ซ่อน loading เมื่อ login ผิดพลาด
             }
 
             // --- Helper Function ---
@@ -15122,25 +15123,32 @@
             console.log('🔍 renderGalleryUI called with teams:', teams?.length, 'urlGuild:', urlGuild);
             console.log('🔍 heroesDB length:', heroesDB?.length);
 
-            // 🟢 กรองทีมตาม Guild
-            const isPublicMode = new URLSearchParams(window.location.search).get('mode') === 'gallery';
+            // 🟢 ตรวจสอบสถานะ Admin และ Public Mode
+            const isAdmin = CURRENT_USER?.role === 'admin';
+            const urlParams = new URLSearchParams(window.location.search);
+            // 🌍 Public Mode: มี key (k) หรือ guild (g) ใน URL แต่ไม่มี mode=gallery (หรือมีก็ได้)
+            const isPublicMode = !!urlParams.get('k') || !!urlParams.get('g') || urlParams.get('mode') === 'gallery';
             const hasUrlGuild = !!urlGuild;
 
-            console.log("hasUrlGuild",hasUrlGuild)
+            console.log('🔍 isAdmin:', isAdmin, 'isPublicMode:', isPublicMode, 'hasUrlGuild:', hasUrlGuild);
 
-            if (hasUrlGuild) {
-                // 🌍 Public Mode: กรองตาม Guild จาก URL (case-insensitive)
+            // 🟢 กรองทีมตาม Guild
+            if (hasUrlGuild && urlGuild.toLowerCase() !== 'all') {
+                // 🌍 Public/URL Mode: กรองตาม Guild จาก URL (ยกเว้น 'All' = เห็นทั้งหมด)
                 const urlGuildLower = urlGuild.toLowerCase();
                 teams = teams.filter(t => {
                     const teamGuild = (t.guild_name || t.guildId || 'all').toString().toLowerCase();
                     return teamGuild === urlGuildLower || teamGuild === 'all';
                 });
-                console.log('🔍 After Public Guild filter (case-insensitive):', teams?.length, 'for guild:', urlGuild);
-            } else if (!isPublicMode && CURRENT_USER) {
-                // 🔐 Login Mode: กรองตาม Guild ของผู้ใช้
-                teams = filterByUserGuild(teams);
-                console.log('🔍 After User Guild filter:', teams?.length);
+                console.log('🔍 After URL Guild filter:', teams?.length, 'for guild:', urlGuild);
+            } else if (!isAdmin) {
+                // 🔐 Login Mode (ไม่ใช่ Admin): กรองตาม Guild ของผู้ใช้
+                if (!isPublicMode && CURRENT_USER) {
+                    teams = filterByUserGuild(teams);
+                    console.log('🔍 After User Guild filter:', teams?.length);
+                }
             }
+            // 🟢 Admin Mode (ไม่มี urlGuild): เห็นทั้งหมด ไม่ต้องกรอง
 
             const btnInactive = 'bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-gray-500';
             const btnActiveRed = 'bg-red-600 text-white shadow-lg shadow-red-900/40';
@@ -15153,13 +15161,15 @@
                 const uniqueTargets = new Map();
                 
                 attackTeams.forEach(t => {
+                    const guildName = t.guild_name || t.guildId || 'all';
                     if (t.data.enemyTeams && t.data.enemyTeams.length > 0) {
                         t.data.enemyTeams.forEach(target => {
                             if (!uniqueTargets.has(target.name)) {
                                 uniqueTargets.set(target.name, {
                                     type: 'Target',      
                                     sourceId: t.id, 
-                                    enemyData: target // เก็บข้อมูลศัตรูทั้งก้อน (รวม Pet)
+                                    enemyData: target,
+                                    guildName: guildName // 🟢 เพิ่ม guild สำหรับ group
                                 });
                             }
                         });
@@ -15169,7 +15179,8 @@
             } else {
                 const defTeams = teams.filter(t => t.data && t.data.teamType === 'Defense');
                 defTeams.forEach(t => {
-                    displayItems.push({ type: 'Defense', sourceId: t.id, data: t });
+                    const guildName = t.guild_name || t.guildId || 'all';
+                    displayItems.push({ type: 'Defense', sourceId: t.id, data: t, guildName: guildName });
                 });
             }
 
@@ -15286,11 +15297,58 @@
                     </div>`;
             };
 
+            // 🟢 สร้าง HTML สำหรับแสดงผล
+            let contentHTML = '';
+            
+            // 🟢 แยกกลุ่มตาม Guild เมื่อ g=All (ภายในแต่ละ Tab)
+            if (urlGuild?.toLowerCase() === 'all') {
+                // 🟢 All Mode: แยกกลุ่มตาม Guild (ภายใน Tab ปัจจุบัน)
+                const guildsMap = new Map();
+                
+                displayItems.forEach(item => {
+                    const guildName = item.guildName || 'all';
+                    if (!guildsMap.has(guildName)) {
+                        guildsMap.set(guildName, []);
+                    }
+                    guildsMap.get(guildName).push(item);
+                });
+                
+                // สร้าง HTML แยกตามกลุ่ม Guild
+                let sectionsHTML = '';
+                guildsMap.forEach((items, guildName) => {
+                    const guildColor = guildName === 'all' ? 'gray' : 
+                                     ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'indigo'][Math.abs(guildName.split('').reduce((a,b)=>a+b.charCodeAt(0),0)) % 7];
+                    
+                    sectionsHTML += `
+                        <div class="mb-8 bg-[#0f131a] border-2 border-${guildColor}-500/30 rounded-2xl p-6 shadow-xl shadow-${guildColor}-500/5">
+                            <div class="flex items-center gap-3 mb-4 sticky top-0 z-10 bg-[#0b0e14]/95 backdrop-blur py-3 border-b-2 border-${guildColor}-500/50">
+                                <div class="w-3 h-3 rounded-full bg-${guildColor}-500 shadow-lg shadow-${guildColor}-500/50"></div>
+                                <h2 class="text-lg font-bold text-${guildColor}-400 uppercase tracking-wider">${guildName}</h2>
+                                <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${items.length} teams</span>
+                                <div class="flex-1 h-px bg-gradient-to-r from-${guildColor}-500/30 to-transparent"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                                ${items.map(item => renderCard(item)).join('')}
+                            </div>
+                        </div>`;
+                });
+                
+                contentHTML = sectionsHTML || '<div class="text-gray-500 text-center py-20">ไม่มีข้อมูล</div>';
+            } else {
+                // 🟢 Normal Mode: แสดงทั้งหมดแบบ grid ธรรมดา
+                contentHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20 w-full">
+                    ${displayItems.map(item => renderCard(item)).join('')}
+                </div>`;
+            }
+
             container.innerHTML = `
                 <div class="w-full h-full flex flex-col overflow-hidden bg-[#0b0e14]">
                     <div class="w-full h-full flex flex-col overflow-y-auto custom-scroll p-4 md:p-6">
                         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 shrink-0 w-full">
-                            <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Community <span class="text-blue-500">Gallery</span></h1>
+                            <div class="flex items-center gap-3">
+                                <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Community <span class="text-blue-500">Gallery</span></h1>
+                                ${isAdmin ? '<span class="bg-purple-600/30 text-purple-300 border border-purple-500/50 px-3 py-1 rounded-full text-xs font-bold uppercase">👑 Admin View</span>' : ''}
+                            </div>
                             <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">↻ Refresh</button>
                         </div>
                         <div class="flex justify-center mb-6 shrink-0 w-full">
@@ -15299,9 +15357,7 @@
                                 <button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20 w-full">
-                            ${displayItems.map(item => renderCard(item)).join('')}
-                        </div>
+                        ${contentHTML}
                     </div>
                 </div>`;
         }
