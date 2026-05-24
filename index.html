@@ -40,34 +40,35 @@
         }
         .roster-line-section + .roster-line-section { margin-top: 1rem; }
         .roster-line-section {
-            border-radius: 0.75rem;
-            padding: 0.75rem 0.85rem 0.85rem;
-            border-left: 4px solid;
+            /* border-radius: 0.75rem; */
+            /* padding: 0.75rem 0.6rem 0.85rem; */
+            /* border-left: 4px solid; */
         }
         .roster-line-head {
+            width:100%;
             font-size: 0.72rem;
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             padding: 0.4rem 0.75rem;
-            border-radius: 0.5rem;
+            border-radius: 0.25rem 0.25rem 0rem 0rem;
             border: 1px solid;
             margin-bottom: 0.75rem;
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
         }
-        .roster-section-physical { border-left-color: #ef4444; background: linear-gradient(90deg, rgba(127,29,29,0.28) 0%, rgba(11,14,20,0) 72%); }
+        /* .roster-section-physical { border-left-color: #ef4444; background: linear-gradient(90deg, rgba(127,29,29,0.28) 0%, rgba(11,14,20,0) 72%); } */
         .roster-line-physical { color: #fecaca; border-color: rgba(239,68,68,0.55); background: rgba(127,29,29,0.55); }
-        .roster-section-magic { border-left-color: #1d4ed8; background: linear-gradient(90deg, rgba(30,58,138,0.32) 0%, rgba(11,14,20,0) 72%); }
-        .roster-line-magic { color: #bfdbfe; border-color: rgba(29,78,216,0.55); background: rgba(30,58,138,0.55); }
-        .roster-section-tank { border-left-color: #b45309; background: linear-gradient(90deg, rgba(120,53,15,0.32) 0%, rgba(11,14,20,0) 72%); }
-        .roster-line-tank { color: #fde68a; border-color: rgba(180,83,9,0.55); background: rgba(120,53,15,0.55); }
-        .roster-section-support { border-left-color: #f97316; background: linear-gradient(90deg, rgba(154,52,18,0.28) 0%, rgba(11,14,20,0) 72%); }
-        .roster-line-support { color: #fed7aa; border-color: rgba(249,115,22,0.55); background: rgba(154,52,18,0.5); }
-        .roster-section-balanced { border-left-color: #9333ea; background: linear-gradient(90deg, rgba(88,28,135,0.32) 0%, rgba(11,14,20,0) 72%); }
-        .roster-line-balanced { color: #e9d5ff; border-color: rgba(147,51,234,0.55); background: rgba(88,28,135,0.55); }
-        .roster-section-other { border-left-color: #6b7280; background: linear-gradient(90deg, rgba(55,65,81,0.25) 0%, rgba(11,14,20,0) 72%); }
+        /* .roster-section-magic { border-left-color: #1d4ed8; background: linear-gradient(90deg, rgba(30,58,138,0.32) 0%, rgba(11,14,20,0) 72%); } */
+        .roster-line-magic { color: #bfdbfe; border-color: rgba(29,78,216,0.55); background: rgba(30,58,138,0.55); margin-top: 10px;}
+        /* .roster-section-tank { border-left-color: #b45309; background: linear-gradient(90deg, rgba(120,53,15,0.32) 0%, rgba(11,14,20,0) 72%); } */
+        .roster-line-tank { color: #fde68a; border-color: rgba(180,83,9,0.55); background: rgba(120,53,15,0.55);margin-top: 10px; }
+        /* .roster-section-support { border-left-color: #f97316; background: linear-gradient(90deg, rgba(154,52,18,0.28) 0%, rgba(11,14,20,0) 72%); } */
+        .roster-line-support { color: #fed7aa; border-color: rgba(249,115,22,0.55); background: rgba(154,52,18,0.5); margin-top: 10px;}
+        /* .roster-section-balanced { border-left-color: #9333ea; background: linear-gradient(90deg, rgba(88,28,135,0.32) 0%, rgba(11,14,20,0) 72%); } */
+        .roster-line-balanced { color: #e9d5ff; border-color: rgba(147,51,234,0.55); background: rgba(88,28,135,0.55); margin-top: 10px;}
+        /* .roster-section-other { border-left-color: #6b7280; background: linear-gradient(90deg, rgba(55,65,81,0.25) 0%, rgba(11,14,20,0) 72%); } */
         .roster-line-other { color: #d1d5db; border-color: rgba(107,114,128,0.45); background: rgba(55,65,81,0.45); }
         .roster-line-ancient { color: #fca5a5; border-color: rgba(185,28,28,0.55); background: rgba(69,10,10,0.55); }
         .roster-line-legend-sp { color: #fdba74; border-color: rgba(194,65,12,0.55); background: rgba(67,20,7,0.55); }
@@ -81,7 +82,7 @@
             user-select: none;
             touch-action: manipulation;
             margin-top: 6px;
-            margin-right: 6px;
+            margin-right: 0px;
         }
         .roster-hero-card-inner {
             position: absolute;
@@ -95,7 +96,7 @@
             padding: 0px 0 6px;
             background: rgba(0,0,0,.9);
         }
-        .roster-hero-card .star-icon { font-size: 20px; margin: 0 -1.5px; }
+        .roster-hero-card .star-icon { font-size: 15px; margin: 0 -1.5px 2px; }
         .roster-hero-card .star-blue {
             filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.45));
         }
@@ -955,45 +956,36 @@
         .roster-nav-groups {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-        }
-        @media (min-width: 768px) {
-            .roster-nav-groups {
-                flex-direction: row;
-                align-items: stretch;
-            }
-            .roster-nav-group {
-                flex: 1;
-                min-width: 0;
-            }
+            gap: 1rem;
         }
         .roster-nav-group {
             background: #0b0e14;
             border: 1px solid rgba(55, 65, 81, 0.65);
             border-radius: 0.85rem;
-            padding: 0.55rem 0.65rem 0.65rem;
+            padding: 0.65rem 0.55rem 0.7rem;
         }
         .roster-nav-group-label {
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #6b7280;
-            padding: 0 0.25rem 0.45rem;
+            padding: 0 0.25rem 0.5rem;
             border-bottom: 1px solid rgba(55, 65, 81, 0.45);
-            margin-bottom: 0.45rem;
+            margin-bottom: 0.55rem;
         }
         .roster-nav-group-btns {
             display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
+            flex-direction: column;
+            gap: 0.35rem;
         }
         .roster-tab-btn {
-            flex: 1 1 auto;
-            min-width: 5.5rem;
-            padding: 0.55rem 0.75rem;
+            width: 100%;
+            min-width: 0;
+            text-align: left;
+            padding: 0.65rem 0.75rem;
             border-radius: 0.55rem;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             transition: background 0.15s, color 0.15s, box-shadow 0.15s;
             color: #9ca3af;
@@ -1008,6 +1000,150 @@
             color: #fff;
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
         }
+        #view-roster-editor {
+            --roster-header-offset: 3.25rem;
+        }
+        .roster-portal-header {
+            min-height: var(--roster-header-offset);
+            box-sizing: border-box;
+        }
+        .roster-nav-toggle {
+            display: inline-flex;
+            width: 2.35rem;
+            height: 2.35rem;
+            border-radius: 0.55rem;
+            border: 1px solid rgba(55, 65, 81, 0.85);
+            background: #0d1117;
+            color: #e5e7eb;
+            font-size: 1.1rem;
+            line-height: 1;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .roster-nav-toggle.open {
+            border-color: rgba(59, 130, 246, 0.65);
+            background: rgba(37, 99, 235, 0.2);
+            color: #93c5fd;
+        }
+        .roster-editor-body {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+        .roster-editor-main {
+            flex: 1;
+            min-width: 0;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        .roster-side-nav {
+            position: fixed;
+            left: 0;
+            top: var(--roster-header-offset, 3.25rem);
+            bottom: 0;
+            width: min(17.5rem, 88vw);
+            z-index: 55;
+            transform: translateX(-105%);
+            transition: transform 0.28s ease;
+            background: linear-gradient(180deg, #121820 0%, #0b0e14 100%);
+            border-right: 1px solid rgba(55, 65, 81, 0.85);
+            box-shadow: 8px 0 32px rgba(0, 0, 0, 0.55);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .roster-side-nav.open {
+            transform: translateX(0);
+        }
+        .roster-side-nav-inner {
+            padding: 0.75rem 0.65rem 1.25rem;
+        }
+        .roster-side-nav-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0.15rem 0.65rem;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.65);
+        }
+        .roster-side-nav-head-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #e5e7eb;
+            letter-spacing: 0.04em;
+        }
+        .roster-side-nav-close {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.45rem;
+            border: 1px solid rgba(55, 65, 81, 0.8);
+            background: rgba(0, 0, 0, 0.35);
+            color: #9ca3af;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .roster-nav-backdrop {
+            display: block;
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: var(--roster-header-offset, 3.25rem);
+            bottom: 0;
+            z-index: 54;
+            background: rgba(0, 0, 0, 0.55);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.28s ease;
+        }
+        .roster-nav-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        body.roster-nav-drawer-open {
+            overflow: hidden;
+        }
+        @media (min-width: 768px) {
+            .roster-side-nav {
+                width: min(18.5rem, 24rem);
+            }
+            .roster-editor-main {
+                padding: 1.5rem 2rem;
+            }
+        }
+        .roster-profile-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.65);
+        }
+        .roster-profile-guild-badge {
+            text-align: right;
+            padding: 0.35rem 0.65rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(55, 65, 81, 0.75);
+            background: rgba(13, 17, 23, 0.85);
+            max-width: 55%;
+        }
+        .roster-profile-guild-badge .label {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+        .roster-profile-guild-badge .value {
+            font-size: 12px;
+            font-weight: 700;
+            color: #e5e7eb;
+            line-height: 1.3;
+            word-break: break-word;
+        }
         .roster-panel-save-btn {
             flex-shrink: 0;
         }
@@ -1016,6 +1152,41 @@
             max-width: min(1280px, 96vw);
         }
         #contextMenu.ctx-owned-stars { min-width: 220px; }
+        .ctx-roster-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.75rem 0.75rem 0.65rem;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.65);
+        }
+        .ctx-roster-preview.hidden {
+            display: none !important;
+        }
+        .ctx-roster-preview-img {
+            width: 4.5rem;
+            height: 4.5rem;
+            border-radius: 0.65rem;
+            object-fit: cover;
+            border: 2px solid rgba(55, 65, 81, 0.85);
+            background: #0d1117;
+        }
+        #roster-ring-menu-preview .ctx-roster-preview-img {
+            border-radius: 9999px;
+            padding: 0.2rem;
+        }
+        .ctx-roster-preview-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: #e5e7eb;
+            text-align: center;
+            max-width: 100%;
+            line-height: 1.25;
+            word-break: break-word;
+        }
+        .ctx-roster-preview-img-pet {
+            border-radius: 9999px;
+        }
         #star-grid-yellow.ctx-grid { margin-bottom: 6px; }
         .no-scroll::-webkit-scrollbar { width: 6px; }
         .no-scroll::-webkit-scrollbar-track { background: #111827; }
@@ -2899,48 +3070,65 @@
         </div>
 
         <div id="view-roster-editor" class="flex-col hidden w-full h-full min-h-0 bg-[#0b0e14] font-['Kanit'] overflow-hidden animate-fade-in">
-            <header class="px-3 py-2 md:px-4 md:py-2.5 border-b border-gray-800/60 bg-gradient-to-r from-[#161b22] via-[#131920] to-[#0f1419] flex justify-between items-center gap-3 shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.35)]">
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <header id="roster-portal-header" class="roster-portal-header px-3 py-2 border-b border-gray-800/60 bg-gradient-to-r from-[#161b22] via-[#131920] to-[#0f1419] flex justify-between items-center gap-2 shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.35)] z-[56] relative">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                    <button type="button" id="roster-nav-toggle" class="roster-nav-toggle" onclick="toggleRosterMobileNav()" aria-label="เปิดเมนู" title="เมนู">☰</button>
                     <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600/30 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-base shrink-0 shadow-inner">👤</div>
                     <div class="min-w-0 flex-1">
-                        <div id="roster-member-name" class="text-base md:text-lg font-bold text-white truncate leading-tight">...</div>
-                        <p class="text-[10px] text-gray-500 truncate mt-0.5">พอร์ทัลสมาชิกกิลด์</p>
+                        <div id="roster-member-name" class="text-base font-bold text-white truncate leading-tight">...</div>
+                        <p id="roster-member-guild" class="text-[10px] text-gray-500 truncate mt-0.5">...</p>
                     </div>
                 </div>
-                <button type="button" onclick="switchRosterMemberCode()" class="shrink-0 text-gray-400 hover:text-white text-[11px] md:text-xs font-bold px-2 py-1.5 md:px-3 md:py-2 rounded-lg border border-gray-700/80 hover:border-gray-500 bg-[#0d1117]/80 transition whitespace-nowrap">← เปลี่ยนรหัสสมาชิก</button>
+                <button type="button" onclick="switchRosterMemberCode()" class="shrink-0 text-gray-400 hover:text-white text-[11px] font-bold px-2 py-1.5 rounded-lg border border-gray-700/80 hover:border-gray-500 bg-[#0d1117]/80 transition whitespace-nowrap">← เปลี่ยนรหัสสมาชิก</button>
             </header>
 
-            <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 lg:p-8 custom-scroll bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] relative">
-                <div class="w-full max-w-none mx-auto space-y-4 h-full flex flex-col">
-                    <div class="roster-nav-groups">
-                        <div class="roster-nav-group">
-                            <div class="roster-nav-group-label">ข้อมูลของฉัน</div>
-                            <div class="roster-nav-group-btns">
-                                <button type="button" data-roster-tab="heroes" onclick="setRosterTab('heroes')" class="roster-tab-btn">⚔️ ตัวละคร</button>
-                                <button type="button" data-roster-tab="pets" onclick="setRosterTab('pets')" class="roster-tab-btn">🐾 สัตว์เลี้ยง</button>
-                                <button type="button" data-roster-tab="rings" onclick="setRosterTab('rings')" class="roster-tab-btn">💍 แหวน</button>
-                            </div>
+            <div id="roster-nav-backdrop" class="roster-nav-backdrop" onclick="closeRosterMobileNav()" aria-hidden="true"></div>
+            <div class="roster-editor-body">
+                <aside id="roster-side-nav" class="roster-side-nav custom-scroll" aria-label="เมนูพอร์ทัลสมาชิก">
+                    <div class="roster-side-nav-inner">
+                        <div class="roster-side-nav-head">
+                            <span class="roster-side-nav-head-title">เมนู</span>
+                            <button type="button" class="roster-side-nav-close" onclick="closeRosterMobileNav()" aria-label="ปิดเมนู">✕</button>
                         </div>
-                        <div class="roster-nav-group">
-                            <div class="roster-nav-group-label">ทีมกิลด์</div>
-                            <div class="roster-nav-group-btns">
-                                <button type="button" data-roster-tab="attack-teams" onclick="setRosterTab('attack-teams')" class="roster-tab-btn roster-attack-tab-btn hidden">🎯 ทีมบุก</button>
-                                <button type="button" data-roster-tab="defense-teams" onclick="setRosterTab('defense-teams')" class="roster-tab-btn roster-defense-tab-btn hidden">🛡️ ทีมรับ</button>
+                        <nav class="roster-nav-groups">
+                            <div class="roster-nav-group">
+                                <div class="roster-nav-group-label">📋 ข้อมูลของฉัน</div>
+                                <div class="roster-nav-group-btns">
+                                    <button type="button" data-roster-tab="heroes" onclick="setRosterTab('heroes')" class="roster-tab-btn">⚔️ ตัวละคร</button>
+                                    <button type="button" data-roster-tab="pets" onclick="setRosterTab('pets')" class="roster-tab-btn">🐾 สัตว์เลี้ยง</button>
+                                    <button type="button" data-roster-tab="rings" onclick="setRosterTab('rings')" class="roster-tab-btn">💍 แหวน</button>
+                                </div>
                             </div>
-                        </div>
+                            <div class="roster-nav-group">
+                                <div class="roster-nav-group-label">🏰 ทีมกิลด์</div>
+                                <div class="roster-nav-group-btns">
+                                    <button type="button" data-roster-tab="attack-teams" onclick="setRosterTab('attack-teams')" class="roster-tab-btn roster-attack-tab-btn hidden">🎯 ทีมบุก</button>
+                                    <button type="button" data-roster-tab="defense-teams" onclick="setRosterTab('defense-teams')" class="roster-tab-btn roster-defense-tab-btn hidden">🛡️ ทีมรับ</button>
+                                </div>
+                            </div>
+                            <div class="roster-nav-group">
+                                <div class="roster-nav-group-label">👤 ข้อมูลส่วนตัว</div>
+                                <div class="roster-nav-group-btns">
+                                    <button type="button" data-roster-tab="profile" onclick="setRosterTab('profile')" class="roster-tab-btn">🪪 ข้อมูลส่วนตัว</button>
+                                </div>
+                            </div>
+                        </nav>
                     </div>
+                </aside>
+                <div class="roster-editor-main p-4 md:p-0 custom-scroll bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] relative">
+                <div class="w-full max-w-none mx-auto space-y-4 h-full flex flex-col md:py-6 md:px-8 lg:px-8">
 
                     <div id="roster-panel-welcome" class="roster-panel flex-1 bg-[#161b22] border border-gray-700 border-dashed rounded-3xl p-8 md:p-12 shadow-inner flex flex-col items-center justify-center text-center min-h-[280px]">
                         <span class="text-5xl opacity-50 mb-4 block">👋</span>
-                        <h3 class="text-lg font-bold text-gray-300 mb-2">เลือกเมนูด้านบนเพื่อเริ่มต้น</h3>
-                        <p class="text-xs text-gray-500 max-w-sm leading-relaxed">ตัวละคร · สัตว์เลี้ยง · แหวน — แก้ไขและบันทึกแยกแต่ละส่วน<br>ทีมบุก / ทีมรับ — ดูความพร้อมเทียบกับทีมที่กิลด์แชร์</p>
+                        <h3 class="text-lg font-bold text-gray-300 mb-2">เลือกเมนูเพื่อเริ่มต้น</h3>
+                        <p class="text-xs text-gray-500 max-w-sm leading-relaxed">กดปุ่ม ☰ มุมซ้ายบนเพื่อเปิดเมนู</p>
                     </div>
 
-                    <div id="roster-panel-heroes" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl">
+                    <div id="roster-panel-heroes" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-4 md:p-8 shadow-2xl">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-800 pb-4 gap-4">
                             <div>
                                 <h3 class="text-xl font-bold text-yellow-500 flex items-center gap-2"><span>⭐</span> ตัวละครที่มี</h3>
-                                <p class="text-xs text-gray-400 mt-1">คลิกขวา (หรือกดค้าง) ที่รูปเพื่อปรับระดับดาว</p>
+                                <p class="text-xs text-gray-400 mt-1">คลิกที่รูปเพื่อจัดการ (ปรับดาว · ดูรายละเอียด · ลบ)</p>
                             </div>
                             <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
                                 <button type="button" onclick="savePublicRosterSection('heroes')" class="roster-panel-save-btn bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-1.5 transition active:scale-95 border border-emerald-500/30"><span>💾</span> บันทึก</button>
@@ -2954,7 +3142,7 @@
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-800 pb-4 gap-4">
                             <div>
                                 <h3 class="text-xl font-bold text-amber-400 flex items-center gap-2"><span>💍</span> แหวนที่มี</h3>
-                                <p class="text-xs text-gray-400 mt-1">เลือกแหวนที่คุณมีในเกม</p>
+                                <p class="text-xs text-gray-400 mt-1">คลิกที่รูปเพื่อจัดการ (ดูรายละเอียด · แหวนซ้อน · ลบ)</p>
                             </div>
                             <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
                                 <button type="button" onclick="savePublicRosterSection('rings')" class="roster-panel-save-btn bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-1.5 transition active:scale-95 border border-emerald-500/30"><span>💾</span> บันทึก</button>
@@ -2968,7 +3156,7 @@
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-800 pb-4 gap-4">
                             <div>
                                 <h3 class="text-xl font-bold text-green-400 flex items-center gap-2"><span>🐾</span> สัตว์เลี้ยงที่มี</h3>
-                                <p class="text-xs text-gray-400 mt-1">คลิกขวา (หรือกดค้าง) ที่รูปเพื่อปรับระดับดาว</p>
+                                <p class="text-xs text-gray-400 mt-1">คลิกที่รูปเพื่อจัดการ (ปลดศักยภาพ · ปลดสกิล · ลบ)</p>
                             </div>
                             <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
                                 <button type="button" onclick="savePublicRosterSection('pets')" class="roster-panel-save-btn bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-1.5 transition active:scale-95 border border-emerald-500/30"><span>💾</span> บันทึก</button>
@@ -2993,6 +3181,11 @@
                         </div>
                         <div id="roster-defense-teams-list" class="space-y-3 min-h-[200px]"></div>
                     </div>
+
+                    <div id="roster-panel-profile" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl max-w-2xl">
+                        <div id="roster-profile-content"></div>
+                    </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -3246,6 +3439,10 @@
     </main>
     
     <div id="contextMenu" onclick="event.stopPropagation()">
+        <div id="ctx-roster-preview" class="ctx-roster-preview hidden">
+            <img id="ctx-roster-preview-img" src="" alt="" class="ctx-roster-preview-img">
+            <div id="ctx-roster-preview-name" class="ctx-roster-preview-name"></div>
+        </div>
         <div id="ctx-top-delete-section" class="p-2 border-b border-gray-700">
             <button onclick="removeItemFromContext()" class="w-full bg-red-900/30 hover:bg-red-800 border border-red-800 text-red-300 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 transition"><span>🗑️</span> ลบ (Remove)</button>
         </div>
@@ -3301,6 +3498,10 @@
     </div>
 
     <div id="rosterRingContextMenu" class="fixed hidden z-[9999] bg-[#161b22] border border-gray-600 rounded-xl shadow-2xl py-1 min-w-[220px] font-['Kanit']" onclick="event.stopPropagation()">
+        <div id="roster-ring-menu-preview" class="ctx-roster-preview px-3 pt-3 pb-2 border-b border-gray-700">
+            <img id="roster-ring-menu-preview-img" src="" alt="" class="ctx-roster-preview-img grade-6">
+            <div id="roster-ring-menu-preview-name" class="ctx-roster-preview-name"></div>
+        </div>
         <div class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-700">จัดการแหวน</div>
         <div id="roster-ring-menu-actions"></div>
         <button type="button" onclick="removePublicRosterRingFromContext()" class="w-full text-left px-3 py-2.5 text-xs text-red-400 hover:bg-red-900/30 border-t border-gray-700 font-bold">🗑️ ลบแหวน</button>
@@ -3671,19 +3872,65 @@
         let guildMembersDB = guildsDB[0].members; // Pointer
         let currentMemberIdx = 0;
 
+        /** รวมสมาชิกซ้ำใน memory (เลือกแถวที่ inventory ใหม่/ครบกว่า) */
+        function dedupeGuildMembersList(members) {
+            const byKey = new Map();
+            (members || []).forEach(function(mem) {
+                const norm = normalizeMemberRecord(mem);
+                const codeKey = normalizeMemberCode(norm.accessCode).toLowerCase();
+                const key = codeKey ? ('code:' + codeKey) : ('id:' + String(norm.id));
+                const prev = byKey.get(key);
+                if (!prev) {
+                    byKey.set(key, norm);
+                    return;
+                }
+                const atPrev = parseInt(prev.inventoryUpdatedAt, 10) || 0;
+                const atNew = parseInt(norm.inventoryUpdatedAt, 10) || 0;
+                const score = (m) => (m.hero_list || []).length + (m.pet_list || []).length + (m.ring_list || []).length;
+                if (atNew > atPrev || (atNew === atPrev && score(norm) >= score(prev))) {
+                    byKey.set(key, norm);
+                }
+            });
+            return Array.from(byKey.values());
+        }
+
         /** ทำให้ record สมาชิกมีรูปแบบเดียวกัน (รองรับข้อมูลเก่า) */
         function normalizeMemberRecord(mem) {
             if (!mem) return { id: '0', name: '', accessCode: '', hero_list: [], pet_list: [], ring_list: [], teams: [], inventoryUpdatedAt: 0 };
             return {
                 id: String(mem.id != null ? mem.id : ''),
                 name: mem.name || '',
-                accessCode: mem.accessCode ? normalizeMemberCode(mem.accessCode) : '',
+                accessCode: mem.accessCode != null && mem.accessCode !== '' ? normalizeMemberCode(mem.accessCode) : '',
                 hero_list: mem.hero_list || mem.ownedHeroes || [],
                 pet_list: mem.pet_list || [],
                 ring_list: mem.ring_list || [],
                 teams: Array.isArray(mem.teams) ? mem.teams : [],
                 inventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0
             };
+        }
+
+        /**
+         * Admin pushData เท่านั้น — ส่งแค่ชื่อ / รหัส / ทีม
+         * Server ใช้ patchGuildMembersAdminMetadata (ไม่แตะ hero/pet/ring ในชีต)
+         * ลูกกิลด์บันทึก inventory แยกผ่าน action saveMemberInventory
+         */
+        function guildsPayloadForCloudSave() {
+            return (guildsDB || []).map(function(g) {
+                return {
+                    id: g.id,
+                    name: g.name,
+                    type: g.type || 'sub',
+                    members: (g.members || []).map(function(m) {
+                        return {
+                            id: m.id,
+                            name: m.name,
+                            accessCode: m.accessCode,
+                            teams: Array.isArray(m.teams) ? m.teams : [],
+                            inventoryUpdatedAt: parseInt(m.inventoryUpdatedAt, 10) || 0
+                        };
+                    })
+                };
+            });
         }
 
         /** ซิงก์ guildMembersDB กลับเข้า guildsDB ก่อนบันทึก Cloud */
@@ -3763,7 +4010,9 @@
                 if (Array.isArray(pets)) syncPatch.pet_list = pets;
             }
             if (shouldSync('ring_list')) {
-                const rings = (auth && Array.isArray(auth.ring_list)) ? auth.ring_list : result.ring_list;
+                const rings = Array.isArray(result.ring_list)
+                    ? result.ring_list
+                    : (auth && Array.isArray(auth.ring_list) ? auth.ring_list : null);
                 if (Array.isArray(rings)) syncPatch.ring_list = rings;
             }
             applyMemberInventoryPatch(gIdx, mIdx, syncPatch);
@@ -3779,7 +4028,7 @@
                     if (typeof renderPublicRosterPets === 'function') renderPublicRosterPets();
                 }
                 if (shouldSync('ring_list') && Array.isArray(syncPatch.ring_list)) {
-                    tempOwnedRings = syncPatch.ring_list.map(normalizeRosterRingEntry);
+                    tempOwnedRings = syncPatch.ring_list.map((r, i) => normalizeRosterRingEntry(r, i));
                     if (typeof renderPublicRosterRings === 'function') renderPublicRosterRings();
                 }
             }
@@ -3798,19 +4047,30 @@
                     guild_id: String(g.id),
                     member_id: String(mem.id != null ? mem.id : ''),
                     accessCode: normalizeMemberCode(mem.accessCode || ''),
-                    expectedInventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0,
                     saveMode: options.saveMode === 'replace' ? 'replace' : 'merge',
+                    source: options.rosterSave ? 'roster' : (options.adminSave ? 'admin' : 'admin'),
                     patch: patch
                 })
             });
-            return response.json();
+            const text = await response.text();
+            let result;
+            try {
+                result = JSON.parse(text);
+            } catch (parseErr) {
+                console.error('saveMemberInventory non-JSON:', text.slice(0, 200));
+                throw new Error('เซิร์ฟเวอร์ตอบไม่ถูกต้อง — Deploy code.gs เวอร์ชันล่าสุดแล้วลองใหม่');
+            }
+            if (!result || typeof result.status !== 'string') {
+                throw new Error('ไม่ได้รับคำตอบจาก saveMemberInventory — ตรวจ SCRIPT_URL / การ Deploy');
+            }
+            return result;
         }
 
         /** บันทึก inventory — คิวรวมทั้งกิลด์ + merge กับ DB ฝั่ง server */
         async function postMemberInventorySave(gIdx, mIdx, patch, showOverlay = false, options = {}) {
             if (!USE_CLOUD || !SCRIPT_URL) {
                 applyMemberInventoryPatch(gIdx, mIdx, patch);
-                return { status: 'skip' };
+                return { status: 'skip', message: 'Cloud save unavailable' };
             }
             const g = guildsDB[gIdx];
             const mem = g?.members?.[mIdx];
@@ -3826,16 +4086,6 @@
 
                 try {
                     const result = await sendMemberInventoryRequest(gIdx, mIdx, cleanPatch, options);
-                    if (result.status === 'conflict') {
-                        syncMemberInventoryFromServerResult(gIdx, mIdx, {
-                            status: 'success',
-                            inventoryUpdatedAt: result.inventoryUpdatedAt,
-                            hero_list: result.hero_list,
-                            pet_list: result.pet_list,
-                            ring_list: result.ring_list
-                        }, Object.keys(cleanPatch), null);
-                        throw new Error(result.message || 'ข้อมูลมีการอัปเดตจากที่อื่น กรุณารีเฟรชแล้วบันทึกใหม่');
-                    }
                     if (result.status !== 'success') {
                         throw new Error(result.message || 'Save failed');
                     }
@@ -3872,7 +4122,7 @@
                         id: g.id,
                         name: g.name,
                         type: g.type || 'sub',
-                        members: (g.members || []).map(normalizeMemberRecord)
+                        members: dedupeGuildMembersList(g.members || [])
                     };
                 });
             } else if (data.guildMembers && data.guildMembers.length > 0) {
@@ -3886,14 +4136,14 @@
                 if (gids.length === 0) {
                     guildsDB = [{ id: 'G_MAIN', name: 'Main Guild (กิลด์หลัก)', type: 'main', members: [] }];
                 } else if (gids.length === 1 && gids[0] === 'G_MAIN') {
-                    guildsDB = [{ id: 'G_MAIN', name: 'Main Guild (กิลด์หลัก)', type: 'main', members: byGuild['G_MAIN'] }];
+                    guildsDB = [{ id: 'G_MAIN', name: 'Main Guild (กิลด์หลัก)', type: 'main', members: dedupeGuildMembersList(byGuild['G_MAIN']) }];
                 } else {
                     guildsDB = gids.map(function(gid, i) {
                         return {
                             id: gid,
                             name: gid === 'G_MAIN' ? 'Main Guild (กิลด์หลัก)' : gid,
                             type: gid === 'G_MAIN' ? 'main' : 'sub',
-                            members: byGuild[gid]
+                            members: dedupeGuildMembersList(byGuild[gid])
                         };
                     });
                 }
@@ -4173,6 +4423,7 @@
         const TYPE_OPTS = ['กายภาพ', 'เวทมนตร์', 'ป้องกัน', 'สมดุล', 'สนับสนุน'];
         const PET_RARITY_OPTS = ['ตำนาน', 'หายาก'];
         const PET_TYPE_OPTS = ['บัพโจมตี', 'บัพป้องกัน', 'สนับสนุน'];
+        const RING_TYPE_OPTS = ['แหวนทอง', 'แหวนม่วง', 'แหวนเขียว', 'แหวนเทา'];
         const TIERS = ['S', 'A', 'B', 'C', 'D'];
         const TIER_MODES = ['pvp', 'pve', 'farming'];
         const TIER_MODE_LABELS = { pvp: '⚔️ PVP', pve: '🐉 PVE', farming: '🌾 Farming' };
@@ -4423,6 +4674,27 @@
             return `<span class="${BASE_BADGE_STYLE} ${cls}">${rarity}</span>`;
         }
 
+        function normalizeRingType(ringType) {
+            const t = String(ringType || '').trim();
+            if (RING_TYPE_OPTS.includes(t)) return t;
+            return RING_TYPE_OPTS[RING_TYPE_OPTS.length - 1];
+        }
+
+        function getRingTypeBadgeHTML(ringType) {
+            const t = normalizeRingType(ringType);
+            let cls = 'bg-gray-800/80 text-gray-300 border-gray-500';
+            if (t === 'แหวนทอง') cls = 'bg-yellow-900/50 text-yellow-200 border-yellow-500';
+            else if (t === 'แหวนม่วง') cls = 'bg-purple-900/50 text-purple-200 border-purple-500';
+            else if (t === 'แหวนเขียว') cls = 'bg-green-900/50 text-green-200 border-green-500';
+            return `<span class="${BASE_BADGE_STYLE} ${cls}">${t}</span>`;
+        }
+
+        function normalizeRingsInDb() {
+            (ringsDB || []).forEach(function(r) {
+                if (r) r.ringType = normalizeRingType(r.ringType);
+            });
+        }
+
         function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
 
@@ -4431,7 +4703,7 @@
             // Mock Data
             heroesDB = [{id:'h1',name:'Example Hero',img:'https://api.dicebear.com/7.x/avataaars/svg?seed=Rudy', rarity:'ตำนาน', type:'ป้องกัน', affiliation:'เจ็ดอัศวิน', skills:{n:'Normal',p:'Passive',s1:'<span class="text-orange">Fire Attack</span>',s2:'Ice Attack'}}];
             petsDB = [{id:'p1',name:'Pookie',img:'https://api.dicebear.com/7.x/bottts/svg?seed=Pookie', rarity:'ตำนาน', type:['บัพโจมตี'], skill:'Increases ATK by 20%'}];
-            ringsDB = [{id:'r1',name:'Revive',img:'',desc:'Revive',grade:6}];
+            ringsDB = [{id:'r1',name:'Revive',img:'',desc:'Revive',grade:6,ringType:'แหวนเทา'}];
             tierListsDB = { hero: { pvp: { 'S': ['h1'] }, pve: {}, farming: {} }, pet: { pvp: {}, pve: {}, farming: {} } };
             updateSyncStatus();
         }
@@ -4462,7 +4734,9 @@
                     console.error('Roster load failed:', e);
                 } finally {
                     hideLoading();
-                    revealRosterLoginView();
+                    tryRestoreRosterPortalSession().then(function(restored) {
+                        if (!restored) revealRosterLoginView();
+                    });
                 }
                 return;
             }
@@ -4991,6 +5265,8 @@
     
         async function pushData(showOverlay = false) {
             if (!USE_CLOUD) return;
+            // หน้าลูกกิลด์ (?mode=roster) บันทึกผ่าน saveMemberInventory เท่านั้น — ไม่ปนกับ admin auto-save
+            if (typeof isRosterPortalMode !== 'undefined' && isRosterPortalMode) return;
             if (realTimeInterval) clearInterval(realTimeInterval);
             isSaving = true;
 
@@ -5027,13 +5303,14 @@
                     manualUsage: manualUsageOffsets,
                     surveyConfig: surveyConfig,
                     tierModes: tierModesDB,
-                    guilds: guildsDB,
+                    guilds: guildsPayloadForCloudSave(),
                     equip_sets: equipSetsDB,
                     accessories: accessoriesDB,
                     // teams_3v3: บันทึกผ่าน Save All เท่านั้น (ไม่ส่งใน auto-save)
                     enemyPatterns: enemyPatternsDB,
                     // 🟢 Server-Side Merge: บอก server ให้ merge ฝั่ง server
                     _mergeMode: 'server',
+                    _skipMemberInventorySync: true,
                     _userGuild: userGuild,
                     _userRole: CURRENT_USER?.role || 'user'
                 };
@@ -8264,13 +8541,18 @@
         }
 
         function rosterOwnedTouchStart(e, ctxKey, idx) {
+            if (typeof isRosterCoarsePointer === 'function' && isRosterCoarsePointer()) return;
             if (e.touches && e.touches.length > 1) return;
             _rosterOwnedTouchMoved = false;
             const t = e.touches[0];
             clearTimeout(_rosterOwnedTouchTimer);
             _rosterOwnedTouchTimer = setTimeout(() => {
                 if (_rosterOwnedTouchMoved) return;
-                openOwnedHeroContextMenu(t.clientX, t.clientY, ctxKey, idx);
+                if (ctxKey === 'PUBLIC-ROSTER-OWNED') {
+                    openOwnedHeroContextMenu(t.clientX, t.clientY, ctxKey, idx);
+                } else if (typeof rosterOpenOwnedContextMenu === 'function') {
+                    rosterOpenOwnedContextMenu({ clientX: t.clientX, clientY: t.clientY }, ctxKey, idx);
+                }
             }, 480);
         }
 
@@ -8283,6 +8565,25 @@
             clearTimeout(_rosterOwnedTouchTimer);
         }
 
+        function setRosterContextMenuPreview(imgSrc, name, show, kind) {
+            const wrap = document.getElementById('ctx-roster-preview');
+            const img = document.getElementById('ctx-roster-preview-img');
+            const label = document.getElementById('ctx-roster-preview-name');
+            if (!wrap || !img || !label) return;
+            if (!show) {
+                wrap.classList.add('hidden');
+                img.removeAttribute('src');
+                img.className = 'ctx-roster-preview-img';
+                label.textContent = '';
+                return;
+            }
+            wrap.classList.remove('hidden');
+            img.src = imgSrc || 'https://placehold.co/72';
+            img.alt = name || '';
+            img.className = 'ctx-roster-preview-img' + (kind === 'pet' ? ' ctx-roster-preview-img-pet' : '');
+            label.textContent = name || '';
+        }
+
         function configureRosterOwnedContextMenu(mode) {
             const topDelete = document.getElementById('ctx-top-delete-section');
             const actionsSec = document.getElementById('ctx-actions-section');
@@ -8293,6 +8594,7 @@
             const ringSec = document.getElementById('ctx-rings-section');
             const isRosterOwned = mode === 'hero' || mode === 'pet';
             const is3v3Star = mode === '3v3-star';
+            if (!isRosterOwned) setRosterContextMenuPreview('', '', false);
             if (topDelete) topDelete.style.display = (isRosterOwned || is3v3Star) ? 'none' : 'block';
             if (actionsSec) actionsSec.style.display = (mode === 'hero' || mode === 'guild' || mode === 'team') ? 'block' : 'none';
             if (starsSec) starsSec.style.display = (mode === 'hero' || mode === 'guild' || is3v3Star) ? 'block' : 'none';
@@ -8411,11 +8713,14 @@
                 const m = document.getElementById('contextMenu');
                 const cx = e.clientX != null ? e.clientX : e.pageX - window.scrollX;
                 const cy = e.clientY != null ? e.clientY : e.pageY - window.scrollY;
-                positionContextMenuAt(m, cx, cy);
+                const owned = tempOwnedHeroes[p];
+                const heroDb = owned ? heroesDB.find(x => String(x.id) === String(owned.id)) : null;
+                configureRosterOwnedContextMenu('hero');
+                setRosterContextMenuPreview(heroDb ? heroDb.img : '', heroDb ? heroDb.name : '', true, 'hero');
                 m.style.display = 'block';
                 m.classList.add('ctx-owned-stars');
-                configureRosterOwnedContextMenu('hero');
                 buildOwnedHeroStarMenu();
+                positionContextMenuAt(m, cx, cy);
                 return;
             }
 
@@ -8424,13 +8729,16 @@
                 const m = document.getElementById('contextMenu');
                 const cx = e.clientX != null ? e.clientX : e.pageX - window.scrollX;
                 const cy = e.clientY != null ? e.clientY : e.pageY - window.scrollY;
-                positionContextMenuAt(m, cx, cy);
+                const ownedPet = tempOwnedPets[p];
+                const petDb = ownedPet ? petsDB.find(x => String(x.id) === String(ownedPet.id)) : null;
+                configureRosterOwnedContextMenu('pet');
+                setRosterContextMenuPreview(petDb ? petDb.img : '', petDb ? petDb.name : '', true, 'pet');
                 m.style.display = 'block';
                 m.classList.remove('ctx-owned-stars');
-                configureRosterOwnedContextMenu('pet');
                 const pet = tempOwnedPets[p];
                 buildRosterPetPotentialMenu(pet ? pet.potential : 0);
                 buildRosterPetSkillMenu(pet ? pet.skillUnlock : 0);
+                positionContextMenuAt(m, cx, cy);
                 return;
             }
 
@@ -8535,6 +8843,7 @@
         
         function closeContextMenu() {
             document.getElementById('contextMenu').style.display = 'none';
+            if (typeof setRosterContextMenuPreview === 'function') setRosterContextMenuPreview('', '', false);
             closeRosterRingContextMenu();
             if (typeof closeT3v3RingContextMenu === 'function') closeT3v3RingContextMenu();
         }
@@ -8690,7 +8999,7 @@
                 tabHeader.classList.add('hidden');
                 document.getElementById('dt-content-hero').classList.remove('hidden');
                 document.getElementById('dt-content-pet').classList.add('hidden');
-                document.getElementById('dt-stars').innerHTML = `<div class="flex flex-wrap gap-2 mt-2 items-center"><span class="${BASE_BADGE_STYLE} bg-amber-900/60 text-amber-200 border-amber-500">แหวน ${item.grade || ''}★</span></div>`;
+                document.getElementById('dt-stars').innerHTML = `<div class="flex flex-wrap gap-2 mt-2 items-center">${getRingTypeBadgeHTML(item.ringType)}<span class="${BASE_BADGE_STYLE} bg-amber-900/60 text-amber-200 border-amber-500">${item.grade || ''}★</span></div>`;
                 document.getElementById('dt-n').innerHTML = item.desc || item.name || '-';
                 document.getElementById('dt-p').innerHTML = '';
                 document.getElementById('dt-s1').innerHTML = '';
@@ -8790,6 +9099,12 @@
             }else{
                 if (currentView === 'hero-manager') db.sort((a, b) => { let rA = RARITY_OPTS.indexOf(a.rarity); let rB = RARITY_OPTS.indexOf(b.rarity); if (rA === -1) rA = 999; if (rB === -1) rB = 999; if (rA !== rB) return rA - rB; return a.name.localeCompare(b.name, 'th'); });
                 else if (currentView === 'pet-manager') db.sort((a, b) => { let rA = PET_RARITY_OPTS.indexOf(a.rarity); let rB = PET_RARITY_OPTS.indexOf(b.rarity); if (rA === -1) rA = 999; if (rB === -1) rB = 999; if (rA !== rB) return rA - rB; return a.name.localeCompare(b.name, 'th'); });
+                else if (currentView === 'ring-manager') db.sort((a, b) => {
+                    let tA = RING_TYPE_OPTS.indexOf(normalizeRingType(a.ringType));
+                    let tB = RING_TYPE_OPTS.indexOf(normalizeRingType(b.ringType));
+                    if (tA !== tB) return tA - tB;
+                    return (b.grade || 0) - (a.grade || 0) || a.name.localeCompare(b.name, 'th');
+                });
                 else db.sort((a, b) => (b.grade||0) - (a.grade||0) || a.name.localeCompare(b.name, 'th'));
             }
 
@@ -8804,7 +9119,11 @@
                     else if(i.type) typeBadge = `<span class="${PET_TYPE_STYLE_LIST}">${i.type}</span>`;
                     badgeHtml = rarityBadge + typeBadge;
                 } 
-                else if (currentView === 'ring-manager' || currentView === 'accessory-manager') badgeHtml = `<span class="${BASE_BADGE_STYLE} bg-gray-800 text-yellow-400 border-yellow-500">${i.grade}★</span>`;
+                else if (currentView === 'ring-manager') {
+                    badgeHtml = getRingTypeBadgeHTML(i.ringType) +
+                        `<span class="${BASE_BADGE_STYLE} bg-gray-800 text-yellow-400 border-yellow-500">${i.grade}★</span>`;
+                }
+                else if (currentView === 'accessory-manager') badgeHtml = `<span class="${BASE_BADGE_STYLE} bg-gray-800 text-yellow-400 border-yellow-500">${i.grade}★</span>`;
                 else if (currentView === 'equip-manager') badgeHtml = `<span class="${BASE_BADGE_STYLE} bg-gray-800 text-cyan-400 border-cyan-500">SET</span>`;
                 else if (currentView === 'item-manager') { // <--- Badge ของ Item
                     const color = i.type === 'front' ? 'text-blue-300 border-blue-500' : 'text-purple-300 border-purple-500';
@@ -8992,7 +9311,15 @@
                     <div class="input-group"><label>ประเภท</label><div class="flex flex-col gap-1 mt-1">${typeChecks}</div></div>
                     <div class="col-span-2 input-group"><label>สกิล</label><textarea id="m-skill" class="h-24">${item.skill || ''}</textarea></div>
                 </div>`;
-            } else if (currentView === 'ring-manager' || currentView === 'accessory-manager') {
+            } else if (currentView === 'ring-manager') {
+                const ringTypeVal = normalizeRingType(item.ringType);
+                const ringTypeOpts = RING_TYPE_OPTS.map(o => `<option value="${o}" ${ringTypeVal === o ? 'selected' : ''}>${o}</option>`).join('');
+                h += `<div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="input-group"><label>ประเภทแหวน (Type)</label><select id="m-ring-type" class="bg-[#0d1117] border border-gray-600 rounded px-2 py-2 text-white w-full outline-none">${ringTypeOpts}</select></div>
+                    <div class="input-group"><label>ระดับดาว (4-6)</label><input type="number" id="m-grade" value="${item.grade || 4}" min="4" max="6"></div>
+                    <div class="col-span-2 input-group"><label>คำอธิบาย</label><textarea id="m-desc" class="h-24">${item.desc || ''}</textarea></div>
+                </div>`;
+            } else if (currentView === 'accessory-manager') {
                 h += `<div class="grid grid-cols-2 gap-4 mt-4">
                     <div class="input-group"><label>ระดับดาว (4-6)</label><input type="number" id="m-grade" value="${item.grade || 4}" min="4" max="6"></div>
                     <div class="col-span-2 input-group"><label>คำอธิบาย</label><textarea id="m-desc" class="h-24">${item.desc || ''}</textarea></div>
@@ -9150,8 +9477,12 @@
                 document.querySelectorAll('.pet-type-check:checked').forEach(c => types.push(c.value));
                 item.type = types;
                 item.skill = document.getElementById('m-skill').value;
-            } else if (currentView === 'ring-manager' || currentView === 'accessory-manager') {
-                item.grade = parseInt(document.getElementById('m-grade').value);
+            } else if (currentView === 'ring-manager') {
+                item.ringType = normalizeRingType(document.getElementById('m-ring-type').value);
+                item.grade = parseInt(document.getElementById('m-grade').value, 10) || 4;
+                item.desc = document.getElementById('m-desc').value;
+            } else if (currentView === 'accessory-manager') {
+                item.grade = parseInt(document.getElementById('m-grade').value, 10) || 4;
                 item.desc = document.getElementById('m-desc').value;
             } else if (currentView === 'equip-manager') {
                 item.desc = document.getElementById('m-desc').value;
@@ -9200,7 +9531,7 @@
                 petsDB.push({id, name:'New Pet', img:'', rarity:'ตำนาน', type:['บัพโจมตี'], skill:''}); 
             } 
             else if(currentView === 'ring-manager') {
-                ringsDB.push({id, name:'New Ring', img:'', grade:4, desc:'', options:[]}); 
+                ringsDB.push({id, name:'New Ring', img:'', grade:4, ringType:'แหวนเทา', desc:'', options:[]});
             }
             else if(currentView === 'accessory-manager') {
                 accessoriesDB.push({id, name:'New Accessory', img:'', grade:4, desc:''});
@@ -13069,6 +13400,7 @@
         if (data.heroes) heroesDB = data.heroes;
         if (data.pets) petsDB = data.pets;
         if (data.rings) ringsDB = data.rings;
+        if (typeof normalizeRingsInDb === 'function') normalizeRingsInDb();
         if (data.items) itemsDB = data.items;
         if (data.equip_sets && data.equip_sets.length > 0) {
             equipSetsDB = data.equip_sets;
@@ -15788,10 +16120,8 @@
                     name: savedMem.name,
                     accessCode: savedMem.accessCode,
                     hero_list: savedMem.hero_list || [],
-                    pet_list: savedMem.pet_list || [],
-                    ring_list: savedMem.ring_list || [],
                     teams: savedMem.teams || []
-                }, false, { saveMode: 'replace' });
+                }, false, { saveMode: 'replace', adminSave: true });
             } catch (e) {
                 console.error(e);
                 hideLoading();
@@ -21368,14 +21698,119 @@
     let memberRosterListFilter = '';
     let browseMemberData = { heroes: [], pets: [], rings: [] };
 
+    const ROSTER_PORTAL_SESSION_KEY = 'guildWar_rosterPortalSession';
+
     function normalizeMemberCode(code) {
         return String(code || '').trim();
+    }
+
+    function saveRosterPortalSession(code) {
+        const normalized = normalizeMemberCode(code);
+        if (!normalized) return;
+        try {
+            localStorage.setItem(ROSTER_PORTAL_SESSION_KEY, JSON.stringify({ code: normalized, savedAt: Date.now() }));
+        } catch (e) {
+            console.warn('saveRosterPortalSession:', e);
+        }
+    }
+
+    function clearRosterPortalSession() {
+        try {
+            localStorage.removeItem(ROSTER_PORTAL_SESSION_KEY);
+        } catch (e) {
+            console.warn('clearRosterPortalSession:', e);
+        }
+    }
+
+    function loadRosterPortalSessionCode() {
+        try {
+            const raw = localStorage.getItem(ROSTER_PORTAL_SESSION_KEY);
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            return normalizeMemberCode(data && data.code);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function tryRestoreRosterPortalSession() {
+        const code = loadRosterPortalSessionCode();
+        if (!code) return false;
+        const foundTarget = findMemberByAccessCode(code);
+        if (!foundTarget) {
+            clearRosterPortalSession();
+            return false;
+        }
+        await openRosterEditorForTarget(foundTarget);
+        return true;
+    }
+
+    /** มือถือ / หน้าจอสัมผัส — แตะครั้งเดียวเปิดเมนูแทนกดค้าง */
+    function isRosterCoarsePointer() {
+        if (!isRosterPortalMode) return false;
+        try {
+            if (window.matchMedia('(pointer: coarse)').matches) return true;
+            if (window.matchMedia('(max-width: 767px)').matches) return true;
+        } catch (e) { /* ignore */ }
+        return 'ontouchstart' in window && Math.min(window.innerWidth, window.innerHeight) < 900;
+    }
+
+    function rosterPointerXY(e) {
+        if (e.clientX != null && e.clientY != null) return { x: e.clientX, y: e.clientY };
+        const t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+        if (t) return { x: t.clientX, y: t.clientY };
+        return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    }
+
+    function rosterOpenOwnedContextMenu(e, ctxKey, idx) {
+        const pt = rosterPointerXY(e);
+        if (ctxKey === 'PUBLIC-ROSTER-OWNED') {
+            openOwnedHeroContextMenu(pt.x, pt.y, ctxKey, idx);
+            return;
+        }
+        const fakeE = {
+            preventDefault: function() {},
+            stopPropagation: function() {},
+            clientX: pt.x,
+            clientY: pt.y,
+            pageX: pt.x + window.scrollX,
+            pageY: pt.y + window.scrollY
+        };
+        openContextMenu(fakeE, ctxKey, idx);
+        const m = document.getElementById('contextMenu');
+        if (m && typeof positionContextMenuAt === 'function') positionContextMenuAt(m, pt.x, pt.y);
+    }
+
+    function rosterOwnedItemActivate(e, ctxKey, idx) {
+        e.preventDefault();
+        e.stopPropagation();
+        rosterOpenOwnedContextMenu(e, ctxKey, idx);
+    }
+
+    function rosterRingItemActivate(e, idx) {
+        e.preventDefault();
+        e.stopPropagation();
+        const pt = rosterPointerXY(e);
+        openRosterRingContextMenu(pt.x, pt.y, idx);
     }
 
     function memberCodesMatch(a, b) {
         const x = normalizeMemberCode(a).toLowerCase();
         const y = normalizeMemberCode(b).toLowerCase();
         return x.length > 0 && x === y;
+    }
+
+    function isRosterAccessCodeTaken(code, exceptG, exceptM) {
+        const target = normalizeMemberCode(code).toLowerCase();
+        if (!target) return false;
+        for (let g = 0; g < guildsDB.length; g++) {
+            const members = guildsDB[g].members || [];
+            for (let m = 0; m < members.length; m++) {
+                if (g === exceptG && m === exceptM) continue;
+                if (memberCodesMatch(members[m].accessCode, target)) return true;
+            }
+        }
+        return false;
     }
 
     function applyRosterFullscreenShell() {
@@ -21536,7 +21971,7 @@
         ROSTER_HERO_LINES.forEach(function(line) {
             const list = (buckets[line.id] || []).slice().sort(compareRosterHeroByRarityAndStar);
             if (!list.length) return;
-            html += '<section class="roster-line-section roster-section-' + line.id + '">' +
+            html += '<section class="roster-line-section border-b border-gray-800 pb-4 roster-section-' + line.id + '">' +
                 '<div class="roster-line-head roster-line-' + line.id + '">' + line.icon + ' ' + line.label +
                 ' <span class="opacity-70 font-mono">(' + list.length + ')</span></div>' +
                 '<div class="flex flex-wrap gap-3 md:gap-4 content-start">';
@@ -21559,33 +21994,78 @@
         return (h && h.rarity === 'หายาก') ? 12 : 6;
     }
 
+    function getRosterGuildDisplayName(gIdx) {
+        const guild = guildsDB[gIdx];
+        if (!guild) return '—';
+        return String(guild.name || guild.guild_name || '—').trim() || '—';
+    }
+
     function setRosterMemberHeaderName(name) {
         const nameEl = document.getElementById('roster-member-name');
         if (!nameEl) return;
-        const safe = (name || 'สมาชิก').replace(/"/g, '&quot;');
-        nameEl.innerHTML = `<input type="text" value="${safe}"
-            onchange="updateMemberNameFromRoster(this.value)"
-            class="bg-transparent border-b border-transparent hover:border-gray-600 focus:border-blue-500 text-white font-bold outline-none w-full truncate text-base md:text-lg leading-tight p-0">`;
+        nameEl.textContent = String(name || '').trim() || 'สมาชิก';
+    }
+
+    function setRosterMemberHeaderGuild(gIdx) {
+        const guildEl = document.getElementById('roster-member-guild');
+        if (!guildEl) return;
+        guildEl.textContent = getRosterGuildDisplayName(gIdx);
     }
 
     let rosterRingContextIdx = null;
     let t3v3RingContextSlotIdx = null;
     let t3v3RingContextRingIdx = null;
 
-    function createRosterRingEntry(id) {
-        return { id: String(id), stackId: null };
+    function createRosterRingUid() {
+        return 'rng_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
     }
 
-    function normalizeRosterRingEntry(entry) {
+    function createRosterRingEntry(id) {
+        return {
+            no: tempOwnedRings.length + 1,
+            id: String(id),
+            stackId: null,
+            uid: createRosterRingUid()
+        };
+    }
+
+    function normalizeRosterRingEntry(entry, index) {
         if (!entry) return createRosterRingEntry('');
         if (typeof entry === 'string') return createRosterRingEntry(entry);
         const stackId = entry.stackId != null && entry.stackId !== ''
             ? String(entry.stackId)
             : (entry.stackRevive && entry.stackRingId ? String(entry.stackRingId) : null);
+        const id = String(entry.id || '');
         return {
-            id: String(entry.id || ''),
+            no: parseInt(entry.no, 10) || (index != null ? index + 1 : 1),
+            id: id,
             stackId: stackId || null,
+            uid: entry.uid ? String(entry.uid) : createRosterRingUid(),
         };
+    }
+
+    /** ส่งขึ้น server — ทุกชิ้นมี uid ไม่ซ้ำ + no ลำดับ 1..n */
+    function buildRosterRingListForSave() {
+        return tempOwnedRings
+            .filter(r => r && r.id)
+            .map((r, i) => ({
+                no: i + 1,
+                id: String(r.id),
+                stackId: r.stackId ? String(r.stackId) : null,
+                uid: r.uid ? String(r.uid) : createRosterRingUid(),
+            }));
+    }
+
+    function compareOwnedRingEntriesByType(a, b) {
+        const rA = ringsDB.find(x => String(x.id) === String(a.id));
+        const rB = ringsDB.find(x => String(x.id) === String(b.id));
+        if (!rA && !rB) return 0;
+        if (!rA) return 1;
+        if (!rB) return -1;
+        const tA = RING_TYPE_OPTS.indexOf(normalizeRingType(rA.ringType));
+        const tB = RING_TYPE_OPTS.indexOf(normalizeRingType(rB.ringType));
+        if (tA !== tB) return tA - tB;
+        return (rB.grade || 0) - (rA.grade || 0) || String(rA.name || '').localeCompare(String(rB.name || ''), 'th');
     }
 
     function normalizeRosterPetEntry(entry) {
@@ -21639,12 +22119,34 @@
         closeContextMenu();
         rosterRingContextIdx = idx;
         const item = tempOwnedRings[idx];
+        const previewImg = document.getElementById('roster-ring-menu-preview-img');
+        const previewName = document.getElementById('roster-ring-menu-preview-name');
+        const r = item ? ringsDB.find(x => String(x.id) === String(item.id)) : null;
+        if (previewImg && previewName) {
+            if (r) {
+                previewImg.src = r.img || 'https://placehold.co/72';
+                previewImg.alt = r.name || '';
+                previewImg.className = 'ctx-roster-preview-img grade-' + (r.grade || 6);
+                let label = r.name || '';
+                const stackRing = item.stackId ? ringsDB.find(x => String(x.id) === String(item.stackId)) : null;
+                if (stackRing) label += ' · +' + stackRing.name;
+                previewName.textContent = label;
+            } else {
+                previewImg.src = 'https://placehold.co/72';
+                previewImg.alt = '';
+                previewName.textContent = '';
+            }
+        }
         const listEl = document.getElementById('roster-ring-menu-actions');
         if (listEl && item) {
             const hasStack = !!item.stackId;
             listEl.innerHTML = `
+                <button type="button" onclick="showRosterRingDetailFromContext()"
+                    class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-blue-300 flex items-center gap-2">
+                    <span>📋</span><span>ดูรายละเอียดแหวน</span>
+                </button>
                 <button type="button" onclick="openStackRingSelector()"
-                    class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-amber-200 flex items-center gap-2">
+                    class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-amber-200 flex items-center gap-2 border-t border-gray-800">
                     <span>${hasStack ? '🔁' : '➕'}</span>
                     <span>${hasStack ? 'เปลี่ยนแหวนที่ซ้อน' : 'เพิ่มแหวนที่ซ้อน'}</span>
                 </button>
@@ -21654,6 +22156,9 @@
                 </button>` : ''}`;
         }
         positionRosterRingContextMenu(clientX, clientY);
+        requestAnimationFrame(function() {
+            positionRosterRingContextMenu(clientX, clientY);
+        });
     }
 
     function openStackRingSelector() {
@@ -21679,6 +22184,13 @@
         showDetailModal(r, 'ring', 0, null, false, stackRing);
     }
 
+    function showRosterRingDetailFromContext() {
+        if (rosterRingContextIdx === null) return;
+        const idx = rosterRingContextIdx;
+        closeRosterRingContextMenu();
+        showRosterRingDetail(idx);
+    }
+
     function removePublicRosterRingFromContext() {
         if (rosterRingContextIdx === null) return;
         if (!confirm('ลบแหวนนี้?')) return;
@@ -21689,6 +22201,7 @@
     }
 
     function rosterRingTouchStart(e, idx) {
+        if (isRosterCoarsePointer()) return;
         if (e.touches && e.touches.length > 1) return;
         _rosterOwnedTouchMoved = false;
         const t = e.touches[0];
@@ -21699,47 +22212,78 @@
         }, 480);
     }
 
-    function openRosterEditorForTarget(target) {
+    function applyRosterTempInventoryFromMember(target) {
+        const mem = guildsDB[target.g].members[target.m];
+        tempOwnedHeroes = JSON.parse(JSON.stringify(mem.hero_list || mem.ownedHeroes || []));
+        tempOwnedPets = (mem.pet_list || []).map(normalizeRosterPetEntry);
+        tempOwnedRings = (mem.ring_list || []).map((r, i) => normalizeRosterRingEntry(r, i));
+    }
+
+    async function refreshRosterMemberInventoryFromServer(target) {
+        if (!target || !USE_CLOUD || !SCRIPT_URL) return false;
+        try {
+            const inv = await fetchMemberInventoryFromServer(target.g, target.m);
+            if (!inv || inv.status !== 'success') return false;
+            applyMemberInventoryPatch(target.g, target.m, {
+                hero_list: inv.hero_list || [],
+                pet_list: inv.pet_list || [],
+                ring_list: inv.ring_list || [],
+                inventoryUpdatedAt: inv.inventoryUpdatedAt || 0
+            });
+            return true;
+        } catch (e) {
+            console.warn('refreshRosterMemberInventoryFromServer:', e);
+            return false;
+        }
+    }
+
+    async function openRosterEditorForTarget(target) {
         currentRosterTarget = target;
         const mem = guildsDB[target.g].members[target.m];
         setRosterMemberHeaderName(mem.name);
-        tempOwnedHeroes = JSON.parse(JSON.stringify(mem.hero_list || mem.ownedHeroes || []));
-        tempOwnedPets = (mem.pet_list || []).map(normalizeRosterPetEntry);
-        tempOwnedRings = (mem.ring_list || []).map(normalizeRosterRingEntry);
+        setRosterMemberHeaderGuild(target.g);
+        applyRosterTempInventoryFromMember(target);
         rosterSharedTeamsCache = null;
         rosterActiveTab = '';
         applyRosterFullscreenShell();
         switchView('roster-editor');
+        rosterMobileNavOpen = false;
+        syncRosterMobileNavUI();
         renderPublicRosterUI();
         try {
             window.history.replaceState({}, '', buildMemberRosterUrl());
         } catch (e) { /* file:// */ }
+
+        if (USE_CLOUD && SCRIPT_URL) {
+            const refreshed = await refreshRosterMemberInventoryFromServer(target);
+            if (refreshed) {
+                applyRosterTempInventoryFromMember(target);
+                renderPublicRosterUI();
+            }
+        }
     }
 
-    function verifyRosterCode() {
+    async function verifyRosterCode() {
         const code = normalizeMemberCode(document.getElementById('roster-code-input')?.value);
         if (!code) return alert('กรุณากรอกรหัสสมาชิก');
 
         const foundTarget = findMemberByAccessCode(code);
         if (!foundTarget) {
+            clearRosterPortalSession();
             return alert('❌ รหัสไม่ถูกต้อง — ตรวจสอบกับหัวหน้ากิลด์อีกครั้ง');
         }
-        openRosterEditorForTarget(foundTarget);
-    }
-
-    // ฟังก์ชันให้ลูกกิลด์เปลี่ยนชื่อตัวเองได้
-    function updateMemberNameFromRoster(newName) {
-        if (!currentRosterTarget) return;
-        const trimmed = String(newName || '').trim();
-        const { g, m } = currentRosterTarget;
-        applyMemberInventoryPatch(g, m, { name: trimmed });
-        setRosterMemberHeaderName(trimmed);
-        postMemberInventorySave(g, m, { name: trimmed }, false).catch(function(err) {
-            console.error('Name save failed:', err);
-        });
+        saveRosterPortalSession(code);
+        showLoading('กำลังโหลดข้อมูลสมาชิก...');
+        try {
+            await openRosterEditorForTarget(foundTarget);
+        } finally {
+            hideLoading();
+        }
     }
 
     function switchRosterMemberCode() {
+        closeRosterMobileNav();
+        clearRosterPortalSession();
         currentRosterTarget = null;
         rosterActiveTab = '';
         rosterSharedTeamsCache = null;
@@ -21753,8 +22297,36 @@
         input?.focus();
     }
 
+    let rosterMobileNavOpen = false;
+
+    function syncRosterMobileNavUI() {
+        const nav = document.getElementById('roster-side-nav');
+        const backdrop = document.getElementById('roster-nav-backdrop');
+        const toggle = document.getElementById('roster-nav-toggle');
+        if (nav) nav.classList.toggle('open', rosterMobileNavOpen);
+        if (backdrop) backdrop.classList.toggle('open', rosterMobileNavOpen);
+        if (toggle) {
+            toggle.classList.toggle('open', rosterMobileNavOpen);
+            toggle.setAttribute('aria-label', rosterMobileNavOpen ? 'ปิดเมนู' : 'เปิดเมนู');
+            toggle.textContent = rosterMobileNavOpen ? '✕' : '☰';
+        }
+        document.body.classList.toggle('roster-nav-drawer-open', rosterMobileNavOpen);
+    }
+
+    function toggleRosterMobileNav() {
+        rosterMobileNavOpen = !rosterMobileNavOpen;
+        syncRosterMobileNavUI();
+    }
+
+    function closeRosterMobileNav() {
+        if (!rosterMobileNavOpen) return;
+        rosterMobileNavOpen = false;
+        syncRosterMobileNavUI();
+    }
+
     function setRosterTab(tab) {
         rosterActiveTab = tab;
+        closeRosterMobileNav();
         renderPublicRosterUI();
     }
 
@@ -22279,7 +22851,7 @@
             btn.classList.toggle('active', active);
             btn.classList.toggle('hidden', hidden);
         });
-        ['heroes', 'rings', 'pets', 'attack-teams', 'defense-teams'].forEach(key => {
+        ['heroes', 'rings', 'pets', 'attack-teams', 'defense-teams', 'profile'].forEach(key => {
             const panel = document.getElementById('roster-panel-' + key);
             if (panel) panel.classList.toggle('hidden', rosterActiveTab !== key);
         });
@@ -22289,6 +22861,104 @@
         else if (rosterActiveTab === 'pets') renderPublicRosterPets();
         else if (rosterActiveTab === 'attack-teams') renderPublicRosterAttackTeams();
         else if (rosterActiveTab === 'defense-teams') renderPublicRosterDefenseTeams();
+        else if (rosterActiveTab === 'profile') renderPublicRosterProfile();
+    }
+
+    function getCurrentRosterMember() {
+        if (!currentRosterTarget) return null;
+        const g = guildsDB[currentRosterTarget.g];
+        if (!g || !g.members) return null;
+        return g.members[currentRosterTarget.m] || null;
+    }
+
+    function renderPublicRosterProfile() {
+        const container = document.getElementById('roster-profile-content');
+        if (!container || !currentRosterTarget) return;
+        const mem = getCurrentRosterMember();
+        if (!mem) {
+            container.innerHTML = '<p class="text-sm text-gray-500">ไม่พบข้อมูลสมาชิก</p>';
+            return;
+        }
+        const guild = guildsDB[currentRosterTarget.g];
+        const guildName = (guild ? (guild.name || guild.guild_name || '—') : '—')
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeName = (mem.name || '').replace(/"/g, '&quot;');
+        const safeCode = normalizeMemberCode(mem.accessCode).replace(/"/g, '&quot;');
+        let updatedText = '—';
+        if (mem.inventoryUpdatedAt) {
+            try {
+                updatedText = new Date(mem.inventoryUpdatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
+            } catch (e) {
+                updatedText = String(mem.inventoryUpdatedAt);
+            }
+        }
+        const heroCount = tempOwnedHeroes.length;
+        const petCount = tempOwnedPets.length;
+        const ringCount = tempOwnedRings.length;
+
+        container.innerHTML =
+            '<div class="roster-profile-card-head">' +
+                '<div class="min-w-0">' +
+                    '<h3 class="text-xl font-bold text-gray-100 flex items-center gap-2"><span>🪪</span> ข้อมูลส่วนตัว</h3>' +
+                    '<p class="text-xs text-gray-400 mt-1">แก้ไขชื่อและรหัสสมาชิกได้ — ใช้รหัสนี้เข้าสู่ระบบ</p>' +
+                '</div>' +
+                '<div class="roster-profile-guild-badge shrink-0" title="ชื่อกิลด์ (แก้ไขไม่ได้)">' +
+                    '<div class="label">กิลด์</div>' +
+                    '<div class="value">' + guildName + '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="space-y-3 mb-4">' +
+                '<label class="block"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ชื่อในกิลด์</span>' +
+                '<input type="text" id="roster-profile-name" value="' + safeName + '" class="mt-1 w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2.5 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="ชื่อที่ใช้ในกิลด์" autocomplete="name"></label>' +
+                '<label class="block"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">รหัสสมาชิก</span>' +
+                '<input type="text" id="roster-profile-code" value="' + safeCode + '" class="mt-1 w-full bg-[#0d1117] border border-gray-600 text-amber-200 font-mono px-3 py-2.5 rounded-lg text-sm outline-none focus:border-amber-500" placeholder="เช่น 001, player01" autocomplete="off" autocapitalize="off"></label>' +
+                '<p class="text-[10px] text-gray-500 leading-relaxed">เปลี่ยนรหัสแล้วต้องใช้รหัสใหม่เมื่อเข้าสู่ระบบครั้งถัดไป</p>' +
+            '</div>' +
+            '<div class="bg-[#0d1117]/60 border border-gray-800 rounded-lg px-3 py-2.5 mb-4">' +
+                '<div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">สรุปข้อมูลในระบบ</div>' +
+                '<div class="flex flex-wrap gap-2 text-[11px]">' +
+                    '<span class="px-2 py-1 rounded-md bg-gray-800 text-gray-200">⚔️ ตัวละคร ' + heroCount + '</span>' +
+                    '<span class="px-2 py-1 rounded-md bg-gray-800 text-gray-200">🐾 สัตว์ ' + petCount + '</span>' +
+                    '<span class="px-2 py-1 rounded-md bg-gray-800 text-gray-200">💍 แหวน ' + ringCount + '</span>' +
+                '</div>' +
+                '<div class="text-[10px] text-gray-500 mt-2">อัปเดตล่าสุด: ' + updatedText + '</div>' +
+            '</div>' +
+            '<button type="button" onclick="saveRosterProfile()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-1.5 transition active:scale-95 border border-emerald-500/30"><span>💾</span> บันทึกข้อมูลส่วนตัว</button>';
+    }
+
+    async function saveRosterProfile() {
+        const nameInput = document.getElementById('roster-profile-name');
+        const codeInput = document.getElementById('roster-profile-code');
+        if (!nameInput || !codeInput || !currentRosterTarget) return;
+        const trimmedName = String(nameInput.value || '').trim();
+        const trimmedCode = normalizeMemberCode(codeInput.value);
+        if (!trimmedName) return alert('กรุณากรอกชื่อในกิลด์');
+        if (!trimmedCode) return alert('กรุณากรอกรหัสสมาชิก');
+        const { g, m } = currentRosterTarget;
+        if (isRosterAccessCodeTaken(trimmedCode, g, m)) {
+            return alert('รหัสสมาชิกนี้ถูกใช้แล้ว — กรุณาใช้รหัสอื่น');
+        }
+        const mem = getCurrentRosterMember();
+        const oldCode = mem ? normalizeMemberCode(mem.accessCode) : '';
+        const patch = { name: trimmedName, accessCode: trimmedCode };
+        applyMemberInventoryPatch(g, m, patch);
+        setRosterMemberHeaderName(trimmedName);
+        const saveFn = (typeof postMemberInventorySave === 'function')
+            ? postMemberInventorySave
+            : window.postMemberInventorySave;
+        if (typeof saveFn !== 'function') {
+            return alert('❌ ระบบบันทึกยังไม่พร้อม กรุณารีเฟรชหน้า');
+        }
+        try {
+            await saveFn(g, m, patch, true);
+            if (trimmedCode !== oldCode) saveRosterPortalSession(trimmedCode);
+            alert('✅ บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว' +
+                (trimmedCode !== oldCode ? '\n\nใช้รหัสใหม่เมื่อเข้าสู่ระบบครั้งถัดไป' : ''));
+            renderPublicRosterProfile();
+        } catch (e) {
+            console.error(e);
+            alert('❌ เกิดข้อผิดพลาด: ' + (e.message || e));
+        }
     }
 
     function rosterEmptyState(icon, title, hint) {
@@ -22302,12 +22972,13 @@
         const starsHtml = typeof getStarsHTML === 'function' ? getStarsHTML(starLevel, false) : '';
         const safeName = (h.name || '').replace(/"/g, '&quot;');
         return `<div class="relative roster-hero-card w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-gray-600 bg-black cursor-pointer hover:border-blue-500 hover:scale-105 transition-all shadow-md group"
-            oncontextmenu="openContextMenu(event, 'PUBLIC-ROSTER-OWNED', ${realIdx}); return false;"
+            onclick="rosterOwnedItemActivate(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
+            oncontextmenu="event.preventDefault(); return false;"
             ontouchstart="rosterOwnedTouchStart(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
             ontouchmove="rosterOwnedTouchMove(event)"
             ontouchend="rosterOwnedTouchEnd(event)"
             ontouchcancel="rosterOwnedTouchEnd(event)"
-            title="${safeName} — คลิกขวา / กดค้าง เลือกดาว C0-C12">
+            title="${safeName} — คลิกเพื่อจัดการ">
             <div class="roster-hero-card-inner">
                 <img src="${h.img}" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">
                 ${starsHtml}
@@ -22350,8 +23021,10 @@
             refreshRosterAttackTeamsIfNeeded();
             return;
         }
+        const sorted = [...tempOwnedRings].sort(compareOwnedRingEntriesByType);
         let html = '';
-        tempOwnedRings.forEach((item, i) => {
+        sorted.forEach((item) => {
+            const i = tempOwnedRings.indexOf(item);
             const r = ringsDB.find(x => String(x.id) === String(item.id));
             if (!r) return;
             const stackRing = item.stackId ? ringsDB.find(x => String(x.id) === String(item.stackId)) : null;
@@ -22362,14 +23035,15 @@
                         <img src="${stackRing.img}" class="w-full h-full object-cover" alt="">
                     </div>
                 </div>` : '';
+            const ringNo = item.no != null ? parseInt(item.no, 10) : (i + 1);
             html += `<div class="relative roster-ring-card w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-amber-700/60 bg-black group hover:border-amber-400 transition shadow-md grade-${r.grade || 6} ${hasStack ? 'has-stack' : ''} cursor-pointer"
-                onclick="showRosterRingDetail(${i})"
-                oncontextmenu="event.preventDefault(); openRosterRingContextMenu(event.clientX, event.clientY, ${i}); return false;"
+                onclick="rosterRingItemActivate(event, ${i})"
+                oncontextmenu="event.preventDefault(); return false;"
                 ontouchstart="rosterRingTouchStart(event, ${i})"
                 ontouchmove="rosterOwnedTouchMove(event)"
                 ontouchend="rosterOwnedTouchEnd(event)"
                 ontouchcancel="rosterOwnedTouchEnd(event)"
-                title="${r.name}${hasStack ? ' + แหวนซ้อน: ' + stackRing.name : ''} — คลิกดูรายละเอียด / คลิกขวาจัดการ">
+                title="#${ringNo} ${r.name}${hasStack ? ' + แหวนซ้อน: ' + stackRing.name : ''} — คลิกเพื่อจัดการ">
                 <img src="${r.img}" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">
                 ${stackOverlay}
                 <span class="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-black/80 text-amber-200 truncate px-1 py-0.5 rounded-b-xl pointer-events-none">${r.name}</span>
@@ -22401,12 +23075,13 @@
             const potentialBadge = getRosterPetPotentialBadge(item);
             const skillBadge = getRosterPetSkillBadge(item);
             html += `<div class="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-green-800/60 bg-black cursor-pointer hover:border-green-400 transition group overflow-visible"
-                oncontextmenu="openContextMenu(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx}); return false;"
+                onclick="rosterOwnedItemActivate(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
+                oncontextmenu="event.preventDefault(); return false;"
                 ontouchstart="rosterOwnedTouchStart(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
                 ontouchmove="rosterOwnedTouchMove(event)"
                 ontouchend="rosterOwnedTouchEnd(event)"
                 ontouchcancel="rosterOwnedTouchEnd(event)"
-                title="${p.name} — คลิกขวา / กดค้าง ตั้งค่าสัตว์เลี้ยง">
+                title="${p.name} — คลิกเพื่อจัดการ">
                 <img src="${p.img}" class="w-full h-full object-cover rounded-xl pointer-events-none select-none" draggable="false" alt="">
                 ${skillBadge}
                 ${potentialBadge}
@@ -22430,7 +23105,7 @@
     function loadBrowseMemberData(mem) {
         browseMemberData.heroes = JSON.parse(JSON.stringify(mem.hero_list || mem.ownedHeroes || []));
         browseMemberData.pets = (mem.pet_list || []).map(normalizeRosterPetEntry);
-        browseMemberData.rings = (mem.ring_list || []).map(normalizeRosterRingEntry);
+        browseMemberData.rings = (mem.ring_list || []).map((r, i) => normalizeRosterRingEntry(r, i));
     }
 
     function getMemberRosterCounts(mem) {
@@ -22605,8 +23280,10 @@
             container.innerHTML = rosterEmptyState('💍', 'ยังไม่มีแหวน', 'สมาชิกยังไม่ได้กรอกข้อมูล');
             return;
         }
+        const sorted = [...rings].sort(compareOwnedRingEntriesByType);
         let html = '';
-        rings.forEach((item, i) => {
+        sorted.forEach((item) => {
+            const i = rings.indexOf(item);
             const r = ringsDB.find(x => String(x.id) === String(item.id));
             if (!r) return;
             const stackRing = item.stackId ? ringsDB.find(x => String(x.id) === String(item.stackId)) : null;
@@ -22666,6 +23343,25 @@
         container.innerHTML = html;
     }
 
+    async function fetchMemberInventoryFromServer(gIdx, mIdx) {
+        const g = guildsDB[gIdx];
+        const mem = g?.members?.[mIdx];
+        if (!mem || !USE_CLOUD || !SCRIPT_URL) return null;
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: 'getMemberInventory',
+                guild_id: String(g.id),
+                member_id: String(mem.id != null ? mem.id : ''),
+                accessCode: normalizeMemberCode(mem.accessCode || '')
+            })
+        });
+        const result = await response.json();
+        if (result.status !== 'success') return null;
+        return result;
+    }
+
     async function savePublicRosterSection(section) {
         if (!currentRosterTarget) return alert('❌ ไม่พบข้อมูลสมาชิก กรุณาเข้าระบบใหม่');
         const labels = { heroes: 'ตัวละคร', pets: 'สัตว์เลี้ยง', rings: 'แหวน' };
@@ -22682,12 +23378,7 @@
                 skillUnlock: parseInt(p.skillUnlock, 10) >= 1 && parseInt(p.skillUnlock, 10) <= 3 ? parseInt(p.skillUnlock, 10) : 0,
             })) };
         } else if (section === 'rings') {
-            patch = { ring_list: tempOwnedRings
-                .filter(r => r && r.id)
-                .map(r => ({
-                    id: String(r.id),
-                    stackId: r.stackId ? String(r.stackId) : null,
-                })) };
+            patch = { ring_list: buildRosterRingListForSave() };
         } else {
             return;
         }
@@ -22698,12 +23389,30 @@
             return alert('❌ ระบบบันทึกยังไม่พร้อม กรุณารีเฟรชหน้า');
         }
         try {
-            const result = await saveFn(g, m, patch, true, { saveMode: 'replace' });
-            const count = section === 'heroes'
-                ? (result.heroCount ?? patch.hero_list.length)
+            const saveMode = section === 'rings' ? 'replace' : 'merge';
+            const result = await saveFn(g, m, patch, true, { saveMode: saveMode, rosterSave: true });
+            if (result.status === 'skip') {
+                throw new Error('ไม่สามารถเชื่อมต่อ Cloud ได้ — ข้อมูลไม่ถูกบันทึกถาวร');
+            }
+            if (result.status !== 'success') {
+                throw new Error(result.message || 'บันทึกไม่สำเร็จ');
+            }
+            syncMemberInventoryFromServerResult(g, m, result, Object.keys(patch), patch);
+            const expectedCount = section === 'heroes'
+                ? patch.hero_list.length
                 : section === 'pets'
-                    ? (result.petCount ?? patch.pet_list.length)
-                    : (result.ringCount ?? patch.ring_list.length);
+                    ? patch.pet_list.length
+                    : patch.ring_list.length;
+            const count = section === 'heroes'
+                ? (result.heroCount ?? expectedCount)
+                : section === 'pets'
+                    ? (result.petCount ?? expectedCount)
+                    : (result.ringCount ?? expectedCount);
+            if (section === 'rings' && Array.isArray(result.ring_list)) {
+                tempOwnedRings = result.ring_list.map((r, i) => normalizeRosterRingEntry(r, i));
+                renderPublicRosterRings();
+            }
+            if (typeof renderPublicRosterProfile === 'function') renderPublicRosterProfile();
             alert('✅ บันทึก' + label + 'เรียบร้อยแล้ว! รวม ' + count + ' รายการ');
         } catch (e) {
             console.error(e);
