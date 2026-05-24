@@ -1381,7 +1381,7 @@
             border-color: #22c55e;
             box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.55), 0 0 14px rgba(34, 197, 94, 0.35);
         }
-        .selector-card.selector-ring-group { cursor: pointer; }
+        .selector-card.selector-ring-group { cursor: pointer; -webkit-touch-callout: none; touch-action: manipulation; user-select: none; }
         #ring-selector-grade-menu .ring-grade-btn {
             width: 100%;
             text-align: left;
@@ -3555,7 +3555,7 @@
                 </div>
                 <div id="selector-tabs" class="flex gap-2 flex-wrap w-full"></div>
                 <p id="selector-ring-note" class="hidden w-full text-sm text-amber-100 mt-2.5 mb-0 leading-relaxed">
-                    💡 <strong>คลิกขวา</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★) · คลิกซ้ายเลือกแหวน 6★
+                    💡 <strong>แตะ/คลิก</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★)
                 </p>
             </div>
             <div id="selector-body" class="modal-body custom-scroll">
@@ -8070,9 +8070,9 @@
             note.classList.toggle('hidden', !show);
             if (!show) return;
             if (isRingStackSelectorMode()) {
-                note.innerHTML = '💡 <strong>แหวนซ้อน:</strong> เลือกแหวนคนละชื่อกับแหวนหลัก · <strong>คลิกขวา</strong>เลือกระดับดาว (4–6★)';
+                note.innerHTML = '💡 <strong>แหวนซ้อน:</strong> เลือกแหวนคนละชื่อกับแหวนหลัก · <strong>แตะ/คลิก</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★)';
             } else {
-                note.innerHTML = '💡 <strong>คลิกขวา</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★) · คลิกซ้ายเลือกแหวน 6★ · เลือกแหวนชื่อซ้ำได้';
+                note.innerHTML = '💡 <strong>แตะ/คลิก</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★) · เลือกแหวนชื่อซ้ำได้';
             }
         }
 
@@ -8092,6 +8092,33 @@
             }
             if (!ring && group.variants.length) ring = group.variants[0];
             if (ring) selectItem(String(ring.id));
+        }
+
+        function selectorPointerXY(e) {
+            if (e && e.clientX != null && e.clientY != null) return { x: e.clientX, y: e.clientY };
+            const t = e && ((e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]));
+            if (t) return { x: t.clientX, y: t.clientY };
+            return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        }
+
+        let _selectorRingTapMoved = false;
+
+        function onSelectorRingGroupTouchStart(e) {
+            if (e.touches && e.touches.length > 1) return;
+            _selectorRingTapMoved = false;
+        }
+
+        function onSelectorRingGroupTouchMove() {
+            _selectorRingTapMoved = true;
+        }
+
+        function onSelectorRingGroupTouchEnd(e, groupIndex) {
+            if (_selectorRingTapMoved) return;
+            if (!e || !e.changedTouches || !e.changedTouches.length) return;
+            if (e.cancelable) e.preventDefault();
+            e.stopPropagation();
+            selectorSuppressRingClickUntil = Date.now() + 500;
+            openRingSelectorGradeMenu(e, groupIndex);
         }
 
         function closeRingSelectorGradeMenu() {
@@ -8128,8 +8155,9 @@
             menu.classList.remove('hidden');
             menu.style.position = 'fixed';
             const pad = 8;
-            const cx = e ? e.clientX : window.innerWidth / 2;
-            const cy = e ? e.clientY : window.innerHeight / 2;
+            const pt = selectorPointerXY(e);
+            const cx = pt.x;
+            const cy = pt.y;
             const mw = menu.offsetWidth || 200;
             const mh = menu.offsetHeight || 120;
             let left = cx;
@@ -8138,6 +8166,7 @@
             if (top + mh > window.innerHeight - pad) top = window.innerHeight - mh - pad;
             menu.style.left = Math.max(pad, left) + 'px';
             menu.style.top = Math.max(pad, top) + 'px';
+            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
         }
 
         function openSelector(i, p, type, e) {
@@ -8394,7 +8423,7 @@
                 }
                 return;
             }
-            selectRingFromGroup(groupIndex, null);
+            openRingSelectorGradeMenu(e, groupIndex);
         }
 
         function switchSelectorTab(cat) { selectorActiveCategory = cat; renderSelectorTabs(); filterSelector(document.getElementById('selector-search').value); }
@@ -8455,8 +8484,11 @@
                     const gr = dr.grade || 6;
                     ringHtml += `<div class="selector-card selector-ring-group grade-${gr} flex flex-col items-center justify-center p-2"
                         onclick="onSelectorRingGroupClick(event, ${idx})"
-                        oncontextmenu="openRingSelectorGradeMenu(event, ${idx}); return false;"
-                        title="${safeName(g.name)}">
+                        ontouchstart="onSelectorRingGroupTouchStart(event)"
+                        ontouchmove="onSelectorRingGroupTouchMove(event)"
+                        ontouchend="onSelectorRingGroupTouchEnd(event, ${idx})"
+                        ontouchcancel="onSelectorRingGroupTouchEnd(event, ${idx})"
+                        title="${safeName(g.name)} — แตะเพื่อเลือกระดับดาว">
                         <img src="${dr.img || ''}" class="rounded-full w-14 h-14 border-2 border-gray-700 object-cover pointer-events-none select-none" draggable="false" alt="">
                     </div>`;
                 });
@@ -8513,14 +8545,12 @@
             }
         }
 
-        let _rosterOwnedTouchTimer = null;
         let _rosterOwnedTouchMoved = false;
-        let _rosterOwnedTouchLongPressFired = false;
         let _rosterOwnedTouchHandledAt = 0;
         let _rosterSuppressMenuCloseUntil = 0;
 
         function rosterSuppressNextMenuClose() {
-            _rosterSuppressMenuCloseUntil = Date.now() + 550;
+            _rosterSuppressMenuCloseUntil = Date.now() + 400;
         }
 
         function rosterShouldSuppressMenuClose() {
@@ -8528,11 +8558,32 @@
         }
 
         function rosterTouchAlreadyHandled() {
-            return Date.now() - _rosterOwnedTouchHandledAt < 650;
+            return Date.now() - _rosterOwnedTouchHandledAt < 500;
         }
 
         function rosterMarkTouchHandled() {
             _rosterOwnedTouchHandledAt = Date.now();
+        }
+
+        /** เริ่มแตะ — ใช้ตรวจว่าเป็น scroll หรือ tap */
+        function rosterOwnedTapStart(e) {
+            if (e.touches && e.touches.length > 1) return;
+            _rosterOwnedTouchMoved = false;
+        }
+
+        function rosterOwnedTapMove() {
+            _rosterOwnedTouchMoved = true;
+        }
+
+        /** มือถือ/iOS — แตะครั้งเดียวเปิดเมนู (ไม่ใช้กดค้าง) */
+        function rosterOwnedTapEnd(e, onTap) {
+            if (typeof isRosterCoarsePointer !== 'function' || !isRosterCoarsePointer()) return;
+            if (_rosterOwnedTouchMoved || typeof onTap !== 'function') return;
+            if (e && e.cancelable) e.preventDefault();
+            if (e) e.stopPropagation();
+            rosterMarkTouchHandled();
+            onTap(e);
+            rosterSuppressNextMenuClose();
         }
 
         function rosterGlobalPointerDismiss(e) {
@@ -8578,53 +8629,22 @@
         }
 
         function rosterOwnedTouchStart(e, ctxKey, idx) {
-            if (e.touches && e.touches.length > 1) return;
-            _rosterOwnedTouchMoved = false;
-            _rosterOwnedTouchLongPressFired = false;
-            const t = e.touches[0];
-            clearTimeout(_rosterOwnedTouchTimer);
-            const delay = (typeof isRosterCoarsePointer === 'function' && isRosterCoarsePointer()) ? 420 : 480;
-            _rosterOwnedTouchTimer = setTimeout(() => {
-                if (_rosterOwnedTouchMoved) return;
-                _rosterOwnedTouchLongPressFired = true;
-                rosterMarkTouchHandled();
-                if (ctxKey === 'PUBLIC-ROSTER-OWNED') {
-                    openOwnedHeroContextMenu(t.clientX, t.clientY, ctxKey, idx);
-                } else if (typeof rosterOpenOwnedContextMenu === 'function') {
-                    rosterOpenOwnedContextMenu({ clientX: t.clientX, clientY: t.clientY }, ctxKey, idx);
-                }
-                rosterSuppressNextMenuClose();
-                if (navigator.vibrate) try { navigator.vibrate(12); } catch (_) { /* ignore */ }
-            }, delay);
+            rosterOwnedTapStart(e);
         }
 
         function rosterOwnedTouchMove(e) {
-            _rosterOwnedTouchMoved = true;
-            clearTimeout(_rosterOwnedTouchTimer);
+            rosterOwnedTapMove();
         }
 
         function rosterOwnedTouchEnd(e, ctxKey, idx) {
-            clearTimeout(_rosterOwnedTouchTimer);
-            const longFired = _rosterOwnedTouchLongPressFired;
-            _rosterOwnedTouchLongPressFired = false;
-
-            if (longFired) {
-                if (e && e.cancelable) e.preventDefault();
-                if (e) e.stopPropagation();
-                rosterSuppressNextMenuClose();
-                return;
-            }
-
-            if (typeof isRosterCoarsePointer === 'function' && isRosterCoarsePointer()
-                && !_rosterOwnedTouchMoved && ctxKey != null && idx != null) {
-                if (e && e.cancelable) e.preventDefault();
-                if (e) e.stopPropagation();
-                rosterMarkTouchHandled();
-                if (typeof rosterOpenOwnedContextMenu === 'function') {
-                    rosterOpenOwnedContextMenu(e, ctxKey, idx);
+            rosterOwnedTapEnd(e, function(ev) {
+                if (ctxKey === 'PUBLIC-ROSTER-OWNED') {
+                    const pt = typeof rosterPointerXY === 'function' ? rosterPointerXY(ev) : { x: 0, y: 0 };
+                    openOwnedHeroContextMenu(pt.x, pt.y, ctxKey, idx);
+                } else if (typeof rosterOpenOwnedContextMenu === 'function') {
+                    rosterOpenOwnedContextMenu(ev, ctxKey, idx);
                 }
-                rosterSuppressNextMenuClose();
-            }
+            });
         }
 
         function setRosterContextMenuPreview(imgSrc, name, show, kind) {
@@ -21807,7 +21827,7 @@
         return true;
     }
 
-    /** มือถือ / หน้าจอสัมผัส — แตะครั้งเดียวเปิดเมนูแทนกดค้าง */
+    /** มือถือ / หน้าจอสัมผัส — ใช้แตะครั้งเดียวเปิดเมนู */
     function isRosterCoarsePointer() {
         if (!isRosterPortalMode) return false;
         try {
@@ -22266,48 +22286,20 @@
         renderPublicRosterRings();
     }
 
-    function rosterRingTouchStart(e, idx) {
-        if (e.touches && e.touches.length > 1) return;
-        _rosterOwnedTouchMoved = false;
-        _rosterOwnedTouchLongPressFired = false;
-        const t = e.touches[0];
-        clearTimeout(_rosterOwnedTouchTimer);
-        const delay = isRosterCoarsePointer() ? 420 : 480;
-        _rosterOwnedTouchTimer = setTimeout(function() {
-            if (_rosterOwnedTouchMoved) return;
-            _rosterOwnedTouchLongPressFired = true;
-            if (typeof rosterMarkTouchHandled === 'function') rosterMarkTouchHandled();
-            openRosterRingContextMenu(t.clientX, t.clientY, idx);
-            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
-            if (navigator.vibrate) try { navigator.vibrate(12); } catch (_) { /* ignore */ }
-        }, delay);
+    function rosterRingTouchStart(e) {
+        if (typeof rosterOwnedTapStart === 'function') rosterOwnedTapStart(e);
     }
 
     function rosterRingTouchMove(e) {
-        _rosterOwnedTouchMoved = true;
-        clearTimeout(_rosterOwnedTouchTimer);
+        if (typeof rosterOwnedTapMove === 'function') rosterOwnedTapMove();
     }
 
     function rosterRingTouchEnd(e, idx) {
-        clearTimeout(_rosterOwnedTouchTimer);
-        const longFired = _rosterOwnedTouchLongPressFired;
-        _rosterOwnedTouchLongPressFired = false;
-
-        if (longFired) {
-            if (e && e.cancelable) e.preventDefault();
-            if (e) e.stopPropagation();
-            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
-            return;
-        }
-
-        if (isRosterCoarsePointer() && !_rosterOwnedTouchMoved) {
-            if (e && e.cancelable) e.preventDefault();
-            if (e) e.stopPropagation();
-            if (typeof rosterMarkTouchHandled === 'function') rosterMarkTouchHandled();
-            const pt = rosterPointerXY(e);
+        if (typeof rosterOwnedTapEnd !== 'function') return;
+        rosterOwnedTapEnd(e, function(ev) {
+            const pt = rosterPointerXY(ev);
             openRosterRingContextMenu(pt.x, pt.y, idx);
-            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
-        }
+        });
     }
 
     function applyRosterTempInventoryFromMember(target) {
@@ -23076,7 +23068,7 @@
             ontouchmove="rosterOwnedTouchMove(event)"
             ontouchend="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
             ontouchcancel="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
-            title="${safeName} — คลิกเพื่อจัดการ">
+            title="${safeName} — แตะเพื่อจัดการ">
             <div class="roster-hero-card-inner">
                 <img src="${h.img}" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">
                 ${starsHtml}
@@ -23137,11 +23129,11 @@
             html += `<div class="relative roster-ring-card w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 border-amber-700/60 bg-black group hover:border-amber-400 transition shadow-md grade-${r.grade || 6} ${hasStack ? 'has-stack' : ''} cursor-pointer"
                 onclick="rosterRingItemActivate(event, ${i})"
                 oncontextmenu="event.preventDefault(); return false;"
-                ontouchstart="rosterRingTouchStart(event, ${i})"
+                ontouchstart="rosterRingTouchStart(event)"
                 ontouchmove="rosterRingTouchMove(event)"
                 ontouchend="rosterRingTouchEnd(event, ${i})"
                 ontouchcancel="rosterRingTouchEnd(event, ${i})"
-                title="#${ringNo} ${r.name}${hasStack ? ' + แหวนซ้อน: ' + stackRing.name : ''} — คลิกเพื่อจัดการ">
+                title="#${ringNo} ${r.name}${hasStack ? ' + แหวนซ้อน: ' + stackRing.name : ''} — แตะเพื่อจัดการ">
                 <img src="${r.img}" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">
                 ${stackOverlay}
                 <span class="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-black/80 text-amber-200 truncate px-1 py-0.5 rounded-b-xl pointer-events-none">${r.name}</span>
@@ -23179,7 +23171,7 @@
                 ontouchmove="rosterOwnedTouchMove(event)"
                 ontouchend="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
                 ontouchcancel="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
-                title="${p.name} — คลิกเพื่อจัดการ">
+                title="${p.name} — แตะเพื่อจัดการ">
                 <img src="${p.img}" class="w-full h-full object-cover rounded-xl pointer-events-none select-none" draggable="false" alt="">
                 ${skillBadge}
                 ${potentialBadge}
