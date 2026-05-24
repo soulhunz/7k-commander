@@ -463,12 +463,13 @@
         }
         .roster-planner-team-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.5rem;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.65rem;
         }
         @media (min-width: 768px) {
             .roster-planner-team-grid {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.5rem;
             }
         }
         .roster-planner-team-card {
@@ -3490,7 +3491,6 @@
                             </button>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -19889,6 +19889,68 @@
         return memberMatchesPlainRingOption(opt.baseId);
     }
 
+    /** ลำดับตัวเลือกแหวนต่อช่อง: ซ้อนตรง ID > ไม่ซ้อนตรงฐาน > ไม่ซ้อนชั้นซ้อน */
+    function scoreRingOptionPriority(opt) {
+        if (!opt || !opt.baseId) return -1;
+        if (opt.stackId) {
+            if (memberOwnsStackedRingPair(opt.baseId, opt.stackId)) return 100;
+            if (memberOwnsStackedRingPair(opt.stackId, opt.baseId)) return 98;
+            return memberMatchesStackedRingOption(opt.baseId, opt.stackId) ? 90 : -1;
+        }
+        const detail = findMemberPlainRingMatch(opt.baseId);
+        if (!detail.ok) return -1;
+        if (detail.via === 'base') return 80;
+        if (detail.via === 'stack') return 50;
+        return 40;
+    }
+
+    /** เลือกชิ้นใน pool: ฐานตรง ID > ชั้นซ้อนตรง > คู่ซ้อนตรงทิศ */
+    function scorePoolItemForRingOption(item, opt) {
+        if (!item || !opt || item.used) return -1;
+        if (!rosterRingItemMatchesOption(item, opt)) return -1;
+        if (opt.stackId) {
+            if (String(item.id) === String(opt.baseId) && String(item.stackId || '') === String(opt.stackId)) return 100;
+            if (String(item.id) === String(opt.stackId) && String(item.stackId || '') === String(opt.baseId)) return 95;
+            return 70;
+        }
+        if (String(item.id) === String(opt.baseId)) return 100;
+        if (String(item.stackId || '') === String(opt.baseId)) return 55;
+        return 40;
+    }
+
+    function getSortedRingOptionsForAssignment(options) {
+        if (!options || !options.length) return [];
+        return options.slice().sort(function(a, b) {
+            const diff = scoreRingOptionPriority(b) - scoreRingOptionPriority(a);
+            if (diff !== 0) return diff;
+            if (a.stackId && !b.stackId) return -1;
+            if (!a.stackId && b.stackId) return 1;
+            return String(a.baseId).localeCompare(String(b.baseId));
+        });
+    }
+
+    function findBestUnusedPoolIndex(pool, opt) {
+        let bestIdx = -1;
+        let bestScore = -1;
+        for (let i = 0; i < pool.length; i++) {
+            const s = scorePoolItemForRingOption(pool[i], opt);
+            if (s > bestScore) {
+                bestScore = s;
+                bestIdx = i;
+            }
+        }
+        return bestIdx;
+    }
+
+    function pickBestMatchingRingOption(options) {
+        if (!options || !options.length) return null;
+        const sorted = getSortedRingOptionsForAssignment(options);
+        for (let i = 0; i < sorted.length; i++) {
+            if (memberMatchesRingOption(sorted[i])) return sorted[i];
+        }
+        return null;
+    }
+
     function getRosterRingOptionsHint(options) {
         if (!options || !options.length) return '';
         if (options.length === 1 && options[0].stackId) {
@@ -19923,14 +19985,11 @@
             };
         }
         const requiredRings = options.map(function(o) { return o.baseId; });
-        let matchedOption = null;
+        const matchedOption = pickBestMatchingRingOption(options);
         let plainMatchDetail = null;
-        options.forEach(function(opt) {
-            if (matchedOption) return;
-            if (!memberMatchesRingOption(opt)) return;
-            matchedOption = opt;
-            if (!opt.stackId) plainMatchDetail = findMemberPlainRingMatch(opt.baseId);
-        });
+        if (matchedOption && !matchedOption.stackId) {
+            plainMatchDetail = findMemberPlainRingMatch(matchedOption.baseId);
+        }
         const ringsOk = !!matchedOption;
         let missingStack = null;
         if (!ringsOk && options.length === 1 && options[0].stackId) {
@@ -19982,8 +20041,9 @@
     function tryAssignSlotRing(pool, slot) {
         const options = getRosterSlotRingOptions(slot);
         if (!options) return true;
-        for (let o = 0; o < options.length; o++) {
-            const idx = pool.findIndex(item => rosterRingItemMatchesOption(item, options[o]));
+        const sorted = getSortedRingOptionsForAssignment(options);
+        for (let o = 0; o < sorted.length; o++) {
+            const idx = findBestUnusedPoolIndex(pool, sorted[o]);
             if (idx >= 0) {
                 pool[idx].used = true;
                 return true;
@@ -20037,16 +20097,15 @@
             const options = getRosterSlotRingOptions(normalize3v3Slot(slots[i]));
             if (!options || !options.length) continue;
             let picked = false;
-            for (let o = 0; o < options.length; o++) {
-                const idx = pool.findIndex(function(item) {
-                    return !item.used && rosterRingItemMatchesOption(item, options[o]);
-                });
+            const sorted = getSortedRingOptionsForAssignment(options);
+            for (let o = 0; o < sorted.length; o++) {
+                const idx = findBestUnusedPoolIndex(pool, sorted[o]);
                 if (idx >= 0) {
                     pool[idx].used = true;
                     assigned.push({
                         slotIdx: i,
                         poolIdx: idx,
-                        option: options[o],
+                        option: sorted[o],
                         entry: { id: pool[idx].id, stackId: pool[idx].stackId }
                     });
                     picked = true;
@@ -20227,7 +20286,8 @@
         if (!slot || !slot.id) return null;
         const options = getRosterSlotRingOptions(normalize3v3Slot(slot));
         if (!options || !options.length) return null;
-        const opt = options[0];
+        const opt = pickBestMatchingRingOption(options) || getSortedRingOptionsForAssignment(options)[0];
+        if (!opt) return null;
         return {
             id: String(opt.baseId),
             stackId: opt.stackId ? String(opt.stackId) : null
