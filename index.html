@@ -426,6 +426,216 @@
             color: #fff;
             box-shadow: 0 4px 14px rgba(251, 191, 36, 0.35);
         }
+        .roster-ring-planner-panel {
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            border-radius: 1rem;
+            background: linear-gradient(160deg, rgba(120, 53, 15, 0.15), rgba(15, 23, 42, 0.9));
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .roster-ring-pool-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            background: rgba(0, 0, 0, 0.45);
+            font-size: 10px;
+            color: #fde68a;
+        }
+        .roster-ring-pool-chip.used {
+            opacity: 0.35;
+            border-color: #4b5563;
+            color: #6b7280;
+            text-decoration: line-through;
+        }
+        .roster-ring-pool-chip.search-hit {
+            border-color: #fbbf24;
+            box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.45);
+            background: rgba(251, 191, 36, 0.12);
+        }
+        .roster-ring-pool-chip img {
+            width: 1.25rem;
+            height: 1.25rem;
+            border-radius: 0.25rem;
+            object-fit: cover;
+        }
+        .roster-planner-team-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+        @media (min-width: 768px) {
+            .roster-planner-team-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+        .roster-planner-team-card {
+            cursor: pointer;
+            transition: border-color 0.2s, opacity 0.2s, transform 0.15s;
+            padding: 0.65rem 0.7rem !important;
+            border-radius: 0.65rem;
+            min-width: 0;
+        }
+        .roster-planner-team-card .roster-planner-card-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.35rem;
+            margin-bottom: 0.35rem;
+        }
+        .roster-planner-team-card .roster-planner-card-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.25;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            flex: 1;
+            min-width: 0;
+        }
+        .roster-planner-team-card .roster-planner-card-badge {
+            margin-bottom: 0.35rem;
+        }
+        .roster-planner-team-card .roster-planner-card-badge span {
+            font-size: 8px !important;
+            padding: 0.1rem 0.35rem !important;
+            line-height: 1.2;
+            display: inline-block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .roster-planner-team-card .roster-planner-section {
+            margin-top: 0.45rem;
+            padding-top: 0.45rem;
+            border-top: 1px solid rgba(55, 65, 81, 0.65);
+        }
+        .roster-planner-team-card .roster-planner-section-heroes {
+            margin-top: 0.25rem;
+            padding-top: 0;
+            border-top: none;
+        }
+        .roster-planner-team-card .roster-planner-section-label {
+            font-size: 9px;
+            margin-bottom: 0.35rem;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .roster-planner-section-heroes .roster-planner-section-label { color: #facc15; }
+        .roster-planner-section-pets .roster-planner-section-label { color: #4ade80; }
+        .roster-planner-section-rings .roster-planner-section-label { color: #fbbf24; }
+        .roster-planner-team-card .roster-planner-rings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            align-items: center;
+        }
+        .roster-planner-team-card .roster-planner-slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-bottom: 0.35rem;
+        }
+        .roster-planner-team-card .roster-planner-heroes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-bottom: 0.35rem;
+        }
+        .roster-planner-team-card .roster-planner-heroes .roster-team-slot {
+            width: 4.25rem;
+            height: 4.25rem;
+            border-radius: 0.65rem;
+            border-width: 2px;
+        }
+        .roster-planner-team-card .roster-planner-slots .roster-team-slot.rounded-full {
+            width: 3.85rem;
+            height: 3.85rem;
+        }
+        .roster-planner-team-card .roster-planner-ring-card {
+            width: 4.25rem;
+            height: 4.25rem;
+            flex-shrink: 0;
+            overflow: visible;
+            transition: border-color 0.2s, opacity 0.2s, transform 0.15s;
+        }
+        .roster-planner-team-card .roster-planner-ring-card.planner-ring-preview {
+            opacity: 0.82;
+        }
+        .roster-planner-team-card .roster-planner-ring-card.planner-ring-assigned {
+            border-color: rgba(34, 197, 94, 0.75) !important;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.28), 0 4px 14px rgba(0, 0, 0, 0.35);
+        }
+        .roster-planner-team-card .roster-planner-ring-card:hover {
+            border-color: rgba(251, 191, 36, 0.9);
+            transform: scale(1.04);
+        }
+        .roster-planner-team-card .roster-planner-ring-card .roster-ring-stack-img {
+            width: 1.85rem;
+            height: 1.85rem;
+        }
+        .roster-planner-team-card .roster-team-slot-star {
+            font-size: 9px;
+            padding: 2px 0;
+        }
+        .roster-planner-team-card .roster-planner-assign-rings {
+            margin-top: 0.25rem;
+            gap: 0.2rem;
+        }
+        .roster-planner-team-card .roster-planner-ring-tag {
+            font-size: 7px;
+            padding: 0.1rem 0.3rem;
+        }
+        .roster-planner-team-card.planner-selected {
+            border-color: rgba(34, 197, 94, 0.75) !important;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+        }
+        .roster-planner-team-card.planner-disabled {
+            opacity: 0.42;
+            filter: grayscale(0.85);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .roster-planner-team-card.planner-available:hover {
+            border-color: rgba(251, 191, 36, 0.65);
+            transform: translateY(-2px);
+        }
+        .roster-planner-check {
+            width: 0.85rem;
+            height: 0.85rem;
+            border-radius: 0.25rem;
+            border: 1.5px solid #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .roster-planner-team-card.planner-selected .roster-planner-check {
+            border-color: #22c55e;
+            background: #22c55e;
+            color: #fff;
+        }
+        .roster-planner-assign-rings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            margin-top: 0.5rem;
+        }
+        .roster-planner-ring-tag {
+            font-size: 9px;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.35rem;
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.35);
+            color: #fde68a;
+        }
         .mini-ring-slot { width: 4rem; height: 4rem; border-radius: 0.75rem; border: 2px dashed #4b5563; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #6b7280; background: rgba(0,0,0,0.35); cursor: pointer; transition: border-color 0.15s; flex-shrink: 0; }
         .mini-ring-slot:hover { border-color: #eab308; }
         .mini-ring-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.625rem; }
@@ -3439,6 +3649,10 @@
         let tempOwnedRings = [];
         let rosterActiveTab = '';
         let rosterShowUsableTeamsOnly = false;
+        let rosterRingPlannerMode = false;
+        let rosterRingPlannerSelectedIds = [];
+        let rosterRingPlannerSearch = '';
+        let rosterRingPlannerLastAnalyzed = [];
         let rosterExpandedTeamIds = new Set();
         let rosterSharedTeamsCache = null;
         let rosterEnemyOpenIds = new Set();
@@ -19790,6 +20004,429 @@
         return canTeamUseRingPool(team, buildRosterRingPool());
     }
 
+    function getRosterTeamHeroIds(team) {
+        const ids = [];
+        (team.slots || []).forEach(function(s) {
+            if (s && s.id) ids.push(String(normalize3v3Slot(s).id));
+        });
+        return ids;
+    }
+
+    function getRosterRingName(ringId) {
+        const r = ringsDB.find(function(x) { return String(x.id) === String(ringId); }) ||
+            accessoriesDB.find(function(x) { return String(x.id) === String(ringId); });
+        return r ? r.name : String(ringId);
+    }
+
+    function getRosterHeroName(heroId) {
+        const h = heroesDB.find(function(x) { return String(x.id) === String(heroId); });
+        return h ? h.name : String(heroId);
+    }
+
+    function cloneRosterRingPoolState() {
+        return buildRosterRingPool().map(function(x) {
+            return { id: x.id, stackId: x.stackId, used: false };
+        });
+    }
+
+    /** จัดสรรแหวนจาก pool ให้ทีมหนึ่ง (ต่อฮีโro slot หนึ่งตัวเลือก) */
+    function assignTeamRingsFromPool(pool, team) {
+        const slots = (team.slots || []).filter(function(s) { return s && s.id; });
+        const assigned = [];
+        for (let i = 0; i < slots.length; i++) {
+            const options = getRosterSlotRingOptions(normalize3v3Slot(slots[i]));
+            if (!options || !options.length) continue;
+            let picked = false;
+            for (let o = 0; o < options.length; o++) {
+                const idx = pool.findIndex(function(item) {
+                    return !item.used && rosterRingItemMatchesOption(item, options[o]);
+                });
+                if (idx >= 0) {
+                    pool[idx].used = true;
+                    assigned.push({
+                        slotIdx: i,
+                        poolIdx: idx,
+                        option: options[o],
+                        entry: { id: pool[idx].id, stackId: pool[idx].stackId }
+                    });
+                    picked = true;
+                    break;
+                }
+            }
+            if (!picked) return null;
+        }
+        return assigned;
+    }
+
+    function isRosterTeamEligibleForRingPlanner(entry) {
+        if (!entry || !entry.team || !entry.match) return false;
+        if (!entry.match.heroes.length) return false;
+        if (!entry.match.heroes.every(function(h) { return h.owned; })) return false;
+        if (entry.match.pets.length > 0 && !entry.match.petsOk) return false;
+        return isRosterTeamRingAssignable(entry.team);
+    }
+
+    function computeRosterRingPlannerState(analyzed, selectedIds) {
+        const pool = cloneRosterRingPoolState();
+        const usedHeroIds = new Set();
+        const assignments = {};
+        (selectedIds || []).forEach(function(tid) {
+            const entry = analyzed.find(function(e) { return String(e.team.id) === String(tid); });
+            if (!entry) return;
+            const heroIds = getRosterTeamHeroIds(entry.team);
+            heroIds.forEach(function(id) { usedHeroIds.add(id); });
+            const assigned = assignTeamRingsFromPool(pool, entry.team);
+            if (assigned) assignments[String(tid)] = assigned;
+        });
+        return { pool: pool, usedHeroIds: usedHeroIds, assignments: assignments };
+    }
+
+    function getTeamRingPlannerStatus(entry, analyzed, selectedIds) {
+        const tid = String(entry.team.id);
+        if ((selectedIds || []).some(function(id) { return String(id) === tid; })) {
+            return { status: 'selected' };
+        }
+        const state = computeRosterRingPlannerState(analyzed, selectedIds);
+        const heroIds = getRosterTeamHeroIds(entry.team);
+        const heroConflict = heroIds.find(function(id) { return state.usedHeroIds.has(id); });
+        if (heroConflict) {
+            return { status: 'disabled', reason: 'hero', heroName: getRosterHeroName(heroConflict) };
+        }
+        const trialPool = state.pool.map(function(x) { return { id: x.id, stackId: x.stackId, used: x.used }; });
+        if (!assignTeamRingsFromPool(trialPool, entry.team)) {
+            return { status: 'disabled', reason: 'ring' };
+        }
+        return { status: 'available' };
+    }
+
+    function getTeamRequiredRingIds(team) {
+        const ids = new Set();
+        (team.slots || []).filter(function(s) { return s && s.id; }).forEach(function(slot) {
+            const opts = getRosterSlotRingOptions(normalize3v3Slot(slot));
+            if (!opts) return;
+            opts.forEach(function(o) {
+                ids.add(String(o.baseId));
+                if (o.stackId) ids.add(String(o.stackId));
+            });
+        });
+        return ids;
+    }
+
+    function ringEntryMatchesSearch(entry, query) {
+        if (!query) return true;
+        const q = query.toLowerCase();
+        function matchId(id) {
+            if (!id) return false;
+            const name = getRosterRingName(id).toLowerCase();
+            return name.includes(q) || String(id).toLowerCase().includes(q);
+        }
+        return matchId(entry.id) || matchId(entry.stackId);
+    }
+
+    function teamCanUseUnusedRing(entry, poolEntry) {
+        const probe = { id: poolEntry.id, stackId: poolEntry.stackId, used: false };
+        const slots = (entry.team.slots || []).filter(function(s) { return s && s.id; });
+        for (let i = 0; i < slots.length; i++) {
+            const options = getRosterSlotRingOptions(normalize3v3Slot(slots[i]));
+            if (!options) continue;
+            for (let o = 0; o < options.length; o++) {
+                if (rosterRingItemMatchesOption(probe, options[o])) return true;
+            }
+        }
+        return false;
+    }
+
+    function teamMatchesRingPlannerSearch(entry, analyzed, selectedIds, query) {
+        if (!query) return true;
+        const q = query.toLowerCase();
+        const reqIds = getTeamRequiredRingIds(entry.team);
+        const reqMatch = Array.from(reqIds).some(function(rid) {
+            return getRosterRingName(rid).toLowerCase().includes(q) || String(rid).toLowerCase().includes(q);
+        });
+        if (reqMatch) return true;
+        const teamName = String(entry.team.name || '').toLowerCase();
+        if (teamName.includes(q)) return true;
+        const state = computeRosterRingPlannerState(analyzed, selectedIds);
+        return state.pool.some(function(pe) {
+            return !pe.used && ringEntryMatchesSearch(pe, q) && teamCanUseUnusedRing(entry, pe);
+        });
+    }
+
+    function buildRingPlannerSearchSummaryHtml(analyzed, selectedIds, query) {
+        if (!query) return '';
+        const state = computeRosterRingPlannerState(analyzed, selectedIds);
+        const matchingUnused = state.pool.filter(function(pe) {
+            return !pe.used && ringEntryMatchesSearch(pe, query);
+        });
+        if (!matchingUnused.length) {
+            return '<div class="text-[11px] text-gray-500 mb-3">\u0e44\u0e21\u0e48\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e40\u0e2b\u0e25\u0e37\u0e2d\u0e17\u0e35\u0e48\u0e15\u0e23\u0e07\u0e01\u0e31\u0e1a\u0e04\u0e33\u0e04\u0e49\u0e19\u0e2b\u0e32</div>';
+        }
+        let html = '<div class="mb-3 p-3 rounded-lg border border-amber-800/40 bg-amber-950/20">';
+        html += '<div class="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-2">\u0e41\u0e2b\u0e27\u0e40\u0e2b\u0e25\u0e37\u0e2d\u0e17\u0e35\u0e48\u0e04\u0e49\u0e19\u0e2b\u0e32 (' + matchingUnused.length + ')</div>';
+        matchingUnused.forEach(function(pe) {
+            const teams = analyzed.filter(function(e) {
+                return isRosterTeamEligibleForRingPlanner(e) && teamCanUseUnusedRing(e, pe);
+            });
+            const availTeams = teams.filter(function(e) {
+                const st = getTeamRingPlannerStatus(e, analyzed, selectedIds);
+                return st.status === 'available' || st.status === 'selected';
+            });
+            let label = getRosterRingName(pe.id);
+            if (pe.stackId) label += ' + ' + getRosterRingName(pe.stackId);
+            html += '<div class="text-[11px] text-gray-300 mb-1.5"><span class="text-amber-200 font-bold">' + label + '</span>';
+            if (!availTeams.length) {
+                html += ' \u2014 \u0e44\u0e21\u0e48\u0e21\u0e35\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49\u0e41\u0e25\u0e49\u0e27 (\u0e41\u0e2b\u0e27\u0e19/\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e16\u0e39\u0e01\u0e08\u0e33\u0e01\u0e31\u0e19)';
+            } else {
+                html += ' \u2014 \u0e43\u0e0a\u0e49\u0e01\u0e31\u0e1a\u0e17\u0e35\u0e21: ' + availTeams.map(function(e) {
+                    return e.team.name || '\u0e17\u0e35\u0e21';
+                }).join(', ');
+            }
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function buildRingPlannerPoolChipHtml(entry, used) {
+        const main = ringsDB.find(function(x) { return String(x.id) === String(entry.id); });
+        const img = main && main.img
+            ? '<img src="' + main.img + '" alt="">'
+            : '';
+        let label = getRosterRingName(entry.id);
+        if (entry.stackId) label += ' + ' + getRosterRingName(entry.stackId);
+        return '<span class="roster-ring-pool-chip' + (used ? ' used' : '') + '">' + img + '<span>' + label + '</span></span>';
+    }
+
+    function showPlannerRingDetail(ringId, stackId) {
+        const r = ringsDB.find(function(x) { return String(x.id) === String(ringId); }) ||
+            accessoriesDB.find(function(x) { return String(x.id) === String(ringId); });
+        if (!r) return;
+        const stackRing = stackId
+            ? (ringsDB.find(function(x) { return String(x.id) === String(stackId); }) ||
+                accessoriesDB.find(function(x) { return String(x.id) === String(stackId); }))
+            : null;
+        showDetailModal(r, 'ring', 0, null, false, stackRing || null);
+    }
+
+    function resolvePlannerSlotRingDisplay(assignment, team, slotIdx) {
+        if (assignment) {
+            if (assignment.entry && assignment.entry.id) {
+                return {
+                    id: String(assignment.entry.id),
+                    stackId: assignment.entry.stackId ? String(assignment.entry.stackId) : null
+                };
+            }
+            if (assignment.option && assignment.option.baseId) {
+                return {
+                    id: String(assignment.option.baseId),
+                    stackId: assignment.option.stackId ? String(assignment.option.stackId) : null
+                };
+            }
+        }
+        const slot = (team.slots || [])[slotIdx];
+        if (!slot || !slot.id) return null;
+        const options = getRosterSlotRingOptions(normalize3v3Slot(slot));
+        if (!options || !options.length) return null;
+        const opt = options[0];
+        return {
+            id: String(opt.baseId),
+            stackId: opt.stackId ? String(opt.stackId) : null
+        };
+    }
+
+    function buildPlannerRingCardHtml(ringId, stackId, isSelected) {
+        if (!ringId) return '';
+        const r = ringsDB.find(function(x) { return String(x.id) === String(ringId); }) ||
+            accessoriesDB.find(function(x) { return String(x.id) === String(ringId); });
+        if (!r) return '';
+        const hasStack = !!(stackId && (ringsDB.find(function(x) { return String(x.id) === String(stackId); }) ||
+            accessoriesDB.find(function(x) { return String(x.id) === String(stackId); })));
+        const stackOverlay = hasStack ? render3v3RingStackOverlay(stackId) : '';
+        const stackRing = hasStack
+            ? (ringsDB.find(function(x) { return String(x.id) === String(stackId); }) ||
+                accessoriesDB.find(function(x) { return String(x.id) === String(stackId); }))
+            : null;
+        const safeId = String(ringId).replace(/'/g, "\\'");
+        const safeStack = stackId ? String(stackId).replace(/'/g, "\\'") : '';
+        const title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e14\u0e39\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14').replace(/"/g, '&quot;');
+        const stateCls = isSelected ? ' planner-ring-assigned' : ' planner-ring-preview';
+        return '<div class="relative roster-ring-card roster-planner-ring-card rounded-xl border-2 border-amber-700/60 bg-black shadow-md grade-' + (r.grade || 6) +
+            (hasStack ? ' has-stack' : '') + stateCls + ' cursor-pointer"' +
+            ' onclick="event.stopPropagation(); showPlannerRingDetail(\'' + safeId + '\', \'' + safeStack + '\')"' +
+            ' title="' + title + '">' +
+            '<img src="' + r.img + '" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">' +
+            stackOverlay + '</div>';
+    }
+
+    function buildPlannerSlotRingCardHtml(assignment, team, slotIdx, isSelected) {
+        const display = resolvePlannerSlotRingDisplay(assignment, team, slotIdx);
+        if (!display || !display.id) return '';
+        return buildPlannerRingCardHtml(display.id, display.stackId, isSelected);
+    }
+
+    function getPlannerSlotAssignmentsBySlot(entry, analyzed, selectedIds) {
+        const tid = String(entry.team.id);
+        const state = computeRosterRingPlannerState(analyzed, selectedIds);
+        const bySlot = {};
+        if (state.assignments[tid]) {
+            state.assignments[tid].forEach(function(a) {
+                if (a.slotIdx != null) bySlot[a.slotIdx] = a;
+            });
+            return { bySlot: bySlot, isSelected: true };
+        }
+        const trialPool = state.pool.map(function(x) {
+            return { id: x.id, stackId: x.stackId, used: x.used };
+        });
+        const preview = assignTeamRingsFromPool(trialPool, entry.team);
+        if (preview) {
+            preview.forEach(function(a) {
+                if (a.slotIdx != null) bySlot[a.slotIdx] = a;
+            });
+        }
+        return { bySlot: bySlot, isSelected: false };
+    }
+
+    function buildPlannerHeroSlotsHtml(entry) {
+        const team = entry.team;
+        const slots = (team.slots || []).filter(function(s) { return s && s.id; });
+        return slots.map(function(slot, i) {
+            const h = entry.match.heroes.find(function(x) { return x.slotIdx === i; });
+            if (!h) return '';
+            return renderRosterTeamHeroSlotInteractive(h);
+        }).join('');
+    }
+
+    function buildPlannerTeamRingsSectionHtml(entry, analyzed, selectedIds) {
+        const team = entry.team;
+        const slots = (team.slots || []).filter(function(s) { return s && s.id; });
+        const plan = getPlannerSlotAssignmentsBySlot(entry, analyzed, selectedIds);
+        let cards = '';
+        slots.forEach(function(slot, i) {
+            cards += buildPlannerSlotRingCardHtml(plan.bySlot[i], team, i, plan.isSelected);
+        });
+        if (!cards) return '';
+        return '<div class="roster-planner-section roster-planner-section-rings">' +
+            '<div class="roster-planner-section-label">\uD83D\uDC8D \u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e08\u0e31\u0e14</div>' +
+            '<div class="roster-planner-rings">' + cards + '</div></div>';
+    }
+
+    function toggleRosterRingPlannerTeam(teamId) {
+        const tid = String(teamId);
+        const idx = rosterRingPlannerSelectedIds.indexOf(tid);
+        if (idx >= 0) {
+            rosterRingPlannerSelectedIds.splice(idx, 1);
+        } else {
+            const entry = rosterRingPlannerLastAnalyzed.find(function(e) { return String(e.team.id) === tid; });
+            if (!entry) return;
+            const status = getTeamRingPlannerStatus(entry, rosterRingPlannerLastAnalyzed, rosterRingPlannerSelectedIds);
+            if (status.status === 'disabled') {
+                if (status.reason === 'hero') {
+                    alert('ไม่สามารถเลือกทีมนี้ — ตัวละครซ้ำกับทีมที่เลือกแล้ว');
+                } else {
+                    alert('ไม่สามารถเลือกทีมนี้ — แหวนไม่พอหรือถูกใช้ในทีมที่เลือกแล้ว');
+                }
+                return;
+            }
+            rosterRingPlannerSelectedIds.push(tid);
+        }
+        const container = document.getElementById('roster-attack-teams-list');
+        if (container) buildRosterRingPlannerHtml(container, rosterRingPlannerLastAnalyzed);
+    }
+
+    function filterRosterRingPlannerSearch(value) {
+        rosterRingPlannerSearch = (value || '').trim();
+        const container = document.getElementById('roster-attack-teams-list');
+        if (container && rosterRingPlannerMode) {
+            buildRosterRingPlannerHtml(container, rosterRingPlannerLastAnalyzed);
+        }
+    }
+
+    function buildRosterRingPlannerHtml(container, analyzed) {
+        rosterRingPlannerLastAnalyzed = analyzed;
+        const eligible = analyzed.filter(isRosterTeamEligibleForRingPlanner);
+        const state = computeRosterRingPlannerState(analyzed, rosterRingPlannerSelectedIds);
+        const search = rosterRingPlannerSearch.toLowerCase();
+
+        let html = '<div class="roster-ring-planner-panel">';
+        html += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">';
+        html += '<div class="text-sm font-bold text-amber-300">\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e17\u0e35\u0e21\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e08\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19/\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>';
+        html += '<button type="button" onclick="toggleRosterRingPlannerMode()" class="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800">\u2715 \u0e1b\u0e34\u0e14\u0e42\u0e2b\u0e21\u0e14\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21</button></div>';
+
+        html += '<div class="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center">';
+        html += '<input type="text" value="' + rosterRingPlannerSearch.replace(/"/g, '&quot;') + '" oninput="filterRosterRingPlannerSearch(this.value)" placeholder="\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e40\u0e2b\u0e25\u0e37\u0e2d / \u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49..." class="flex-1 bg-[#0d1117] border border-gray-600 text-white text-sm px-3 py-2 rounded-lg outline-none focus:border-amber-500">';
+        html += '<span class="text-[11px] text-gray-400 shrink-0">\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e41\u0e25\u0e49\u0e27 ' + rosterRingPlannerSelectedIds.length + ' \u0e17\u0e35\u0e21</span>';
+        html += '</div>';
+
+        if (search) html += buildRingPlannerSearchSummaryHtml(analyzed, rosterRingPlannerSelectedIds, search);
+
+        html += '<div class="text-[11px] text-gray-500 mb-3">\u0e41\u0e2a\u0e14\u0e07\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48 ID \u0e04\u0e23\u0e1a ' + eligible.length + ' \u0e17\u0e35\u0e21 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e08\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19\u0e41\u0e25\u0e30\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>';
+
+        if (eligible.length === 0) {
+            html += rosterEmptyState('\uD83D\uDC8D', '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48 ID \u0e04\u0e23\u0e1a', '\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23 \u0e41\u0e2b\u0e27\u0e19 \u0e41\u0e25\u0e30\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e43\u0e19\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e01\u0e48\u0e2d\u0e19');
+            html += '</div>';
+            container.innerHTML = html;
+            return;
+        }
+
+        html += '<div class="roster-planner-team-grid">';
+        eligible.forEach(function(entry) {
+            const tid = String(entry.team.id);
+            const plannerStatus = getTeamRingPlannerStatus(entry, analyzed, rosterRingPlannerSelectedIds);
+            if (search && plannerStatus.status !== 'selected' &&
+                !teamMatchesRingPlannerSearch(entry, analyzed, rosterRingPlannerSelectedIds, search)) {
+                return;
+            }
+
+            const isSelected = plannerStatus.status === 'selected';
+            const isDisabled = plannerStatus.status === 'disabled';
+            let cardClass = 'roster-attack-team-card roster-planner-team-card ';
+            if (isSelected) cardClass += 'planner-selected';
+            else if (isDisabled) cardClass += 'planner-disabled';
+            else cardClass += 'planner-available';
+
+            const clickAttr = isDisabled
+                ? ''
+                : ' onclick="toggleRosterRingPlannerTeam(\'' + tid.replace(/'/g, "\\'") + '\')"';
+
+            let badge = '';
+            if (isSelected) {
+                badge = '<span class="text-[10px] font-bold text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full">\u2713 \u0e40\u0e25\u0e37\u0e02\u0e01\u0e41\u0e25\u0e49\u0e27</span>';
+            } else if (isDisabled) {
+                const reason = plannerStatus.reason === 'hero'
+                    ? '\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e16\u0e39\u0e01\u0e43\u0e0a\u0e49\u0e41\u0e25\u0e49\u0e27' + (plannerStatus.heroName ? ' (' + plannerStatus.heroName + ')' : '')
+                    : '\u0e41\u0e2b\u0e27\u0e19\u0e16\u0e39\u0e01\u0e43\u0e0a\u0e49\u0e41\u0e25\u0e49\u0e27';
+                badge = '<span class="text-[10px] font-bold text-gray-500 bg-gray-800/60 border border-gray-700 px-2 py-0.5 rounded-full">' + reason + '</span>';
+            } else {
+                badge = '<span class="text-[10px] font-bold text-amber-300 bg-amber-900/20 border border-amber-800/40 px-2 py-0.5 rounded-full">\u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e25\u0e37\u0e02\u0e01</span>';
+            }
+
+            const heroPreview = buildPlannerHeroSlotsHtml(entry);
+            const petPreview = entry.match.pets.map(function(p) { return renderRosterTeamPetSlotInteractive(p); }).join('');
+            const ringsSection = buildPlannerTeamRingsSectionHtml(entry, analyzed, rosterRingPlannerSelectedIds);
+
+            html += '<div class="' + cardClass + '"' + clickAttr + '>';
+            html += '<div class="roster-planner-card-head"><div class="roster-planner-check">' + (isSelected ? '\u2713' : '') + '</div>';
+            html += '<div class="roster-planner-card-title">' + (entry.team.name || '') + '</div></div>';
+            html += '<div class="roster-planner-card-badge">' + badge + '</div>';
+            html += '<div class="roster-planner-section roster-planner-section-heroes">';
+            html += '<div class="roster-planner-section-label">\u2694\uFE0F \u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>';
+            html += '<div class="roster-planner-heroes">' + heroPreview + '</div></div>';
+            if (petPreview) {
+                html += '<div class="roster-planner-section roster-planner-section-pets">';
+                html += '<div class="roster-planner-section-label">\uD83D\uDC3E \u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07</div>';
+                html += '<div class="roster-planner-slots">' + petPreview + '</div></div>';
+            }
+            html += ringsSection + '</div>';
+        });
+        html += '</div></div>';
+        container.innerHTML = html;
+        const btn = document.getElementById('roster-usable-teams-btn');
+        if (btn) {
+            btn.classList.toggle('active', true);
+            btn.textContent = '\uD83D\uDC8D \u0e01\u0e33\u0e25\u0e31\u0e07\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19';
+        }
+    }
+
     function computeRosterRingAssignablePlan(analyzed) {
         const ringCount = buildRosterRingPool().length;
         const sorted = analyzed.slice().sort((a, b) => {
@@ -20199,8 +20836,19 @@
         else if (rosterActiveTab === 'defense-teams') renderPublicRosterDefenseTeams();
     }
 
+    function toggleRosterRingPlannerMode() {
+        rosterRingPlannerMode = !rosterRingPlannerMode;
+        rosterShowUsableTeamsOnly = false;
+        if (!rosterRingPlannerMode) {
+            rosterRingPlannerSelectedIds = [];
+            rosterRingPlannerSearch = '';
+        }
+        renderPublicRosterAttackTeams();
+    }
+
     function toggleRosterUsableTeamsFilter() {
         rosterShowUsableTeamsOnly = !rosterShowUsableTeamsOnly;
+        if (rosterShowUsableTeamsOnly) rosterRingPlannerMode = false;
         renderPublicRosterAttackTeams();
     }
 
@@ -20212,7 +20860,11 @@
         if (existing) {
             const btn = document.getElementById('roster-usable-teams-btn');
             if (btn) {
-                btn.className = 'roster-usable-filter-btn shrink-0 text-[11px] md:text-xs font-bold px-3 py-2 rounded-lg border border-amber-700/60 bg-amber-950/40 text-amber-300 hover:bg-amber-900/50 transition whitespace-nowrap';
+                btn.className = 'roster-usable-filter-btn shrink-0 text-[11px] md:text-xs font-bold px-3 py-2 rounded-lg border border-amber-700/60 bg-amber-950/40 text-amber-300 hover:bg-amber-900/50 transition whitespace-nowrap' +
+                    (rosterRingPlannerMode ? ' active' : '');
+                btn.textContent = rosterRingPlannerMode
+                    ? '\uD83D\uDC8D \u0e01\u0e33\u0e25\u0e31\u0e07\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19'
+                    : '\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19';
             }
             return;
         }
@@ -20224,7 +20876,7 @@
         header.innerHTML =
             '<div><h3 class="text-xl font-bold text-red-400 flex items-center gap-2"><span>\uD83C\uDFAF</span> \u0e17\u0e35\u0e21\u0e1a\u0e38\u0e01\u0e17\u0e35\u0e48\u0e41\u0e0a\u0e23\u0e48\u0e44\u0e27\u0e49</h3>' +
             '<p class="text-xs text-gray-400 mt-1">\u0e04\u0e25\u0e34\u0e01\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e14\u0e39\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02 / stat \u00b7 \u0e01\u0e14\u0e1b\u0e38\u0e48\u0e21\u0e14\u0e49\u0e32\u0e19\u0e02\u0e27\u0e32\u0e14\u0e14\u0e39\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e08\u0e31\u0e14\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e21\u0e35</p></div>' +
-            '<button type="button" id="roster-usable-teams-btn" onclick="toggleRosterUsableTeamsFilter()" class="roster-usable-filter-btn shrink-0 text-[11px] md:text-xs font-bold px-3 py-2 rounded-lg border border-amber-700/60 bg-amber-950/40 text-amber-300 hover:bg-amber-900/50 transition whitespace-nowrap">\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19</button>';
+            '<button type="button" id="roster-usable-teams-btn" onclick="toggleRosterRingPlannerMode()" class="roster-usable-filter-btn shrink-0 text-[11px] md:text-xs font-bold px-3 py-2 rounded-lg border border-amber-700/60 bg-amber-950/40 text-amber-300 hover:bg-amber-900/50 transition whitespace-nowrap">\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19</button>';
         panel.insertBefore(header, list);
     }
 
@@ -21425,15 +22077,19 @@
     }
 
     function buildRosterAttackTeamsListHtml(container, analyzed) {
+        if (rosterRingPlannerMode) {
+            buildRosterRingPlannerHtml(container, analyzed);
+            return;
+        }
         const ringPlan = computeRosterRingAssignablePlan(analyzed);
         const { assignableTeams, maxSimultaneous, ringCount, ringCapableCount } = ringPlan;
         let list = analyzed;
         const btn = document.getElementById('roster-usable-teams-btn');
         if (btn) {
-            btn.classList.toggle('active', rosterShowUsableTeamsOnly);
-            btn.textContent = rosterShowUsableTeamsOnly
-                ? '\uD83D\uDC8D \u0e41\u0e2a\u0e14\u0e07\u0e17\u0e35\u0e21\u0e08\u0e31\u0e14\u0e44\u0e14\u0e49 (' + Math.min(assignableTeams.length, 5) + '/' + assignableTeams.length + ')'
-                : '\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19 (' + maxSimultaneous + ' \u0e17\u0e35\u0e21 \u00b7 ' + ringCount + ' \u0e27\u0e07)';
+            btn.classList.toggle('active', rosterRingPlannerMode);
+            btn.textContent = rosterRingPlannerMode
+                ? '\uD83D\uDC8D \u0e01\u0e33\u0e25\u0e31\u0e07\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19'
+                : '\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19';
         }
         if (rosterShowUsableTeamsOnly) list = assignableTeams.slice(0, 5);
 
