@@ -3080,7 +3080,7 @@
         </div>
     </div>
 
-    <div id="ring-selector-grade-menu" class="fixed hidden z-[2600] bg-[#161b22] border border-amber-600/50 rounded-xl shadow-2xl py-1 min-w-[200px] font-['Kanit']" onclick="event.stopPropagation()">
+    <div id="ring-selector-grade-menu" class="fixed hidden z-[10050] bg-[#161b22] border border-amber-600/50 rounded-xl shadow-2xl py-1 min-w-[200px] font-['Kanit']" onclick="event.stopPropagation()">
         <div class="px-3 py-2 text-[10px] font-bold text-amber-400 uppercase border-b border-gray-700">เลือกระดับดาว</div>
         <div id="ring-selector-grade-list"></div>
     </div>
@@ -3135,7 +3135,7 @@
                     <button onclick="closeSelector()" class="text-gray-500 hover:text-white text-xl font-bold w-8 text-right">✕</button>
                 </div>
                 <div id="selector-tabs" class="flex gap-2 flex-wrap w-full"></div>
-                <p id="selector-ring-note" class="hidden w-full text-xs text-amber-200/90 mt-2 mb-0 leading-relaxed">
+                <p id="selector-ring-note" class="hidden w-full text-sm text-amber-100 mt-2.5 mb-0 leading-relaxed">
                     💡 <strong>คลิกขวา</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★) · คลิกซ้ายเลือกแหวน 6★
                 </p>
             </div>
@@ -3899,6 +3899,7 @@
         let selectorExcludedIds = [];
         let selectorMultiSelectedIds = new Set();
         let selectorRingGroupsList = [];
+        let selectorSuppressRingClickUntil = 0;
 
         let galleryTab = 'hero'; 
         let galleryFilter = { rarity: null, type: null, aff: null };
@@ -6940,24 +6941,35 @@
                 else if (editContext.type === 'ring') {
                     if (team.slots[slotIdx]) {
                         const slot = normalize3v3Slot(team.slots[slotIdx]);
-                        team.slots[slotIdx] = slot;
                         const idx = Number.isFinite(selectorRingIdx) ? selectorRingIdx : 0;
                         if (!slot.rings) slot.rings = [];
+                        if (!slot.ringStacks) slot.ringStacks = [];
                         while (slot.rings.length <= idx) slot.rings.push(null);
+                        while (slot.ringStacks.length <= idx) slot.ringStacks.push(null);
                         slot.rings[idx] = id;
+                        if (!id) slot.ringStacks[idx] = null;
                         slot.ring = slot.rings.find(Boolean) || null;
+                        slot.ringStack = slot.ringStacks.find(Boolean) || null;
+                        team.slots[slotIdx] = slot;
                     }
                 }
                 else if (editContext.type === 'ringStack') {
                     if (team.slots[slotIdx]) {
                         const slot = normalize3v3Slot(team.slots[slotIdx]);
-                        team.slots[slotIdx] = slot;
                         const idx = Number.isFinite(selectorRingIdx) ? selectorRingIdx : 0;
+                        if (!slot.rings) slot.rings = [];
                         if (!slot.ringStacks) slot.ringStacks = [];
                         while (slot.rings.length <= idx) slot.rings.push(null);
                         while (slot.ringStacks.length <= idx) slot.ringStacks.push(null);
+                        const baseId = slot.rings[idx] ? String(slot.rings[idx]) : '';
+                        if (id && baseId && isSameRingName(baseId, id)) {
+                            alert('ไม่สามารถซ้อนแหวนชื่อเดียวกันได้');
+                            closeSelector();
+                            return;
+                        }
                         slot.ringStacks[idx] = id;
                         slot.ringStack = slot.ringStacks.find(Boolean) || null;
+                        team.slots[slotIdx] = slot;
                     }
                 }
                 else if (editContext.type === 'equip') {
@@ -7575,6 +7587,7 @@
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
+                selectorSuppressRingClickUntil = Date.now() + 500;
             }
             const group = selectorRingGroupsList[groupIndex];
             if (!group) return;
@@ -7612,7 +7625,11 @@
         }
 
         function openSelector(i, p, type, e) {
-            if(e) e.stopPropagation(); 
+            if(e) e.stopPropagation();
+
+            closeT3v3RingContextMenu();
+            closeRingSelectorGradeMenu();
+            selectorSuppressRingClickUntil = 0;
 
             applySelectorModalLayout(i, type);
 
@@ -7659,14 +7676,24 @@
                 document.getElementById('selector-search').value = '';
 
                 if (type === 'ring') {
-                    selectorActiveCategory = 'All'; 
-                    document.getElementById('selector-title').innerText = 'Select Ring #' + ((selectorRingIdx || 0) + 1);
-                    selectorCurrentData = [...ringsDB]; 
+                    selectorActiveCategory = 'All';
+                    selectorExcludedIds = [];
+                    document.getElementById('selector-title').innerText = 'เลือกแหวน #' + ((parseInt(selectorRingIdx, 10) || 0) + 1);
+                    selectorCurrentData = [...ringsDB];
                 }
                 else if (type === 'ringStack') {
                     selectorActiveCategory = 'All';
                     document.getElementById('selector-title').innerText = 'เลือกแหวนซ้อน';
                     selectorCurrentData = [...ringsDB];
+                    const team = teams3v3DB[current3v3TeamIdx];
+                    const slotIdx = parseInt(p, 10);
+                    const ringIdx = parseInt(selectorRingIdx, 10) || 0;
+                    const slot = team && team.slots && team.slots[slotIdx] ? normalize3v3Slot(team.slots[slotIdx]) : null;
+                    const baseRingId = slot && slot.rings && slot.rings[ringIdx] ? slot.rings[ringIdx] : null;
+                    const baseRingData = baseRingId ? ringsDB.find(function(x) { return String(x.id) === String(baseRingId); }) : null;
+                    selectorExcludedIds = baseRingData && baseRingData.name
+                        ? getRingIdsWithSameName(baseRingData.name)
+                        : (baseRingId ? [String(baseRingId)] : []);
                 }
                 else if (type === 'equip') {
                     selectorActiveCategory = 'All'; 
@@ -7838,8 +7865,20 @@
         function shouldApplySelectorExclude() {
             if (!selectorExcludedIds.length || !editContext) return false;
             if (editContext.i === 'PUBLIC-ROSTER-STACK') return true;
+            if (editContext.i === 'TEAM-3V3' && editContext.type === 'ringStack') return true;
             if (editContext.i === 'PUBLIC-ROSTER') return editContext.type === 'hero' || editContext.type === 'pet';
             return editContext.type === 'hero';
+        }
+
+        function onSelectorRingGroupClick(e, groupIndex) {
+            if (Date.now() < selectorSuppressRingClickUntil) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                return;
+            }
+            selectRingFromGroup(groupIndex, null);
         }
 
         function switchSelectorTab(cat) { selectorActiveCategory = cat; renderSelectorTabs(); filterSelector(document.getElementById('selector-search').value); }
@@ -7902,7 +7941,7 @@
                     const dr = g.displayRing;
                     const gr = dr.grade || 6;
                     ringHtml += `<div class="selector-card selector-ring-group grade-${gr} flex flex-col items-center justify-center p-2"
-                        onclick="selectRingFromGroup(${idx}, null)"
+                        onclick="onSelectorRingGroupClick(event, ${idx})"
                         oncontextmenu="openRingSelectorGradeMenu(event, ${idx}); return false;"
                         title="${safeName(g.name)}">
                         <img src="${dr.img || ''}" class="rounded-full w-14 h-14 border-2 border-gray-700 object-cover pointer-events-none select-none" draggable="false" alt="">
@@ -20262,13 +20301,23 @@
         const listEl = document.getElementById('t3v3-ring-menu-actions');
         if (listEl) {
             listEl.innerHTML =
-                '<button type="button" onclick="open3v3StackRingSelector()" class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-amber-200 flex items-center gap-2">' +
+                '<button type="button" onclick="open3v3RingSelectorFromContext()" class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-blue-300 flex items-center gap-2">' +
+                '<span>\uD83D\uDC8D</span><span>\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e41\u0e2b\u0e27\u0e19</span></button>' +
+                '<button type="button" onclick="open3v3StackRingSelector()" class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-amber-200 flex items-center gap-2 border-t border-gray-800">' +
                 '<span>' + (hasStack ? '\uD83D\uDD01' : '\u2795') + '</span>' +
                 '<span>' + (hasStack ? '\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e0b\u0e49\u0e2d\u0e19' : '\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e0b\u0e49\u0e2d\u0e19') + '</span></button>' +
                 (hasStack ? '<button type="button" onclick="remove3v3StackRing()" class="w-full text-left px-3 py-2.5 text-xs hover:bg-gray-800 text-orange-300 flex items-center gap-2 border-t border-gray-800">' +
                 '<span>\u2715</span><span>\u0e25\u0e1a\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e0b\u0e49\u0e2d\u0e19</span></button>' : '');
         }
         positionT3v3RingContextMenu(e.clientX, e.clientY);
+    }
+
+    function open3v3RingSelectorFromContext() {
+        if (t3v3RingContextSlotIdx === null || t3v3RingContextRingIdx === null) return;
+        const slotIdx = t3v3RingContextSlotIdx;
+        const ringIdx = t3v3RingContextRingIdx;
+        closeT3v3RingContextMenu();
+        open3v3RingSelector(slotIdx, ringIdx);
     }
 
     function open3v3StackRingSelector() {
