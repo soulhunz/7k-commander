@@ -988,6 +988,49 @@
         
         .selector-card { position: relative; border: 1px solid #374151; background: #0d1117; border-radius: 12px; overflow: hidden; cursor: pointer; aspect-ratio: 1/1; }
         .selector-card:hover { border-color: #3b82f6; z-index: 10; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        .selector-card.selector-multi-selected {
+            border-color: #22c55e;
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.55), 0 0 14px rgba(34, 197, 94, 0.35);
+        }
+        .selector-card.selector-ring-group { cursor: pointer; }
+        #ring-selector-grade-menu .ring-grade-btn {
+            width: 100%;
+            text-align: left;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+        #ring-selector-grade-menu .ring-grade-btn:hover { background: #374151; }
+        #ring-selector-grade-menu .ring-grade-btn .grade-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 9999px;
+            flex-shrink: 0;
+        }
+        .selector-card.selector-multi-selected::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            z-index: 12;
+            width: 22px;
+            height: 22px;
+            border-radius: 9999px;
+            background: #22c55e;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+        }
         .selector-card img { width: 100%; height: 100%; object-fit: cover; }
         .selector-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.75); padding: 4px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
         .selector-text { font-size: 10px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
@@ -1670,7 +1713,7 @@
         }
     </style>
 </head>
-<body class="flex" onclick="closeContextMenu(); closeRosterRingContextMenu(); closeTextContextMenu();">
+<body class="flex" onclick="closeContextMenu(); closeRosterRingContextMenu(); closeTextContextMenu(); closeRingSelectorGradeMenu();">
 
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
@@ -3037,6 +3080,11 @@
         </div>
     </div>
 
+    <div id="ring-selector-grade-menu" class="fixed hidden z-[2600] bg-[#161b22] border border-amber-600/50 rounded-xl shadow-2xl py-1 min-w-[200px] font-['Kanit']" onclick="event.stopPropagation()">
+        <div class="px-3 py-2 text-[10px] font-bold text-amber-400 uppercase border-b border-gray-700">เลือกระดับดาว</div>
+        <div id="ring-selector-grade-list"></div>
+    </div>
+
     <div id="rosterRingContextMenu" class="fixed hidden z-[9999] bg-[#161b22] border border-gray-600 rounded-xl shadow-2xl py-1 min-w-[220px] font-['Kanit']" onclick="event.stopPropagation()">
         <div class="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase border-b border-gray-700">จัดการแหวน</div>
         <div id="roster-ring-menu-actions"></div>
@@ -3087,9 +3135,19 @@
                     <button onclick="closeSelector()" class="text-gray-500 hover:text-white text-xl font-bold w-8 text-right">✕</button>
                 </div>
                 <div id="selector-tabs" class="flex gap-2 flex-wrap w-full"></div>
+                <p id="selector-ring-note" class="hidden w-full text-xs text-amber-200/90 mt-2 mb-0 leading-relaxed">
+                    💡 <strong>คลิกขวา</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★) · คลิกซ้ายเลือกแหวน 6★
+                </p>
             </div>
             <div id="selector-body" class="modal-body custom-scroll">
                 <div id="selector-grid" class="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-3 pb-4"></div>
+            </div>
+            <div id="selector-multi-footer" class="hidden border-t border-gray-700 px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-[#161b22] shrink-0">
+                <p id="selector-multi-count" class="text-sm text-gray-400 m-0">เลือกแล้ว <strong class="text-green-400">0</strong> ตัว — คลิกการ์ดเพื่อติ๊กเลือก</p>
+                <div class="flex gap-2 ml-auto">
+                    <button type="button" onclick="clearSelectorMultiPick()" class="px-4 py-2 rounded-lg text-sm font-bold border border-gray-600 text-gray-300 hover:bg-gray-800 transition">ล้าง</button>
+                    <button type="button" id="selector-multi-confirm-btn" onclick="confirmSelectorMultiPick()" disabled class="px-5 py-2 rounded-lg text-sm font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600">ยืนยันเลือก</button>
+                </div>
             </div>
         </div>
     </div>
@@ -3521,6 +3579,7 @@
                     guild_id: String(g.id),
                     member_id: String(mem.id != null ? mem.id : ''),
                     accessCode: normalizeMemberCode(mem.accessCode || ''),
+                    expectedInventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0,
                     saveMode: options.saveMode === 'replace' ? 'replace' : 'merge',
                     patch: patch
                 })
@@ -3548,6 +3607,16 @@
 
                 try {
                     const result = await sendMemberInventoryRequest(gIdx, mIdx, cleanPatch, options);
+                    if (result.status === 'conflict') {
+                        syncMemberInventoryFromServerResult(gIdx, mIdx, {
+                            status: 'success',
+                            inventoryUpdatedAt: result.inventoryUpdatedAt,
+                            hero_list: result.hero_list,
+                            pet_list: result.pet_list,
+                            ring_list: result.ring_list
+                        }, Object.keys(cleanPatch), null);
+                        throw new Error(result.message || 'ข้อมูลมีการอัปเดตจากที่อื่น กรุณารีเฟรชแล้วบันทึกใหม่');
+                    }
                     if (result.status !== 'success') {
                         throw new Error(result.message || 'Save failed');
                     }
@@ -3828,6 +3897,8 @@
         let selectorCurrentData = [];
         let selectorActiveCategory = 'All';
         let selectorExcludedIds = [];
+        let selectorMultiSelectedIds = new Set();
+        let selectorRingGroupsList = [];
 
         let galleryTab = 'hero'; 
         let galleryFilter = { rarity: null, type: null, aff: null };
@@ -6923,12 +6994,9 @@
             // --- 🟢 4. ระบบ GUILD MEMBER (เพิ่มตัวละครที่สมาชิกคนนั้นมี) ---
             if (editContext.i === 'GUILD-MEMBER-ADD') {
                 if (id) {
-                    if (!tempOwnedHeroes.some(h => String(h.id) === String(id))) {
-                        tempOwnedHeroes.push({ id: String(id), star: 6 }); // เริ่มต้นที่ 6 ดาว
-                        renderGmOwnedList();
-                    } else {
-                        alert("ตัวละครนี้มีอยู่แล้ว");
-                    }
+                    const pickResult = applySingleHeroToSelectorContext(id);
+                    if (pickResult === 'skipped') alert('ตัวละครนี้มีอยู่แล้ว');
+                    else if (pickResult === 'added') renderGmOwnedList();
                 }
                 closeSelector();
                 return;
@@ -6937,10 +7005,9 @@
             if (editContext.i === 'PUBLIC-ROSTER') {
                 if (id) {
                     if (editContext.type === 'hero') {
-                        if (!tempOwnedHeroes.some(h => String(h.id) === String(id))) {
-                            tempOwnedHeroes.push({ id: String(id), star: 6 });
-                            renderPublicRosterHeroes();
-                        } else alert('ตัวละครนี้มีอยู่แล้ว');
+                        const pickResult = applySingleHeroToSelectorContext(id);
+                        if (pickResult === 'skipped') alert('ตัวละครนี้มีอยู่แล้ว');
+                        else if (pickResult === 'added') renderPublicRosterHeroes();
                     } else if (editContext.type === 'pet') {
                         if (!tempOwnedPets.some(p => String(p.id) === String(id))) {
                             tempOwnedPets.push(normalizeRosterPetEntry({ id: String(id), star: 0, potential: 0, skillUnlock: 0 }));
@@ -7322,6 +7389,104 @@
             return selectorExcludedIds.some(ex => String(ex) === itemId);
         }
 
+        /** โหมดเลือกฮีโร่หลายตัว + ปุ่มยืนยัน (พอร์ทัลลูกกิลด์ / แอดมิน / checklist) */
+        function isSelectorHeroMultiPickMode() {
+            if (!editContext || editContext.type !== 'hero') return false;
+            return editContext.i === 'PUBLIC-ROSTER'
+                || editContext.i === 'GUILD-MEMBER-ADD'
+                || editContext.i === 'HERO-LIST';
+        }
+
+        function resetSelectorMultiPick() {
+            selectorMultiSelectedIds = new Set();
+            updateSelectorMultiFooter();
+        }
+
+        function updateSelectorMultiFooter() {
+            const footer = document.getElementById('selector-multi-footer');
+            if (!footer) return;
+            const on = isSelectorHeroMultiPickMode();
+            footer.classList.toggle('hidden', !on);
+            const n = selectorMultiSelectedIds.size;
+            const countEl = document.getElementById('selector-multi-count');
+            const btn = document.getElementById('selector-multi-confirm-btn');
+            if (countEl) {
+                countEl.innerHTML = n > 0
+                    ? `เลือกแล้ว <strong class="text-green-400">${n}</strong> ตัว — กดยืนยันเพื่อเพิ่ม`
+                    : 'เลือกแล้ว <strong class="text-green-400">0</strong> ตัว — คลิกการ์ดเพื่อติ๊กเลือก';
+            }
+            if (btn) {
+                btn.textContent = n > 0 ? `ยืนยันเลือก (${n})` : 'ยืนยันเลือก';
+                btn.disabled = n === 0;
+            }
+        }
+
+        function toggleSelectorMultiPick(id) {
+            const sid = String(id);
+            if (selectorMultiSelectedIds.has(sid)) selectorMultiSelectedIds.delete(sid);
+            else selectorMultiSelectedIds.add(sid);
+            document.querySelectorAll('.selector-card[data-selector-id]').forEach(function(card) {
+                if (card.getAttribute('data-selector-id') === sid) {
+                    card.classList.toggle('selector-multi-selected', selectorMultiSelectedIds.has(sid));
+                }
+            });
+            updateSelectorMultiFooter();
+        }
+
+        function clearSelectorMultiPick() {
+            selectorMultiSelectedIds.clear();
+            document.querySelectorAll('.selector-card.selector-multi-selected').forEach(function(el) {
+                el.classList.remove('selector-multi-selected');
+            });
+            updateSelectorMultiFooter();
+        }
+
+        /** @returns {'added'|'skipped'|'none'} */
+        function applySingleHeroToSelectorContext(id) {
+            if (!id || !editContext) return 'none';
+            const sid = String(id);
+
+            if (editContext.i === 'GUILD-MEMBER-ADD') {
+                if (tempOwnedHeroes.some(h => String(h.id) === sid)) return 'skipped';
+                tempOwnedHeroes.push({ id: sid, star: 6 });
+                return 'added';
+            }
+            if (editContext.i === 'PUBLIC-ROSTER' && editContext.type === 'hero') {
+                if (tempOwnedHeroes.some(h => String(h.id) === sid)) return 'skipped';
+                tempOwnedHeroes.push({ id: sid, star: 6 });
+                return 'added';
+            }
+            if (editContext.i === 'HERO-LIST') {
+                addHeroByIdToHelper(editContext.p, sid);
+                return 'added';
+            }
+            return 'none';
+        }
+
+        function confirmSelectorMultiPick() {
+            if (!isSelectorHeroMultiPickMode() || selectorMultiSelectedIds.size === 0) return;
+
+            let added = 0;
+            let skipped = 0;
+            selectorMultiSelectedIds.forEach(function(id) {
+                const result = applySingleHeroToSelectorContext(id);
+                if (result === 'added') added++;
+                else if (result === 'skipped') skipped++;
+            });
+
+            if (editContext.i === 'GUILD-MEMBER-ADD') renderGmOwnedList();
+            else if (editContext.i === 'PUBLIC-ROSTER') renderPublicRosterHeroes();
+            else if (editContext.i === 'HERO-LIST') renderHeroListsView();
+
+            closeSelector();
+
+            if (added > 0 && skipped > 0) {
+                alert(`เพิ่ม ${added} ตัว (ข้าม ${skipped} ตัวที่มีอยู่แล้ว)`);
+            } else if (added === 0 && skipped > 0) {
+                alert('ตัวละครที่เลือกมีอยู่แล้วทั้งหมด');
+            }
+        }
+
         function getRingIdsWithSameName(ringName) {
             const name = String(ringName || '').trim();
             if (!name) return [];
@@ -7335,6 +7500,115 @@
             const b = ringsDB.find(x => String(x.id) === String(ringIdB));
             if (!a || !b) return false;
             return String(a.name || '').trim() === String(b.name || '').trim();
+        }
+
+        function normalizeRingNameKey(name) {
+            return String(name || '').trim().toLowerCase();
+        }
+
+        /** รวมแหวนชื่อเดียวกัน — แสดงรูป 6★ (หรือดาวสูงสุดที่มี) */
+        function groupRingsByName(rings) {
+            const byName = {};
+            (rings || []).forEach(function(r) {
+                const key = normalizeRingNameKey(r.name);
+                if (!key) return;
+                if (!byName[key]) {
+                    byName[key] = {
+                        nameKey: key,
+                        name: String(r.name || '').trim(),
+                        variants: []
+                    };
+                }
+                byName[key].variants.push(r);
+            });
+            return Object.keys(byName).map(function(k) {
+                const g = byName[k];
+                g.variants.sort(function(a, b) { return (b.grade || 0) - (a.grade || 0); });
+                g.displayRing = g.variants.find(function(v) { return v.grade === 6; }) || g.variants[0];
+                return g;
+            }).sort(function(a, b) { return a.name.localeCompare(b.name, 'th'); });
+        }
+
+        function isRingSelectorGroupByNameMode() {
+            return editContext && editContext.type === 'ring';
+        }
+
+        function updateSelectorRingNote() {
+            const note = document.getElementById('selector-ring-note');
+            if (!note) return;
+            note.classList.toggle('hidden', !isRingSelectorGroupByNameMode());
+        }
+
+        function isRingGroupFullyExcluded(group) {
+            if (!shouldApplySelectorExclude() || !selectorExcludedIds.length) return false;
+            return group.variants.every(function(v) { return isSelectorItemExcluded(v); });
+        }
+
+        function isRingGroupOwnedByRoster(group) {
+            if (!editContext || editContext.i !== 'PUBLIC-ROSTER' || editContext.type !== 'ring') return false;
+            if (typeof tempOwnedRings === 'undefined') return false;
+            return tempOwnedRings.some(function(item) {
+                const r = ringsDB.find(function(x) { return String(x.id) === String(item.id); });
+                return r && normalizeRingNameKey(r.name) === group.nameKey;
+            });
+        }
+
+        function selectRingFromGroup(groupIndex, grade) {
+            const group = selectorRingGroupsList[groupIndex];
+            if (!group) return;
+            let ring = null;
+            if (grade != null) {
+                ring = group.variants.find(function(v) { return v.grade === grade; });
+            } else {
+                ring = group.displayRing;
+            }
+            if (!ring && group.variants.length) ring = group.variants[0];
+            if (ring) selectItem(String(ring.id));
+        }
+
+        function closeRingSelectorGradeMenu() {
+            const menu = document.getElementById('ring-selector-grade-menu');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        function openRingSelectorGradeMenu(e, groupIndex) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            const group = selectorRingGroupsList[groupIndex];
+            if (!group) return;
+            closeRingSelectorGradeMenu();
+            const menu = document.getElementById('ring-selector-grade-menu');
+            const list = document.getElementById('ring-selector-grade-list');
+            if (!menu || !list) return;
+
+            const gradeColors = { 4: '#facc15', 5: '#f97316', 6: '#ef4444' };
+            const grades = [6, 5, 4];
+            let html = '';
+            grades.forEach(function(gr) {
+                const v = group.variants.find(function(r) { return r.grade === gr; });
+                if (!v) return;
+                html += `<button type="button" class="ring-grade-btn" onclick="selectRingFromGroup(${groupIndex}, ${gr}); closeRingSelectorGradeMenu();">
+                    <span class="grade-dot" style="background:${gradeColors[gr] || '#9ca3af'}"></span>
+                    <span>${gr} ดาว — ${group.name}</span>
+                </button>`;
+            });
+            list.innerHTML = html || '<p class="px-3 py-2 text-xs text-gray-500">ไม่มีระดับดาวให้เลือก</p>';
+
+            menu.classList.remove('hidden');
+            menu.style.position = 'fixed';
+            const pad = 8;
+            const cx = e ? e.clientX : window.innerWidth / 2;
+            const cy = e ? e.clientY : window.innerHeight / 2;
+            const mw = menu.offsetWidth || 200;
+            const mh = menu.offsetHeight || 120;
+            let left = cx;
+            let top = cy;
+            if (left + mw > window.innerWidth - pad) left = window.innerWidth - mw - pad;
+            if (top + mh > window.innerHeight - pad) top = window.innerHeight - mh - pad;
+            menu.style.left = Math.max(pad, left) + 'px';
+            menu.style.top = Math.max(pad, top) + 'px';
         }
 
         function openSelector(i, p, type, e) {
@@ -7453,7 +7727,8 @@
                 editContext = { i, p, type }; 
                 selectorActiveCategory = 'All';
                 selectorExcludedIds = []; 
-                document.getElementById('selector-title').innerText = 'เพิ่ม Hero ลงรายการ';
+                resetSelectorMultiPick();
+                document.getElementById('selector-title').innerText = 'เพิ่ม Hero ลงรายการ (เลือกได้หลายตัว)';
                 document.getElementById('selector-search').value = '';
                 selectorCurrentData = [...heroesDB]; 
                 if(typeof renderSelectorTabs === 'function') renderSelectorTabs();
@@ -7466,7 +7741,8 @@
                 editContext = { i, p, type };
                 selectorActiveCategory = 'All';
                 selectorExcludedIds = (typeof tempOwnedHeroes !== 'undefined') ? tempOwnedHeroes.map(h => String(h.id)) : [];
-                document.getElementById('selector-title').innerText = 'Select Hero';
+                resetSelectorMultiPick();
+                document.getElementById('selector-title').innerText = 'เลือกตัวละคร (เลือกได้หลายตัว)';
                 document.getElementById('selector-search').value = '';
                 selectorCurrentData = [...heroesDB];
                 if(typeof renderSelectorTabs === 'function') renderSelectorTabs();
@@ -7482,7 +7758,8 @@
                 if (type === 'hero') {
                     selectorExcludedIds = tempOwnedHeroes.map(h => String(h.id));
                     selectorCurrentData = [...heroesDB];
-                    document.getElementById('selector-title').innerText = 'เลือกตัวละคร';
+                    resetSelectorMultiPick();
+                    document.getElementById('selector-title').innerText = 'เลือกตัวละคร (เลือกได้หลายตัว)';
                 } else if (type === 'pet') {
                     selectorExcludedIds = (typeof tempOwnedPets !== 'undefined')
                         ? tempOwnedPets.map(p => String(p.id))
@@ -7547,8 +7824,15 @@
         }
 
         function renderSelectorTabs() {
-            const container = document.getElementById('selector-tabs'); let tabs = ['All'];
-            if (editContext.type === 'hero') tabs = ['All', ...TYPE_OPTS]; else if (editContext.type === 'pet') tabs = ['All', ...PET_TYPE_OPTS]; else if (editContext.type === 'ring') tabs = ['All', '6 ดาว', '5 ดาว', '4 ดาว'];
+            const container = document.getElementById('selector-tabs');
+            let tabs = ['All'];
+            if (editContext.type === 'hero') tabs = ['All', ...TYPE_OPTS];
+            else if (editContext.type === 'pet') tabs = ['All', ...PET_TYPE_OPTS];
+            else if (editContext.type === 'ring') {
+                tabs = isRingSelectorGroupByNameMode()
+                    ? ['All']
+                    : ['All', '6 ดาว', '5 ดาว', '4 ดาว'];
+            }
             container.innerHTML = tabs.map(t => `<button onclick="switchSelectorTab('${t}')" class="tab-btn px-3 py-1 text-xs border rounded-full ${selectorActiveCategory===t?'bg-blue-600 text-white border-blue-600':'border-gray-600 text-gray-400 hover:text-white'}">${t}</button>`).join('');
         }
         function shouldApplySelectorExclude() {
@@ -7602,19 +7886,59 @@
                 grid.innerHTML = `<div onclick="selectItem(null)" class="selector-card border-red-500/50 flex items-center justify-center"><span class="text-red-500 font-bold text-xl">✕</span></div>`; 
             }
 
+            const multiHero = isSelectorHeroMultiPickMode();
+            const safeName = (n) => String(n || '').replace(/"/g, '&quot;');
+
+            if (editContext.type === 'ring' && isRingSelectorGroupByNameMode()) {
+                let groups = groupRingsByName(filteredItems);
+                if (editContext.i === 'PUBLIC-ROSTER' && editContext.type === 'ring') {
+                    groups = groups.filter(function(g) { return !isRingGroupOwnedByRoster(g); });
+                }
+                groups = groups.filter(function(g) { return !isRingGroupFullyExcluded(g); });
+                selectorRingGroupsList = groups;
+
+                let ringHtml = '';
+                groups.forEach(function(g, idx) {
+                    const dr = g.displayRing;
+                    const gr = dr.grade || 6;
+                    ringHtml += `<div class="selector-card selector-ring-group grade-${gr} flex flex-col items-center justify-center p-2"
+                        onclick="selectRingFromGroup(${idx}, null)"
+                        oncontextmenu="openRingSelectorGradeMenu(event, ${idx}); return false;"
+                        title="${safeName(g.name)}">
+                        <img src="${dr.img || ''}" class="rounded-full w-14 h-14 border-2 border-gray-700 object-cover pointer-events-none select-none" draggable="false" alt="">
+                    </div>`;
+                });
+                grid.insertAdjacentHTML('beforeend', ringHtml);
+                updateSelectorRingNote();
+                updateSelectorMultiFooter();
+                return;
+            }
+
             // Render HTML
             const html = filteredItems.map(d => {
+                const sid = String(d.id);
                 if (editContext.type === 'ring') { 
-                    return `<div onclick="selectItem('${d.id}')" class="selector-card grade-${d.grade} flex flex-col items-center justify-center p-2 gap-2"><img src="${d.img}" class="rounded-full w-14 h-14 border-2 border-gray-700"><span class="selector-text text-[10px]">${d.name}</span></div>`; 
+                    return `<div onclick="selectItem('${sid}')" class="selector-card grade-${d.grade} flex flex-col items-center justify-center p-2 gap-2"><img src="${d.img}" class="rounded-full w-14 h-14 border-2 border-gray-700"><span class="selector-text text-[10px]">${safeName(d.name)}</span></div>`; 
                 }
-                else { 
-                    return `<div onclick="selectItem('${d.id}')" class="selector-card group"><img src="${d.img}"><div class="selector-overlay"><span class="selector-text">${d.name}</span></div><div class="selector-badge">${getRarityBadgeHTML(d.rarity)}</div></div>`; 
+                if (multiHero) {
+                    const selected = selectorMultiSelectedIds.has(sid) ? ' selector-multi-selected' : '';
+                    return `<div data-selector-id="${sid}" onclick="toggleSelectorMultiPick('${sid}')" class="selector-card group${selected}"><img src="${d.img}" alt=""><div class="selector-overlay"><span class="selector-text">${safeName(d.name)}</span></div><div class="selector-badge">${getRarityBadgeHTML(d.rarity)}</div></div>`;
                 }
+                return `<div onclick="selectItem('${sid}')" class="selector-card group"><img src="${d.img}"><div class="selector-overlay"><span class="selector-text">${safeName(d.name)}</span></div><div class="selector-badge">${getRarityBadgeHTML(d.rarity)}</div></div>`;
             }).join('');
             
             grid.insertAdjacentHTML('beforeend', html);
+            updateSelectorRingNote();
+            updateSelectorMultiFooter();
         }
-        function closeSelector() { document.getElementById('selectorModal').style.display = 'none'; }
+        function closeSelector() {
+            document.getElementById('selectorModal').style.display = 'none';
+            selectorMultiSelectedIds = new Set();
+            selectorRingGroupsList = [];
+            closeRingSelectorGradeMenu();
+            updateSelectorRingNote();
+            updateSelectorMultiFooter();
+        }
         
         function buildOwnedHeroStarMenu() {
             const y = document.getElementById('star-grid-yellow');
