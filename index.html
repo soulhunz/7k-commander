@@ -7542,27 +7542,32 @@
         }
 
         function isRingSelectorGroupByNameMode() {
-            return editContext && editContext.type === 'ring';
+            if (!editContext) return false;
+            return editContext.type === 'ring' || editContext.type === 'ringStack';
+        }
+
+        function isRingStackSelectorMode() {
+            if (!editContext) return false;
+            if (editContext.i === 'PUBLIC-ROSTER-STACK') return true;
+            return editContext.i === 'TEAM-3V3' && editContext.type === 'ringStack';
         }
 
         function updateSelectorRingNote() {
             const note = document.getElementById('selector-ring-note');
             if (!note) return;
-            note.classList.toggle('hidden', !isRingSelectorGroupByNameMode());
+            const show = isRingSelectorGroupByNameMode() || isRingStackSelectorMode();
+            note.classList.toggle('hidden', !show);
+            if (!show) return;
+            if (isRingStackSelectorMode()) {
+                note.innerHTML = '💡 <strong>แหวนซ้อน:</strong> เลือกแหวนคนละชื่อกับแหวนหลัก · <strong>คลิกขวา</strong>เลือกระดับดาว (4–6★)';
+            } else {
+                note.innerHTML = '💡 <strong>คลิกขวา</strong>ที่รูปแหวนเพื่อเลือกระดับดาว (4–6★) · คลิกซ้ายเลือกแหวน 6★ · เลือกแหวนชื่อซ้ำได้';
+            }
         }
 
         function isRingGroupFullyExcluded(group) {
             if (!shouldApplySelectorExclude() || !selectorExcludedIds.length) return false;
             return group.variants.every(function(v) { return isSelectorItemExcluded(v); });
-        }
-
-        function isRingGroupOwnedByRoster(group) {
-            if (!editContext || editContext.i !== 'PUBLIC-ROSTER' || editContext.type !== 'ring') return false;
-            if (typeof tempOwnedRings === 'undefined') return false;
-            return tempOwnedRings.some(function(item) {
-                const r = ringsDB.find(function(x) { return String(x.id) === String(item.id); });
-                return r && normalizeRingNameKey(r.name) === group.nameKey;
-            });
         }
 
         function selectRingFromGroup(groupIndex, grade) {
@@ -7912,7 +7917,7 @@
 
             // Sorting
             const sortFunc = (a, b) => {
-                if (editContext.type === 'ring') return (b.grade||0) - (a.grade||0);
+                if (editContext.type === 'ring' || editContext.type === 'ringStack') return (b.grade||0) - (a.grade||0);
                 let rA = -1, rB = -1;
                 if(editContext.type === 'hero') { rA = RARITY_OPTS.indexOf(a.rarity); rB = RARITY_OPTS.indexOf(b.rarity); } 
                 else if(editContext.type === 'pet') { rA = PET_RARITY_OPTS.indexOf(a.rarity); rB = PET_RARITY_OPTS.indexOf(b.rarity); }
@@ -7928,11 +7933,8 @@
             const multiHero = isSelectorHeroMultiPickMode();
             const safeName = (n) => String(n || '').replace(/"/g, '&quot;');
 
-            if (editContext.type === 'ring' && isRingSelectorGroupByNameMode()) {
+            if (isRingSelectorGroupByNameMode()) {
                 let groups = groupRingsByName(filteredItems);
-                if (editContext.i === 'PUBLIC-ROSTER' && editContext.type === 'ring') {
-                    groups = groups.filter(function(g) { return !isRingGroupOwnedByRoster(g); });
-                }
                 groups = groups.filter(function(g) { return !isRingGroupFullyExcluded(g); });
                 selectorRingGroupsList = groups;
 
