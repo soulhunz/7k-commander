@@ -111,6 +111,9 @@
         }
         .roster-ring-card {
             overflow: visible;
+            -webkit-touch-callout: none;
+            user-select: none;
+            touch-action: manipulation;
         }
         .roster-ring-card.has-stack {
             border-color: rgba(251, 191, 36, 0.85);
@@ -2099,7 +2102,7 @@
         }
     </style>
 </head>
-<body class="flex" onclick="closeContextMenu(); closeRosterRingContextMenu(); closeTextContextMenu(); closeRingSelectorGradeMenu();">
+<body class="flex" onclick="rosterGlobalPointerDismiss(event)">
 
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
@@ -8512,6 +8515,40 @@
 
         let _rosterOwnedTouchTimer = null;
         let _rosterOwnedTouchMoved = false;
+        let _rosterOwnedTouchLongPressFired = false;
+        let _rosterOwnedTouchHandledAt = 0;
+        let _rosterSuppressMenuCloseUntil = 0;
+
+        function rosterSuppressNextMenuClose() {
+            _rosterSuppressMenuCloseUntil = Date.now() + 550;
+        }
+
+        function rosterShouldSuppressMenuClose() {
+            return Date.now() < _rosterSuppressMenuCloseUntil;
+        }
+
+        function rosterTouchAlreadyHandled() {
+            return Date.now() - _rosterOwnedTouchHandledAt < 650;
+        }
+
+        function rosterMarkTouchHandled() {
+            _rosterOwnedTouchHandledAt = Date.now();
+        }
+
+        function rosterGlobalPointerDismiss(e) {
+            if (rosterShouldSuppressMenuClose()) return;
+            if (e && e.target && e.target.closest) {
+                if (e.target.closest('#rosterRingContextMenu') || e.target.closest('#contextMenu')
+                    || e.target.closest('#textEditorMenu') || e.target.closest('#ring-selector-grade-menu')) {
+                    return;
+                }
+            }
+            closeContextMenu();
+            closeRosterRingContextMenu();
+            closeTextContextMenu();
+            closeRingSelectorGradeMenu();
+        }
+        window.rosterGlobalPointerDismiss = rosterGlobalPointerDismiss;
 
         function positionContextMenuAt(menu, clientX, clientY) {
             if (!menu) return;
@@ -8541,28 +8578,53 @@
         }
 
         function rosterOwnedTouchStart(e, ctxKey, idx) {
-            if (typeof isRosterCoarsePointer === 'function' && isRosterCoarsePointer()) return;
             if (e.touches && e.touches.length > 1) return;
             _rosterOwnedTouchMoved = false;
+            _rosterOwnedTouchLongPressFired = false;
             const t = e.touches[0];
             clearTimeout(_rosterOwnedTouchTimer);
+            const delay = (typeof isRosterCoarsePointer === 'function' && isRosterCoarsePointer()) ? 420 : 480;
             _rosterOwnedTouchTimer = setTimeout(() => {
                 if (_rosterOwnedTouchMoved) return;
+                _rosterOwnedTouchLongPressFired = true;
+                rosterMarkTouchHandled();
                 if (ctxKey === 'PUBLIC-ROSTER-OWNED') {
                     openOwnedHeroContextMenu(t.clientX, t.clientY, ctxKey, idx);
                 } else if (typeof rosterOpenOwnedContextMenu === 'function') {
                     rosterOpenOwnedContextMenu({ clientX: t.clientX, clientY: t.clientY }, ctxKey, idx);
                 }
-            }, 480);
+                rosterSuppressNextMenuClose();
+                if (navigator.vibrate) try { navigator.vibrate(12); } catch (_) { /* ignore */ }
+            }, delay);
         }
 
-        function rosterOwnedTouchMove() {
+        function rosterOwnedTouchMove(e) {
             _rosterOwnedTouchMoved = true;
             clearTimeout(_rosterOwnedTouchTimer);
         }
 
-        function rosterOwnedTouchEnd() {
+        function rosterOwnedTouchEnd(e, ctxKey, idx) {
             clearTimeout(_rosterOwnedTouchTimer);
+            const longFired = _rosterOwnedTouchLongPressFired;
+            _rosterOwnedTouchLongPressFired = false;
+
+            if (longFired) {
+                if (e && e.cancelable) e.preventDefault();
+                if (e) e.stopPropagation();
+                rosterSuppressNextMenuClose();
+                return;
+            }
+
+            if (typeof isRosterCoarsePointer === 'function' && isRosterCoarsePointer()
+                && !_rosterOwnedTouchMoved && ctxKey != null && idx != null) {
+                if (e && e.cancelable) e.preventDefault();
+                if (e) e.stopPropagation();
+                rosterMarkTouchHandled();
+                if (typeof rosterOpenOwnedContextMenu === 'function') {
+                    rosterOpenOwnedContextMenu(e, ctxKey, idx);
+                }
+                rosterSuppressNextMenuClose();
+            }
         }
 
         function setRosterContextMenuPreview(imgSrc, name, show, kind) {
@@ -21782,16 +21844,20 @@
     }
 
     function rosterOwnedItemActivate(e, ctxKey, idx) {
+        if (typeof rosterTouchAlreadyHandled === 'function' && rosterTouchAlreadyHandled()) return;
         e.preventDefault();
         e.stopPropagation();
         rosterOpenOwnedContextMenu(e, ctxKey, idx);
+        if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
     }
 
     function rosterRingItemActivate(e, idx) {
+        if (typeof rosterTouchAlreadyHandled === 'function' && rosterTouchAlreadyHandled()) return;
         e.preventDefault();
         e.stopPropagation();
         const pt = rosterPointerXY(e);
         openRosterRingContextMenu(pt.x, pt.y, idx);
+        if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
     }
 
     function memberCodesMatch(a, b) {
@@ -22201,15 +22267,47 @@
     }
 
     function rosterRingTouchStart(e, idx) {
-        if (isRosterCoarsePointer()) return;
         if (e.touches && e.touches.length > 1) return;
         _rosterOwnedTouchMoved = false;
+        _rosterOwnedTouchLongPressFired = false;
         const t = e.touches[0];
         clearTimeout(_rosterOwnedTouchTimer);
-        _rosterOwnedTouchTimer = setTimeout(() => {
+        const delay = isRosterCoarsePointer() ? 420 : 480;
+        _rosterOwnedTouchTimer = setTimeout(function() {
             if (_rosterOwnedTouchMoved) return;
+            _rosterOwnedTouchLongPressFired = true;
+            if (typeof rosterMarkTouchHandled === 'function') rosterMarkTouchHandled();
             openRosterRingContextMenu(t.clientX, t.clientY, idx);
-        }, 480);
+            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
+            if (navigator.vibrate) try { navigator.vibrate(12); } catch (_) { /* ignore */ }
+        }, delay);
+    }
+
+    function rosterRingTouchMove(e) {
+        _rosterOwnedTouchMoved = true;
+        clearTimeout(_rosterOwnedTouchTimer);
+    }
+
+    function rosterRingTouchEnd(e, idx) {
+        clearTimeout(_rosterOwnedTouchTimer);
+        const longFired = _rosterOwnedTouchLongPressFired;
+        _rosterOwnedTouchLongPressFired = false;
+
+        if (longFired) {
+            if (e && e.cancelable) e.preventDefault();
+            if (e) e.stopPropagation();
+            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
+            return;
+        }
+
+        if (isRosterCoarsePointer() && !_rosterOwnedTouchMoved) {
+            if (e && e.cancelable) e.preventDefault();
+            if (e) e.stopPropagation();
+            if (typeof rosterMarkTouchHandled === 'function') rosterMarkTouchHandled();
+            const pt = rosterPointerXY(e);
+            openRosterRingContextMenu(pt.x, pt.y, idx);
+            if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
+        }
     }
 
     function applyRosterTempInventoryFromMember(target) {
@@ -22976,8 +23074,8 @@
             oncontextmenu="event.preventDefault(); return false;"
             ontouchstart="rosterOwnedTouchStart(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
             ontouchmove="rosterOwnedTouchMove(event)"
-            ontouchend="rosterOwnedTouchEnd(event)"
-            ontouchcancel="rosterOwnedTouchEnd(event)"
+            ontouchend="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
+            ontouchcancel="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
             title="${safeName} — คลิกเพื่อจัดการ">
             <div class="roster-hero-card-inner">
                 <img src="${h.img}" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">
@@ -23040,9 +23138,9 @@
                 onclick="rosterRingItemActivate(event, ${i})"
                 oncontextmenu="event.preventDefault(); return false;"
                 ontouchstart="rosterRingTouchStart(event, ${i})"
-                ontouchmove="rosterOwnedTouchMove(event)"
-                ontouchend="rosterOwnedTouchEnd(event)"
-                ontouchcancel="rosterOwnedTouchEnd(event)"
+                ontouchmove="rosterRingTouchMove(event)"
+                ontouchend="rosterRingTouchEnd(event, ${i})"
+                ontouchcancel="rosterRingTouchEnd(event, ${i})"
                 title="#${ringNo} ${r.name}${hasStack ? ' + แหวนซ้อน: ' + stackRing.name : ''} — คลิกเพื่อจัดการ">
                 <img src="${r.img}" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">
                 ${stackOverlay}
@@ -23079,8 +23177,8 @@
                 oncontextmenu="event.preventDefault(); return false;"
                 ontouchstart="rosterOwnedTouchStart(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
                 ontouchmove="rosterOwnedTouchMove(event)"
-                ontouchend="rosterOwnedTouchEnd(event)"
-                ontouchcancel="rosterOwnedTouchEnd(event)"
+                ontouchend="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
+                ontouchcancel="rosterOwnedTouchEnd(event, 'PUBLIC-ROSTER-PET-OWNED', ${realIdx})"
                 title="${p.name} — คลิกเพื่อจัดการ">
                 <img src="${p.img}" class="w-full h-full object-cover rounded-xl pointer-events-none select-none" draggable="false" alt="">
                 ${skillBadge}
