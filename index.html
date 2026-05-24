@@ -69,6 +69,10 @@
         .roster-line-balanced { color: #e9d5ff; border-color: rgba(147,51,234,0.55); background: rgba(88,28,135,0.55); }
         .roster-section-other { border-left-color: #6b7280; background: linear-gradient(90deg, rgba(55,65,81,0.25) 0%, rgba(11,14,20,0) 72%); }
         .roster-line-other { color: #d1d5db; border-color: rgba(107,114,128,0.45); background: rgba(55,65,81,0.45); }
+        .roster-line-ancient { color: #fca5a5; border-color: rgba(185,28,28,0.55); background: rgba(69,10,10,0.55); }
+        .roster-line-legend-sp { color: #fdba74; border-color: rgba(194,65,12,0.55); background: rgba(67,20,7,0.55); }
+        .roster-line-legend { color: #fde047; border-color: rgba(202,138,4,0.55); background: rgba(66,32,6,0.55); }
+        .roster-line-rare { color: #93c5fd; border-color: rgba(37,99,235,0.55); background: rgba(23,37,84,0.55); }
 
         /* Roster hero card — ดาว C0-C12 ด้านล่างในรูป */
         .roster-hero-card {
@@ -2766,7 +2770,7 @@
                     <div id="roster-panel-attack-teams" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl">
                         <div class="mb-6 border-b border-gray-800 pb-4">
                             <h3 class="text-xl font-bold text-red-400 flex items-center gap-2"><span>🎯</span> ทีมบุกที่แชร์ไว้</h3>
-                            <p class="text-xs text-gray-400 mt-1">เปรียบเทียบตัวละคร · สัตว์เลี้ยง กับทีมบุกที่กิลด์แชร์ไว้ (อ่านอย่างเดียว)</p>
+                            <p class="text-xs text-gray-400 mt-1">สัตว์เลี้ยงมีตัวใดตัวหนึ่งก็ผ่าน · แหวนซ้อนเดียวสลับฐานได้ · แหวนไม่ซ้อนมี ID ตรงก็พอ (แม้จะซ้อนในรายการ) · หลายตัวเลือกอย่างใดอย่างหนึ่ง</p>
                         </div>
                         <div id="roster-attack-teams-list" class="space-y-3 min-h-[200px]"></div>
                     </div>
@@ -3144,7 +3148,8 @@
             </div>
             <div id="selector-multi-footer" class="hidden border-t border-gray-700 px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-[#161b22] shrink-0">
                 <p id="selector-multi-count" class="text-sm text-gray-400 m-0">เลือกแล้ว <strong class="text-green-400">0</strong> ตัว — คลิกการ์ดเพื่อติ๊กเลือก</p>
-                <div class="flex gap-2 ml-auto">
+                <div class="flex gap-2 ml-auto flex-wrap justify-end">
+                    <button type="button" onclick="selectAllSelectorMultiPick()" class="px-4 py-2 rounded-lg text-sm font-bold border border-blue-600/60 text-blue-300 hover:bg-blue-900/30 transition">เลือกทั้งหมด</button>
                     <button type="button" onclick="clearSelectorMultiPick()" class="px-4 py-2 rounded-lg text-sm font-bold border border-gray-600 text-gray-300 hover:bg-gray-800 transition">ล้าง</button>
                     <button type="button" id="selector-multi-confirm-btn" onclick="confirmSelectorMultiPick()" disabled class="px-5 py-2 rounded-lg text-sm font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-green-600">ยืนยันเลือก</button>
                 </div>
@@ -7453,19 +7458,31 @@
             updateSelectorMultiFooter();
         }
 
+        function selectAllSelectorMultiPick() {
+            if (!isSelectorHeroMultiPickMode()) return;
+            document.querySelectorAll('#selector-grid .selector-card[data-selector-id]').forEach(function(card) {
+                const sid = card.getAttribute('data-selector-id');
+                if (!sid) return;
+                selectorMultiSelectedIds.add(sid);
+                card.classList.add('selector-multi-selected');
+            });
+            updateSelectorMultiFooter();
+        }
+
         /** @returns {'added'|'skipped'|'none'} */
         function applySingleHeroToSelectorContext(id) {
             if (!id || !editContext) return 'none';
             const sid = String(id);
+            const defaultStar = typeof getDefaultRosterHeroStar === 'function' ? getDefaultRosterHeroStar(sid) : 6;
 
             if (editContext.i === 'GUILD-MEMBER-ADD') {
                 if (tempOwnedHeroes.some(h => String(h.id) === sid)) return 'skipped';
-                tempOwnedHeroes.push({ id: sid, star: 6 });
+                tempOwnedHeroes.push({ id: sid, star: defaultStar });
                 return 'added';
             }
             if (editContext.i === 'PUBLIC-ROSTER' && editContext.type === 'hero') {
                 if (tempOwnedHeroes.some(h => String(h.id) === sid)) return 'skipped';
-                tempOwnedHeroes.push({ id: sid, star: 6 });
+                tempOwnedHeroes.push({ id: sid, star: defaultStar });
                 return 'added';
             }
             if (editContext.i === 'HERO-LIST') {
@@ -19615,29 +19632,109 @@
         return ownership.ringIds.has(rid) || ownership.stackRingIds.has(rid);
     }
 
+    /** ลูกกิลมีแหวน outer ซ้อน inner (คู่เดียวกันในรายการ) */
+    function memberOwnsStackedRingPair(outerId, innerId) {
+        if (!outerId || !innerId) return false;
+        const o = String(outerId);
+        const i = String(innerId);
+        return tempOwnedRings.some(function(r) {
+            return r && String(r.id) === o && String(r.stackId || '') === i;
+        });
+    }
+
+    /** ตรงเงื่อนไขแหวนซ้อน — รองรับสลับฐาน/ซ้อน (A ซ้อน B หรือ B ซ้อน A) */
+    function memberMatchesStackedRingOption(baseId, stackId) {
+        if (!baseId || !stackId) return false;
+        return memberOwnsStackedRingPair(baseId, stackId) || memberOwnsStackedRingPair(stackId, baseId);
+    }
+
+    /** หาแหวน ID ในรายการลูกกิล — เป็นหลัก หรืออยู่ชั้นซ้อน */
+    function findMemberPlainRingMatch(ringId) {
+        if (!ringId) return { ok: false, via: null, hostId: null };
+        const bid = String(ringId);
+        let asBase = false;
+        let hostId = null;
+        tempOwnedRings.forEach(function(r) {
+            if (!r) return;
+            if (String(r.id) === bid) asBase = true;
+            if (String(r.stackId || '') === bid) hostId = String(r.id);
+        });
+        if (asBase) return { ok: true, via: 'base', hostId: null };
+        if (hostId) return { ok: true, via: 'stack', hostId: hostId };
+        return { ok: false, via: null, hostId: null };
+    }
+
+    /** แหวนไม่ซ้อนในทีมแชร์ — มี ID ตรงก็พอ (เป็นหลัก หรืออยู่ชั้นซ้อนบนแหวนอื่น) */
+    function memberMatchesPlainRingOption(baseId) {
+        return findMemberPlainRingMatch(baseId).ok;
+    }
+
+    function memberMatchesRingOption(opt) {
+        if (!opt || !opt.baseId) return false;
+        if (opt.stackId) return memberMatchesStackedRingOption(opt.baseId, opt.stackId);
+        return memberMatchesPlainRingOption(opt.baseId);
+    }
+
+    function getRosterRingOptionsHint(options) {
+        if (!options || !options.length) return '';
+        if (options.length === 1 && options[0].stackId) {
+            return '<div class="text-[10px] text-amber-300/90 mb-2">\u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19\u2014 \u0e15\u0e49\u0e2d\u0e07\u0e15\u0e23\u0e07\u0e01\u0e31\u0e1a\u0e17\u0e35\u0e21 (\u0e2a\u0e25\u0e31\u0e1a\u0e0b\u0e49\u0e2d\u0e19\u0e01\u0e31\u0e1a\u0e10\u0e32\u0e19\u0e44\u0e14\u0e49 \u0e40\u0e0a\u0e48\u0e19 A\u0e0b\u0e49\u0e2d\u0e19 B \u0e2b\u0e23\u0e37\u0e2d B\u0e0b\u0e49\u0e2d\u0e19 A)</div>';
+        }
+        if (options.length === 1 && !options[0].stackId) {
+            return '<div class="text-[10px] text-amber-300/90 mb-2">\u0e41\u0e2b\u0e27\u0e19\u0e44\u0e21\u0e48\u0e0b\u0e49\u0e2d\u0e19\u2014 \u0e21\u0e35 ID \u0e15\u0e23\u0e07\u0e01\u0e47\u0e1e\u0e2d (\u0e41\u0e21\u0e49\u0e43\u0e19\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23 \u0e2b\u0e23\u0e37\u0e2d\u0e0a\u0e37\u0e48\u0e2d\u0e0b\u0e49\u0e2d\u0e19\u0e1a\u0e19\u0e41\u0e2b\u0e27\u0e19\u0e2d\u0e37\u0e48\u0e19)</div>';
+        }
+        if (options.length <= 1) return '';
+        const hasStacked = options.some(function(o) { return o.stackId; });
+        const hasPlain = options.some(function(o) { return !o.stackId; });
+        if (hasStacked && hasPlain) {
+            return '<div class="text-[10px] text-amber-300/90 mb-2">\u0e21\u0e35\u0e17\u0e31\u0e49\u0e07\u0e41\u0e1a\u0e1a\u0e0b\u0e49\u0e2d\u0e19\u0e41\u0e25\u0e30\u0e44\u0e21\u0e48\u0e0b\u0e49\u0e2d\u0e19 \u2014 \u0e21\u0e35\u0e2d\u0e22\u0e48\u0e32\u0e43\u0e14\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e2b\u0e19\u0e36\u0e48\u0e07\u0e01\u0e47\u0e1c\u0e48\u0e32\u0e19</div>';
+        }
+        return '<div class="text-[10px] text-amber-300/90 mb-2">\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e43\u0e14\u0e49\u0e2d\u0e22\u0e48\u0e32\u0e32\u0e2d\u0e22\u0e48\u0e32\u0e07 1 \u0e27\u0e31\u0e19\u0e01\u0e47\u0e1c\u0e48\u0e32\u0e19</div>';
+    }
+
     function checkRosterSlotRings(slot, ownership) {
         const s = normalize3v3Slot(slot || {});
-        const required = get3v3SlotRingIds(s).map(r => String(r)).filter(Boolean);
-        if (!required.length) {
-            return { ringsOk: true, missingRings: [], matchedRingId: null, missingStack: null, requiredRings: required, ringStacks: s.ringStacks || [] };
+        const options = getRosterSlotRingOptions(s);
+        if (!options || !options.length) {
+            return {
+                ringsOk: true,
+                missingRings: [],
+                matchedRingId: null,
+                matchedOption: null,
+                missingStack: null,
+                requiredRings: [],
+                ringOptions: [],
+                ringStacks: s.ringStacks || [],
+                ringStack: s.ringStack || null
+            };
         }
-        const matchedRingId = required.find(rid => rosterOwnsRingId(rid, ownership)) || null;
-        const ringsOk = !!matchedRingId;
+        const requiredRings = options.map(function(o) { return o.baseId; });
+        let matchedOption = null;
+        let plainMatchDetail = null;
+        options.forEach(function(opt) {
+            if (matchedOption) return;
+            if (!memberMatchesRingOption(opt)) return;
+            matchedOption = opt;
+            if (!opt.stackId) plainMatchDetail = findMemberPlainRingMatch(opt.baseId);
+        });
+        const ringsOk = !!matchedOption;
         let missingStack = null;
-        if (matchedRingId) {
-            const idx = required.indexOf(String(matchedRingId));
-            const stackId = (s.ringStacks || [])[idx] || (idx === 0 ? s.ringStack : null);
-            if (stackId && !rosterOwnsRingId(stackId, ownership)) missingStack = String(stackId);
-        } else if (s.ringStack && !rosterOwnsRingId(s.ringStack, ownership)) {
-            missingStack = String(s.ringStack);
+        if (!ringsOk && options.length === 1 && options[0].stackId) {
+            const opt = options[0];
+            const hasEither = tempOwnedRings.some(function(r) {
+                return r && (String(r.id) === String(opt.baseId) || String(r.id) === String(opt.stackId));
+            });
+            if (hasEither) missingStack = String(opt.stackId);
         }
-        const fullyOk = ringsOk && !missingStack;
         return {
-            ringsOk: fullyOk,
-            missingRings: fullyOk ? [] : required,
-            matchedRingId,
-            missingStack,
-            requiredRings: required,
+            ringsOk: ringsOk,
+            missingRings: ringsOk ? [] : requiredRings,
+            matchedRingId: matchedOption ? matchedOption.baseId : null,
+            matchedOption: matchedOption,
+            plainMatchDetail: plainMatchDetail,
+            missingStack: missingStack,
+            requiredRings: requiredRings,
+            ringOptions: options,
             ringStacks: s.ringStacks || [],
             ringStack: s.ringStack || null
         };
@@ -19660,9 +19757,12 @@
     }
 
     function rosterRingItemMatchesOption(item, opt) {
-        if (item.used || item.id !== opt.baseId) return false;
-        if (opt.stackId) return item.stackId === opt.stackId;
-        return true;
+        if (item.used || !item || !opt) return false;
+        if (opt.stackId) {
+            return (String(item.id) === String(opt.baseId) && String(item.stackId || '') === String(opt.stackId)) ||
+                (String(item.id) === String(opt.stackId) && String(item.stackId || '') === String(opt.baseId));
+        }
+        return String(item.id) === String(opt.baseId) || String(item.stackId || '') === String(opt.baseId);
     }
 
     function tryAssignSlotRing(pool, slot) {
@@ -19955,17 +20055,30 @@
                         : 'C \u0e41\u0e19\u0e30\u0e19\u0e33 C' + reqStar + ' \u2014 \u0e21\u0e35 C' + ownedStar + ' (\u0e44\u0e21\u0e48\u0e1a\u0e31\u0e07\u0e04\u0e31\u0e1a)')
             });
         }
-        const hasRingReq = required.length > 0 || !!s.ringStack || (s.ringStacks || []).some(Boolean);
+        const hasRingReq = (ringCheck.ringOptions || []).length > 0;
         if (hasRingReq) {
             const ringFullyOk = ringCheck.ringsOk;
             const matched = ringCheck.matchedRingId;
             let ringText = '';
             if (ringFullyOk) {
-                ringText = '\u0e41\u0e2b\u0e27\u0e19\u0e04\u0e23\u0e1a\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e41\u0e25\u0e49\u0e27';
+                if (ringCheck.plainMatchDetail && ringCheck.plainMatchDetail.via === 'stack') {
+                    const host = ringsDB.find(function(x) { return String(x.id) === String(ringCheck.plainMatchDetail.hostId); });
+                    ringText = '\u0e41\u0e2b\u0e27\u0e19\u0e04\u0e23\u0e1a (\u0e21\u0e35\u0e0a\u0e37\u0e48\u0e2d\u0e0b\u0e49\u0e2d\u0e19\u0e1a\u0e19' + (host && host.name ? host.name : '\u0e41\u0e2b\u0e27\u0e19\u0e2b\u0e25\u0e31\u0e01') + ')';
+                } else {
+                    ringText = '\u0e41\u0e2b\u0e27\u0e19\u0e04\u0e23\u0e1a\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e41\u0e25\u0e49\u0e27';
+                }
             } else if (matched && ringCheck.missingStack) {
                 ringText = '\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e15\u0e23\u0e07\u0e41\u0e25\u0e49\u0e27 \u2014 \u0e23\u0e2d\u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19';
-            } else if (required.length > 1) {
-                ringText = '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e15\u0e23\u0e07 (\u0e15\u0e49\u0e2d\u0e07\u0e21\u0e35\u0e2d\u0e22\u0e48\u0e32\u0e32\u0e2d\u0e22\u0e48\u0e32\u0e07 1 \u0e27\u0e31\u0e19)';
+            } else if ((ringCheck.ringOptions || []).length > 1) {
+                const opts = ringCheck.ringOptions || [];
+                const mixed = opts.some(function(o) { return o.stackId; }) && opts.some(function(o) { return !o.stackId; });
+                ringText = mixed
+                    ? '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e15\u0e23\u0e07\u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02 (\u0e21\u0e35\u0e41\u0e1a\u0e1a\u0e0b\u0e49\u0e2d\u0e19\u0e2b\u0e23\u0e37\u0e2d\u0e44\u0e21\u0e48\u0e0b\u0e49\u0e2d\u0e19 \u0e2d\u0e22\u0e48\u0e32\u0e43\u0e14\u0e01\u0e47\u0e1c\u0e48\u0e32\u0e19)'
+                    : '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e15\u0e23\u0e07 (\u0e15\u0e49\u0e2d\u0e07\u0e21\u0e35\u0e2d\u0e22\u0e48\u0e32\u0e32\u0e2d\u0e22\u0e48\u0e32\u0e07 1 \u0e27\u0e31\u0e19)';
+            } else if ((ringCheck.ringOptions || []).length === 1 && ringCheck.ringOptions[0].stackId) {
+                ringText = matched && ringCheck.missingStack
+                    ? '\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19\u0e41\u0e25\u0e49\u0e27 \u2014 \u0e15\u0e49\u0e2d\u0e07\u0e0b\u0e49\u0e2d\u0e19\u0e43\u0e2b\u0e49\u0e15\u0e23\u0e07\u0e01\u0e31\u0e1a\u0e17\u0e35\u0e21'
+                    : '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23 (\u0e15\u0e49\u0e2d\u0e07\u0e0b\u0e49\u0e2d\u0e19\u0e15\u0e23\u0e07\u0e01\u0e31\u0e1a\u0e17\u0e35\u0e21)';
             } else {
                 ringText = '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23';
             }
@@ -20049,9 +20162,16 @@
         const petData = normalize3v3PetEntry(team.pets[petIdx]);
         if (!petData) return;
         const ownership = buildRosterOwnership();
+        const teamPets = getRosterTeamPets(team);
         const p = petsDB.find(x => String(x.id) === String(petData.id));
         const lines = [`<strong>${p?.name || petData.id}</strong>`];
-        if (!ownership.petIds.has(String(petData.id))) lines.push('ยังไม่มีสัตว์เลี้ยงนี้ในทีมของคุณ');
+        if (!ownership.petIds.has(String(petData.id))) {
+            if (teamPets.length > 1) {
+                lines.push('\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e15\u0e31\u0e27\u0e19\u0e35\u0e49 \u2014 \u0e15\u0e49\u0e2d\u0e07\u0e21\u0e35\u0e2d\u0e22\u0e48\u0e32\u0e48\u0e32\u0e07\u0e19\u0e36\u0e48\u0e07\u0e08\u0e32\u0e01\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e17\u0e35\u0e21');
+            } else {
+                lines.push('\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e19\u0e35\u0e49\u0e43\u0e19\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13');
+            }
+        }
         if (petData.potential > 0) lines.push(`กำหนดศักยภาพอย่างน้อย ${petData.potential}`);
         if (petData.skillUnlock > 0) lines.push(`กำหนดอัพสกิลอย่างน้อย ${petData.skillUnlock}`);
         showRosterConditionModal('สัตว์เลี้ยงยังไม่พร้อม', lines);
@@ -20669,14 +20789,62 @@
         { id: 'physical', label: 'กายภาพ', icon: '⚔️', types: ['กายภาพ'] },
         { id: 'magic', label: 'เวท', icon: '✨', types: ['เวท', 'เวทมนตร์'] },
         { id: 'balanced', label: 'สมดุล', icon: '⚖️', types: ['สมดุล'] },
+        { id: 'support', label: 'สนับสนุน', icon: '💚', types: ['ซัพ', 'สนับสนุน'] },
         { id: 'tank', label: 'ป้องกัน', icon: '🛡️', types: ['ป้องกัน'] },
-        { id: 'support', label: 'ซัพ', icon: '💚', types: ['ซัพ', 'สนับสนุน'] },
     ];
 
     function getRosterHeroLineId(heroType) {
         const t = String(heroType || '').trim();
         const found = ROSTER_HERO_LINES.find(line => line.types.includes(t));
         return found ? found.id : 'other';
+    }
+
+    function getRosterHeroRarityRank(rarity) {
+        const idx = RARITY_OPTS.indexOf(String(rarity || ''));
+        return idx === -1 ? 999 : idx;
+    }
+
+    function compareRosterHeroByRarityAndStar(a, b) {
+        const rA = getRosterHeroRarityRank(a.h && a.h.rarity);
+        const rB = getRosterHeroRarityRank(b.h && b.h.rarity);
+        if (rA !== rB) return rA - rB;
+        return (parseInt(b.item && b.item.star, 10) || 0) - (parseInt(a.item && a.item.star, 10) || 0);
+    }
+
+    function buildRosterHeroesByTypeSectionsHtml(entries, cardRenderer) {
+        const buckets = {};
+        ROSTER_HERO_LINES.forEach(function(line) { buckets[line.id] = []; });
+        buckets.other = [];
+        entries.forEach(function(e) {
+            const lineId = getRosterHeroLineId(e.h && e.h.type);
+            if (!buckets[lineId]) buckets[lineId] = [];
+            buckets[lineId].push(e);
+        });
+        let html = '';
+        ROSTER_HERO_LINES.forEach(function(line) {
+            const list = (buckets[line.id] || []).slice().sort(compareRosterHeroByRarityAndStar);
+            if (!list.length) return;
+            html += '<section class="roster-line-section roster-section-' + line.id + '">' +
+                '<div class="roster-line-head roster-line-' + line.id + '">' + line.icon + ' ' + line.label +
+                ' <span class="opacity-70 font-mono">(' + list.length + ')</span></div>' +
+                '<div class="flex flex-wrap gap-3 md:gap-4 content-start">';
+            list.forEach(function(e) { html += cardRenderer(e); });
+            html += '</div></section>';
+        });
+        const otherList = (buckets.other || []).slice().sort(compareRosterHeroByRarityAndStar);
+        if (otherList.length) {
+            html += '<section class="roster-line-section roster-section-other">' +
+                '<div class="roster-line-head roster-line-other">❓ อื่นๆ <span class="opacity-70 font-mono">(' + otherList.length + ')</span></div>' +
+                '<div class="flex flex-wrap gap-3 md:gap-4 content-start">';
+            otherList.forEach(function(e) { html += cardRenderer(e); });
+            html += '</div></section>';
+        }
+        return html;
+    }
+
+    function getDefaultRosterHeroStar(heroId) {
+        const h = heroesDB.find(function(x) { return String(x.id) === String(heroId); });
+        return (h && h.rarity === 'หายาก') ? 12 : 6;
     }
 
     function setRosterMemberHeaderName(name) {
@@ -21042,10 +21210,10 @@
         return { heroMap, petIds, ringIds, stackRingIds };
     }
 
-    function buildRosterRingCardHtml(ringId, label, owned) {
+    function buildRosterRingCardHtml(ringId, label, owned, statusOverride) {
         const r = ringsDB.find(x => String(x.id) === String(ringId)) || accessoriesDB.find(x => String(x.id) === String(ringId));
         const cls = owned ? 'ok' : 'miss';
-        const status = owned ? '\u2713 \u0e21\u0e35\u0e41\u0e25\u0e49\u0e27' : '\u2717 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35';
+        const status = statusOverride || (owned ? '\u2713 \u0e21\u0e35\u0e41\u0e25\u0e49\u0e27' : '\u2717 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35');
         const img = r && r.img
             ? '<img src="' + r.img + '" alt="">'
             : '<div style="width:4rem;height:4rem;border-radius:0.5rem;background:#1f2937;display:flex;align-items:center;justify-content:center;font-size:1.25rem">\uD83D\uDC8D</div>';
@@ -21056,52 +21224,47 @@
             '<div class="rcm-ring-card-status">' + status + '</div></div></div>';
     }
 
-    function buildRosterRingInlineHtml(slot, ownership) {
-        const check = checkRosterSlotRings(slot, ownership);
-        const s = normalize3v3Slot(slot || {});
-        const required = check.requiredRings || [];
-        if (!required.length && !check.ringStack) return '';
+    function buildRosterRingOptionCardsHtml(options, ringCheck) {
+        const matchedOption = ringCheck && ringCheck.matchedOption ? ringCheck.matchedOption : null;
+        const plainDetail = ringCheck && ringCheck.plainMatchDetail ? ringCheck.plainMatchDetail : null;
         let cards = '';
-        const orHint = required.length > 1
-            ? '<div class="text-[10px] text-amber-300/90 mb-2">\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e43\u0e14\u0e49\u0e2d\u0e22\u0e48\u0e32\u0e32\u0e2d\u0e22\u0e48\u0e32\u0e07 1 \u0e27\u0e31\u0e19\u0e01\u0e47\u0e1c\u0e48\u0e32\u0e19</div>'
-            : '';
-        required.forEach((rid, i) => {
-            const owned = rosterOwnsRingId(rid, ownership);
-            cards += buildRosterRingCardHtml(rid, '\u0e41\u0e2b\u0e27\u0e19 #' + (i + 1), owned);
-            const stackId = (s.ringStacks || [])[i];
-            if (stackId) {
-                cards += buildRosterRingCardHtml(stackId, '\u0e0b\u0e49\u0e2d\u0e19 #' + (i + 1), rosterOwnsRingId(stackId, ownership));
+        (options || []).forEach(function(opt, i) {
+            const ok = memberMatchesRingOption(opt);
+            const label = (options.length > 1 ? '\u0e15\u0e31\u0e27\u0e40\u0e25\u0e37\u0e2d\u0e01 #' + (i + 1) : '\u0e41\u0e2b\u0e27\u0e19') + (opt.stackId ? ' (\u0e0b\u0e49\u0e2d\u0e19)' : '');
+            if (!opt.stackId) {
+                const detail = findMemberPlainRingMatch(opt.baseId);
+                const viaStack = detail.ok && detail.via === 'stack';
+                const statusNote = viaStack ? '\u2713 \u0e21\u0e35 (\u0e0a\u0e31\u0e49\u0e19\u0e0b\u0e49\u0e2d\u0e19)' : null;
+                cards += buildRosterRingCardHtml(opt.baseId, label, ok, statusNote);
+                if (viaStack && detail.hostId) {
+                    const host = ringsDB.find(function(x) { return String(x.id) === String(detail.hostId); });
+                    cards += buildRosterRingCardHtml(detail.hostId, '\u0e0b\u0e49\u0e2d\u0e19\u0e1a\u0e19\u0e41\u0e2b\u0e27\u0e19\u0e2b\u0e25\u0e31\u0e01', true,
+                        '\u2713 \u0e41\u0e2b\u0e27\u0e19\u0e2b\u0e25\u0e31\u0e01 ' + (host && host.name ? host.name : detail.hostId));
+                }
+            } else {
+                cards += buildRosterRingCardHtml(opt.baseId, label, ok);
+                cards += buildRosterRingCardHtml(opt.stackId, '\u0e0b\u0e49\u0e2d\u0e19' + (options.length > 1 ? ' #' + (i + 1) : ''), ok);
             }
         });
-        if (check.ringStack && !required.some((rid, i) => (s.ringStacks || [])[i])) {
-            cards += buildRosterRingCardHtml(check.ringStack, '\u0e0b\u0e49\u0e2d\u0e19', rosterOwnsRingId(check.ringStack, ownership));
-        }
-        return orHint + ['<', 'div class="rcm-ring-grid">'].join('') + cards + ['</', 'div>'].join('');
+        return cards;
+    }
+
+    function buildRosterRingInlineHtml(slot, ownership) {
+        const check = checkRosterSlotRings(slot, ownership);
+        const options = check.ringOptions || [];
+        if (!options.length) return '';
+        const hint = getRosterRingOptionsHint(options);
+        return hint + '<div class="rcm-ring-grid">' + buildRosterRingOptionCardsHtml(options, check) + '</div>';
     }
 
     function buildRosterRingRequirementHtml(slot, ownership) {
         const check = checkRosterSlotRings(slot, ownership);
-        const s = normalize3v3Slot(slot || {});
-        const required = check.requiredRings || [];
-        if (!required.length && !check.ringStack) return '';
-        let cards = '';
-        const orHint = required.length > 1
-            ? '<div class="text-[10px] text-amber-300/90 mb-2">\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e43\u0e14\u0e48\u0e2d\u0e22\u0e48\u0e32\u0e32\u0e2d\u0e22\u0e48\u0e32\u0e07 1 \u0e27\u0e31\u0e19\u0e01\u0e47\u0e1c\u0e48\u0e32\u0e19</div>'
-            : '';
-        required.forEach((rid, i) => {
-            const owned = rosterOwnsRingId(rid, ownership);
-            cards += buildRosterRingCardHtml(rid, '\u0e41\u0e2b\u0e27\u0e19 #' + (i + 1), owned);
-            const stackId = (s.ringStacks || [])[i];
-            if (stackId) {
-                cards += buildRosterRingCardHtml(stackId, '\u0e0b\u0e49\u0e2d\u0e19 #' + (i + 1), rosterOwnsRingId(stackId, ownership));
-            }
-        });
-        if (check.ringStack && !required.some((rid, i) => (s.ringStacks || [])[i])) {
-            cards += buildRosterRingCardHtml(check.ringStack, '\u0e0b\u0e49\u0e2d\u0e19', rosterOwnsRingId(check.ringStack, ownership));
-        }
-        return '<div class="rcm-ring-section">' + orHint +
+        const options = check.ringOptions || [];
+        if (!options.length) return '';
+        const hint = getRosterRingOptionsHint(options);
+        return '<div class="rcm-ring-section">' + hint +
             '<div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-1">\uD83D\uDC8D \u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e21\u0e35</div>' +
-            '<div class="rcm-ring-grid">' + cards + '</div></div>';
+            '<div class="rcm-ring-grid">' + buildRosterRingOptionCardsHtml(options, check) + '</div></div>';
     }
 
     function getRosterTeamPets(team) {
@@ -21141,17 +21304,23 @@
             return { index: i, id, name: p?.name || id, img: p?.img || '', owned, teamId: team.id, petIdx: i };
         });
 
+        const petsOk = pets.length === 0 || petResults.some(function(p) { return p.owned; });
+        petResults.forEach(function(p) { p.teamPetsOk = petsOk; });
+
         let matched = 0;
         let total = 0;
         heroes.forEach(h => { total++; if (h.ready) matched++; });
-        petResults.forEach(p => { total++; if (p.owned) matched++; });
+        if (pets.length > 0) {
+            total++;
+            if (petsOk) matched++;
+        }
 
         const percent = total > 0 ? Math.round((matched / total) * 100) : 0;
         const ready = heroes.length > 0 &&
             heroes.every(h => h.ready) &&
-            petResults.every(p => p.owned);
+            petsOk;
 
-        return { heroes, pets: petResults, matched, total, percent, ready };
+        return { heroes, pets: petResults, petsOk, matched, total, percent, ready };
     }
 
     function renderRosterTeamHeroSlotInteractive(h) {
@@ -21174,7 +21343,8 @@
         const img = p.img
             ? '<img src="' + p.img + '" class="w-full h-full object-cover rounded-full pointer-events-none select-none" draggable="false" alt="">'
             : '<div class="w-full h-full flex items-center justify-center text-lg text-gray-600">?</div>';
-        return '<div class="roster-team-slot rounded-full ' + cls + '" onclick="onRosterPetSlotClick(\'' + teamId + '\', ' + petIdx + ', ' + ready + ')" title="คลิกดูรายละเอียด">' + img + '</div>';
+        const title = (ready ? p.name + ' \u2014 \u0e21\u0e35\u0e41\u0e25\u0e49\u0e27 \u2713' : p.name + ' \u2014 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35').replace(/"/g, '&quot;');
+        return '<div class="roster-team-slot rounded-full ' + cls + '" onclick="onRosterPetSlotClick(\'' + teamId + '\', ' + petIdx + ', ' + ready + ')" title="' + title + '">' + img + '</div>';
     }
 
     function renderRosterTeamHeroSlot(h) {
@@ -21194,7 +21364,7 @@
     }
 
     function renderRosterTeamPetSlot(p) {
-        const ready = p.owned;
+        const ready = !!p.owned;
         const cls = ready ? 'roster-team-slot-ready' : 'roster-team-slot-disabled';
         const title = ready ? `${p.name} — มีแล้ว ✓` : `${p.name} — ยังไม่มี`;
         const safeTitle = title.replace(/"/g, '&quot;');
@@ -21438,45 +21608,15 @@
             return;
         }
 
-        const buckets = {};
-        ROSTER_HERO_LINES.forEach(line => { buckets[line.id] = []; });
-        buckets.other = [];
-
-        tempOwnedHeroes.forEach((item, realIdx) => {
-            const h = heroesDB.find(x => String(x.id) === String(item.id));
-            if (!h) return;
-            const lineId = getRosterHeroLineId(h.type);
-            if (!buckets[lineId]) buckets[lineId] = [];
-            buckets[lineId].push({ item, realIdx, h });
+        const entries = [];
+        tempOwnedHeroes.forEach(function(item, realIdx) {
+            const h = heroesDB.find(function(x) { return String(x.id) === String(item.id); });
+            if (h) entries.push({ item: item, realIdx: realIdx, h: h });
         });
 
-        const sortBucket = (arr) => arr.sort((a, b) => (b.item.star || 0) - (a.item.star || 0));
-
-        let html = '';
-        ROSTER_HERO_LINES.forEach(line => {
-            const list = sortBucket(buckets[line.id] || []);
-            if (list.length === 0) return;
-            html += `<section class="roster-line-section roster-section-${line.id}">
-                <div class="roster-line-head roster-line-${line.id}">${line.icon} ${line.label} <span class="opacity-70 font-mono">(${list.length})</span></div>
-                <div class="flex flex-wrap gap-3 md:gap-4 content-start">`;
-            list.forEach(({ item, realIdx, h }) => {
-                html += renderRosterHeroCard(item, realIdx, h);
-            });
-            html += `</div></section>`;
+        container.innerHTML = buildRosterHeroesByTypeSectionsHtml(entries, function(e) {
+            return renderRosterHeroCard(e.item, e.realIdx, e.h);
         });
-
-        const otherList = sortBucket(buckets.other || []);
-        if (otherList.length > 0) {
-            html += `<section class="roster-line-section roster-section-other">
-                <div class="roster-line-head roster-line-other">❓ อื่นๆ <span class="opacity-70 font-mono">(${otherList.length})</span></div>
-                <div class="flex flex-wrap gap-3 md:gap-4 content-start">`;
-            otherList.forEach(({ item, realIdx, h }) => {
-                html += renderRosterHeroCard(item, realIdx, h);
-            });
-            html += `</div></section>`;
-        }
-
-        container.innerHTML = html;
         refreshRosterAttackTeamsIfNeeded();
     }
 
@@ -21722,36 +21862,14 @@
             container.innerHTML = rosterEmptyState('⚔️', 'ยังไม่มีตัวละคร', 'สมาชิกยังไม่ได้กรอกข้อมูล');
             return;
         }
-        const buckets = {};
-        ROSTER_HERO_LINES.forEach(line => { buckets[line.id] = []; });
-        buckets.other = [];
-        heroes.forEach((item) => {
-            const h = heroesDB.find(x => String(x.id) === String(item.id));
-            if (!h) return;
-            const lineId = getRosterHeroLineId(h.type);
-            if (!buckets[lineId]) buckets[lineId] = [];
-            buckets[lineId].push({ item, h });
+        const entries = [];
+        heroes.forEach(function(item) {
+            const h = heroesDB.find(function(x) { return String(x.id) === String(item.id); });
+            if (h) entries.push({ item: item, h: h });
         });
-        const sortBucket = (arr) => arr.sort((a, b) => (b.item.star || 0) - (a.item.star || 0));
-        let html = '';
-        ROSTER_HERO_LINES.forEach(line => {
-            const list = sortBucket(buckets[line.id] || []);
-            if (list.length === 0) return;
-            html += `<section class="roster-line-section roster-section-${line.id}">
-                <div class="roster-line-head roster-line-${line.id}">${line.icon} ${line.label} <span class="opacity-70 font-mono">(${list.length})</span></div>
-                <div class="flex flex-wrap gap-3 md:gap-4 content-start">`;
-            list.forEach(({ item, h }) => { html += renderBrowseHeroCard(item, h); });
-            html += `</div></section>`;
+        container.innerHTML = buildRosterHeroesByTypeSectionsHtml(entries, function(e) {
+            return renderBrowseHeroCard(e.item, e.h);
         });
-        const otherList = sortBucket(buckets.other || []);
-        if (otherList.length > 0) {
-            html += `<section class="roster-line-section roster-section-other">
-                <div class="roster-line-head roster-line-other">❓ อื่นๆ <span class="opacity-70 font-mono">(${otherList.length})</span></div>
-                <div class="flex flex-wrap gap-3 md:gap-4 content-start">`;
-            otherList.forEach(({ item, h }) => { html += renderBrowseHeroCard(item, h); });
-            html += `</div></section>`;
-        }
-        container.innerHTML = html;
     }
 
     function showBrowseMemberRingDetail(idx) {
