@@ -10,6 +10,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        /* --- GLOBAL UI SCALE ---
+           เพิ่มขนาดตัวหนังสือ/รูปทั้งแอปแบบปรับง่าย: แก้แค่ตัวเลข % บรรทัดล่างนี้
+           100% = 16px (ค่าเดิมเบราว์เซอร์) · 112.5% = 18px (ใหญ่ขึ้น ~12.5%)
+           Tailwind ใช้หน่วย rem (text-sm, w-24, p-4 ฯลฯ) จึงขยายตามค่านี้ทั้งหมด */
+        html { font-size: 112.5%; }
+
         /* --- CORE STYLES --- */
         body { font-family: 'Kanit', sans-serif; background-color: #0b0e14; color: #e2e8f0; height: 100vh; overflow: hidden; }
 
@@ -224,6 +230,21 @@
         .roster-attack-team-card.match-full { border-color: rgba(34, 197, 94, 0.55); }
         .roster-attack-team-card.match-partial { border-color: rgba(234, 179, 8, 0.45); }
         .roster-attack-team-card.match-low { border-color: rgba(239, 68, 68, 0.35); }
+        /* การ์ดทีมบุกแบบเล็ก (เหมือนหน้า Share) — เรียงแถวละ 5 การ์ด */
+        .roster-attack-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.75rem;
+            align-items: start;
+        }
+        .roster-attack-grid .roster-attack-team-card { min-width: 0; }
+        .roster-attack-grid .roster-team-slot { width: 4.25rem; height: 4.25rem; }
+        @media (max-width: 1100px) {
+            .roster-attack-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .roster-attack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
         .roster-match-bar {
             height: 6px;
             border-radius: 9999px;
@@ -465,16 +486,18 @@
             border-radius: 0.25rem;
             object-fit: cover;
         }
+        /* จัดทีมตามแหวน — เรียงแถวละ 4 การ์ด */
         .roster-planner-team-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 0.65rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            align-items: start;
         }
-        @media (min-width: 768px) {
-            .roster-planner-team-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 0.5rem;
-            }
+        @media (max-width: 1100px) {
+            .roster-planner-team-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+            .roster-planner-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         .roster-planner-team-card {
             cursor: pointer;
@@ -759,6 +782,23 @@
             border-radius: 4px;
         }
         .t3v3-gear-rings .t3v3-gear-group-body .t3v3-item-slot { flex-shrink: 0; }
+        /* แถวแหวนหน้าแชร์ — เรียงแนวนอนยาว + สกอลบาร์เมื่อเกิน */
+        .public-rings-row {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 0.4rem;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.2rem 0.1rem 0.45rem;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(251, 191, 36, 0.45) rgba(15, 23, 42, 0.8);
+        }
+        .public-rings-row > * { flex-shrink: 0; }
+        .public-rings-row::-webkit-scrollbar { height: 6px; }
+        .public-rings-row::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.45); border-radius: 3px; }
+        .public-rings-row::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); border-radius: 3px; }
         .t3v3-hero-main {
             flex: 1;
             min-width: 0;
@@ -1374,6 +1414,7 @@
         .modal-content { background: #161b22; padding: 0; border-radius: 16px; border: 1px solid #30363d; width: 1000px; max-width: 95%; box-shadow: 0 20px 50px rgba(0,0,0,0.7); max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
         .modal-header { padding: 16px 24px; background: #111827; border-bottom: 1px solid #374151; display: flex; flex-direction: column; gap: 12px; }
         .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        #rcm-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
         
         .selector-card { position: relative; border: 1px solid #374151; background: #0d1117; border-radius: 12px; overflow: hidden; cursor: pointer; aspect-ratio: 1/1; }
         .selector-card:hover { border-color: #3b82f6; z-index: 10; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
@@ -2618,6 +2659,7 @@
                         
                         <div class="flex flex-col gap-4 max-w-4xl mx-auto w-full pb-10" id="grid-3v3-slots">
                         </div>
+                        <input type="file" id="input-3v3-video" accept="video/*" class="hidden" onchange="handle3v3VideoUpload(this)">
                     </div>
                 </div>
             </div>
@@ -16639,6 +16681,130 @@
             mark3v3Dirty();
         }
 
+        // 🎬 วิดีโอประกอบทีม 3v3 (อัปโหลดขึ้น Google Drive)
+        const MAX_3V3_VIDEO_BYTES = 30 * 1024 * 1024; // ~30MB (จำกัดเพราะ Apps Script รับ payload ได้สูงสุด ~50MB หลัง base64)
+
+        function build3v3VideoSectionHTML(team) {
+            const video = team && team.video;
+            if (video && video.embedUrl) {
+                return `
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[10px] text-gray-400 font-bold uppercase tracking-wider flex items-center gap-2"><span>🎬</span> วิดีโอประกอบทีม</label>
+                        <div class="flex gap-2">
+                            <button onclick="trigger3v3VideoUpload()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition">🔄 เปลี่ยนวิดีโอ</button>
+                            <button onclick="remove3v3Video()" class="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-3 py-1.5 rounded-lg text-[11px] font-bold transition">🗑️ ลบ</button>
+                        </div>
+                    </div>
+                    <div class="relative w-full rounded-lg overflow-hidden border border-gray-700 bg-black" style="aspect-ratio:16/9;">
+                        <iframe src="${video.embedUrl}" class="absolute inset-0 w-full h-full" allow="autoplay; fullscreen" allowfullscreen frameborder="0"></iframe>
+                    </div>
+                    <div class="mt-2 text-[10px] text-gray-500 truncate">📁 ${video.name || 'video'} · <a href="${video.url}" target="_blank" class="text-blue-400 hover:underline">เปิดใน Google Drive</a></div>
+                </div>`;
+            }
+            return `
+                <div>
+                    <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-2"><span>🎬</span> วิดีโอประกอบทีม</label>
+                    <div onclick="trigger3v3VideoUpload()" class="w-full border-2 border-dashed border-gray-700 rounded-xl flex flex-col items-center justify-center text-gray-500 hover:text-blue-400 hover:border-blue-500 hover:bg-black/20 transition cursor-pointer gap-1.5 py-7 px-4 text-center group">
+                        <span class="text-4xl opacity-60 group-hover:scale-110 transition">📹</span>
+                        <span class="text-sm font-bold">อัปโหลดวิดีโอขึ้น Google Drive</span>
+                        <span class="text-[10px] text-gray-600">รองรับไฟล์วิดีโอ (MP4/MOV) ขนาดไม่เกิน 30MB</span>
+                        <div class="mt-2 pt-2 border-t border-gray-700/60 text-[10px] leading-relaxed text-gray-500 max-w-md">
+                            <div class="text-blue-400 font-bold mb-1">💡 แนะนำการตั้งค่าให้ชัดแต่ไฟล์เล็ก</div>
+                            <div>• โค้ดเดก <span class="text-gray-300 font-semibold">H.264 (MP4)</span> — ความละเอียด <span class="text-gray-300 font-semibold">720p</span> (อย่างต่ำ 480p)</div>
+                            <div>• Bitrate ~<span class="text-gray-300 font-semibold">2–3 Mbps</span> · เน้นตัดคลิปสั้น <span class="text-gray-300 font-semibold">1–2 นาที</span></div>
+                            <div class="text-gray-600 mt-1">30MB ใส่ได้ราว: 480p ≈ 2.5–4 นาที · 720p ≈ 1.5–2 นาที · 1080p ≈ 1 นาที</div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function trigger3v3VideoUpload() {
+            const input = document.getElementById('input-3v3-video');
+            if (input) { input.value = ''; input.click(); }
+        }
+
+        async function handle3v3VideoUpload(input) {
+            const file = input && input.files && input.files[0];
+            if (!file) return;
+            if (current3v3TeamIdx === -1 || !teams3v3DB[current3v3TeamIdx]) {
+                showToast('⚠️ กรุณาเลือกทีมก่อนอัปโหลดวิดีโอ', 'warning');
+                return;
+            }
+            if (!SCRIPT_URL) {
+                showToast('⚠️ ยังไม่ได้ตั้งค่า Server URL', 'error');
+                return;
+            }
+            if (file.size > MAX_3V3_VIDEO_BYTES) {
+                showToast('❌ ไฟล์ใหญ่เกินไป (เกิน 30MB) — กรุณาใช้คลิปสั้นลงหรือบีบอัดก่อน', 'error');
+                return;
+            }
+
+            showLoading('กำลังอัปโหลดวิดีโอ... อย่าปิดหน้านี้');
+            try {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+                    reader.readAsDataURL(file);
+                });
+
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'uploadVideo',
+                        fileName: file.name,
+                        fileData: base64
+                    })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success' && result.video) {
+                    teams3v3DB[current3v3TeamIdx].video = result.video;
+                    mark3v3Dirty();
+                    render3v3Editor();
+                    showToast('✅ อัปโหลดวิดีโอสำเร็จ! กด Save All เพื่อบันทึกลิงก์', 'success');
+                } else {
+                    throw new Error(result.message || 'อัปโหลดไม่สำเร็จ');
+                }
+            } catch (err) {
+                console.error('❌ Video upload error:', err);
+                showToast('❌ อัปโหลดวิดีโอไม่สำเร็จ: ' + err.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function remove3v3Video() {
+            if (current3v3TeamIdx === -1 || !teams3v3DB[current3v3TeamIdx]) return;
+            const team = teams3v3DB[current3v3TeamIdx];
+            if (!team.video) return;
+            if (!confirm('🗑️ ลบวิดีโอนี้ออกจากทีม และย้ายไฟล์ไป Trash ใน Google Drive?')) return;
+
+            const url = team.video.url || '';
+            showLoading('กำลังลบวิดีโอ...');
+            try {
+                if (url && SCRIPT_URL) {
+                    await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ action: 'deleteImages', urls: [url] })
+                    });
+                }
+                delete team.video;
+                mark3v3Dirty();
+                render3v3Editor();
+                showToast('✅ ลบวิดีโอแล้ว กด Save All เพื่อบันทึก', 'success');
+            } catch (err) {
+                console.error('❌ Video delete error:', err);
+                showToast('❌ ลบวิดีโอไม่สำเร็จ: ' + err.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
         // 4. สร้างทีมใหม่
         let isCreating3v3Team = false; // 🟢 ป้องกัน double click
         
@@ -17197,6 +17363,7 @@
                         <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Team Details / Note</label>
                         <textarea onchange="update3v3TeamNote(this.value)" placeholder="รายละเอียดแผนทีม, จุดเด่น, วิธีเล่น..." class="bg-[#0b0e14] border border-gray-600 text-gray-200 px-3 py-2 rounded-lg outline-none focus:border-blue-500 w-full text-sm shadow-inner transition min-h-[78px]">${team.note || ''}</textarea>
                     </div>
+                    ${build3v3VideoSectionHTML(team)}
                 </div>
             `;
 
@@ -18205,6 +18372,7 @@
                         if(m.pets) petsDB = m.pets;
                         if(m.rings) ringsDB = m.rings;
                         if(m.equip_sets) equipSetsDB = m.equip_sets;
+                        if(m.accessories) accessoriesDB = m.accessories;
                     }
 
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
@@ -18624,6 +18792,7 @@
                         if(m.heroes) heroesDB = m.heroes;
                         if(m.rings) ringsDB = m.rings;
                         if(m.equip_sets) equipSetsDB = m.equip_sets;
+                        if(m.accessories) accessoriesDB = m.accessories;
                     }
                     
                     // 🟢 กรอง Counter Teams ตาม Guild ถ้ามี masterData.teams
@@ -18722,6 +18891,49 @@
         }
         
         // parameter: currentTeam (ทีมที่โชว์อยู่), allCounterTeams (ลิสต์ทีมแก้ทางทั้งหมด), targetName (ชื่อศัตรู)
+        // 🎯 Read-only gear display สำหรับหน้าแชร์ (อิงจากหน้า 3v3 Builder) — แหวนหลายวง + แหวนซ้อน + อุปกรณ์ + เครื่องประดับ
+        function renderPublicRingSlotRO(ringId, stackId) {
+            const r = ringId ? (ringsDB.find(x => String(x.id) === String(ringId)) || accessoriesDB.find(x => String(x.id) === String(ringId))) : null;
+            if (!r) return '';
+            const hasStack = !!(stackId && ringsDB.find(x => String(x.id) === String(stackId)));
+            const stackOverlay = hasStack ? render3v3RingStackOverlay(stackId) : '';
+            return '<div class="t3v3-item-slot t3v3-ring-slot filled grade-' + (r.grade || 6) + (hasStack ? ' has-stack' : '') + '" style="cursor:default;" title="' + (r.name || '') + '"><img src="' + r.img + '" alt="">' + stackOverlay + '</div>';
+        }
+
+        // 💍 แหวน — วางใต้ Stat; เรียงแถวแนวนอนยาว มีสกอลบาร์เลื่อนเมื่อเกิน
+        function renderPublicRingsBlockRO(slot) {
+            const s = normalize3v3Slot(slot);
+            const rings = (s.rings || []).filter(Boolean);
+            const stacks = s.ringStacks || [];
+            const ringBody = rings.length
+                ? rings.map((rid, idx) => renderPublicRingSlotRO(rid, stacks[idx] || null)).join('')
+                : renderPublicEmptySlotRO();
+            return '<div class="t3v3-gear-group t3v3-gear-rings mt-3"><div class="t3v3-gear-group-title">💍 แหวน</div><div class="public-rings-row">' + ringBody + '</div></div>';
+        }
+
+        // บล็อกว่างขนาด 90x90 เขียนว่า "ไม่มี"
+        function renderPublicEmptySlotRO() {
+            return '<div class="flex items-center justify-center rounded-xl border-2 border-dashed border-gray-600 bg-black/30 text-gray-500 text-[11px] font-bold" style="width:90px;height:90px;">ไม่มี</div>';
+        }
+
+        // 🛡️ อุปกรณ์ + ❤️ เครื่องประดับ (คอลัมน์ขวา) — ถ้าไม่มีแสดงบล็อกว่าง 90x90
+        function renderPublicGearGroupsRO(slot) {
+            const s = normalize3v3Slot(slot);
+            const e = equipSetsDB.find(x => String(x.id) === String(s.equip));
+            const equipBody = e
+                ? '<div class="t3v3-item-slot t3v3-equip-slot filled" style="cursor:default;width:90px;height:90px;" title="' + (e.name || '') + '"><img src="' + e.img + '" alt=""></div>'
+                : renderPublicEmptySlotRO();
+            const equipGroup = '<div class="t3v3-gear-group t3v3-gear-equip"><div class="t3v3-gear-group-title">🛡️ อุปกรณ์</div><div class="t3v3-gear-group-body">' + equipBody + '</div></div>';
+
+            const a = accessoriesDB.find(x => String(x.id) === String(s.accessory));
+            const accBody = a
+                ? '<div class="t3v3-item-slot t3v3-acc-slot filled" style="cursor:default;width:90px;height:90px;" title="' + (a.name || '') + '"><img src="' + a.img + '" alt=""></div>'
+                : renderPublicEmptySlotRO();
+            const accGroup = '<div class="t3v3-gear-group t3v3-gear-acc"><div class="t3v3-gear-group-title">❤️ เครื่องประดับ</div><div class="t3v3-gear-group-body">' + accBody + '</div></div>';
+
+            return '<div class="flex flex-col gap-2 w-full">' + equipGroup + accGroup + '</div>';
+        }
+
         function renderPublicTeamDisplay(currentTeamData, allCounterTeams = [], targetName = '') {
             console.log('🔍 renderPublicTeamDisplay called with', allCounterTeams.length, 'teams');
             console.log('🔍 Teams:', allCounterTeams.map(t => t.name + '(' + t.guild_name + ')').join(', '));
@@ -18955,13 +19167,11 @@
                                             </div>
                                             <div class="w-full flex flex-col justify-between">
                                                 <div class="">${statsHTML}</div>
+                                                ${renderPublicRingsBlockRO(slot)}
                                                 ${commentBlock}
                                             </div>
-                                            <div class="flex flex-row md:flex-col gap-2 items-center justify-center border-t md:border-t-0 md:border-l border-gray-700 pt-4 md:pt-0 md:pl-3 shrink-0 min-w-[70px]">
-                                                ${slot.ring ? `<img src="${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{}).img}" style="width:80px;height:80px;" class="rounded-lg border border-yellow-600 bg-black" title="Ring">` : ''}
-                                                <div class="text-[10px] rounded-lg border p-1" style="color:#ca8a04; border-color:#ca8a04;">${(ringsDB.find(r=>String(r.id)===String(slot.ring))||{name:'No Ring'}).name}</div>
-                                                ${slot.equip ? `<img src="${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{}).img}" style="width:80px;height:80px;" class="rounded-lg border border-cyan-600 bg-black" title="Set">` : ''}
-                                                <div class="text-[10px] rounded-lg border p-1" style="color:#0891b2; border-color:#0891b2;">${(equipSetsDB.find(e=>String(e.id)===String(slot.equip))||{name:'No Set'}).name}</div>
+                                            <div class="flex flex-col gap-2 items-stretch justify-start border-t md:border-t-0 md:border-l border-gray-700 pt-4 md:pt-0 md:pl-3 shrink-0 w-full md:w-48">
+                                                ${renderPublicGearGroupsRO(slot)}
                                             </div>
                                         </div>`;
                                 }).join('')}
@@ -18969,6 +19179,21 @@
 
                             <div class="lg:col-span-3 flex flex-col gap-6">
                                 <div class="top-24 space-y-5">
+                                    <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
+                                        <h4 class="text-yellow-500 font-bold uppercase text-xl mb-4 text-center">🎬 วิดีโอ</h4>
+                                        ${team.video && team.video.embedUrl ? `
+                                            <div class="relative w-full rounded-2xl overflow-hidden border border-gray-800 bg-black" style="aspect-ratio:16/9;">
+                                                <iframe src="${team.video.embedUrl}" class="absolute inset-0 w-full h-full" allow="autoplay; fullscreen" allowfullscreen frameborder="0"></iframe>
+                                            </div>
+                                            ${team.video.url ? `<div class="mt-2 text-center text-[10px] text-gray-500"><a href="${team.video.url}" target="_blank" class="text-blue-400 hover:underline">เปิดใน Google Drive</a></div>` : ''}
+                                        ` : `
+                                            <div class="flex flex-col items-center justify-center bg-black/40 rounded-2xl border-2 border-dashed border-gray-700 text-gray-500 gap-2" style="aspect-ratio:16/9;">
+                                                <span class="text-4xl opacity-40">📹</span>
+                                                <span class="text-sm font-bold">ไม่มี วีดีโอ</span>
+                                            </div>
+                                        `}
+                                    </div>
+
                                     <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
                                         <h4 class="text-yellow-500 font-bold uppercase text-xl mb-4 text-center">Formation : ${currentFmt.label}</h4>
                                         <div class="flex justify-center items-stretch bg-black/40 rounded-2xl border border-gray-800 min-h-[200px] p-2">
@@ -20888,7 +21113,9 @@
                 html += '<div class="roster-planner-section-label">\uD83D\uDC3E \u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07</div>';
                 html += '<div class="roster-planner-slots">' + petPreview + '</div></div>';
             }
-            html += ringsSection + '</div>';
+            html += ringsSection;
+            html += '<button type="button" onclick="event.stopPropagation(); showRosterTeamDetail(\'' + tid.replace(/'/g, "\\'") + '\')" class="mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold bg-blue-900/30 hover:bg-blue-800/40 text-blue-300 border border-blue-800/50 transition">📋 ดูรายละเอียด</button>';
+            html += '</div>';
         });
         html += '</div></div>';
         container.innerHTML = html;
@@ -22443,11 +22670,14 @@
                 name: team.name || 'ทีมไม่มีชื่อ',
                 guild_name: team.guild_name || team.guildId || 'all',
                 teamType: team.data.teamType || 'Attack',
+                formation: team.data.formation || 'Basic',
+                skillQueue: team.data.skillQueue || [],
                 slots: team.data.slots || [],
                 pets: team.data.pets || [],
                 pet: team.data.pet || null,
                 enemyTeams: team.data.enemyTeams || [],
-                note: team.data.note || ''
+                note: team.data.note || '',
+                video: team.data.video || null
             };
         }
         return {
@@ -22455,11 +22685,14 @@
             name: team.name || 'ทีมไม่มีชื่อ',
             guild_name: team.guild_name || team.guildId || 'all',
             teamType: team.teamType || 'Attack',
+            formation: team.formation || 'Basic',
+            skillQueue: team.skillQueue || [],
             slots: team.slots || [],
             pets: team.pets || [],
             pet: team.pet || null,
             enemyTeams: team.enemyTeams || [],
-            note: team.note || ''
+            note: team.note || '',
+            video: team.video || null
         };
     }
 
@@ -22781,21 +23014,121 @@
         </div>`;
     }
 
-    function buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview, enemyHtml) {
-        const noteHtml = team.note ? '<div class="text-[10px] text-gray-500 mt-0.5 truncate">' + team.note + '</div>' : '';
+    function buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview) {
+        const tid = String(team.id != null ? team.id : '').replace(/'/g, "\\'");
         const petsBlock = petPreview
-            ? '<div class="mb-1.5 text-[10px] font-bold text-green-400 uppercase tracking-wider">🐾 สัตว์เลี้ยง</div><div class="flex flex-wrap gap-2">' + petPreview + '</div>'
+            ? '<div class="mb-1 text-[10px] font-bold text-green-400 uppercase tracking-wider">🐾 สัตว์เลี้ยง</div><div class="flex flex-wrap gap-1.5">' + petPreview + '</div>'
             : '';
-        return '<div class="roster-attack-team-card ' + cardClass + ' p-4 md:p-5">' +
-            '<div class="flex items-start justify-between gap-3 mb-3">' +
-                '<div class="min-w-0 flex-1"><div class="font-bold text-white text-base truncate">' + (team.name || '') + '</div>' + noteHtml + '</div>' +
+        return '<div class="roster-attack-team-card ' + cardClass + ' p-3">' +
+            '<div class="flex items-start justify-between gap-2 mb-2">' +
+                '<div class="min-w-0 flex-1"><div class="font-bold text-white text-sm truncate">' + (team.name || '') + '</div></div>' +
                 statusBadge +
             '</div>' +
-            '<div class="mb-1.5 text-[10px] font-bold text-yellow-400 uppercase tracking-wider">\u2694\uFE0F \u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>' +
-            '<div class="flex flex-wrap gap-2 mb-3">' + (heroPreview || '<span class="text-[11px] text-gray-600">\u2014 \u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e43\u0e19\u0e17\u0e35\u0e21 \u2014</span>') + '</div>' +
+            '<div class="mb-1 text-[10px] font-bold text-yellow-400 uppercase tracking-wider">\u2694\uFE0F \u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>' +
+            '<div class="flex flex-wrap gap-1.5 mb-2">' + (heroPreview || '<span class="text-[11px] text-gray-600">\u2014 \u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e43\u0e19\u0e17\u0e35\u0e21 \u2014</span>') + '</div>' +
             petsBlock +
-            (enemyHtml || '') +
+            '<button type="button" onclick="event.stopPropagation(); showRosterTeamDetail(\'' + tid + '\')" class="mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold bg-blue-900/30 hover:bg-blue-800/40 text-blue-300 border border-blue-800/50 transition">📋 ดูรายละเอียด</button>' +
         '</div>';
+    }
+
+    // 📋 รายละเอียดทีม (roster): หาทีมจาก cache/analyzed
+    function findRosterTeamById(teamId) {
+        const id = String(teamId);
+        let t = null;
+        if (typeof rosterSharedTeamsCache === 'object' && rosterSharedTeamsCache) {
+            t = (rosterSharedTeamsCache.attack || []).find(x => String(x.id) === id)
+             || (rosterSharedTeamsCache.defense || []).find(x => String(x.id) === id);
+        }
+        if (!t && Array.isArray(rosterRingPlannerLastAnalyzed)) {
+            const a = rosterRingPlannerLastAnalyzed.find(e => e && e.team && String(e.team.id) === id);
+            if (a) t = a.team;
+        }
+        return t || null;
+    }
+
+    function buildRosterTeamDetailHtml(team) {
+        const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // 🎬 วิดีโอ
+        let videoHtml;
+        if (team.video && team.video.embedUrl) {
+            videoHtml = '<div class="relative w-full rounded-xl overflow-hidden border border-gray-700 bg-black" style="aspect-ratio:16/9;"><iframe src="' + team.video.embedUrl + '" class="absolute inset-0 w-full h-full" allow="autoplay; fullscreen" allowfullscreen frameborder="0"></iframe></div>'
+                + (team.video.url ? '<div class="mt-1 text-center text-[10px] text-gray-500"><a href="' + team.video.url + '" target="_blank" class="text-blue-400 hover:underline">เปิดใน Google Drive</a></div>' : '');
+        } else {
+            videoHtml = '<div class="flex flex-col items-center justify-center bg-black/40 rounded-xl border-2 border-dashed border-gray-700 text-gray-500 gap-1" style="aspect-ratio:16/9;"><span class="text-4xl opacity-40">📹</span><span class="text-sm font-bold">ไม่มี วีดีโอ</span></div>';
+        }
+        // 🚩 Formation
+        const formationsConfig = [
+            { id: 'Basic',    label: 'พื้นฐาน', back: [2, 3, 4],       front: [0, 1] },
+            { id: 'Balanced', label: 'สมดุล',   back: [3, 4],          front: [0, 1, 2] },
+            { id: 'Attack',   label: 'โจมตี',   back: [1, 2, 3, 4],    front: [0] },
+            { id: 'Defense',  label: 'ป้องกัน',  back: [4],             front: [0, 1, 2, 3] }
+        ];
+        const fmt = formationsConfig.find(f => f.id === (team.formation || 'Basic')) || formationsConfig[0];
+        const slots = Array.isArray(team.slots) ? team.slots : [];
+        const slotByPos = (pos) => {
+            const s = slots.find(x => x && x.id && x.pos === pos);
+            if (!s) return '<div class="rounded-lg border-2 border-dashed border-gray-700 bg-black/30 flex items-center justify-center" style="width:84px;height:84px;"><span class="text-gray-600 text-xs">' + (pos + 1) + '</span></div>';
+            const h = heroesDB.find(x => String(x.id) === String(s.id));
+            return '<div class="relative rounded-lg border-2 border-blue-500 overflow-hidden bg-black" style="width:84px;height:84px;"><img src="' + (h ? h.img : '') + '" class="w-full h-full object-cover"></div>';
+        };
+        const formationHtml = '<div class="flex items-stretch justify-center bg-black/40 rounded-xl border border-gray-800 p-2 gap-3">'
+            + '<div class="flex flex-col items-center"><span class="text-sm text-gray-400 font-bold uppercase mb-1">หลัง</span><div class="flex-1 flex flex-col items-center justify-center gap-1.5">' + fmt.back.slice().reverse().map(slotByPos).join('') + '</div></div>'
+            + '<div class="w-px bg-gray-700/50"></div>'
+            + '<div class="flex flex-col items-center"><span class="text-sm text-gray-400 font-bold uppercase mb-1">หน้า</span><div class="flex-1 flex flex-col items-center justify-center gap-1.5">' + fmt.front.slice().reverse().map(slotByPos).join('') + '</div></div>'
+            + '</div>';
+        // ⚡ ลำดับสกิล
+        let skillHtml = (Array.isArray(team.skillQueue) ? team.skillQueue : []).map(sq => {
+            if (!sq) return '';
+            const parts = String(sq).split('_');
+            const hIdx = parts[0];
+            const type = parts[1];
+            const targetSlot = slots[hIdx];
+            if (!targetSlot) return '';
+            const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
+            const typeText = type === 'UP' ? 'บน' : 'ล่าง';
+            const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
+            return '<div class="flex flex-col items-center"><div class="rounded-lg border border-gray-600 bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + (h ? h.img : '') + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + typeText + '</div></div>';
+        }).filter(Boolean).join('<div class="text-gray-600 self-center px-1">➜</div>');
+        if (!skillHtml) skillHtml = '<span class="text-sm text-gray-500">— ไม่ได้จองสกิล —</span>';
+        const section = (label, color, inner) => '<div class="mb-4"><div class="text-sm font-bold uppercase tracking-wider mb-2" style="color:' + color + '">' + label + '</div>' + inner + '</div>';
+        return '<div class="text-left">'
+            + section('🚩 Formation : ' + esc(fmt.label), '#facc15', formationHtml)
+            + section('⚡ ลำดับสกิล', '#fbbf24', '<div class="flex flex-wrap items-center justify-center gap-2 bg-black/20 p-2 rounded-lg border border-gray-800">' + skillHtml + '</div>')
+            + section('🎬 วิดีโอ', '#60a5fa', videoHtml)
+            + '</div>';
+    }
+
+    // 🎯 ทีมศัตรู — แถบบนสุด (header) ของ Dialog แสดงเฉพาะรูปฮีโร่ + สัตว์เลี้ยง
+    function buildRosterEnemyHeaderHtml(team) {
+        if (!team.enemyTeams || !team.enemyTeams.length) return '';
+        const rows = team.enemyTeams.map(et => {
+            let icons = '';
+            for (let k = 0; k < 5; k++) {
+                const es = et.slots && et.slots[k];
+                if (es && es.id) {
+                    const h = heroesDB.find(x => String(x.id) === String(es.id));
+                    if (h) icons += '<img src="' + h.img + '" class="w-14 h-14 rounded-lg border border-red-500/60 bg-black object-cover" alt="">';
+                }
+            }
+            let petIcon = '';
+            if (et.pet && et.pet.id) {
+                const p = petsDB.find(x => String(x.id) === String(et.pet.id));
+                if (p) petIcon = '<img src="' + p.img + '" class="w-14 h-14 rounded-full border border-purple-500 bg-black object-cover" alt="">';
+            }
+            if (!icons && !petIcon) return '';
+            return '<div class="flex items-center justify-center flex-wrap gap-1.5">' + icons + petIcon + '</div>';
+        }).filter(Boolean).join('');
+        if (!rows) return '';
+        return '<div class="mb-4 pb-3 border-b border-red-900/40">'
+            + '<div class="text-sm font-bold uppercase tracking-wider mb-2 text-center" style="color:#f87171">🎯 ทีมศัตรู</div>'
+            + '<div class="flex flex-col gap-2">' + rows + '</div>'
+            + '</div>';
+    }
+
+    function showRosterTeamDetail(teamId) {
+        const team = findRosterTeamById(teamId);
+        if (!team) { alert('ไม่พบข้อมูลทีม'); return; }
+        showRosterConditionModal('📋 ' + (team.name || 'รายละเอียดทีม'), [], buildRosterTeamDetailHtml(team), buildRosterEnemyHeaderHtml(team));
     }
 
     function buildRosterAttackTeamsListHtml(container, analyzed) {
@@ -22830,6 +23163,7 @@
             return;
         }
         const assignableIds = new Set(assignableTeams.slice(0, 5).map(x => String(x.team.id)));
+        html += '<div class="roster-attack-grid">';
         list.forEach(({ team, match }) => {
             const ringOk = isRosterTeamRingAssignable(team);
             const cardClass = (match.ready ? 'team-ready' : '') + (rosterShowUsableTeamsOnly && assignableIds.has(String(team.id)) ? ' team-ring-fit' : '');
@@ -22845,9 +23179,9 @@
             }
             const petPreview = match.pets.map(p => renderRosterTeamPetSlotInteractive(p)).join('');
             const heroPreview = match.heroes.map(h => renderRosterTeamHeroSlotInteractive(h)).join('');
-            const enemyHtml = renderRosterEnemyTeams(team, team.id);
-            html += buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview, enemyHtml);
+            html += buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview);
         });
+        html += '</div>';
         container.innerHTML = html;
     }
 
