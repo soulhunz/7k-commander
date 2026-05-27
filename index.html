@@ -23235,6 +23235,7 @@
 
         let html = '<div class="text-[11px] text-gray-500 mb-4">\u0e17\u0e35\u0e21\u0e23\u0e31\u0e1a\u0e17\u0e35\u0e48\u0e41\u0e0a\u0e23\u0e48 ' + analyzed.length + ' \u0e17\u0e35\u0e21 \u00b7 \u0e2a\u0e35\u0e40\u0e17\u0e32 = \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e04\u0e23\u0e1a C / \u0e41\u0e2b\u0e27\u0e19 / \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07</div>';
 
+        html += '<div class="roster-attack-grid">';
         analyzed.forEach(({ team, match }) => {
             const cardClass = match.ready ? 'team-ready' : '';
             const statusBadge = match.ready
@@ -23242,8 +23243,9 @@
                 : '<span class="text-[10px] font-bold text-gray-400 bg-gray-800/60 border border-gray-700 px-2 py-0.5 rounded-full">' + match.matched + '/' + match.total + ' \u0e04\u0e23\u0e1a</span>';
             const petPreview = match.pets.map(p => renderRosterTeamPetSlotInteractive(p)).join('');
             const heroPreview = match.heroes.map(h => renderRosterTeamHeroSlotInteractive(h)).join('');
-            html += buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview, '');
+            html += buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview);
         });
+        html += '</div>';
 
         container.innerHTML = html;
     }
