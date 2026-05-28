@@ -230,20 +230,21 @@
         .roster-attack-team-card.match-full { border-color: rgba(34, 197, 94, 0.55); }
         .roster-attack-team-card.match-partial { border-color: rgba(234, 179, 8, 0.45); }
         .roster-attack-team-card.match-low { border-color: rgba(239, 68, 68, 0.35); }
-        /* การ์ดทีมบุกแบบเล็ก (เหมือนหน้า Share) — เรียงแถวละ 5 การ์ด */
+        /* การ์ดทีมบุก/ทีมรับ — auto-fill: PC 4 → 3 → 2 → 1 (ไม่ให้รูปฮีโร่ตกบรรทัด) */
         .roster-attack-grid {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
             gap: 0.75rem;
             align-items: start;
         }
         .roster-attack-grid .roster-attack-team-card { min-width: 0; }
-        .roster-attack-grid .roster-team-slot { width: 4.25rem; height: 4.25rem; }
-        @media (max-width: 1100px) {
-            .roster-attack-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .roster-attack-grid .roster-team-slot { width: 4.25rem; height: 4.25rem; flex-shrink: 0; }
+        .roster-attack-grid .roster-card-heroes-row {
+            flex-wrap: nowrap;
+            overflow: hidden;
         }
         @media (max-width: 640px) {
-            .roster-attack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .roster-attack-grid { grid-template-columns: minmax(0, 1fr); }
         }
         .roster-match-bar {
             height: 6px;
@@ -443,8 +444,213 @@
         .rcm-share-gear-item.equip img { border-color: rgba(34, 211, 238, 0.75); }
         .rcm-share-gear-item.acc img { border-color: rgba(236, 72, 153, 0.75); }
         .rcm-share-gear-item.gear-ring img { border-color: rgba(251, 191, 36, 0.75); }
+        /* แหวนฐาน (มีซ้อน) — กรอบส้มเข้ม + glow */
+        .rcm-share-gear-item.gear-ring.is-base img {
+            border-color: rgba(251, 146, 60, 0.95);
+            box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.25), 0 0 12px rgba(251, 146, 60, 0.35);
+        }
+        /* แหวนซ้อน — กรอบประสีม่วง */
+        .rcm-share-gear-item.gear-ring.is-stack img {
+            border-style: dashed;
+            border-color: rgba(167, 139, 250, 0.85);
+            box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.2);
+        }
+        .rcm-share-gear-item.gear-ring.is-base .rcm-share-gear-label { color: #fb923c; }
+        .rcm-share-gear-item.gear-ring.is-stack .rcm-share-gear-label { color: #c4b5fd; }
+        .rcm-share-gear-link-note {
+            font-size: 8px;
+            font-weight: 700;
+            color: #d8b4fe;
+            text-align: center;
+            max-width: 5.5rem;
+            line-height: 1.2;
+            margin-top: -0.15rem;
+        }
         .rcm-share-gear-label { font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase; text-align: center; }
         .rcm-share-gear-name { font-size: 10px; font-weight: 700; color: #e5e7eb; text-align: center; max-width: 5.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* === แบ่งกรอบแสดงผลตามประเภท === */
+        .rcm-gear-section {
+            border: 1px solid rgba(75, 85, 99, 0.55);
+            border-radius: 0.85rem;
+            padding: 0.75rem 0.85rem 0.85rem;
+            margin-top: 0.65rem;
+            background: rgba(15, 23, 42, 0.45);
+        }
+        .rcm-gear-section + .rcm-gear-section { margin-top: 0.55rem; }
+        .rcm-gear-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.6rem;
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.55);
+        }
+        .rcm-gear-section-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.85rem;
+            align-items: flex-start;
+        }
+        .rcm-gear-section.section-equip { border-color: rgba(34, 211, 238, 0.45); background: rgba(8, 51, 68, 0.18); }
+        .rcm-gear-section.section-equip .rcm-gear-section-header { color: #67e8f9; }
+        .rcm-gear-section.section-acc { border-color: rgba(236, 72, 153, 0.45); background: rgba(80, 7, 36, 0.18); }
+        .rcm-gear-section.section-acc .rcm-gear-section-header { color: #f9a8d4; }
+        .rcm-gear-section.section-rings { border-color: rgba(251, 191, 36, 0.45); background: rgba(69, 26, 3, 0.18); }
+        .rcm-gear-section.section-rings .rcm-gear-section-header { color: #fcd34d; }
+        /* กรอบรวม "แหวนฐาน + แหวนซ้อน" */
+        .rcm-ring-pair {
+            display: flex;
+            gap: 0.65rem;
+            padding: 0.7rem 0.75rem;
+            border: 2px solid rgba(251, 146, 60, 0.6);
+            border-radius: 0.85rem;
+            background: linear-gradient(135deg, rgba(120, 53, 15, 0.22), rgba(76, 29, 149, 0.18));
+            box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.15) inset;
+        }
+        .rcm-ring-pair .rcm-share-gear-item { min-width: 5rem; }
+        /* === Planner Ring Swap Dialog === */
+        .planner-swap-cond-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            align-items: center;
+            padding: 0.5rem 0.65rem;
+            margin: 0.5rem 0 0.75rem;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 0.55rem;
+        }
+        .planner-swap-cond-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: #fbbf24;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .planner-swap-cond-chip {
+            font-size: 10px;
+            font-weight: 700;
+            color: #fde68a;
+            background: rgba(120, 53, 15, 0.45);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            border-radius: 0.4rem;
+            padding: 0.15rem 0.5rem;
+        }
+        .planner-swap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+            gap: 0.65rem;
+            margin-top: 0.5rem;
+        }
+        .planner-swap-ring-tile {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.55rem 0.45rem 0.5rem;
+            border: 2px solid rgba(75, 85, 99, 0.7);
+            border-radius: 0.7rem;
+            background: linear-gradient(160deg, rgba(120, 53, 15, 0.18), rgba(0, 0, 0, 0.5));
+            cursor: pointer;
+            transition: border-color 0.18s, transform 0.15s, box-shadow 0.18s;
+        }
+        .planner-swap-ring-tile:hover {
+            border-color: rgba(251, 191, 36, 0.85);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(251, 191, 36, 0.25);
+        }
+        .planner-swap-ring-img {
+            width: 3.75rem;
+            height: 3.75rem;
+            border-radius: 0.5rem;
+            object-fit: contain;
+            background: #000;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+        }
+        .planner-swap-ring-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: #f3f4f6;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+        /* รูปฮีโร่อื่นที่กำลังใช้แหวนวงนี้ — มุมบนขวา */
+        .planner-swap-user-badges {
+            position: absolute;
+            top: -0.45rem;
+            right: -0.45rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .planner-swap-user-badge {
+            width: 1.85rem;
+            height: 1.85rem;
+            border-radius: 9999px;
+            border: 2px solid #fbbf24;
+            background: #000;
+            object-fit: cover;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.85);
+            pointer-events: auto;
+        }
+        .planner-swap-user-badge + .planner-swap-user-badge { margin-left: -0.55rem; }
+        /* ลำดับสกิล — grid 3 คอลัมน์ ติดกัน + center + ลูกศรคั่นระหว่างสกิล */
+        .roster-skill-grid {
+            display: grid;
+            grid-template-columns: repeat(3, auto);
+            justify-content: center;
+            row-gap: 0.6rem;
+            column-gap: 1.1rem;
+            align-items: start;
+        }
+        .roster-skill-grid > .roster-skill-cell {
+            position: relative;
+        }
+        .roster-skill-grid > .roster-skill-cell:not(:nth-child(3n)):not(:last-child)::after {
+            content: '➜';
+            position: absolute;
+            left: 100%;
+            top: 42px;
+            transform: translate(0.2rem, -50%);
+            color: #9ca3af;
+            font-weight: 800;
+            font-size: 1.15rem;
+            line-height: 1;
+            pointer-events: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+        }
+        /* ช่องว่าง (slot ว่าง) แสดงให้เห็นว่ามีช่องนี้ */
+        .rcm-share-gear-item.is-empty { opacity: 0.55; }
+        .rcm-share-gear-empty-box {
+            width: 4.75rem;
+            height: 4.75rem;
+            border-radius: 0.75rem;
+            border: 2px dashed rgba(107, 114, 128, 0.6);
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: rgba(107, 114, 128, 0.55);
+        }
+        .rcm-share-gear-item.is-empty .rcm-share-gear-name { color: #6b7280; font-style: italic; }
+        .rcm-gear-section-empty {
+            font-size: 11px;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 0.35rem 0.15rem;
+        }
         .roster-usable-filter-btn.active {
             background: #d97706;
             border-color: #fbbf24;
@@ -486,18 +692,52 @@
             border-radius: 0.25rem;
             object-fit: cover;
         }
-        /* จัดทีมตามแหวน — เรียงแถวละ 4 การ์ด */
+        /* จัดทีมตามแหวน — auto-fill: PC 4 → 3 → 2 → 1 (ไม่ให้รูปฮีโร่ตกบรรทัด) */
         .roster-planner-team-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
             gap: 0.75rem;
             align-items: start;
         }
-        @media (max-width: 1100px) {
-            .roster-planner-team-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        }
         @media (max-width: 640px) {
-            .roster-planner-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .roster-planner-team-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+        /* แผงทุกหน้าใน mode=roster — เต็มหน้าจอทั้งกว้างและสูง ไม่ตัดเป็นการ์ด */
+        body.roster-mode .roster-editor-main {
+            padding: 0 !important;
+            background-color: #1f2937 !important;
+            background-image: none !important;
+        }
+        body.roster-mode .roster-editor-main > div {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: none !important;
+            width: 100% !important;
+            min-height: 100%;
+            gap: 0 !important;
+        }
+        body.roster-mode .roster-editor-main > div > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0 !important;
+        }
+        body.roster-mode .roster-panel {
+            background: transparent !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            padding: 1rem !important;
+            margin: 0 !important;
+            max-width: none !important;
+            width: 100% !important;
+            flex: 1 1 auto !important;
+        }
+        @media (min-width: 768px) {
+            body.roster-mode .roster-panel {
+                padding: 1.5rem 2rem !important;
+            }
+        }
+        /* คงสไตล์ welcome (จุดเริ่มต้น) ไว้ ให้ดูเป็น placeholder */
+        body.roster-mode #roster-panel-welcome {
+            border: 1px dashed rgba(75, 85, 99, 0.4) !important;
         }
         .roster-planner-team-card {
             cursor: pointer;
@@ -571,15 +811,17 @@
         }
         .roster-planner-team-card .roster-planner-heroes {
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 0.35rem;
             margin-bottom: 0.35rem;
+            overflow: hidden;
         }
         .roster-planner-team-card .roster-planner-heroes .roster-team-slot {
             width: 4.25rem;
             height: 4.25rem;
             border-radius: 0.65rem;
             border-width: 2px;
+            flex-shrink: 0;
         }
         .roster-planner-team-card .roster-planner-slots .roster-team-slot.rounded-full {
             width: 3.85rem;
@@ -3211,7 +3453,7 @@
                         <div id="roster-pets-grid" class="flex flex-wrap gap-4 content-start min-h-[280px]"></div>
                     </div>
 
-                    <div id="roster-panel-attack-teams" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl">
+                    <div id="roster-panel-attack-teams" class="roster-panel hidden">
                         <div class="mb-6 border-b border-gray-800 pb-4">
                             <h3 class="text-xl font-bold text-red-400 flex items-center gap-2"><span>🎯</span> ทีมบุกที่แชร์ไว้</h3>
                             <p class="text-xs text-gray-400 mt-1">สัตว์เลี้ยงมีตัวใดตัวหนึ่งก็ผ่าน · แหวนซ้อนเดียวสลับฐานได้ · แหวนไม่ซ้อนมี ID ตรงก็พอ (แม้จะซ้อนในรายการ) · หลายตัวเลือกอย่างใดอย่างหนึ่ง</p>
@@ -20904,6 +21146,129 @@
         showDetailModal(r, 'ring', 0, null, false, stackRing || null);
     }
 
+    /** สร้าง map: ringId -> [{teamId, teamName, slotIdx, heroId, heroName, heroImg}]
+     *  เพื่อบอกว่าแหวนแต่ละวงถูกใช้โดยฮีโร่ตัวไหนในทีมที่ selected */
+    function buildPlannerRingUsageMap() {
+        const usage = new Map();
+        const selectedIds = (typeof rosterRingPlannerSelectedIds !== 'undefined' && Array.isArray(rosterRingPlannerSelectedIds))
+            ? rosterRingPlannerSelectedIds : [];
+        if (!selectedIds.length || !Array.isArray(rosterRingPlannerLastAnalyzed)) return usage;
+        const state = computeRosterRingPlannerState(rosterRingPlannerLastAnalyzed, selectedIds);
+        selectedIds.forEach(function(tid) {
+            const assigns = state.assignments && state.assignments[tid];
+            if (!assigns) return;
+            const entry = rosterRingPlannerLastAnalyzed.find(function(e) { return String(e.team.id) === String(tid); });
+            if (!entry) return;
+            const teamName = (entry.team && entry.team.name) || '';
+            assigns.forEach(function(a) {
+                if (!a || a.slotIdx == null) return;
+                const slot = (entry.team.slots || [])[a.slotIdx];
+                const heroId = slot && slot.id ? String(slot.id) : null;
+                const h = heroId ? heroesDB.find(function(x) { return String(x.id) === heroId; }) : null;
+                const baseId = a.entry ? a.entry.id : (a.option ? a.option.baseId : null);
+                const stackId = a.entry ? a.entry.stackId : (a.option ? a.option.stackId : null);
+                [baseId, stackId].forEach(function(rid) {
+                    if (!rid) return;
+                    const key = String(rid);
+                    if (!usage.has(key)) usage.set(key, []);
+                    usage.get(key).push({
+                        teamId: String(tid),
+                        teamName: teamName,
+                        slotIdx: a.slotIdx,
+                        heroId: heroId,
+                        heroName: h ? h.name : '',
+                        heroImg: h ? h.img : ''
+                    });
+                });
+            });
+        });
+        return usage;
+    }
+
+    /** เปิด Dialog แสดงแหวนที่ใช้ได้สำหรับสล็อตนี้
+     *  - กรองแหวนตาม condition ของฮีโร่ (option.baseId / option.stackId)
+     *  - กรอง: เฉพาะแหวนที่ลูกกิลมีในรายการ
+     *  - มุมบนขวาของแต่ละแหวน: รูปฮีโร่อื่นในทีมที่ selected ที่กำลังใช้แหวนวงนี้ */
+    function openPlannerRingSwapDialog(teamId, slotIdx) {
+        const team = getRosterTeamById(teamId);
+        if (!team) return;
+        const slot = (team.slots || [])[slotIdx];
+        if (!slot || !slot.id) return;
+        const sNorm = normalize3v3Slot(slot);
+        const hero = heroesDB.find(function(x) { return String(x.id) === String(sNorm.id); });
+        const heroName = hero ? hero.name : String(sNorm.id);
+        const heroImg = hero ? hero.img : '';
+
+        const options = getRosterSlotRingOptions(sNorm) || [];
+        // รวม ID ที่ฮีโร่ยอมรับ (base + stack)
+        const acceptableIds = new Set();
+        options.forEach(function(opt) {
+            if (opt.baseId) acceptableIds.add(String(opt.baseId));
+            if (opt.stackId) acceptableIds.add(String(opt.stackId));
+        });
+
+        // เลือกเฉพาะแหวนที่ลูกกิลมี + ID อยู่ในเงื่อนไข
+        const seenIds = new Set();
+        const candidates = [];
+        (tempOwnedRings || []).forEach(function(r) {
+            if (!r || !r.id) return;
+            const id = String(r.id);
+            if (!acceptableIds.has(id)) return;
+            if (seenIds.has(id)) return;
+            seenIds.add(id);
+            const ring = ringsDB.find(function(x) { return String(x.id) === id; }) ||
+                accessoriesDB.find(function(x) { return String(x.id) === id; });
+            if (ring) candidates.push({ ring: ring, owned: r });
+        });
+
+        const usage = buildPlannerRingUsageMap();
+        const esc = function(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+
+        let cardsHtml = '';
+        if (candidates.length) {
+            candidates.forEach(function(c) {
+                const r = c.ring;
+                const rid = String(r.id);
+                // หาผู้ใช้คนอื่น (ไม่นับ slot ปัจจุบัน)
+                const users = (usage.get(rid) || []).filter(function(u) {
+                    return !(String(u.teamId) === String(teamId) && u.slotIdx === slotIdx);
+                });
+                let badges = '';
+                users.forEach(function(u) {
+                    if (!u.heroImg) return;
+                    const title = u.heroName + ' (ทีม: ' + (u.teamName || '-') + ' / สล็อต #' + (u.slotIdx + 1) + ')';
+                    badges += '<img src="' + u.heroImg + '" alt="" title="' + esc(title) + '" class="planner-swap-user-badge">';
+                });
+                cardsHtml += '<div class="planner-swap-ring-tile" title="' + esc(r.name || '') + '"' +
+                    ' onclick="showPlannerRingDetail(\'' + rid.replace(/'/g, "\\'") + '\', \'\')">' +
+                    '<img src="' + (r.img || '') + '" alt="" class="planner-swap-ring-img">' +
+                    '<div class="planner-swap-ring-name">' + esc(r.name || '') + '</div>' +
+                    (badges ? '<div class="planner-swap-user-badges">' + badges + '</div>' : '') +
+                    '</div>';
+            });
+        } else {
+            cardsHtml = '<div class="rcm-condition-row miss"><span class="shrink-0">⚠️</span><span>ไม่มีแหวนที่ใช้ได้ตรงเงื่อนไข — ลูกกิลยังไม่มีแหวนพวกนี้</span></div>';
+        }
+
+        // รายการเงื่อนไข ID ที่ฮีโร่ยอมรับ
+        const reqIdsHtml = options.map(function(opt, i) {
+            const baseR = ringsDB.find(function(x) { return String(x.id) === String(opt.baseId); });
+            const stackR = opt.stackId ? ringsDB.find(function(x) { return String(x.id) === String(opt.stackId); }) : null;
+            const baseName = baseR ? baseR.name : '?';
+            const txt = stackR ? (baseName + ' ⊕ ' + stackR.name + ' (ซ้อน)') : baseName;
+            return '<span class="planner-swap-cond-chip">#' + (i + 1) + ' · ' + esc(txt) + '</span>';
+        }).join('');
+
+        const header = '<div class="rcm-share-hero">' +
+            (heroImg ? '<img src="' + heroImg + '" alt="">' : '') +
+            '<div><div class="font-bold text-white text-base">' + esc(heroName) + '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">สล็อต #' + (slotIdx + 1) + ' — แหวนที่ใช้ได้ตามเงื่อนไขทีมแชร์</div></div></div>' +
+            (reqIdsHtml ? '<div class="planner-swap-cond-row"><span class="planner-swap-cond-label">เงื่อนไข:</span>' + reqIdsHtml + '</div>' : '');
+
+        const extra = '<div class="planner-swap-grid">' + cardsHtml + '</div>';
+        showRosterConditionModal('แหวนที่ใช้ได้— ' + heroName, [], extra, header);
+    }
+
     function resolvePlannerSlotRingDisplay(assignment, team, slotIdx) {
         if (assignment) {
             if (assignment.entry && assignment.entry.id) {
@@ -20931,7 +21296,7 @@
         };
     }
 
-    function buildPlannerRingCardHtml(ringId, stackId, isSelected) {
+    function buildPlannerRingCardHtml(ringId, stackId, isSelected, teamId, slotIdx) {
         if (!ringId) return '';
         const r = ringsDB.find(function(x) { return String(x.id) === String(ringId); }) ||
             accessoriesDB.find(function(x) { return String(x.id) === String(ringId); });
@@ -20945,11 +21310,21 @@
             : null;
         const safeId = String(ringId).replace(/'/g, "\\'");
         const safeStack = stackId ? String(stackId).replace(/'/g, "\\'") : '';
-        const title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e14\u0e39\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14').replace(/"/g, '&quot;');
         const stateCls = isSelected ? ' planner-ring-assigned' : ' planner-ring-preview';
+        // \u0e16\u0e49\u0e32\u0e21\u0e35 context \u0e02\u0e2d\u0e07 team/slot \u2192 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e1b\u0e34\u0e14 swap dialog; \u0e44\u0e21\u0e48\u0e07\u0e31\u0e49\u0e19 fallback \u0e40\u0e1b\u0e47\u0e19 detail modal \u0e40\u0e14\u0e34\u0e21
+        let onclickAttr;
+        let title;
+        if (teamId != null && slotIdx != null) {
+            const safeTid = String(teamId).replace(/'/g, "\\'");
+            onclickAttr = 'event.stopPropagation(); openPlannerRingSwapDialog(\'' + safeTid + '\', ' + slotIdx + ')';
+            title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e14\u0e39\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e44\u0e14\u0e49').replace(/"/g, '&quot;');
+        } else {
+            onclickAttr = 'event.stopPropagation(); showPlannerRingDetail(\'' + safeId + '\', \'' + safeStack + '\')';
+            title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e14\u0e39\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14').replace(/"/g, '&quot;');
+        }
         return '<div class="relative roster-ring-card roster-planner-ring-card rounded-xl border-2 border-amber-700/60 bg-black shadow-md grade-' + (r.grade || 6) +
             (hasStack ? ' has-stack' : '') + stateCls + ' cursor-pointer"' +
-            ' onclick="event.stopPropagation(); showPlannerRingDetail(\'' + safeId + '\', \'' + safeStack + '\')"' +
+            ' onclick="' + onclickAttr + '"' +
             ' title="' + title + '">' +
             '<img src="' + r.img + '" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">' +
             stackOverlay + '</div>';
@@ -20958,7 +21333,7 @@
     function buildPlannerSlotRingCardHtml(assignment, team, slotIdx, isSelected) {
         const display = resolvePlannerSlotRingDisplay(assignment, team, slotIdx);
         if (!display || !display.id) return '';
-        return buildPlannerRingCardHtml(display.id, display.stackId, isSelected);
+        return buildPlannerRingCardHtml(display.id, display.stackId, isSelected, team && team.id, slotIdx);
     }
 
     function getPlannerSlotAssignmentsBySlot(entry, analyzed, selectedIds) {
@@ -21335,24 +21710,62 @@
 
     function buildRosterShareGearHtml(slot) {
         const s = normalize3v3Slot(slot || {});
-        let items = '';
-        const addItem = (type, label, item) => {
-            if (!item || !item.img) return;
-            items += '<div class="rcm-share-gear-item ' + type + '"><img src="' + item.img + '" alt=""><div class="rcm-share-gear-label">' + label + '</div><div class="rcm-share-gear-name" title="' + (item.name || '') + '">' + (item.name || '') + '</div></div>';
+        const esc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const renderItem = (type, label, item, extras) => {
+            if (!item || !item.img) return '';
+            const cls = (extras && extras.cls) ? ' ' + extras.cls : '';
+            const note = (extras && extras.note) ? '<div class="rcm-share-gear-link-note">' + extras.note + '</div>' : '';
+            return '<div class="rcm-share-gear-item ' + type + cls + '"><img src="' + item.img + '" alt=""><div class="rcm-share-gear-label">' + label + '</div><div class="rcm-share-gear-name" title="' + esc(item.name || '') + '">' + esc(item.name || '') + '</div>' + note + '</div>';
         };
-        if (s.equip) addItem('equip', 'SET', equipSetsDB.find(x => String(x.id) === String(s.equip)));
-        if (s.accessory) addItem('acc', 'ACC', accessoriesDB.find(x => String(x.id) === String(s.accessory)));
+        const renderEmpty = (type, label, icon) => {
+            return '<div class="rcm-share-gear-item ' + type + ' is-empty"><div class="rcm-share-gear-empty-box">' + icon + '</div><div class="rcm-share-gear-label">' + label + '</div><div class="rcm-share-gear-name">\u2014 \u0e44\u0e21\u0e48\u0e21\u0e35 \u2014</div></div>';
+        };
+
+        // 1) \u0e2d\u0e38\u0e1b\u0e01\u0e23\u0e13\u0e4c
+        const equip = s.equip ? equipSetsDB.find(x => String(x.id) === String(s.equip)) : null;
+        const equipBody = (equip && equip.img) ? renderItem('equip', 'SET', equip) : renderEmpty('equip', 'SET', '\u2694\ufe0f');
+        const equipSection = '<div class="rcm-gear-section section-equip">' +
+            '<div class="rcm-gear-section-header">\u2694\ufe0f \u0e2d\u0e38\u0e1b\u0e01\u0e23\u0e13\u0e4c</div>' +
+            '<div class="rcm-gear-section-body">' + equipBody + '</div></div>';
+
+        // 2) \u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e1b\u0e23\u0e30\u0e14\u0e31\u0e1a \u2014 \u0e41\u0e2a\u0e14\u0e07 slot \u0e40\u0e2a\u0e21\u0e2d \u0e44\u0e21\u0e48\u0e27\u0e48\u0e32\u0e08\u0e30\u0e21\u0e35\u0e2b\u0e23\u0e37\u0e2d\u0e44\u0e21\u0e48\u0e21\u0e35
+        const acc = s.accessory ? accessoriesDB.find(x => String(x.id) === String(s.accessory)) : null;
+        const accBody = (acc && acc.img) ? renderItem('acc', 'ACC', acc) : renderEmpty('acc', 'ACC', '\ud83d\udc8e');
+        const accSection = '<div class="rcm-gear-section section-acc">' +
+            '<div class="rcm-gear-section-header">\ud83d\udc8e \u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e1b\u0e23\u0e30\u0e14\u0e31\u0e1a</div>' +
+            '<div class="rcm-gear-section-body">' + accBody + '</div></div>';
+
+        // 3) \u0e41\u0e2b\u0e27\u0e19 \u2014 base + stack \u0e2d\u0e22\u0e39\u0e48\u0e01\u0e23\u0e2d\u0e1a\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19
+        let ringBody = '';
         get3v3SlotRingIds(s).forEach((rid, i) => {
             const r = ringsDB.find(x => String(x.id) === String(rid)) || accessoriesDB.find(x => String(x.id) === String(rid));
-            if (r) addItem('gear-ring', '\u0e41\u0e2b\u0e27\u0e19 #' + (i + 1), r);
             const stackId = (s.ringStacks || [])[i];
-            if (stackId) {
-                const sr = ringsDB.find(x => String(x.id) === String(stackId));
-                if (sr) addItem('gear-ring', '\u0e0b\u0e49\u0e2d\u0e19', sr);
+            const stackRing = stackId ? ringsDB.find(x => String(x.id) === String(stackId)) : null;
+            if (r && stackRing) {
+                ringBody += '<div class="rcm-ring-pair" data-slot="' + (i + 1) + '">' +
+                    renderItem('gear-ring', '\u0e10\u0e32\u0e19 #' + (i + 1), r, {
+                        cls: 'is-base',
+                        note: '\u0e21\u0e35\u0e0b\u0e49\u0e2d\u0e19: ' + esc(stackRing.name || '')
+                    }) +
+                    renderItem('gear-ring', '\u21b3 \u0e0b\u0e49\u0e2d\u0e19', stackRing, {
+                        cls: 'is-stack',
+                        note: '\u0e0b\u0e49\u0e2d\u0e19\u0e1a\u0e19: ' + esc(r.name || '')
+                    }) +
+                '</div>';
+            } else if (r) {
+                ringBody += renderItem('gear-ring', '\u0e41\u0e2b\u0e27\u0e19 #' + (i + 1), r);
+            } else if (stackRing) {
+                ringBody += renderItem('gear-ring', '\u21b3 \u0e0b\u0e49\u0e2d\u0e19\u0e43\u0e19 #' + (i + 1), stackRing, { cls: 'is-stack' });
             }
         });
-        if (!items) return '';
-        return '<div class="rcm-ring-section"><div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider mb-2">\u0e2d\u0e38\u0e1b\u0e01\u0e23\u0e13\u0e4c \u00b7 \u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e1b\u0e23\u0e30\u0e14\u0e31\u0e1a \u00b7 \u0e41\u0e2b\u0e27\u0e19</div><div class="rcm-share-gear-row">' + items + '</div></div>';
+        if (!ringBody) ringBody = '<div class="rcm-gear-section-empty">\u2014 \u0e44\u0e21\u0e48\u0e21\u0e35\u0e41\u0e2b\u0e27\u0e19 \u2014</div>';
+        const ringSection = '<div class="rcm-gear-section section-rings">' +
+            '<div class="rcm-gear-section-header">\ud83d\udc8d \u0e41\u0e2b\u0e27\u0e19</div>' +
+            '<div class="rcm-gear-section-body">' + ringBody + '</div></div>';
+
+        return '<div class="rcm-ring-section"><div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider mb-2">\u0e2d\u0e38\u0e1b\u0e01\u0e23\u0e13\u0e4c \u00b7 \u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e1b\u0e23\u0e30\u0e14\u0e31\u0e1a \u00b7 \u0e41\u0e2b\u0e27\u0e19</div>' +
+            equipSection + accSection + ringSection +
+        '</div>';
     }
 
     function buildRosterHeroConditionRows(slot, ownership, h) {
@@ -21501,11 +21914,19 @@
         const teamPets = getRosterTeamPets(team);
         const p = petsDB.find(x => String(x.id) === String(petData.id));
         const lines = [`<strong>${p?.name || petData.id}</strong>`];
+        const ownedLv = ownership.petMap.get(String(petData.id)) || { potential: 0, skillUnlock: 0 };
         if (!ownership.petIds.has(String(petData.id))) {
             if (teamPets.length > 1) {
                 lines.push('\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e15\u0e31\u0e27\u0e19\u0e35\u0e49 \u2014 \u0e15\u0e49\u0e2d\u0e07\u0e21\u0e35\u0e2d\u0e22\u0e48\u0e32\u0e48\u0e32\u0e07\u0e19\u0e36\u0e48\u0e07\u0e08\u0e32\u0e01\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e17\u0e35\u0e21');
             } else {
                 lines.push('\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e19\u0e35\u0e49\u0e43\u0e19\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13');
+            }
+        } else {
+            if (petData.potential > 0 && ownedLv.potential < petData.potential) {
+                lines.push(`\u0e28\u0e31\u0e01\u0e22\u0e20\u0e32\u0e1e\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e16\u0e36\u0e07 (\u0e21\u0e35 ${ownedLv.potential} / \u0e15\u0e49\u0e2d\u0e07 ${petData.potential})`);
+            }
+            if (petData.skillUnlock > 0 && ownedLv.skillUnlock < petData.skillUnlock) {
+                lines.push(`\u0e2a\u0e01\u0e34\u0e25\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e16\u0e36\u0e07 (\u0e21\u0e35 ${ownedLv.skillUnlock} / \u0e15\u0e49\u0e2d\u0e07 ${petData.skillUnlock})`);
             }
         }
         if (petData.potential > 0) lines.push(`กำหนดศักยภาพอย่างน้อย ${petData.potential}`);
@@ -22804,8 +23225,18 @@
             if (prev === undefined || safeStar > prev) heroMap.set(id, safeStar);
         });
         const petIds = new Set();
+        const petMap = new Map(); // id -> { potential, skillUnlock } (ค่ามากที่สุดของ pet ที่ซ้ำกัน)
         tempOwnedPets.forEach(p => {
-            if (p && p.id) petIds.add(String(p.id));
+            if (!p || !p.id) return;
+            const id = String(p.id);
+            petIds.add(id);
+            const potential = parseInt(p.potential, 10) || 0;
+            const skillUnlock = parseInt(p.skillUnlock, 10) || 0;
+            const prev = petMap.get(id);
+            petMap.set(id, {
+                potential: Math.max(prev ? prev.potential : 0, potential),
+                skillUnlock: Math.max(prev ? prev.skillUnlock : 0, skillUnlock)
+            });
         });
         const ringIds = new Set();
         const stackRingIds = new Set();
@@ -22814,7 +23245,7 @@
             if (r.id) ringIds.add(String(r.id));
             if (r.stackId) stackRingIds.add(String(r.stackId));
         });
-        return { heroMap, petIds, ringIds, stackRingIds };
+        return { heroMap, petIds, petMap, ringIds, stackRingIds };
     }
 
     function buildRosterRingCardHtml(ringId, label, owned, statusOverride) {
@@ -22907,11 +23338,23 @@
         const petResults = pets.map((pet, i) => {
             const id = String(pet.id);
             const owned = ownership.petIds.has(id);
+            const ownedLv = ownership.petMap.get(id) || { potential: 0, skillUnlock: 0 };
+            const reqPotential = parseInt(pet.potential, 10) || 0;
+            const reqSkill = parseInt(pet.skillUnlock, 10) || 0;
+            const potentialOk = ownedLv.potential >= reqPotential;
+            const skillOk = ownedLv.skillUnlock >= reqSkill;
+            const ready = owned && potentialOk && skillOk;
             const p = petsDB.find(x => String(x.id) === id);
-            return { index: i, id, name: p?.name || id, img: p?.img || '', owned, teamId: team.id, petIdx: i };
+            return {
+                index: i, id, name: p?.name || id, img: p?.img || '',
+                owned, ready,
+                ownedPotential: ownedLv.potential, ownedSkill: ownedLv.skillUnlock,
+                reqPotential, reqSkill, potentialOk, skillOk,
+                teamId: team.id, petIdx: i
+            };
         });
 
-        const petsOk = pets.length === 0 || petResults.some(function(p) { return p.owned; });
+        const petsOk = pets.length === 0 || petResults.some(function(p) { return p.ready; });
         petResults.forEach(function(p) { p.teamPetsOk = petsOk; });
 
         let matched = 0;
@@ -22943,14 +23386,28 @@
     }
 
     function renderRosterTeamPetSlotInteractive(p) {
-        const ready = !!p.owned;
+        const ready = !!p.ready;
         const cls = (ready ? 'roster-team-slot-ready' : 'roster-team-slot-disabled') + ' roster-team-slot-clickable';
         const teamId = String(p.teamId || '').replace(/'/g, "\\'");
         const petIdx = p.petIdx != null ? p.petIdx : 0;
         const img = p.img
             ? '<img src="' + p.img + '" class="w-full h-full object-cover rounded-full pointer-events-none select-none" draggable="false" alt="">'
             : '<div class="w-full h-full flex items-center justify-center text-lg text-gray-600">?</div>';
-        const title = (ready ? p.name + ' \u2014 \u0e21\u0e35\u0e41\u0e25\u0e49\u0e27 \u2713' : p.name + ' \u2014 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35').replace(/"/g, '&quot;');
+        let titleText;
+        if (!p.owned) {
+            titleText = p.name + ' \u2014 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35';
+        } else if (ready) {
+            const partsOk = [];
+            if (p.reqPotential > 0) partsOk.push('\u0e28\u0e31\u0e01 \u2265 ' + p.reqPotential);
+            if (p.reqSkill > 0) partsOk.push('\u0e2a\u0e01\u0e34\u0e25 \u2265 ' + p.reqSkill);
+            titleText = p.name + ' \u2014 \u0e1c\u0e48\u0e32\u0e19' + (partsOk.length ? ' (' + partsOk.join(', ') + ')' : '') + ' \u2713';
+        } else {
+            const miss = [];
+            if (!p.potentialOk) miss.push('\u0e28\u0e31\u0e01 ' + p.ownedPotential + '/' + p.reqPotential);
+            if (!p.skillOk) miss.push('\u0e2a\u0e01\u0e34\u0e25 ' + p.ownedSkill + '/' + p.reqSkill);
+            titleText = p.name + ' \u2014 \u0e44\u0e21\u0e48\u0e1c\u0e48\u0e32\u0e19 (' + miss.join(', ') + ')';
+        }
+        const title = titleText.replace(/"/g, '&quot;');
         return '<div class="roster-team-slot rounded-full ' + cls + '" onclick="onRosterPetSlotClick(\'' + teamId + '\', ' + petIdx + ', ' + ready + ')" title="' + title + '">' + img + '</div>';
     }
 
@@ -22971,9 +23428,22 @@
     }
 
     function renderRosterTeamPetSlot(p) {
-        const ready = !!p.owned;
+        const ready = !!p.ready;
         const cls = ready ? 'roster-team-slot-ready' : 'roster-team-slot-disabled';
-        const title = ready ? `${p.name} — มีแล้ว ✓` : `${p.name} — ยังไม่มี`;
+        let title;
+        if (!p.owned) {
+            title = `${p.name} — ยังไม่มี`;
+        } else if (ready) {
+            const partsOk = [];
+            if (p.reqPotential > 0) partsOk.push(`ศัก ≥ ${p.reqPotential}`);
+            if (p.reqSkill > 0) partsOk.push(`สกิล ≥ ${p.reqSkill}`);
+            title = `${p.name} — ผ่าน${partsOk.length ? ' (' + partsOk.join(', ') + ')' : ''} ✓`;
+        } else {
+            const miss = [];
+            if (!p.potentialOk) miss.push(`ศัก ${p.ownedPotential}/${p.reqPotential}`);
+            if (!p.skillOk) miss.push(`สกิล ${p.ownedSkill}/${p.reqSkill}`);
+            title = `${p.name} — ไม่ผ่าน (${miss.join(', ')})`;
+        }
         const safeTitle = title.replace(/"/g, '&quot;');
         const img = p.img
             ? `<img src="${p.img}" class="w-full h-full object-cover rounded-full pointer-events-none select-none" draggable="false" alt="">`
@@ -22996,10 +23466,25 @@
             if (item.starOk) { statusClass = 'ok'; statusIcon = '✅'; detail = `C${item.reqStar} — มี C${item.ownedStar}`; }
             else if (item.owned) { statusClass = 'warn'; statusIcon = '⚠️'; detail = `ต้อง C${item.reqStar} — มี C${item.ownedStar}`; }
             else { detail = `ต้อง C${item.reqStar}`; }
-        } else if (item.owned) {
+        } else if (item.ready) {
             statusClass = 'ok';
             statusIcon = '✅';
-            detail = 'มีแล้ว';
+            const okParts = [];
+            if (item.reqPotential > 0) okParts.push(`ศัก ≥ ${item.reqPotential}`);
+            if (item.reqSkill > 0) okParts.push(`สกิล ≥ ${item.reqSkill}`);
+            detail = okParts.length ? 'ผ่าน · ' + okParts.join(', ') : 'มีแล้ว';
+        } else if (item.owned) {
+            statusClass = 'warn';
+            statusIcon = '⚠️';
+            const miss = [];
+            if (!item.potentialOk) miss.push(`ศัก ${item.ownedPotential}/${item.reqPotential}`);
+            if (!item.skillOk) miss.push(`สกิล ${item.ownedSkill}/${item.reqSkill}`);
+            detail = 'มีตัว แต่' + miss.join(', ');
+        } else {
+            const req = [];
+            if (item.reqPotential > 0) req.push(`ศัก ≥ ${item.reqPotential}`);
+            if (item.reqSkill > 0) req.push(`สกิล ≥ ${item.reqSkill}`);
+            detail = req.length ? 'ต้อง ' + req.join(', ') : 'ยังไม่มี';
         }
         const imgHtml = item.img
             ? `<img src="${item.img}" class="w-8 h-8 rounded-lg border border-gray-600 object-cover shrink-0" alt="">`
@@ -23025,7 +23510,7 @@
                 statusBadge +
             '</div>' +
             '<div class="mb-1 text-[10px] font-bold text-yellow-400 uppercase tracking-wider">\u2694\uFE0F \u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>' +
-            '<div class="flex flex-wrap gap-1.5 mb-2">' + (heroPreview || '<span class="text-[11px] text-gray-600">\u2014 \u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e43\u0e19\u0e17\u0e35\u0e21 \u2014</span>') + '</div>' +
+            '<div class="roster-card-heroes-row flex gap-1.5 mb-2">' + (heroPreview || '<span class="text-[11px] text-gray-600">\u2014 \u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e43\u0e19\u0e17\u0e35\u0e21 \u2014</span>') + '</div>' +
             petsBlock +
             '<button type="button" onclick="event.stopPropagation(); showRosterTeamDetail(\'' + tid + '\')" class="mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold bg-blue-900/30 hover:bg-blue-800/40 text-blue-300 border border-blue-800/50 transition">📋 ดูรายละเอียด</button>' +
         '</div>';
@@ -23076,8 +23561,8 @@
             + '<div class="w-px bg-gray-700/50"></div>'
             + '<div class="flex flex-col items-center"><span class="text-sm text-gray-400 font-bold uppercase mb-1">หน้า</span><div class="flex-1 flex flex-col items-center justify-center gap-1.5">' + fmt.front.slice().reverse().map(slotByPos).join('') + '</div></div>'
             + '</div>';
-        // ⚡ ลำดับสกิล
-        let skillHtml = (Array.isArray(team.skillQueue) ? team.skillQueue : []).map(sq => {
+        // ⚡ ลำดับสกิล — แสดง 3 รูปต่อแถวเสมอ + ลูกศรคั่นระหว่างสกิล
+        const skillItems = (Array.isArray(team.skillQueue) ? team.skillQueue : []).map(sq => {
             if (!sq) return '';
             const parts = String(sq).split('_');
             const hIdx = parts[0];
@@ -23087,13 +23572,15 @@
             const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
             const typeText = type === 'UP' ? 'บน' : 'ล่าง';
             const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
-            return '<div class="flex flex-col items-center"><div class="rounded-lg border border-gray-600 bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + (h ? h.img : '') + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + typeText + '</div></div>';
-        }).filter(Boolean).join('<div class="text-gray-600 self-center px-1">➜</div>');
-        if (!skillHtml) skillHtml = '<span class="text-sm text-gray-500">— ไม่ได้จองสกิล —</span>';
+            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border border-gray-600 bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + (h ? h.img : '') + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + typeText + '</div></div>';
+        }).filter(Boolean);
+        const skillHtml = skillItems.length
+            ? '<div class="roster-skill-grid bg-black/20 p-2 rounded-lg border border-gray-800">' + skillItems.join('') + '</div>'
+            : '<div class="bg-black/20 p-2 rounded-lg border border-gray-800 text-center"><span class="text-sm text-gray-500">— ไม่ได้จองสกิล —</span></div>';
         const section = (label, color, inner) => '<div class="mb-4"><div class="text-sm font-bold uppercase tracking-wider mb-2" style="color:' + color + '">' + label + '</div>' + inner + '</div>';
         return '<div class="text-left">'
             + section('🚩 Formation : ' + esc(fmt.label), '#facc15', formationHtml)
-            + section('⚡ ลำดับสกิล', '#fbbf24', '<div class="flex flex-wrap items-center justify-center gap-2 bg-black/20 p-2 rounded-lg border border-gray-800">' + skillHtml + '</div>')
+            + section('⚡ ลำดับสกิล', '#fbbf24', skillHtml)
             + section('🎬 วิดีโอ', '#60a5fa', videoHtml)
             + '</div>';
     }
