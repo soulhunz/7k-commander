@@ -605,6 +605,146 @@
             pointer-events: auto;
         }
         .planner-swap-user-badge + .planner-swap-user-badge { margin-left: -0.55rem; }
+        /* === Roster Planner Ring Pick Dialog === */
+        .rcm-pick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+            gap: 0.65rem;
+            margin-top: 0.5rem;
+        }
+        .rcm-pick-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.55rem 0.5rem 0.55rem;
+            border: 2px solid rgba(75, 85, 99, 0.7);
+            border-radius: 0.7rem;
+            background: linear-gradient(160deg, rgba(120, 53, 15, 0.18), rgba(0, 0, 0, 0.55));
+            cursor: pointer;
+            transition: border-color 0.18s, transform 0.15s, box-shadow 0.18s;
+        }
+        .rcm-pick-card:hover {
+            border-color: rgba(251, 191, 36, 0.85);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45), 0 0 0 2px rgba(251, 191, 36, 0.25);
+        }
+        .rcm-pick-card.is-current {
+            border-color: rgba(34, 197, 94, 0.75);
+            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.28);
+        }
+        .rcm-pick-img-wrap {
+            position: relative;
+            width: 3.85rem;
+            height: 3.85rem;
+        }
+        .rcm-pick-img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            background: #000;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+        }
+        .rcm-pick-img-wrap .roster-ring-stack-img {
+            position: absolute;
+            right: -6px;
+            bottom: -6px;
+            width: 1.7rem;
+            height: 1.7rem;
+        }
+        .rcm-pick-name {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #f3f4f6;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .rcm-pick-status {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            width: 100%;
+            align-items: stretch;
+        }
+        .rcm-pick-tag {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 0.18rem 0.35rem;
+            border-radius: 0.3rem;
+            line-height: 1.15;
+            justify-content: center;
+        }
+        .rcm-pick-tag img {
+            width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #000;
+            border: 1px solid rgba(0,0,0,0.6);
+            flex-shrink: 0;
+        }
+        .rcm-pick-tag-free { color: #86efac; background: rgba(22, 101, 52, 0.32); border: 1px solid rgba(34, 197, 94, 0.45); }
+        .rcm-pick-tag-used { color: #fcd34d; background: rgba(120, 53, 15, 0.4); border: 1px solid rgba(217, 119, 6, 0.45); }
+        .rcm-pick-tag-current { color: #d9f99d; background: rgba(22, 101, 52, 0.45); border: 1px solid rgba(34, 197, 94, 0.75); }
+        /* รูปฮีโร่ที่จองแหวนวงนี้ — มุมบนขวาของการ์ดในไดอะล็อก */
+        .rcm-pick-user-badges {
+            position: absolute;
+            top: -0.55rem;
+            right: -0.55rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .rcm-pick-user-badge {
+            width: 2.15rem;
+            height: 2.15rem;
+            border-radius: 9999px;
+            border: 2px solid #fbbf24;
+            background: #000;
+            object-fit: cover;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(0, 0, 0, 0.85);
+            pointer-events: auto;
+        }
+        .rcm-pick-user-badge + .rcm-pick-user-badge { margin-left: -0.7rem; }
+        /* ช่องว่างที่ยังไม่มีแหวน — คลิกเพื่อเปิดไดอะล็อกเลือกแหวน */
+        .roster-planner-team-card .roster-planner-ring-card.roster-planner-ring-empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-style: dashed !important;
+            border-color: rgba(248, 113, 113, 0.6) !important;
+            background: rgba(127, 29, 29, 0.18) !important;
+            color: rgba(252, 165, 165, 0.85);
+            opacity: 1;
+            box-shadow: none;
+        }
+        .roster-planner-team-card .roster-planner-ring-card.roster-planner-ring-empty:hover {
+            border-color: rgba(248, 113, 113, 0.95) !important;
+            background: rgba(127, 29, 29, 0.32) !important;
+            color: #fca5a5;
+        }
+        .roster-planner-ring-empty-icon {
+            font-size: 1.5rem;
+            opacity: 0.75;
+            line-height: 1;
+        }
+        .roster-planner-ring-empty-plus {
+            position: absolute;
+            bottom: 3px;
+            right: 6px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #fca5a5;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+            line-height: 1;
+        }
         /* ลำดับสกิล — grid 3 คอลัมน์ ติดกัน + center + ลูกศรคั่นระหว่างสกิล */
         .roster-skill-grid {
             display: grid;
@@ -844,6 +984,62 @@
         .roster-planner-team-card .roster-planner-ring-card:hover {
             border-color: rgba(251, 191, 36, 0.9);
             transform: scale(1.04);
+        }
+        .roster-planner-team-card .roster-planner-ring-card.is-swap-pick {
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.5), 0 0 18px rgba(56, 189, 248, 0.75);
+            animation: roster-swap-pick-pulse 1.1s ease-in-out infinite;
+            transform: scale(1.05);
+            z-index: 5;
+        }
+        @keyframes roster-swap-pick-pulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.5), 0 0 14px rgba(56, 189, 248, 0.6); }
+            50%      { box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.7), 0 0 22px rgba(56, 189, 248, 0.95); }
+        }
+        .roster-planner-team-card .roster-planner-ring-card.is-overridden::after {
+            content: '✎';
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #38bdf8;
+            color: #0b1220;
+            font-size: 0.65rem;
+            font-weight: 800;
+            line-height: 1;
+            width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+            z-index: 6;
+            pointer-events: none;
+        }
+        .roster-swap-hint {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.72rem;
+            border: 1px solid;
+        }
+        .roster-swap-hint .roster-swap-hint-icon { font-size: 1rem; line-height: 1; flex-shrink: 0; }
+        .roster-swap-hint-active {
+            color: #bae6fd;
+            background: rgba(8, 47, 73, 0.45);
+            border-color: rgba(56, 189, 248, 0.55);
+        }
+        .roster-swap-hint-info {
+            color: #fde68a;
+            background: rgba(69, 26, 3, 0.35);
+            border-color: rgba(251, 191, 36, 0.45);
+        }
+        .roster-swap-hint-tip {
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.5);
+            border-color: rgba(71, 85, 105, 0.55);
         }
         .roster-planner-team-card .roster-planner-ring-card .roster-ring-stack-img {
             width: 1.85rem;
@@ -4141,6 +4337,8 @@
         let rosterRingPlannerSelectedIds = [];
         let rosterRingPlannerSearch = '';
         let rosterRingPlannerLastAnalyzed = [];
+        let rosterRingPlannerSwapPick = null; // {teamId, slotIdx} ของช่องที่กดไว้รอสลับ
+        let rosterRingPlannerSlotOverrides = {}; // key 'teamId|slotIdx' -> {ringId, stackId}
         let rosterExpandedTeamIds = new Set();
         let rosterSharedTeamsCache = null;
         let rosterEnemyOpenIds = new Set();
@@ -20968,11 +21166,58 @@
         });
     }
 
-    /** จัดสรรแหวนจาก pool ให้ทีมหนึ่ง (ต่อฮีโro slot หนึ่งตัวเลือก) */
-    function assignTeamRingsFromPool(pool, team) {
+    /** จัดสรรแหวนจาก pool ให้ทีมหนึ่ง (ต่อฮีโro slot หนึ่งตัวเลือก)
+     *  opts.partial = true → ไม่ rollback ถ้าบางช่องหาแหวนไม่ได้ (คืน assignments เท่าที่จัดได้, อาจว่างได้บางช่อง) */
+    function assignTeamRingsFromPool(pool, team, opts) {
+        opts = opts || {};
+        const teamId = opts.teamId != null ? String(opts.teamId) : null;
+        const partial = !!opts.partial;
+        const overrides = (teamId && rosterRingPlannerSlotOverrides) ? rosterRingPlannerSlotOverrides : {};
         const slots = (team.slots || []).filter(function(s) { return s && s.id; });
         const assigned = [];
+        const handled = new Array(slots.length).fill(false);
+        const claimed = []; // track pool indices we marked used — rollback if fail (strict mode)
+
+        function rollback() { claimed.forEach(function(idx) { pool[idx].used = false; }); }
+
+        // Pass 1: ใช้ override ที่ผู้ใช้เลือกเองก่อน — จองตำแหน่งใน pool ทันที
+        if (teamId) {
+            for (let i = 0; i < slots.length; i++) {
+                const ov = overrides[teamId + '|' + i];
+                if (!ov || !ov.ringId) continue;
+                const options = getRosterSlotRingOptions(normalize3v3Slot(slots[i]));
+                if (!options || !options.length) continue;
+                let matchedOpt = null;
+                const probe = { id: ov.ringId, stackId: ov.stackId || null, used: false };
+                for (let o = 0; o < options.length; o++) {
+                    if (rosterRingItemMatchesOption(probe, options[o])) { matchedOpt = options[o]; break; }
+                }
+                if (!matchedOpt) continue;
+                let poolIdx = -1;
+                for (let p = 0; p < pool.length; p++) {
+                    if (pool[p].used) continue;
+                    if (String(pool[p].id) === String(ov.ringId) &&
+                        String(pool[p].stackId || '') === String(ov.stackId || '')) {
+                        poolIdx = p; break;
+                    }
+                }
+                if (poolIdx < 0) continue;
+                pool[poolIdx].used = true;
+                claimed.push(poolIdx);
+                assigned.push({
+                    slotIdx: i,
+                    poolIdx: poolIdx,
+                    option: matchedOpt,
+                    entry: { id: pool[poolIdx].id, stackId: pool[poolIdx].stackId },
+                    fromOverride: true
+                });
+                handled[i] = true;
+            }
+        }
+
+        // Pass 2: greedy ตามเดิมสำหรับช่องที่ยังว่าง
         for (let i = 0; i < slots.length; i++) {
+            if (handled[i]) continue;
             const options = getRosterSlotRingOptions(normalize3v3Slot(slots[i]));
             if (!options || !options.length) continue;
             let picked = false;
@@ -20981,6 +21226,7 @@
                 const idx = findBestUnusedPoolIndex(pool, sorted[o]);
                 if (idx >= 0) {
                     pool[idx].used = true;
+                    claimed.push(idx);
                     assigned.push({
                         slotIdx: i,
                         poolIdx: idx,
@@ -20991,8 +21237,9 @@
                     break;
                 }
             }
-            if (!picked) return null;
+            if (!picked && !partial) { rollback(); return null; }
         }
+        assigned.sort(function(a, b) { return a.slotIdx - b.slotIdx; });
         return assigned;
     }
 
@@ -21013,7 +21260,7 @@
             if (!entry) return;
             const heroIds = getRosterTeamHeroIds(entry.team);
             heroIds.forEach(function(id) { usedHeroIds.add(id); });
-            const assigned = assignTeamRingsFromPool(pool, entry.team);
+            const assigned = assignTeamRingsFromPool(pool, entry.team, { teamId: String(tid), partial: true });
             if (assigned) assignments[String(tid)] = assigned;
         });
         return { pool: pool, usedHeroIds: usedHeroIds, assignments: assignments };
@@ -21031,7 +21278,7 @@
             return { status: 'disabled', reason: 'hero', heroName: getRosterHeroName(heroConflict) };
         }
         const trialPool = state.pool.map(function(x) { return { id: x.id, stackId: x.stackId, used: x.used }; });
-        if (!assignTeamRingsFromPool(trialPool, entry.team)) {
+        if (!assignTeamRingsFromPool(trialPool, entry.team, { teamId: String(entry.team.id) })) {
             return { status: 'disabled', reason: 'ring' };
         }
         return { status: 'available' };
@@ -21270,6 +21517,8 @@
     }
 
     function resolvePlannerSlotRingDisplay(assignment, team, slotIdx) {
+        // แสดงเฉพาะแหวนจริงจาก pool ที่ตรงเงื่อนไขช่องนี้เท่านั้น —
+        // ถ้าไม่มี assignment จริง ถือว่า "ไม่ตรงเงื่อนไข" จะไม่แสดงแหวน
         if (assignment) {
             if (assignment.entry && assignment.entry.id) {
                 return {
@@ -21284,20 +21533,12 @@
                 };
             }
         }
-        const slot = (team.slots || [])[slotIdx];
-        if (!slot || !slot.id) return null;
-        const options = getRosterSlotRingOptions(normalize3v3Slot(slot));
-        if (!options || !options.length) return null;
-        const opt = pickBestMatchingRingOption(options) || getSortedRingOptionsForAssignment(options)[0];
-        if (!opt) return null;
-        return {
-            id: String(opt.baseId),
-            stackId: opt.stackId ? String(opt.stackId) : null
-        };
+        return null;
     }
 
-    function buildPlannerRingCardHtml(ringId, stackId, isSelected, teamId, slotIdx) {
+    function buildPlannerRingCardHtml(ringId, stackId, isSelected, teamId, slotIdx, opts) {
         if (!ringId) return '';
+        opts = opts || {};
         const r = ringsDB.find(function(x) { return String(x.id) === String(ringId); }) ||
             accessoriesDB.find(function(x) { return String(x.id) === String(ringId); });
         if (!r) return '';
@@ -21311,19 +21552,19 @@
         const safeId = String(ringId).replace(/'/g, "\\'");
         const safeStack = stackId ? String(stackId).replace(/'/g, "\\'") : '';
         const stateCls = isSelected ? ' planner-ring-assigned' : ' planner-ring-preview';
-        // \u0e16\u0e49\u0e32\u0e21\u0e35 context \u0e02\u0e2d\u0e07 team/slot \u2192 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e1b\u0e34\u0e14 swap dialog; \u0e44\u0e21\u0e48\u0e07\u0e31\u0e49\u0e19 fallback \u0e40\u0e1b\u0e47\u0e19 detail modal \u0e40\u0e14\u0e34\u0e21
+        const overrideCls = opts.fromOverride ? ' is-overridden' : '';
         let onclickAttr;
         let title;
         if (teamId != null && slotIdx != null) {
             const safeTid = String(teamId).replace(/'/g, "\\'");
-            onclickAttr = 'event.stopPropagation(); openPlannerRingSwapDialog(\'' + safeTid + '\', ' + slotIdx + ')';
-            title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e14\u0e39\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e44\u0e14\u0e49').replace(/"/g, '&quot;');
+            onclickAttr = 'event.stopPropagation(); handleRosterPlannerRingClick(\'' + safeTid + '\', ' + slotIdx + ')';
+            title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e08\u0e32\u0e01\u0e04\u0e25\u0e31\u0e07').replace(/"/g, '&quot;');
         } else {
             onclickAttr = 'event.stopPropagation(); showPlannerRingDetail(\'' + safeId + '\', \'' + safeStack + '\')';
             title = (r.name + (stackRing ? ' + \u0e41\u0e2b\u0e27\u0e19\u0e0b\u0e49\u0e2d\u0e19: ' + stackRing.name : '') + ' \u2014 \u0e04\u0e25\u0e34\u0e01\u0e14\u0e39\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14').replace(/"/g, '&quot;');
         }
         return '<div class="relative roster-ring-card roster-planner-ring-card rounded-xl border-2 border-amber-700/60 bg-black shadow-md grade-' + (r.grade || 6) +
-            (hasStack ? ' has-stack' : '') + stateCls + ' cursor-pointer"' +
+            (hasStack ? ' has-stack' : '') + stateCls + overrideCls + ' cursor-pointer"' +
             ' onclick="' + onclickAttr + '"' +
             ' title="' + title + '">' +
             '<img src="' + r.img + '" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">' +
@@ -21332,8 +21573,299 @@
 
     function buildPlannerSlotRingCardHtml(assignment, team, slotIdx, isSelected) {
         const display = resolvePlannerSlotRingDisplay(assignment, team, slotIdx);
-        if (!display || !display.id) return '';
-        return buildPlannerRingCardHtml(display.id, display.stackId, isSelected, team && team.id, slotIdx);
+        if (display && display.id) {
+            const fromOverride = !!(assignment && assignment.fromOverride);
+            return buildPlannerRingCardHtml(display.id, display.stackId, isSelected, team && team.id, slotIdx, { fromOverride: fromOverride });
+        }
+        // ไม่มีแหวนที่จัดให้ได้ — แสดง placeholder คลิกเพื่อเปิดไดอะล็อกเลือกแหวน
+        return buildPlannerEmptyRingPlaceholderHtml(team && team.id, slotIdx);
+    }
+
+    function buildPlannerEmptyRingPlaceholderHtml(teamId, slotIdx) {
+        if (teamId == null || slotIdx == null) return '';
+        const safeTid = String(teamId).replace(/'/g, "\\'");
+        return '<div class="relative roster-ring-card roster-planner-ring-card roster-planner-ring-empty cursor-pointer"' +
+            ' onclick="event.stopPropagation(); handleRosterPlannerRingClick(\'' + safeTid + '\', ' + slotIdx + ')"' +
+            ' title="ไม่มีแหวน — คลิกเพื่อเลือกแหวนให้ช่องนี้">' +
+            '<span class="roster-planner-ring-empty-icon">💍</span>' +
+            '<span class="roster-planner-ring-empty-plus">+</span></div>';
+    }
+
+    function refreshRosterRingPlannerView() {
+        const container = document.getElementById('roster-attack-teams-list');
+        if (container && rosterRingPlannerMode) {
+            buildRosterRingPlannerHtml(container, rosterRingPlannerLastAnalyzed);
+        }
+    }
+
+    function getRosterPlannerSlotCurrentRing(teamId, slotIdx) {
+        const entry = (rosterRingPlannerLastAnalyzed || []).find(function(e) {
+            return String(e.team.id) === String(teamId);
+        });
+        if (!entry) return null;
+        const plan = getPlannerSlotAssignmentsBySlot(entry, rosterRingPlannerLastAnalyzed, rosterRingPlannerSelectedIds);
+        const a = plan.bySlot[slotIdx];
+        const display = resolvePlannerSlotRingDisplay(a, entry.team, slotIdx);
+        if (display && display.id) return display;
+        return null;
+    }
+
+    function handleRosterPlannerRingClick(teamId, slotIdx) {
+        openRosterPlannerRingPickDialog(teamId, Number(slotIdx));
+    }
+
+    function openRosterPlannerRingPickDialog(teamId, slotIdx) {
+        const team = getRosterTeamById(teamId);
+        if (!team) return;
+        const slot = (team.slots || [])[slotIdx];
+        if (!slot || !slot.id) return;
+        const sNorm = normalize3v3Slot(slot);
+        const hero = heroesDB.find(function(x) { return String(x.id) === String(sNorm.id); });
+        const heroName = hero ? hero.name : String(sNorm.id);
+        const heroImg = hero ? hero.img : '';
+        const options = getRosterSlotRingOptions(sNorm) || [];
+        const esc = function(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+
+        // คำนวณว่าแต่ละ pool index ถูกใช้ที่ไหน
+        const state = computeRosterRingPlannerState(rosterRingPlannerLastAnalyzed, rosterRingPlannerSelectedIds);
+        const usageByPool = {};
+        Object.keys(state.assignments).forEach(function(tid) {
+            const entry = (rosterRingPlannerLastAnalyzed || []).find(function(e) { return String(e.team.id) === String(tid); });
+            const teamName = entry ? (entry.team.name || tid) : tid;
+            state.assignments[tid].forEach(function(a) {
+                if (a.poolIdx == null) return;
+                const slotData = entry ? entry.team.slots[a.slotIdx] : null;
+                const sn = slotData ? normalize3v3Slot(slotData) : null;
+                const h = sn ? heroesDB.find(function(x) { return String(x.id) === String(sn.id); }) : null;
+                usageByPool[a.poolIdx] = {
+                    teamId: tid,
+                    teamName: teamName,
+                    slotIdx: a.slotIdx,
+                    heroName: h ? h.name : (sn ? String(sn.id) : ''),
+                    heroImg: h ? h.img : ''
+                };
+            });
+        });
+
+        // จัดกลุ่ม pool entries ที่ตรงเงื่อนไขช่องนี้ ตาม (id, stackId)
+        const pool = buildRosterRingPool();
+        const groups = {};
+        pool.forEach(function(p, idx) {
+            const probe = { id: p.id, stackId: p.stackId, used: false };
+            const fits = options.some(function(opt) { return rosterRingItemMatchesOption(probe, opt); });
+            if (!fits) return;
+            const key = String(p.id) + '|' + String(p.stackId || '');
+            if (!groups[key]) groups[key] = { id: p.id, stackId: p.stackId, instances: [] };
+            groups[key].instances.push({ poolIdx: idx, usage: usageByPool[idx] || null });
+        });
+
+        const currentRing = getRosterPlannerSlotCurrentRing(teamId, slotIdx);
+        const candidates = Object.keys(groups).map(function(k) { return groups[k]; });
+        candidates.sort(function(a, b) {
+            const aIsCur = currentRing && String(a.id) === String(currentRing.id) && String(a.stackId || '') === String(currentRing.stackId || '');
+            const bIsCur = currentRing && String(b.id) === String(currentRing.id) && String(b.stackId || '') === String(currentRing.stackId || '');
+            if (aIsCur && !bIsCur) return -1;
+            if (!aIsCur && bIsCur) return 1;
+            const aFree = a.instances.some(function(i) { return !i.usage; });
+            const bFree = b.instances.some(function(i) { return !i.usage; });
+            if (aFree && !bFree) return -1;
+            if (!aFree && bFree) return 1;
+            return 0;
+        });
+
+        const safeTid = String(teamId).replace(/'/g, "\\'");
+        let cardsHtml = '';
+        candidates.forEach(function(g) {
+            const r = ringsDB.find(function(x) { return String(x.id) === String(g.id); }) ||
+                accessoriesDB.find(function(x) { return String(x.id) === String(g.id); });
+            if (!r) return;
+            const stackRing = g.stackId
+                ? (ringsDB.find(function(x) { return String(x.id) === String(g.stackId); }) ||
+                    accessoriesDB.find(function(x) { return String(x.id) === String(g.stackId); }))
+                : null;
+            const freeCount = g.instances.filter(function(i) { return !i.usage; }).length;
+            const usedBy = g.instances.filter(function(i) { return i.usage; }).map(function(i) { return i.usage; });
+            const isCurrentHere = currentRing && String(g.id) === String(currentRing.id) && String(g.stackId || '') === String(currentRing.stackId || '');
+            const stackImg = stackRing ? render3v3RingStackOverlay(stackRing.id) : '';
+
+            // รวมรูปฮีโร่ที่จองแหวนวงนี้ไว้ (ไม่นับช่องตัวเอง) → แสดงเป็น badge มุมบนขวา
+            const externalUsers = usedBy.filter(function(u) {
+                return !(String(u.teamId) === String(teamId) && u.slotIdx === slotIdx);
+            });
+            let heroBadgesHtml = '';
+            externalUsers.forEach(function(u) {
+                if (!u.heroImg) return;
+                heroBadgesHtml += '<img src="' + u.heroImg + '" alt="" title="' +
+                    esc(u.heroName + (u.teamName ? ' · ' + u.teamName : '')) + '" class="rcm-pick-user-badge">';
+            });
+            if (heroBadgesHtml) heroBadgesHtml = '<div class="rcm-pick-user-badges">' + heroBadgesHtml + '</div>';
+
+            let statusHtml = '';
+            if (isCurrentHere) {
+                statusHtml += '<div class="rcm-pick-tag rcm-pick-tag-current">✓ ใช้อยู่ช่องนี้</div>';
+            }
+            if (freeCount > 0) {
+                statusHtml += '<div class="rcm-pick-tag rcm-pick-tag-free">📦 ว่างในคลัง' + (freeCount > 1 ? ' ' + freeCount + ' วง' : '') + '</div>';
+            }
+            externalUsers.forEach(function(u) {
+                statusHtml += '<div class="rcm-pick-tag rcm-pick-tag-used" title="' + esc(u.heroName + ' / ' + u.teamName) + '">' +
+                    '<span>' + esc(u.heroName) + (u.teamName ? ' · ' + esc(u.teamName) : '') + '</span></div>';
+            });
+            if (!statusHtml) statusHtml = '<div class="rcm-pick-tag rcm-pick-tag-free">📦 ว่างในคลัง</div>';
+
+            const safeRid = String(g.id).replace(/'/g, "\\'");
+            const safeSid = g.stackId ? String(g.stackId).replace(/'/g, "\\'") : '';
+            const onclick = isCurrentHere
+                ? ''
+                : ' onclick="applyRosterPlannerRingPick(\'' + safeTid + '\', ' + slotIdx + ', \'' + safeRid + '\', \'' + safeSid + '\')"';
+            const title = (r.name + (stackRing ? ' + ' + stackRing.name : '') +
+                (isCurrentHere ? ' — ใช้อยู่แล้ว' : (externalUsers.length ? ' — ดึงมาจากช่องอื่น (ฮีโร่ที่จองอยู่จะหาแหวนใหม่)' : ' — คลิกเพื่อจัดให้ช่องนี้'))).replace(/"/g, '&quot;');
+
+            cardsHtml += '<div class="rcm-pick-card' + (isCurrentHere ? ' is-current' : '') + '"' + onclick + ' title="' + title + '">' +
+                heroBadgesHtml +
+                '<div class="rcm-pick-img-wrap"><img src="' + r.img + '" alt="">' + stackImg + '</div>' +
+                '<div class="rcm-pick-name">' + esc(r.name) + (stackRing ? ' + ' + esc(stackRing.name) : '') + '</div>' +
+                '<div class="rcm-pick-status">' + statusHtml + '</div>' +
+                '</div>';
+        });
+
+        if (!cardsHtml) {
+            cardsHtml = '<div class="rcm-condition-row miss"><span class="shrink-0">⚠️</span><span>ไม่มีแหวนในคลังที่ตรงเงื่อนไขช่องนี้</span></div>';
+        }
+
+        const reqIdsHtml = options.map(function(opt, i) {
+            const baseR = ringsDB.find(function(x) { return String(x.id) === String(opt.baseId); });
+            const stackR = opt.stackId ? ringsDB.find(function(x) { return String(x.id) === String(opt.stackId); }) : null;
+            const baseName = baseR ? baseR.name : '?';
+            const txt = stackR ? (baseName + ' ⊕ ' + stackR.name + ' (ซ้อน)') : baseName;
+            return '<span class="planner-swap-cond-chip">#' + (i + 1) + ' · ' + esc(txt) + '</span>';
+        }).join('');
+
+        const key = String(teamId) + '|' + slotIdx;
+        const hasOverride = !!rosterRingPlannerSlotOverrides[key];
+        const resetBtn = hasOverride
+            ? ' <button type="button" onclick="resetRosterPlannerSlotOverride(\'' + safeTid + '\', ' + slotIdx + ')" class="text-[10px] font-bold px-2 py-1 rounded-md border border-amber-700/60 text-amber-200 hover:bg-amber-900/30">↺ คืนค่าอัตโนมัติ</button>'
+            : '';
+
+        const header = '<div class="rcm-share-hero">' +
+            (heroImg ? '<img src="' + heroImg + '" alt="">' : '') +
+            '<div class="flex-1"><div class="font-bold text-white text-base">' + esc(heroName) + '</div>' +
+            '<div class="text-[11px] text-gray-500 mt-0.5">สล็อต #' + (slotIdx + 1) + ' — เลือกแหวนจากคลังให้ตัวละครนี้</div></div>' +
+            resetBtn + '</div>' +
+            (reqIdsHtml ? '<div class="planner-swap-cond-row"><span class="planner-swap-cond-label">รับ:</span>' + reqIdsHtml + '</div>' : '');
+
+        const extra = '<div class="rcm-pick-grid">' + cardsHtml + '</div>';
+        showRosterConditionModal('เลือกแหวน — ' + heroName, [], extra, header);
+    }
+
+    function applyRosterPlannerRingPick(teamId, slotIdx, ringId, stackId) {
+        closeRosterConditionModal();
+        const key = String(teamId) + '|' + Number(slotIdx);
+        const ringIdS = String(ringId);
+        const stackIdS = stackId ? String(stackId) : '';
+        // ถ้าจำนวน override (รวมของใหม่) > จำนวน copy ที่ลูกกิลด์มี → ลบ override เก่าที่ขัดออก (latest pick wins)
+        const totalCopies = (tempOwnedRings || []).filter(function(r) {
+            return r && String(r.id) === ringIdS && String(r.stackId || '') === stackIdS;
+        }).length;
+        const conflicting = Object.keys(rosterRingPlannerSlotOverrides).filter(function(k) {
+            if (k === key) return false;
+            const ov = rosterRingPlannerSlotOverrides[k];
+            return ov && String(ov.ringId) === ringIdS && String(ov.stackId || '') === stackIdS;
+        });
+        const excess = (conflicting.length + 1) - totalCopies;
+        if (excess > 0) {
+            for (let i = 0; i < excess && i < conflicting.length; i++) {
+                delete rosterRingPlannerSlotOverrides[conflicting[i]];
+            }
+        }
+        rosterRingPlannerSlotOverrides[key] = { ringId: ringIdS, stackId: stackId ? String(stackId) : null };
+        // ไม่ถอดทีมที่หาแหวนทดแทนไม่ได้ — ปล่อยช่องว่างให้ผู้ใช้เลือกเอง
+        refreshRosterRingPlannerView();
+    }
+
+    function resetRosterPlannerSlotOverride(teamId, slotIdx) {
+        closeRosterConditionModal();
+        const key = String(teamId) + '|' + Number(slotIdx);
+        delete rosterRingPlannerSlotOverrides[key];
+        refreshRosterRingPlannerView();
+    }
+
+    function attemptRosterPlannerRingSwap(a, b) {
+        const teamA = getRosterTeamById(a.teamId);
+        const teamB = getRosterTeamById(b.teamId);
+        const slotA = teamA && (teamA.slots || [])[a.slotIdx];
+        const slotB = teamB && (teamB.slots || [])[b.slotIdx];
+        if (!slotA || !slotB) {
+            rosterRingPlannerSwapPick = null;
+            refreshRosterRingPlannerView();
+            return;
+        }
+        const ringB = getRosterPlannerSlotCurrentRing(b.teamId, b.slotIdx);
+        if (!ringB) {
+            alert('ไม่พบแหวนของช่องที่เลือก');
+            rosterRingPlannerSwapPick = null;
+            refreshRosterRingPlannerView();
+            return;
+        }
+        // ตรวจฝั่งรับเท่านั้น: แหวนวงที่ดึงมาต้องตรงเงื่อนไขของช่องแรก
+        const optsA = getRosterSlotRingOptions(normalize3v3Slot(slotA)) || [];
+        const probeB = { id: ringB.id, stackId: ringB.stackId || null, used: false };
+        const bFitsA = optsA.some(function(opt) { return rosterRingItemMatchesOption(probeB, opt); });
+        if (!bFitsA) {
+            alert('ไม่ตรงเงื่อนไข — ตัวละครช่องนี้ไม่รับแหวนวงนี้');
+            return; // คง pick ไว้ให้ผู้ใช้เลือกวงอื่น
+        }
+        const keyA = a.teamId + '|' + a.slotIdx;
+        const keyB = b.teamId + '|' + b.slotIdx;
+        // ดึงแหวนวงนี้ไปใส่ช่องแรก — ช่องเดิมปล่อยให้ greedy หาแหวนอื่นทดแทน
+        rosterRingPlannerSlotOverrides[keyA] = { ringId: ringB.id, stackId: ringB.stackId || null };
+        delete rosterRingPlannerSlotOverrides[keyB];
+        rosterRingPlannerSwapPick = null;
+        // หลังย้ายแหวน — ถ้าทีมไหนหาแหวนทดแทนไม่ได้ ให้ถอดทีมนั้นออก
+        cleanupUnfulfilledSelectedTeams();
+        refreshRosterRingPlannerView();
+    }
+
+    /** ถอดทีมที่ถูกเลือกแต่จัดแหวนครบทุกช่องไม่ได้ออกจากการเลือก (ทีมนั้นจะเล่นไม่ได้) */
+    function cleanupUnfulfilledSelectedTeams() {
+        const dropped = [];
+        let guard = 0;
+        while (guard++ < 32) {
+            const state = computeRosterRingPlannerState(rosterRingPlannerLastAnalyzed, rosterRingPlannerSelectedIds);
+            const failed = [];
+            rosterRingPlannerSelectedIds.forEach(function(tid) {
+                if (!state.assignments[String(tid)]) failed.push(String(tid));
+            });
+            if (!failed.length) break;
+            failed.forEach(function(tid) {
+                const entry = (rosterRingPlannerLastAnalyzed || []).find(function(e) { return String(e.team.id) === String(tid); });
+                const name = entry && entry.team && entry.team.name ? entry.team.name : ('ทีม ' + tid);
+                if (dropped.indexOf(name) < 0) dropped.push(name);
+                Object.keys(rosterRingPlannerSlotOverrides).forEach(function(k) {
+                    if (k.indexOf(tid + '|') === 0) delete rosterRingPlannerSlotOverrides[k];
+                });
+            });
+            rosterRingPlannerSelectedIds = rosterRingPlannerSelectedIds.filter(function(tid) {
+                return failed.indexOf(String(tid)) < 0;
+            });
+        }
+        if (dropped.length) {
+            setTimeout(function() {
+                alert('ทีมต่อไปนี้แหวนไม่พอหลังสลับ จึงถูกถอดออก:\n• ' + dropped.join('\n• '));
+            }, 0);
+        }
+    }
+
+    function clearRosterRingPlannerOverrides() {
+        rosterRingPlannerSlotOverrides = {};
+        rosterRingPlannerSwapPick = null;
+        refreshRosterRingPlannerView();
+    }
+
+    function cancelRosterRingPlannerSwapPick() {
+        if (!rosterRingPlannerSwapPick) return;
+        rosterRingPlannerSwapPick = null;
+        refreshRosterRingPlannerView();
     }
 
     function getPlannerSlotAssignmentsBySlot(entry, analyzed, selectedIds) {
@@ -21349,7 +21881,7 @@
         const trialPool = state.pool.map(function(x) {
             return { id: x.id, stackId: x.stackId, used: x.used };
         });
-        const preview = assignTeamRingsFromPool(trialPool, entry.team);
+        const preview = assignTeamRingsFromPool(trialPool, entry.team, { teamId: String(entry.team.id), partial: true });
         if (preview) {
             preview.forEach(function(a) {
                 if (a.slotIdx != null) bySlot[a.slotIdx] = a;
@@ -21387,6 +21919,13 @@
         const idx = rosterRingPlannerSelectedIds.indexOf(tid);
         if (idx >= 0) {
             rosterRingPlannerSelectedIds.splice(idx, 1);
+            // ล้าง override ของทีมที่ถูกถอด (overrides จะใช้ได้เฉพาะเมื่อทีมถูกเลือก/พรีวิว)
+            Object.keys(rosterRingPlannerSlotOverrides).forEach(function(k) {
+                if (k.indexOf(tid + '|') === 0) delete rosterRingPlannerSlotOverrides[k];
+            });
+            if (rosterRingPlannerSwapPick && String(rosterRingPlannerSwapPick.teamId) === tid) {
+                rosterRingPlannerSwapPick = null;
+            }
         } else {
             const entry = rosterRingPlannerLastAnalyzed.find(function(e) { return String(e.team.id) === tid; });
             if (!entry) return;
@@ -21423,6 +21962,19 @@
         html += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">';
         html += '<div class="text-sm font-bold text-amber-300">\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e17\u0e35\u0e21\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e08\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19/\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>';
         html += '<button type="button" onclick="toggleRosterRingPlannerMode()" class="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800">\u2715 \u0e1b\u0e34\u0e14\u0e42\u0e2b\u0e21\u0e14\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21</button></div>';
+
+        // \u0e41\u0e16\u0e1a\u0e1a\u0e2d\u0e01\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e01\u0e32\u0e23\u0e2a\u0e25\u0e31\u0e1a\u0e41\u0e2b\u0e27\u0e19
+        const overrideCount = Object.keys(rosterRingPlannerSlotOverrides).length;
+        if (overrideCount > 0) {
+            html += '<div class="roster-swap-hint roster-swap-hint-info mb-3"><span class="roster-swap-hint-icon">\u270e</span>' +
+                '<span class="flex-1">\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e14\u0e49\u0e27\u0e22\u0e15\u0e31\u0e27\u0e40\u0e2d\u0e07\u0e44\u0e27\u0e49 ' + overrideCount + ' \u0e0a\u0e48\u0e2d\u0e07 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e43\u0e2b\u0e21\u0e48\u0e44\u0e14\u0e49</span>' +
+                '<button type="button" onclick="clearRosterRingPlannerOverrides()" class="text-[10px] font-bold px-2 py-1 rounded-md border border-amber-700/60 text-amber-200 hover:bg-amber-900/30">\u21ba \u0e25\u0e49\u0e32\u0e07\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14</button>' +
+                '</div>';
+        } else {
+            html += '<div class="roster-swap-hint roster-swap-hint-tip mb-3"><span class="roster-swap-hint-icon">\ud83d\udca1</span>' +
+                '<span class="flex-1">\u0e04\u0e25\u0e34\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e02\u0e2d\u0e07\u0e0a\u0e48\u0e2d\u0e07\u0e43\u0e14 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e1b\u0e34\u0e14\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e41\u0e2b\u0e27\u0e19\u0e43\u0e19\u0e04\u0e25\u0e31\u0e07\u0e17\u0e35\u0e48\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e19\u0e31\u0e49\u0e19\u0e23\u0e31\u0e1a\u0e44\u0e14\u0e49 \u2014 \u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49\u0e17\u0e31\u0e49\u0e07\u0e27\u0e07\u0e17\u0e35\u0e48\u0e27\u0e48\u0e32\u0e07\u0e41\u0e25\u0e30\u0e27\u0e07\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e17\u0e35\u0e21\u0e2d\u0e37\u0e48\u0e19</span>' +
+                '</div>';
+        }
 
         html += '<div class="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center">';
         html += '<input type="text" value="' + rosterRingPlannerSearch.replace(/"/g, '&quot;') + '" oninput="filterRosterRingPlannerSearch(this.value)" placeholder="\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e40\u0e2b\u0e25\u0e37\u0e2d / \u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49..." class="flex-1 bg-[#0d1117] border border-gray-600 text-white text-sm px-3 py-2 rounded-lg outline-none focus:border-amber-500">';
@@ -21962,6 +22514,8 @@
         if (!rosterRingPlannerMode) {
             rosterRingPlannerSelectedIds = [];
             rosterRingPlannerSearch = '';
+            rosterRingPlannerSwapPick = null;
+            rosterRingPlannerSlotOverrides = {};
         }
         renderPublicRosterAttackTeams();
     }
