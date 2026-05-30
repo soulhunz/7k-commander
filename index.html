@@ -18291,7 +18291,8 @@
             return '<div class="flex items-center justify-center rounded-xl border-2 border-dashed border-gray-600 bg-black/30 text-gray-500 text-[11px] font-bold" style="width:90px;height:90px;">ไม่มี</div>';
         }
 
-        // 🛡️ อุปกรณ์ + ❤️ เครื่องประดับ (คอลัมน์ขวา) — ถ้าไม่มีแสดงบล็อกว่าง 90x90
+        // 🛡️ อุปกรณ์ (คอลัมน์ขวา) — ถ้าไม่มีแสดงบล็อกว่าง 90x90
+        // หมายเหตุ: 💎 อุปกรณ์เฉพาะ (เครื่องประดับ) ถูกย้ายไปแสดงใต้ดาวตัวละครแล้ว → ดู renderPublicAccRO()
         function renderPublicGearGroupsRO(slot) {
             const s = normalize3v3Slot(slot);
             const e = equipSetsDB.find(x => String(x.id) === String(s.equip));
@@ -18300,15 +18301,48 @@
                 : renderPublicEmptySlotRO();
             const equipGroup = '<div class="t3v3-gear-group t3v3-gear-equip"><div class="t3v3-gear-group-title">🛡️ อุปกรณ์</div><div class="t3v3-gear-group-body">' + equipBody + '</div></div>';
 
-            // ❤️ เครื่องประดับเฉพาะตัว: แสดงเฉพาะเมื่อ "ติ๊กใช้ (useAcc)" และฮีโร่มีรูป accImg
-            const heroAcc = heroesDB.find(x => String(x.id) === String(s.id));
-            const accImg = (s.useAcc && heroAcc && heroAcc.accImg) ? heroAcc.accImg : '';
-            const accBody = accImg
-                ? '<div class="t3v3-item-slot t3v3-acc-slot filled" style="cursor:default;width:90px;height:90px;" title="เครื่องประดับเฉพาะตัว"><img src="' + accImg + '" alt=""></div>'
-                : renderPublicEmptySlotRO();
-            const accGroup = '<div class="t3v3-gear-group t3v3-gear-acc"><div class="t3v3-gear-group-title">❤️ เครื่องประดับ</div><div class="t3v3-gear-group-body">' + accBody + '</div></div>';
+            return '<div class="flex flex-col gap-2 w-full">' + equipGroup + '</div>';
+        }
 
-            return '<div class="flex flex-col gap-2 w-full">' + equipGroup + accGroup + '</div>';
+        // 💎 อุปกรณ์เฉพาะ (เครื่องประดับเฉพาะตัว) — แสดงใต้ดาวตัวละคร (หน้าแชร์ read-only)
+        // ดึงรูปจาก hero.accImg เสมอถ้าฮีโร่มี → ติ๊กใช้ (useAcc) แสดงปกติ, ไม่ติ๊ก = Disable (เทา + กากบาท)
+        // ฮีโร่ไม่มีรูปอุปกรณ์เฉพาะ → ไม่แสดงอะไรเลย
+        function renderPublicAccRO(slot) {
+            const s = normalize3v3Slot(slot);
+            const hero = heroesDB.find(x => String(x.id) === String(s.id));
+            const accImg = (hero && hero.accImg && hero.accImg !== DRIVE_IMG_PREFIX) ? hero.accImg : '';
+            if (!accImg) return ''; // ฮีโร่ไม่มีอุปกรณ์เฉพาะ
+            const on = !!s.useAcc;
+            const imgStyle = on ? '' : 'filter:grayscale(1) brightness(0.45);opacity:0.6;';
+            const overlay = on ? '' : '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#f87171;font-weight:bold;pointer-events:none;">✕</span>';
+            const borderColor = on ? 'border-pink-500' : 'border-gray-600';
+            return '<div class="flex flex-col items-center" style="margin:auto;margin-top:12px;">' +
+                '<div class="relative rounded-xl border-2 ' + borderColor + ' bg-black overflow-hidden" style="width:80px;height:80px;margin:auto;" title="' + (on ? 'ใช้อุปกรณ์เฉพาะ' : 'ไม่ใช้อุปกรณ์เฉพาะ (Disable)') + '">' +
+                '<img src="' + accImg + '" class="w-full h-full object-cover" style="' + imgStyle + '">' + overlay + '</div></div>';
+        }
+
+        // ⬆️ อัพสกิลที่แนะนำ — แสดงจาก slot.heroSkills (n/s1/s2/p/aw) พร้อมรูปสกิลจาก hero.skillData (ถ้ามี)
+        function renderPublicHeroSkillsRO(slot) {
+            const s = normalize3v3Slot(slot);
+            const hs = s.heroSkills || {};
+            const hero = heroesDB.find(x => String(x.id) === String(s.id));
+            const sd = (hero && hero.skillData) || {};
+            const fields = [{ key: 'n', label: 'N' }, { key: 's1', label: 'S1' }, { key: 's2', label: 'S2' }, { key: 'p', label: 'P' }, { key: 'aw', label: 'AW' }];
+            const chips = fields.filter(f => hs[f.key]).map(f => {
+                const img = (sd[f.key] && sd[f.key].img && sd[f.key].img !== DRIVE_IMG_PREFIX) ? sd[f.key].img : '';
+                const imgEl = img
+                    ? '<img src="' + img + '" alt="" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid #a855f7;box-shadow:0 0 8px rgba(168,85,247,0.6);">'
+                    : '<div style="width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;border:2px solid #a855f7;color:#e9d5ff;background:#1f2937;box-shadow:0 0 8px rgba(168,85,247,0.6);">' + f.label + '</div>';
+                return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;" title="แนะนำอัพสกิล ' + f.label + '">' +
+                    imgEl +
+                    '<span style="font-size:10px;font-weight:bold;color:#c084fc;">' + f.label + ' ⬆</span>' +
+                    '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:16px;height:16px;font-size:11px;line-height:16px;text-align:center;">⬆</span>' +
+                    '</div>';
+            }).join('');
+            if (!chips) return ''; // ไม่มีอัพสกิลที่แนะนำ
+            return '<div class="mt-3 bg-purple-900/10 border border-purple-800/40 rounded-2xl p-3">' +
+                '<div class="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2">⬆️ อัพสกิลที่แนะนำ</div>' +
+                '<div class="flex flex-wrap gap-3">' + chips + '</div></div>';
         }
 
         function renderPublicTeamDisplay(currentTeamData, allCounterTeams = [], targetName = '') {
@@ -18541,10 +18575,12 @@
                                                 </div>
                                                 <div class="text-white font-bold text-xl truncate" style="text-align: center;">${h.name}</div>
                                                 <div class="${starColor} text-base shadow-black drop-shadow-md" style="text-align: center;">${starLabel}</div>
+                                                ${renderPublicAccRO(slot)}
                                             </div>
                                             <div class="w-full flex flex-col justify-between">
                                                 <div class="">${statsHTML}</div>
                                                 ${renderPublicRingsBlockRO(slot)}
+                                                ${renderPublicHeroSkillsRO(slot)}
                                                 ${commentBlock}
                                             </div>
                                             <div class="flex flex-col gap-2 items-stretch justify-start border-t md:border-t-0 md:border-l border-gray-700 pt-4 md:pt-0 md:pl-3 shrink-0 w-full md:w-48">
@@ -18581,7 +18617,7 @@
 
                                     <div class="bg-[#111827] border border-gray-700 rounded-3xl p-2 shadow-2xl">
                                         <h4 class="text-yellow-500 font-bold uppercase text-xl mb-4 text-center">SKILL QUEUE : จองสกิล </h4>
-                                        <div class="bg-black/20 p-3 rounded-2xl border border-gray-800 flex justify-center items-start gap-1 flex-wrap">
+                                        <div class="bg-black/20 p-3 rounded-2xl border border-gray-800 flex justify-center items-start gap-1 flex-nowrap overflow-x-auto custom-scroll">
                                             ${(team.skillQueue || []).map((sq) => {
                                                 if(!sq) return '';
                                                 const [hIdx, type] = sq.split('_');
@@ -18590,8 +18626,8 @@
                                                 const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
                                                 const typeText = type === 'UP' ? 'บน' : 'ล่าง';
                                                 const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
-                                                return `<div class="flex flex-col items-center mx-0.5"><div class="w-[70px] h-[70px] rounded-lg border border-gray-600 bg-black overflow-hidden"><img src="${h?h.img:''}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${typeText}</div></div>`;
-                                            }).join('<div class="text-gray-600 pt-6">➜</div>') || '<span class="text-gray-500 text-xs">No Data</span>'}
+                                                return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border border-gray-600 bg-black overflow-hidden"><img src="${h?h.img:''}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${typeText}</div></div>`;
+                                            }).join('<div class="text-gray-600 pt-6 shrink-0">➜</div>') || '<span class="text-gray-500 text-xs">No Data</span>'}
                                         </div>
                                     </div>
 
@@ -22791,6 +22827,13 @@
     }
 
     function renderPublicRosterHeroes() {
+        // 🟣 ย้ายเป็น Vue แล้ว: delegate ให้ Vue layer render (ผูกกับ reactive store)
+        // ถ้า Vue โหลดสำเร็จ → ใช้ Vue, ไม่งั้น fallback โค้ดเดิมด้านล่าง
+        if (window.VueApp && typeof window.VueApp.renderRosterHeroes === 'function'
+            && window.VueApp.renderRosterHeroes(tempOwnedHeroes, heroesDB)) {
+            refreshRosterAttackTeamsIfNeeded();
+            return;
+        }
         const container = document.getElementById('roster-heroes-grid');
         if (!container) return;
         if (tempOwnedHeroes.length === 0) {
@@ -23219,5 +23262,8 @@
     }
 
     </script>
+
+    <!-- ===== Vue 3 layer (ไฟล์แยก) — ย้ายทีละหน้า ของเดิมยังทำงานคู่กัน ===== -->
+    <?!= include('vue-app') ?>
 </body>
 </html>
