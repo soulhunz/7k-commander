@@ -289,6 +289,19 @@
         }
         .roster-team-slot-clickable { cursor: pointer; transition: transform 0.15s ease; }
         .roster-team-slot-clickable:hover { transform: scale(1.04); }
+        .roster-team-slot-awk-on { border-color: #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
+        .roster-team-slot-awk {
+            position: absolute;
+            top: 0; left: 0;
+            background: #a855f7;
+            color: #fff;
+            font-size: 10px;
+            line-height: 1;
+            padding: 2px 3px;
+            border-bottom-right-radius: 6px;
+            z-index: 5;
+            pointer-events: none;
+        }
         .roster-team-slot-clickable:active { transform: scale(0.97); }
         .roster-enemy-row { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(55, 65, 81, 0.8); border-radius: 0.75rem; padding: 0.625rem 0.75rem; }
         .roster-enemy-wrap { margin-top: 0.75rem; }
@@ -20233,7 +20246,8 @@
         const sNorm = normalize3v3Slot(slot);
         const hero = heroesDB.find(function(x) { return String(x.id) === String(sNorm.id); });
         const heroName = hero ? hero.name : String(sNorm.id);
-        const heroImg = hero ? hero.img : '';
+        const _hAwk = !!(sNorm.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX);
+        const heroImg = hero ? (_hAwk ? hero.img2 : hero.img) : '';
         const options = getRosterSlotRingOptions(sNorm) || [];
         const esc = function(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
 
@@ -20248,12 +20262,13 @@
                 const slotData = entry ? entry.team.slots[a.slotIdx] : null;
                 const sn = slotData ? normalize3v3Slot(slotData) : null;
                 const h = sn ? heroesDB.find(function(x) { return String(x.id) === String(sn.id); }) : null;
+                const _uAwk = !!(sn && sn.awakened && h && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
                 usageByPool[a.poolIdx] = {
                     teamId: tid,
                     teamName: teamName,
                     slotIdx: a.slotIdx,
                     heroName: h ? h.name : (sn ? String(sn.id) : ''),
-                    heroImg: h ? h.img : ''
+                    heroImg: h ? (_uAwk ? h.img2 : h.img) : ''
                 };
             });
         });
@@ -22386,7 +22401,10 @@
             const accOk = !accReq || (owned && ownership.heroAccSet && ownership.heroAccSet.has(id));
             const ready = starOk && ringsOk && accOk;
             const h = heroesDB.find(x => String(x.id) === id);
-            return { slot: i, id, name: h?.name || id, img: h?.img || '', reqStar, ownedStar, owned, starOk, ringsOk, accReq, accOk, awReq, memberAwk, ready, teamId: team.id, slotIdx: i };
+            // ✨ ถ้าทีมติ๊ก Awakening และฮีโร่มีรูปตื่นรู้ (img2) → ใช้ img2 เป็นรูปแสดงผล
+            const awk = !!(normalized.awakened && h && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+            const img = h ? (awk ? h.img2 : h.img) : '';
+            return { slot: i, id, name: h?.name || id, img, awk, reqStar, ownedStar, owned, starOk, ringsOk, accReq, accOk, awReq, memberAwk, ready, teamId: team.id, slotIdx: i };
         });
 
         const petResults = pets.map((pet, i) => {
@@ -22435,8 +22453,9 @@
         const img = h.img
             ? '<img src="' + h.img + '" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">'
             : '<div class="w-full h-full flex items-center justify-center text-lg text-gray-600">?</div>';
-        return '<div class="roster-team-slot ' + cls + '" onclick="onRosterHeroSlotClick(\'' + teamId + '\', ' + slotIdx + ', ' + ready + ')" title="คลิกดูรายละเอียด">' +
-            img + '<span class="roster-team-slot-star">C' + h.reqStar + '</span></div>';
+        const awkBadge = h.awk ? '<span class="roster-team-slot-awk" title="Awakening">✨</span>' : '';
+        return '<div class="roster-team-slot ' + cls + (h.awk ? ' roster-team-slot-awk-on' : '') + '" onclick="onRosterHeroSlotClick(\'' + teamId + '\', ' + slotIdx + ', ' + ready + ')" title="คลิกดูรายละเอียด">' +
+            img + awkBadge + '<span class="roster-team-slot-star">C' + h.reqStar + '</span></div>';
     }
 
     function renderRosterTeamPetSlotInteractive(p) {
