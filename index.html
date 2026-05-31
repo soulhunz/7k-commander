@@ -5202,7 +5202,7 @@
             });
         }
 
-        function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').classList.add('active'); }
+        function showLoading(text) { document.getElementById('loading-text').innerText = text || 'กำลังโหลด...'; document.getElementById('loading-overlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
 
         if (USE_CLOUD && !isRosterPortalMode) startCloudSync(true);
@@ -16598,7 +16598,7 @@
             showToast('💾 กำลังบันทึกข้อมูล...', 'info');
 
             try {
-                showLoading();
+                showLoading('💾 กำลังบันทึกข้อมูล...');
                 const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
 
                 let removedInfo = { removedCount: 0, removedNames: [] };
@@ -16630,6 +16630,7 @@
                 // ถือว่าสำเร็จ (no-cors ไม่ return response ได้)
                 localStorage.setItem('7k_teams_3v3', JSON.stringify(allData));
                 clear3v3Dirty();
+                galleryCacheDB = []; // 🔄 ล้าง cache แกลเลอรี → ครั้งหน้าที่เปิด Community จะโหลดข้อมูลใหม่ (เห็น Awakening/แก้ไขล่าสุด)
                 flush3v3VideoDeletes(); // 🗑️ ลบไฟล์วิดีโอเก่าที่คิวไว้ (หลังบันทึกสำเร็จเท่านั้น)
                 console.log('✅ Saved to Google Sheets (no-cors mode)');
                 render3v3TeamsList();
@@ -16832,10 +16833,17 @@
             const filteredTeams = filterByUserGuild(teams3v3DB);
             console.log(`🔍 DEBUG render3v3TeamsList - filteredTeams.length: ${filteredTeams?.length || 0}`);
 
+            // 🟢 เรียงลำดับการแสดงผล: แชร์ → Attack → Defense (ไม่กระทบลำดับจริงใน DB เพราะอ้าง index ด้วย team.id)
+            const rank3v3 = (t) => {
+                if (t && t.isShared) return 0;                                    // แชร์ขึ้นบนสุด
+                return ((t && t.teamType) === 'Defense') ? 2 : 1;                 // Attack ก่อน Defense
+            };
+            const sortedTeams = [...filteredTeams].sort((a, b) => rank3v3(a) - rank3v3(b));
+
             // --- ส่วนที่ 2: สร้างรายชื่อทีม (กรองตามปุ่มที่กด) ---
             let listHTML = '';
 
-            filteredTeams.forEach((team, filteredIdx) => {
+            sortedTeams.forEach((team, filteredIdx) => {
                 // หา index จริงใน teams3v3DB เพื่อใช้กับ select3v3Team
                 const idx = teams3v3DB.findIndex(t => t.id === team.id);
                 const tType = team.teamType || 'Attack';
@@ -16862,7 +16870,8 @@
                         if(team.slots[i] && team.slots[i].id) {
                             const h = heroesDB.find(x => String(x.id) === String(team.slots[i].id));
                             if(h) {
-                                iconsHTML += `<img src="${h.img}" class="w-7 h-7 rounded-lg border border-gray-600 bg-black object-cover -ml-2 first:ml-0 relative shadow-sm" style="z-index: ${3-i}">`;
+                                const awk = !!(team.slots[i].awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                                iconsHTML += `<img src="${awk ? h.img2 : h.img}" class="w-7 h-7 rounded-lg border ${awk ? 'border-purple-500' : 'border-gray-600'} bg-black object-cover -ml-2 first:ml-0 relative shadow-sm" style="z-index: ${3-i}">`;
                                 heroCount++;
                             }
                         }
@@ -17044,9 +17053,10 @@
                     const slot = team.slots[heroSlotIdx];
                     const h = heroesDB.find(x => String(x.id) === String(slot.id));
                     if (h) {
-                        borderStyle = `border-2 border-blue-500 bg-black cursor-grab active:cursor-grabbing shadow-lg shadow-blue-900/20 hover:border-white transition-colors`;
+                        const awk = !!(slot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                        borderStyle = `border-2 ${awk ? 'border-purple-500' : 'border-blue-500'} bg-black cursor-grab active:cursor-grabbing shadow-lg shadow-blue-900/20 hover:border-white transition-colors`;
                         content = `
-                            <img src="${h.img}" class="w-full h-full object-cover rounded-lg pointer-events-none">
+                            <img src="${awk ? h.img2 : h.img}" class="w-full h-full object-cover rounded-lg pointer-events-none">
                             <div class="absolute -top-2 -right-2 w-5 h-5 bg-blue-600 text-white text-[9px] flex items-center justify-center rounded-full border border-blue-400 font-bold shadow z-10 pointer-events-none">#${heroSlotIdx+1}</div>
                         `;
                         draggable = `draggable="true" ondragstart="handle3v3DragStart(event, ${gridPos})" ondragend="handle3v3DragEnd(event)"`;
@@ -17081,7 +17091,8 @@
                     const slot = team.slots[hIdx];
                     if(slot && slot.id) {
                         const h = heroesDB.find(x => String(x.id) === String(slot.id));
-                        const img = h ? h.img : '';
+                        const awk = !!(h && slot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                        const img = h ? (awk ? h.img2 : h.img) : '';
                         const typeText = (type === 'UP') ? 'สกิลบน' : 'สกิลล่าง';
                         inner = `<div onclick="openSkillModal(${i})" style="width:120px;height:120px;" class="bg-[#0b0e14] border-2 border-gray-600 hover:border-yellow-500 hover:shadow-lg rounded-2xl relative cursor-pointer group overflow-hidden transition-all"><img src="${img}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-500"><div class="absolute top-0 left-0 bg-black/80 text-white text-[10px] px-2 py-1 rounded-br-lg font-bold border-r border-b border-gray-600">Q${i+1}</div><div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent pt-6"><div class="bg-black/50 text-white text-[14px] font-bold text-center py-2 uppercase tracking-wider w-full">${typeText}</div></div></div>`;
                     } else { inner = `<div onclick="openSkillModal(${i})" class="w-24 h-32 border-2 border-red-500 border-dashed rounded-2xl flex items-center justify-center text-red-500 font-bold bg-black/40 cursor-pointer">Empty</div>`; }
@@ -17101,9 +17112,11 @@
                     // et.slots เป็น Object {0:..., 1:...} ต้องวนลูปดึงค่า
                     for(let k=0; k<5; k++) {
                         if (et.slots[k] && et.slots[k].id) {
-                            const h = heroesDB.find(x => String(x.id) === String(et.slots[k].id));
+                            const es = et.slots[k];
+                            const h = heroesDB.find(x => String(x.id) === String(es.id));
                             if(h) {
-                                heroIcons += `<img src="${h.img}" class="w-6 h-6 rounded border border-gray-600 bg-black object-cover -ml-2 first:ml-0 relative z-10">`;
+                                const awk = !!(es.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                                heroIcons += `<img src="${awk ? h.img2 : h.img}" class="w-6 h-6 rounded border ${awk ? 'border-purple-500' : 'border-gray-600'} bg-black object-cover -ml-2 first:ml-0 relative z-10">`;
                             }
                         }
                     }
@@ -17151,8 +17164,9 @@
                 team.slots.forEach((s, sIdx) => {
                     if (s && s.id) {
                         const h = heroesDB.find(x => String(x.id) === String(s.id));
-                        const img = h ? h.img : '';
-                        
+                        const awk = !!(h && s.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                        const img = h ? (awk ? h.img2 : h.img) : '';
+
                         skillOptionsHTML += `
                             <div class="bg-[#111827] p-4 rounded-2xl border border-gray-700 flex items-center gap-4 hover:border-gray-500 transition shadow-lg mb-3">
                                 <div class="shrink-0">
@@ -17475,6 +17489,7 @@
             }
             save3v3Teams();
             render3v3Editor();
+            render3v3TeamsList(); // ✨ อัปเดตรูปย่อในลิสต์ซ้ายให้เป็นรูป Awakening ด้วยทันที
         }
 
         // ❤️ ติ๊กใช้/ไม่ใช้ เครื่องประดับเฉพาะตัว
@@ -17845,23 +17860,32 @@
                 const h = heroesDB.find(hero => String(hero.id) === String(id));
                 return h ? h.img : null;
             };
+            // ✨ คืนรูปฮีโร่ตามสถานะ Awakening ของช่อง: ถ้าเลือก Awakening และมีรูปตื่นรู้ (img2) → ใช้ img2, ไม่งั้นใช้รูปปกติ
+            const getSlotImg = (slot) => {
+                if (!slot || !slot.id) return null;
+                const h = heroesDB.find(hero => String(hero.id) === String(slot.id));
+                if (!h) return null;
+                const awk = !!(slot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                return { img: awk ? h.img2 : h.img, awk: awk };
+            };
 
             // 🟢 [FUNCTION] วาดรูปฮีโร่ 3 ตัว + สัตว์เลี้ยง 1 ตัว (ใช้สำหรับ Counter Team List)
             const renderHeroesAndPets = (teamData, isEnemy) => {
                 const slots = teamData.slots;
 
-                // 1. ดึงฮีโร่ 3 ตัวแรกที่มีข้อมูล
-                let validHeroIds = [];
+                // 1. ดึงฮีโร่ 3 ตัวแรกที่มีข้อมูล (เก็บ slot ทั้งก้อนเพื่อรู้สถานะ Awakening)
+                let validSlots = [];
                 for (let i = 0; i < 5; i++) {
                     let s = Array.isArray(slots) ? slots[i] : (slots ? slots[i] : null);
-                    if (s && s.id) validHeroIds.push(s.id);
+                    if (s && s.id) validSlots.push(s);
                 }
-                const top3 = validHeroIds.slice(0, 3);
+                const top3 = validSlots.slice(0, 3);
 
-                const heroesHTML = top3.map(hid => {
-                    const img = getHeroImg(hid);
-                    const border = isEnemy ? 'border-red-500' : 'border-blue-500';
-                    return img ? `<img src="${img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">` : '';
+                const heroesHTML = top3.map(s => {
+                    const info = getSlotImg(s);
+                    if (!info) return '';
+                    const border = info.awk ? 'border-purple-500' : (isEnemy ? 'border-red-500' : 'border-blue-500');
+                    return `<img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">`;
                 }).join('');
 
                 // 2. ดึงสัตว์เลี้ยงแค่ 1 ตัว (รองรับทั้ง pets array และ pet เดี่ยว)
@@ -17917,15 +17941,16 @@
 
                     // 🟢 DEFENSE mode: แสดงเฉพาะ Heroes (ไม่แสดงสัตว์เลี้ยงในหน้า Gallery)
                     const slots = team.data && team.data.slots ? team.data.slots : [];
-                    let validHeroIds = [];
+                    let validSlots = [];
                     for (let i = 0; i < 5; i++) {
                         let s = Array.isArray(slots) ? slots[i] : (slots ? slots[i] : null);
-                        if (s && s.id) validHeroIds.push(s.id);
+                        if (s && s.id) validSlots.push(s);
                     }
-                    const top3 = validHeroIds.slice(0, 3);
-                    const defenseHeroesHTML = top3.map(hid => {
-                        const img = getHeroImg(hid);
-                        return img ? `<img src="${img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 border-blue-500 bg-black object-cover shadow-md">` : '';
+                    const top3 = validSlots.slice(0, 3);
+                    const defenseHeroesHTML = top3.map(s => {
+                        const info = getSlotImg(s);
+                        if (!info) return '';
+                        return `<img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${info.awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md">`;
                     }).join('');
 
                     cardContent = `
@@ -17940,7 +17965,7 @@
                         </div>
                         <div class="mt-3 bg-black/20 border border-gray-800/60 rounded-lg px-2 py-1.5 min-h-[44px]">
                             <div class="text-[9px] uppercase tracking-wider text-gray-500 mb-0.5">Note</div>
-                            <div class="text-[11px] text-gray-300 leading-snug line-clamp-2">${shortNote || '-'}</div>
+                            <div class="text-[15px] text-gray-300 leading-snug line-clamp-2">${shortNote || '-'}</div>
                         </div>`;
                 }
 
@@ -18371,7 +18396,11 @@
                 enemySlots.forEach(function(s) {
                     if (!s || !s.id) return;
                     var h = heroesDB.find(function(hero) { return String(hero.id) === String(s.id); });
-                    if (h && h.img) heroImgs.push(h.img);
+                    if (!h) return;
+                    // ✨ ถ้าช่องนี้ถูกตั้ง Awakening ในหน้ารูปแบบศัตรู → ใช้รูปตื่นรู้ (img2)
+                    var awk = !!(s.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    var img = awk ? h.img2 : h.img;
+                    if (img) heroImgs.push({ img: img, awk: awk });
                 });
                 return { name: enemy.name || targetName || 'Unknown', heroImgs: heroImgs.slice(0, 3) };
             })() : null;
@@ -18405,10 +18434,13 @@
                     const borderClass = isActive ? 'border-blue-500 bg-blue-900/20 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'border-gray-700 bg-[#1f2937] hover:border-gray-500 opacity-60 hover:opacity-100';
                     
                     const miniIcons = [0,1,2].map(i => {
-                        const s = t.data.slots[i]; 
+                        const s = t.data.slots[i];
                         const hId = s ? s.id : null;
-                        const img = hId ? (heroesDB.find(h=>String(h.id)===String(hId))||{}).img : null;
-                        return img ? `<img src="${img}" style="width:70px; height:70px;" class="rounded border border-gray-600 bg-black">` : '';
+                        const h = hId ? heroesDB.find(hero=>String(hero.id)===String(hId)) : null;
+                        if (!h) return '';
+                        const awk = !!(s.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                        const img = awk ? h.img2 : h.img;
+                        return img ? `<img src="${img}" style="width:70px; height:70px;" class="rounded border ${awk ? 'border-purple-500' : 'border-gray-600'} bg-black">` : '';
                     }).join('');
 
                     return `
@@ -18437,7 +18469,8 @@
                 const s = team.slots.find(x => x && x.pos === posIndex);
                 const h = s ? heroesDB.find(hero => String(hero.id) === String(s.id)) : null;
                 if (h) {
-                    return `<div class="relative rounded-lg border-2 border-red-500 shadow-md overflow-hidden bg-black group transition hover:scale-105 z-10" style="width:70px;height:70px;"><img src="${h.img}" class="w-full h-full object-cover"><div class="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1 font-bold">${posIndex+1}</div></div>`;
+                    const awk = !!(s.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    return `<div class="relative rounded-lg border-2 ${awk ? 'border-purple-500' : 'border-red-500'} shadow-md overflow-hidden bg-black group transition hover:scale-105 z-10" style="width:70px;height:70px;"><img src="${awk ? h.img2 : h.img}" class="w-full h-full object-cover"><div class="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1 font-bold">${posIndex+1}</div></div>`;
                 }
                 return `<div class="rounded-lg border-2 border-dashed border-gray-700 bg-gray-800/30 flex items-center justify-center" style="width:70px;height:70px;"><div class="text-gray-600 text-xs font-bold">${posIndex+1}</div></div>`;
             };
@@ -18485,8 +18518,8 @@
                                 <div class="text-[10px] font-black uppercase tracking-widest text-red-400">Enemy</div>
                                 ${targetPreview && targetPreview.heroImgs && targetPreview.heroImgs.length > 0
                                     ? `<div class="flex items-center gap-1.5">
-                                        ${targetPreview.heroImgs.map(function(img, idx) {
-                                            return `<img src="${img}" class="w-12 h-12 rounded-lg border border-red-500 bg-black object-cover shadow">`;
+                                        ${targetPreview.heroImgs.map(function(o, idx) {
+                                            return `<img src="${o.img}" class="w-12 h-12 rounded-lg border ${o.awk ? 'border-purple-500' : 'border-red-500'} bg-black object-cover shadow">`;
                                         }).join('')}
                                        </div>`
                                     : `<div class="w-12 h-12 rounded-lg border border-dashed border-gray-600 bg-black/40 flex items-center justify-center text-xl">🎯</div>`
@@ -18505,8 +18538,8 @@
                         <div id="mobile-enemy-images" class="flex flex-col items-center justify-center gap-1.5 px-4 py-3 border-t border-gray-800/50">
                             ${targetPreview && targetPreview.heroImgs && targetPreview.heroImgs.length > 0
                                 ? `<div class="flex items-center gap-2">
-                                    ${targetPreview.heroImgs.map(function(img, idx) {
-                                        return `<img src="${img}" class="w-14 h-14 rounded-lg border-2 border-red-500 bg-black object-cover shadow">`;
+                                    ${targetPreview.heroImgs.map(function(o, idx) {
+                                        return `<img src="${o.img}" class="w-14 h-14 rounded-lg border-2 ${o.awk ? 'border-purple-500' : 'border-red-500'} bg-black object-cover shadow">`;
                                     }).join('')}
                                    </div>`
                                 : `<div class="w-14 h-14 rounded-lg border-2 border-dashed border-gray-600 bg-black/40 flex items-center justify-center text-xl">🎯</div>`
@@ -18552,6 +18585,10 @@
                                     let starColor = currentStar >= 13 ? 'text-red-500' : (currentStar >= 7 ? 'text-blue-400' : 'text-yellow-400');
                                     let starLabel = currentStar >= 13 ? '★' : (currentStar >= 7 ? '★'.repeat(currentStar - 6) : '★'.repeat(currentStar));
 
+                                    // ✨ ถ้าติ๊ก Awakening และมีรูปตื่นรู้ (img2) → ใช้ img2 + ขอบม่วง
+                                    const heroAwk = !!(slot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                                    const heroDetailImg = heroAwk ? h.img2 : h.img;
+
                                     const statsHTML = Object.entries(slot.stats || {}).map(([key, val]) => {
                                         if (val <= 0) return ''; 
                                         const isPercent = PERCENT_STATS.includes(key);
@@ -18571,7 +18608,8 @@
                                         <div class="bg-[#1f2937] border border-gray-700 rounded-3xl p-4 shadow-xl flex flex-col md:flex-row gap-3 relative overflow-hidden">
                                             <div class="items-start gap-4 shrink-0 border-b md:border-b-0 md:border-r border-gray-700 pb-4 md:pb-0 md:pr-3 text-center md:text-left">
                                                 <div class="relative shrink-0 mx-auto md:mx-0 mb-2" style="width: 130px; height: 130px;">
-                                                    <img src="${h.img}" class="w-full h-full rounded-2xl border-4 border-gray-500 object-cover bg-black">
+                                                    <img src="${heroDetailImg}" class="w-full h-full rounded-2xl border-4 ${heroAwk ? 'border-purple-500' : 'border-gray-500'} object-cover bg-black">
+                                                    ${heroAwk ? '<div class="absolute top-1 left-1 bg-purple-600 text-white text-[11px] px-1.5 py-0.5 rounded font-bold shadow">✨</div>' : ''}
                                                 </div>
                                                 <div class="text-white font-bold text-xl truncate" style="text-align: center;">${h.name}</div>
                                                 <div class="${starColor} text-base shadow-black drop-shadow-md" style="text-align: center;">${starLabel}</div>
@@ -18626,7 +18664,8 @@
                                                 const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
                                                 const typeText = type === 'UP' ? 'บน' : 'ล่าง';
                                                 const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
-                                                return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border border-gray-600 bg-black overflow-hidden"><img src="${h?h.img:''}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${typeText}</div></div>`;
+                                                const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                                                return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${sqAwk ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${h?(sqAwk?h.img2:h.img):''}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${typeText}</div></div>`;
                                             }).join('<div class="text-gray-600 pt-6 shrink-0">➜</div>') || '<span class="text-gray-500 text-xs">No Data</span>'}
                                         </div>
                                     </div>
@@ -18721,7 +18760,9 @@
                         if(p.slots[i] && p.slots[i].id && count < 3) {
                             const h = heroesDB.find(x => String(x.id) === String(p.slots[i].id));
                             if(h) {
-                                icons += `<img src="${h.img}" class="w-6 h-6 rounded border border-gray-600 bg-black object-cover">`;
+                                const awk = !!(p.slots[i].awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                                const thumb = awk ? h.img2 : h.img;
+                                icons += `<img src="${thumb}" class="w-6 h-6 rounded border ${awk ? 'border-purple-500' : 'border-gray-600'} bg-black object-cover">`;
                                 count++;
                             }
                         }
@@ -18897,11 +18938,19 @@
                 `;
 
                 if (h) {
+                    // ✨ Awakening: กดปุ่ม ✨ มุมซ้ายบนเพื่อสลับเป็นรูปตื่นรู้ (img2) — แสดงเฉพาะตัวที่มีรูป Awakening
+                    const hasAwImg = !!(h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    const isAwk = !!(slot.awakened && hasAwImg);
+                    const displayImg = isAwk ? h.img2 : h.img;
+                    const awBtn = hasAwImg
+                        ? `<div onclick="event.stopPropagation(); toggleEnemySlotAwakening(${pos})" title="${isAwk ? 'ปลด Awakening' : 'ตั้ง Awakening (ใช้รูปตื่นรู้)'}" class="absolute top-0 left-0 z-20 text-[11px] leading-none px-1 py-0.5 rounded-br cursor-pointer font-bold shadow transition ${isAwk ? 'bg-purple-600 text-white' : 'bg-black/60 text-purple-300 hover:bg-purple-700/80'}">✨</div>`
+                        : '';
                     return `
-                        <div ${dragEvents} onclick="openSelector('ENEMY-PATTERN', ${pos}, 'hero')" class="w-16 h-16 md:w-20 md:h-20 rounded-xl border-2 border-red-500 bg-black cursor-pointer relative group shadow-lg overflow-hidden transition transform hover:scale-105 select-none">
-                            <img src="${h.img}" class="w-full h-full object-cover pointer-events-none">
+                        <div ${dragEvents} onclick="openSelector('ENEMY-PATTERN', ${pos}, 'hero')" class="w-16 h-16 md:w-20 md:h-20 rounded-xl border-2 ${isAwk ? 'border-purple-500' : 'border-red-500'} bg-black cursor-pointer relative group shadow-lg overflow-hidden transition transform hover:scale-105 select-none">
+                            <img src="${displayImg}" class="w-full h-full object-cover pointer-events-none">
                             <div class="absolute inset-0 bg-red-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center font-bold text-xs transition text-white pointer-events-none">CHANGE</div>
                             <div class="absolute top-0 right-0 bg-red-600 text-white text-[9px] px-1.5 font-bold rounded-bl shadow pointer-events-none">#${pos+1}</div>
+                            ${awBtn}
                         </div>`;
                 } else {
                     return `
@@ -19004,8 +19053,20 @@
             }
             
             // 🔥 ล้างของเก่าทิ้งก่อนเสมอ เพื่อไม่ให้เบิ้ล
-            wrapper.innerHTML = ''; 
+            wrapper.innerHTML = '';
             wrapper.innerHTML = editorHTML;
+        }
+
+        // ✨ สลับสถานะ Awakening ของตัวละครในช่องทีมศัตรู (ใช้รูป img2 ถ้ามี)
+        function toggleEnemySlotAwakening(pos) {
+            if (currentPatternIdx === -1 || !enemyPatternsDB[currentPatternIdx]) return;
+            const data = enemyPatternsDB[currentPatternIdx];
+            const slot = data.slots[pos];
+            if (!slot || !slot.id) return;
+            const h = heroesDB.find(x => String(x.id) === String(slot.id));
+            if (!h || !h.img2 || h.img2 === DRIVE_IMG_PREFIX) return; // ไม่มีรูป Awakening → กดไม่ได้
+            slot.awakened = !slot.awakened;
+            renderEnemyManager();
         }
 
         // 6. Update & Save Logic
@@ -22470,7 +22531,8 @@
             const s = slots.find(x => x && x.id && x.pos === pos);
             if (!s) return '<div class="rounded-lg border-2 border-dashed border-gray-700 bg-black/30 flex items-center justify-center" style="width:84px;height:84px;"><span class="text-gray-600 text-xs">' + (pos + 1) + '</span></div>';
             const h = heroesDB.find(x => String(x.id) === String(s.id));
-            return '<div class="relative rounded-lg border-2 border-blue-500 overflow-hidden bg-black" style="width:84px;height:84px;"><img src="' + (h ? h.img : '') + '" class="w-full h-full object-cover"></div>';
+            const awk = !!(s.awakened && h && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+            return '<div class="relative rounded-lg border-2 ' + (awk ? 'border-purple-500' : 'border-blue-500') + ' overflow-hidden bg-black" style="width:84px;height:84px;"><img src="' + (h ? (awk ? h.img2 : h.img) : '') + '" class="w-full h-full object-cover">' + (awk ? '<div class="absolute top-0 left-0 bg-purple-600 text-white text-[10px] px-1 rounded-br font-bold">✨</div>' : '') + '</div>';
         };
         const formationHtml = '<div class="flex items-stretch justify-center bg-black/40 rounded-xl border border-gray-800 p-2 gap-3">'
             + '<div class="flex flex-col items-center"><span class="text-sm text-gray-400 font-bold uppercase mb-1">หลัง</span><div class="flex-1 flex flex-col items-center justify-center gap-1.5">' + fmt.back.slice().reverse().map(slotByPos).join('') + '</div></div>'
@@ -22488,7 +22550,8 @@
             const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
             const typeText = type === 'UP' ? 'บน' : 'ล่าง';
             const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
-            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border border-gray-600 bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + (h ? h.img : '') + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + typeText + '</div></div>';
+            const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border ' + (sqAwk ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + (h ? (sqAwk ? h.img2 : h.img) : '') + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + typeText + '</div></div>';
         }).filter(Boolean);
         const skillHtml = skillItems.length
             ? '<div class="roster-skill-grid bg-black/20 p-2 rounded-lg border border-gray-800">' + skillItems.join('') + '</div>'
@@ -22510,7 +22573,10 @@
                 const es = et.slots && et.slots[k];
                 if (es && es.id) {
                     const h = heroesDB.find(x => String(x.id) === String(es.id));
-                    if (h) icons += '<img src="' + h.img + '" class="w-14 h-14 rounded-lg border border-red-500/60 bg-black object-cover" alt="">';
+                    if (h) {
+                        const awk = !!(es.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                        icons += '<img src="' + (awk ? h.img2 : h.img) + '" class="w-14 h-14 rounded-lg border ' + (awk ? 'border-purple-500' : 'border-red-500/60') + ' bg-black object-cover" alt="">';
+                    }
                 }
             }
             let petIcon = '';
