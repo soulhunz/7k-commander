@@ -52,7 +52,7 @@
         }
         .roster-line-head {
             width:100%;
-            font-size: 0.72rem;
+            font-size: 0.78rem;
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
@@ -157,7 +157,7 @@
             justify-content: center;
             background: linear-gradient(135deg, #a855f7, #7c3aed);
             color: #fff;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 900;
             border-radius: 9999px;
             border: 2px solid #c4b5fd;
@@ -168,7 +168,7 @@
             .roster-pet-potential-badge {
                 min-width: 1.35rem;
                 height: 1.35rem;
-                font-size: 10px;
+                font-size: 14px;
             }
         }
         .roster-pet-skill-badge {
@@ -182,7 +182,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 900;
             border-radius: 9999px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.45);
@@ -214,8 +214,23 @@
             .roster-pet-skill-badge {
                 min-width: 1.35rem;
                 height: 1.35rem;
-                font-size: 10px;
+                font-size: 14px;
             }
+        }
+        /* ⚠️ ป้าย "แชร์แหวน" บนการ์ดทีมบุก/ทีมรับ (roster) — กดเพื่อดู dialog ว่าแหวนนี้ใช้ร่วมกับทีมไหน */
+        .roster-card-conflict-badge {
+            flex-shrink: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fde68a;
+            background: rgba(120, 53, 15, 0.55);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            padding: 0.05rem 0.4rem;
+            border-radius: 9999px;
+        }
+        .roster-card-conflict-badge:hover {
+            background: rgba(120, 53, 15, 0.8);
+            border-color: rgba(251, 191, 36, 0.8);
         }
         .roster-attack-team-card {
             border: 1px solid rgba(55, 65, 81, 0.85);
@@ -264,7 +279,7 @@
             padding: 0.35rem 0.5rem;
             border-radius: 0.5rem;
             background: rgba(0, 0, 0, 0.25);
-            font-size: 11px;
+            font-size: 14px;
         }
         .roster-match-item.ok { border-left: 3px solid #22c55e; }
         .roster-match-item.warn { border-left: 3px solid #eab308; }
@@ -295,7 +310,7 @@
             top: 0; left: 0;
             background: #a855f7;
             color: #fff;
-            font-size: 10px;
+            font-size: 14px;
             line-height: 1;
             padding: 2px 3px;
             border-bottom-right-radius: 6px;
@@ -345,7 +360,7 @@
             object-fit: cover;
         }
         .roster-enemy-toggle-btn {
-            font-size: 10px; font-weight: 700;
+            font-size: 14px; font-weight: 700;
             padding: 0.35rem 0.65rem;
             border-radius: 0.5rem;
             border: 1px solid rgba(239, 68, 68, 0.45);
@@ -372,9 +387,9 @@
         .rcm-ring-card.share { border-color: rgba(251, 191, 36, 0.45); background: rgba(120, 53, 15, 0.15); }
         .rcm-ring-card img { width: 4rem; height: 4rem; border-radius: 0.5rem; object-fit: contain; flex-shrink: 0; background: #000; }
         .rcm-ring-card.share img { width: 4.25rem; height: 4.25rem; }
-        .rcm-ring-card-label { font-size: 10px; font-weight: 700; color: #fbbf24; }
-        .rcm-ring-card-name { font-size: 11px; font-weight: 700; color: #f3f4f6; }
-        .rcm-ring-card-status { font-size: 9px; font-weight: 700; }
+        .rcm-ring-card-label { font-size: 14px; font-weight: 700; color: #fbbf24; }
+        .rcm-ring-card-name { font-size: 14px; font-weight: 700; color: #f3f4f6; }
+        .rcm-ring-card-status { font-size: 14px; font-weight: 700; }
         .rcm-ring-card.ok .rcm-ring-card-status { color: #4ade80; }
         .rcm-ring-card.miss .rcm-ring-card-status { color: #f87171; }
         .rcm-ring-section { }
@@ -409,7 +424,7 @@
             border-radius: 0.375rem;
             border: 1px solid rgba(55, 65, 81, 0.5);
         }
-        .rcm-share-stat-page-label { font-size: 0.75rem; color: #9ca3af; font-weight: 700; text-transform: uppercase; line-height: 1.2; flex-shrink: 0; }
+        .rcm-share-stat-page-label { font-size: 0.78rem; color: #9ca3af; font-weight: 700; text-transform: uppercase; line-height: 1.2; flex-shrink: 0; }
         .rcm-share-stat-page-val { font-size: 0.875rem; font-family: ui-monospace, monospace; font-weight: 700; margin-top: 0; text-align: right; word-break: break-word; }
         .rcm-share-stat-page-val.is-percent { color: #fdba74; }
         .rcm-share-stat-page-val.is-flat { color: #fff; }
@@ -429,7 +444,7 @@
             border-radius: 0.55rem;
             padding: 0.55rem 0.65rem;
         }
-        .rcm-share-stat-label { font-size: 9px; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+        .rcm-share-stat-label { font-size: 14px; font-weight: 800; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
         .rcm-share-stat-val { font-size: 1rem; font-weight: 800; color: #fbbf24; font-family: ui-monospace, monospace; margin-top: 0.15rem; }
         .rcm-share-gear-row {
             display: flex;
@@ -471,7 +486,7 @@
         .rcm-share-gear-item.gear-ring.is-base .rcm-share-gear-label { color: #fb923c; }
         .rcm-share-gear-item.gear-ring.is-stack .rcm-share-gear-label { color: #c4b5fd; }
         .rcm-share-gear-link-note {
-            font-size: 8px;
+            font-size: 14px;
             font-weight: 700;
             color: #d8b4fe;
             text-align: center;
@@ -479,8 +494,8 @@
             line-height: 1.2;
             margin-top: -0.15rem;
         }
-        .rcm-share-gear-label { font-size: 9px; font-weight: 800; color: #9ca3af; text-transform: uppercase; text-align: center; }
-        .rcm-share-gear-name { font-size: 10px; font-weight: 700; color: #e5e7eb; text-align: center; max-width: 5.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rcm-share-gear-label { font-size: 14px; font-weight: 800; color: #9ca3af; text-transform: uppercase; text-align: center; }
+        .rcm-share-gear-name { font-size: 14px; font-weight: 700; color: #e5e7eb; text-align: center; max-width: 5.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         /* === แบ่งกรอบแสดงผลตามประเภท === */
         .rcm-gear-section {
             border: 1px solid rgba(75, 85, 99, 0.55);
@@ -494,7 +509,7 @@
             display: flex;
             align-items: center;
             gap: 0.35rem;
-            font-size: 11px;
+            font-size: 14px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -538,14 +553,14 @@
             border-radius: 0.55rem;
         }
         .planner-swap-cond-label {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 800;
             color: #fbbf24;
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
         .planner-swap-cond-chip {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 700;
             color: #fde68a;
             background: rgba(120, 53, 15, 0.45);
@@ -586,7 +601,7 @@
             border: 1px solid rgba(251, 191, 36, 0.45);
         }
         .planner-swap-ring-name {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 700;
             color: #f3f4f6;
             text-align: center;
@@ -668,7 +683,7 @@
             height: 1.7rem;
         }
         .rcm-pick-name {
-            font-size: 10.5px;
+            font-size: 14px;
             font-weight: 700;
             color: #f3f4f6;
             text-align: center;
@@ -685,7 +700,7 @@
             display: flex;
             align-items: center;
             gap: 0.3rem;
-            font-size: 9.5px;
+            font-size: 14px;
             font-weight: 700;
             padding: 0.18rem 0.35rem;
             border-radius: 0.3rem;
@@ -799,7 +814,7 @@
         }
         .rcm-share-gear-item.is-empty .rcm-share-gear-name { color: #6b7280; font-style: italic; }
         .rcm-gear-section-empty {
-            font-size: 11px;
+            font-size: 14px;
             color: #9ca3af;
             font-style: italic;
             padding: 0.35rem 0.15rem;
@@ -825,7 +840,7 @@
             border-radius: 0.5rem;
             border: 1px solid rgba(251, 191, 36, 0.45);
             background: rgba(0, 0, 0, 0.45);
-            font-size: 10px;
+            font-size: 14px;
             color: #fde68a;
         }
         .roster-ring-pool-chip.used {
@@ -893,7 +908,6 @@
             border: 1px dashed rgba(75, 85, 99, 0.4) !important;
         }
         .roster-planner-team-card {
-            cursor: pointer;
             transition: border-color 0.2s, opacity 0.2s, transform 0.15s;
             padding: 0.65rem 0.7rem !important;
             border-radius: 0.65rem;
@@ -906,7 +920,7 @@
             margin-bottom: 0.35rem;
         }
         .roster-planner-team-card .roster-planner-card-title {
-            font-size: 11px;
+            font-size: 14px;
             font-weight: 700;
             color: #fff;
             line-height: 1.25;
@@ -921,7 +935,7 @@
             margin-bottom: 0.35rem;
         }
         .roster-planner-team-card .roster-planner-card-badge span {
-            font-size: 8px !important;
+            font-size: 14px !important;
             padding: 0.1rem 0.35rem !important;
             line-height: 1.2;
             display: inline-block;
@@ -941,7 +955,7 @@
             border-top: none;
         }
         .roster-planner-team-card .roster-planner-section-label {
-            font-size: 9px;
+            font-size: 14px;
             margin-bottom: 0.35rem;
             letter-spacing: 0.05em;
             font-weight: 700;
@@ -1016,7 +1030,7 @@
             right: -6px;
             background: #38bdf8;
             color: #0b1220;
-            font-size: 0.65rem;
+            font-size: 0.78rem;
             font-weight: 800;
             line-height: 1;
             width: 1.1rem;
@@ -1035,7 +1049,7 @@
             gap: 0.6rem;
             padding: 0.5rem 0.75rem;
             border-radius: 0.5rem;
-            font-size: 0.72rem;
+            font-size: 0.78rem;
             border: 1px solid;
         }
         .roster-swap-hint .roster-swap-hint-icon { font-size: 1rem; line-height: 1; flex-shrink: 0; }
@@ -1059,7 +1073,7 @@
             height: 1.85rem;
         }
         .roster-planner-team-card .roster-team-slot-star {
-            font-size: 9px;
+            font-size: 14px;
             padding: 2px 0;
         }
         .roster-planner-team-card .roster-planner-assign-rings {
@@ -1067,7 +1081,7 @@
             gap: 0.2rem;
         }
         .roster-planner-team-card .roster-planner-ring-tag {
-            font-size: 7px;
+            font-size: 14px;
             padding: 0.1rem 0.3rem;
         }
         .roster-planner-team-card.planner-selected {
@@ -1092,7 +1106,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
+            font-size: 14px;
             flex-shrink: 0;
             margin-top: 1px;
         }
@@ -1108,14 +1122,14 @@
             margin-top: 0.5rem;
         }
         .roster-planner-ring-tag {
-            font-size: 9px;
+            font-size: 14px;
             padding: 0.15rem 0.4rem;
             border-radius: 0.35rem;
             background: rgba(251, 191, 36, 0.15);
             border: 1px solid rgba(251, 191, 36, 0.35);
             color: #fde68a;
         }
-        .mini-ring-slot { width: 4rem; height: 4rem; border-radius: 0.75rem; border: 2px dashed #4b5563; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #6b7280; background: rgba(0,0,0,0.35); cursor: pointer; transition: border-color 0.15s; flex-shrink: 0; }
+        .mini-ring-slot { width: 4rem; height: 4rem; border-radius: 0.75rem; border: 2px dashed #4b5563; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; color: #6b7280; background: rgba(0,0,0,0.35); cursor: pointer; transition: border-color 0.15s; flex-shrink: 0; }
         .mini-ring-slot:hover { border-color: #eab308; }
         .mini-ring-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 0.625rem; }
         .mini-ring-slot.border-yellow-500\/70 { border-style: solid; }
@@ -1276,7 +1290,7 @@
         .t3v3-gear-group.t3v3-gear-equip { border-color: rgba(34, 211, 238, 0.4); background: rgba(8, 51, 68, 0.2); }
         .t3v3-gear-group.t3v3-gear-acc { border-color: rgba(236, 72, 153, 0.4); background: rgba(131, 24, 67, 0.12); }
         .t3v3-gear-group-title {
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.07em;
@@ -1308,7 +1322,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.78rem;
             font-weight: 800;
             color: #9ca3af;
             background: rgba(0,0,0,0.35);
@@ -1331,7 +1345,7 @@
         .t3v3-item-slot.t3v3-acc-slot:hover { border-color: #ec4899; }
         .t3v3-item-slot.t3v3-acc-slot.filled { border-style: solid; border-color: rgba(236, 72, 153, 0.85); }
         .t3v3-item-slot .t3v3-slot-icon { font-size: 1.25rem; line-height: 1; }
-        .t3v3-item-slot .t3v3-slot-label { font-size: 8px; font-weight: 900; letter-spacing: 0.05em; margin-top: 2px; }
+        .t3v3-item-slot .t3v3-slot-label { font-size: 14px; font-weight: 900; letter-spacing: 0.05em; margin-top: 2px; }
         .t3v3-pet-potential-badge {
             position: absolute;
             top: -4px;
@@ -1345,7 +1359,7 @@
             justify-content: center;
             background: linear-gradient(135deg, #a855f7, #7c3aed);
             color: #fff;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 900;
             border-radius: 9999px;
             border: 2px solid #c4b5fd;
@@ -1364,7 +1378,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 900;
             border-radius: 9999px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.45);
@@ -1380,7 +1394,7 @@
             left: 0;
             right: 0;
             text-align: center;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 800;
             padding: 1px 0;
             background: rgba(0, 0, 0, 0.75);
@@ -1428,7 +1442,7 @@
         .member-roster-list-item-stats {
             display: flex;
             align-items: center;
-            font-size: 0.625rem;
+            font-size: 0.78rem;
             color: #9ca3af;
             white-space: nowrap;
             padding:10px 0px 0px;
@@ -1459,7 +1473,7 @@
             padding: 0.65rem 0.55rem 0.7rem;
         }
         .roster-nav-group-label {
-            font-size: 10px;
+            font-size: 14px;
             font-weight: 800;
             letter-spacing: 0.08em;
             text-transform: uppercase;
@@ -1479,7 +1493,7 @@
             text-align: left;
             padding: 0.65rem 0.75rem;
             border-radius: 0.55rem;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 700;
             transition: background 0.15s, color 0.15s, box-shadow 0.15s;
             color: #9ca3af;
@@ -1563,7 +1577,7 @@
             border-bottom: 1px solid rgba(55, 65, 81, 0.65);
         }
         .roster-side-nav-head-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 800;
             color: #e5e7eb;
             letter-spacing: 0.04em;
@@ -1625,14 +1639,14 @@
             max-width: 55%;
         }
         .roster-profile-guild-badge .label {
-            font-size: 9px;
+            font-size: 14px;
             font-weight: 800;
             letter-spacing: 0.06em;
             text-transform: uppercase;
             color: #6b7280;
         }
         .roster-profile-guild-badge .value {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 700;
             color: #e5e7eb;
             line-height: 1.3;
@@ -1670,7 +1684,7 @@
             padding: 0.2rem;
         }
         .ctx-roster-preview-name {
-            font-size: 11px;
+            font-size: 14px;
             font-weight: 700;
             color: #e5e7eb;
             text-align: center;
@@ -1716,22 +1730,22 @@
         .menu-item { cursor: pointer; padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; color: #9ca3af; transition: 0.2s; margin-bottom: 2px; display: flex; align-items: center; gap: 10px; }
         .menu-item:hover { background: #1f2937; color: white; }
         .menu-item.active { background: #1d4ed8; color: white; font-weight: 600; box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3); }
-        .menu-section-title { font-size: 0.7rem; font-weight: bold; color: #6b7280; text-transform: uppercase; margin: 16px 0 6px 12px; letter-spacing: 0.05em; }
+        .menu-section-title { font-size: 0.78rem; font-weight: bold; color: #6b7280; text-transform: uppercase; margin: 16px 0 6px 12px; letter-spacing: 0.05em; }
         
         /* Castle & Buttons */
         .castle-btn { padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; background: #1f2937; color: #9ca3af; border: 1px solid #374151; transition: 0.2s; white-space: nowrap; }
         .castle-btn:hover { background: #374151; color: white; border-color: #4b5563; }
         .castle-btn.active { background: rgba(37, 99, 235, 0.2); color: #60a5fa; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
-        .castle-group-label { font-size: 0.7rem; color: #6b7280; font-weight: bold; text-transform: uppercase; margin-right: 10px; min-width: 60px; display: inline-block; }
+        .castle-group-label { font-size: 0.78rem; color: #6b7280; font-weight: bold; text-transform: uppercase; margin-right: 10px; min-width: 60px; display: inline-block; }
 
         /* Skill Box Styling */
         .skill-display { font-size: 14px; line-height: 1.6; color: #e2e8f0; white-space: pre-wrap; }
         .sb-green { margin-top: 8px; border-radius: 6px; overflow: hidden; background: #d1fae5; border: 1px solid #059669; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .sb-green .sb-head { background: #10b981; padding: 4px 10px; font-size: 11px; font-weight: bold; color: #fff; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.1); }
-        .sb-green .sb-content { padding: 8px 10px; font-size: 13px; color: #064e3b; font-weight: 600; }
+        .sb-green .sb-head { background: #10b981; padding: 4px 10px; font-size: 14px; font-weight: bold; color: #fff; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .sb-green .sb-content { padding: 8px 10px; font-size: 14px; color: #064e3b; font-weight: 600; }
         .sb-purple { margin-top: 8px; border-radius: 6px; overflow: hidden; background: #f3e8ff; border: 1px solid #7c3aed; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .sb-purple .sb-head { background: #8b5cf6; padding: 4px 10px; font-size: 11px; font-weight: bold; color: #fff; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.1); }
-        .sb-purple .sb-content { padding: 8px 10px; font-size: 13px; color: #4c1d95; font-weight: 600; }
+        .sb-purple .sb-head { background: #8b5cf6; padding: 4px 10px; font-size: 14px; font-weight: bold; color: #fff; text-transform: uppercase; border-bottom: 1px solid rgba(0,0,0,0.1); }
+        .sb-purple .sb-content { padding: 8px 10px; font-size: 14px; color: #4c1d95; font-weight: 600; }
 
         /* General UI Elements */
         .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; flex-direction: column; gap: 20px; backdrop-filter: blur(5px); }
@@ -1747,7 +1761,7 @@
         .slot { width: 90px; height: 90px; background: #0d1117; border: 2px dashed #4b5563; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: 0.2s; user-select: none; }
         .slot.filled { border: 2px solid #fbbf24; background: #000; border-style: solid; }
         .slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; pointer-events: none; }
-        .ring-trigger { position: absolute; top: -10px; left: -10px; width: 28px; height: 28px; border-radius: 50%; border: 2px dashed #4b5563; background: #111827; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; color: #4b5563; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .ring-trigger { position: absolute; top: -10px; left: -10px; width: 28px; height: 28px; border-radius: 50%; border: 2px dashed #4b5563; background: #111827; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; color: #4b5563; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .ring-trigger:hover { border-color: #fbbf24; color: #fbbf24; transform: scale(1.1); }
         .ring-trigger.equipped { border-style: solid; background: #000; color: transparent; overflow: hidden; }
         .ring-trigger.equipped img { width: 100%; height: 100%; object-fit: cover; }
@@ -1765,7 +1779,7 @@
             background: #1f2937; 
             border: 1px solid #4b5563; 
             border-radius: 3px; 
-            font-size: 10px; /* ปรับขนาดฟอนต์ */
+            font-size: 14px; /* ปรับขนาดฟอนต์ */
             font-weight: 800; 
             cursor: pointer; 
             display: flex; 
@@ -1775,27 +1789,27 @@
         }
         .skill-btn.active { background: #fbbf24; color: black; border-color: #fbbf24; }
         
-        .pet-slot { width: 60px; height: 60px; border-radius: 50%; border: 2px dashed #a78bfa; margin-top: auto; margin-bottom: auto; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #a78bfa; position: relative; background: #0d1117; cursor: pointer; transition: 0.2s; }
+        .pet-slot { width: 60px; height: 60px; border-radius: 50%; border: 2px dashed #a78bfa; margin-top: auto; margin-bottom: auto; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #a78bfa; position: relative; background: #0d1117; cursor: pointer; transition: 0.2s; }
         .pet-slot:hover { border-color: #c4b5fd; color: white; }
         .pet-slot.filled { border: 2px solid #8b5cf6; }
         .pet-slot img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; pointer-events: none; }
         
-        .form-btn { font-size: 10px; padding: 4px; border: 1px solid #4b5563; border-radius: 4px; color: #9ca3af; cursor: pointer; background: #0d1117; text-align: center; width: 100%; }
+        .form-btn { font-size: 14px; padding: 4px; border: 1px solid #4b5563; border-radius: 4px; color: #9ca3af; cursor: pointer; background: #0d1117; text-align: center; width: 100%; }
         .form-btn.active { background: #1d4ed8; color: white; border-color: #3b82f6; font-weight: bold; }
 
         /* Manager & Inputs */
         .manager-list-item { display: flex; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; gap: 10px; }
         .manager-list-item:hover { background: #1f2937; }
         .manager-list-item.active { background: #1d4ed8; border-color: #3b82f6; }
-        .input-group label { display: block; font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: bold; text-transform: uppercase; }
-        .input-group input, .input-group select, .input-group textarea { width: 100%; background: #0d1117; border: 1px solid #374151; padding: 8px; border-radius: 6px; color: white; font-size: 13px; outline: none; }
+        .input-group label { display: block; font-size: 14px; color: #9ca3af; margin-bottom: 4px; font-weight: bold; text-transform: uppercase; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; background: #0d1117; border: 1px solid #374151; padding: 8px; border-radius: 6px; color: white; font-size: 14px; outline: none; }
         .input-group textarea { font-family: monospace; line-height: 1.4; resize: vertical; }
         .skill-input-container { border: 1px solid #374151; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
-        .si-header { background: #1f2937; padding: 8px 12px; font-size: 12px; font-weight: bold; color: #d1d5db; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
+        .si-header { background: #1f2937; padding: 8px 12px; font-size: 14px; font-weight: bold; color: #d1d5db; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
         .si-section { padding: 10px; border-top: 1px solid #374151; }
         .si-green-bg { background: rgba(6, 78, 59, 0.3); border-color: #064e3b; }
         .si-purple-bg { background: rgba(88, 28, 135, 0.3); border-color: #581c87; }
-        .builder-textarea { width: 100%; background: #0d1117; border: 1px solid #374151; border-radius: 6px; padding: 8px; color: #e2e8f0; font-family: monospace; font-size: 12px; min-height: 60px; outline: none; }
+        .builder-textarea { width: 100%; background: #0d1117; border: 1px solid #374151; border-radius: 6px; padding: 8px; color: #e2e8f0; font-family: monospace; font-size: 14px; min-height: 60px; outline: none; }
         .builder-textarea:focus { border-color: #3b82f6; }
 
         /* Gallery Grid */
@@ -1804,10 +1818,10 @@
         .hero-card:hover { transform: scale(1.05); border-color: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); z-index: 10; }
         .hc-img { width: 100%; height: 100%; object-fit: cover; background: #000; }
         .hc-name-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0)); padding: 15px 4px 4px 4px; text-align: center; }
-        .hc-name-text { color: white; font-size: 10px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px black; }
+        .hc-name-text { color: white; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px black; }
 
         /* Filter Styles */
-        .filter-btn { padding: 4px 10px; font-size: 11px; border-radius: 20px; border: 1px solid #374151; color: #9ca3af; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .filter-btn { padding: 4px 10px; font-size: 14px; border-radius: 20px; border: 1px solid #374151; color: #9ca3af; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .filter-btn:hover { background: #1f2937; color: white; }
         .filter-btn.active { background: #3b82f6; color: white; border-color: #2563eb; font-weight: bold; }
         .tab-btn { padding: 8px 16px; font-weight: bold; color: #6b7280; border-bottom: 2px solid transparent; cursor: pointer; transition: 0.2s; }
@@ -1830,22 +1844,22 @@
         .tier-item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
         .view-mode .tier-item { cursor: pointer; width: 60px; height: 60px; }
         .view-mode .tier-row { min-height: 100px; }
-        .mode-btn { font-size: 12px; padding: 4px 12px; border-radius: 6px; font-weight: bold; color: #6b7280; transition: 0.2s; }
+        .mode-btn { font-size: 14px; padding: 4px 12px; border-radius: 6px; font-weight: bold; color: #6b7280; transition: 0.2s; }
         .mode-btn:hover { color: white; background: rgba(255,255,255,0.1); }
         .mode-btn.active { background: #2563eb; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
         /* Other Styles */
         .log-table { width: 100%; text-align: left; border-collapse: separate; border-spacing: 0 4px; }
-        .log-table th { font-size: 12px; color: #6b7280; padding: 10px; text-transform: uppercase; }
+        .log-table th { font-size: 14px; color: #6b7280; padding: 10px; text-transform: uppercase; }
         .log-row { background: #161b22; transition: 0.2s; }
         .log-row:hover { background: #1f2937; }
-        .log-cell { padding: 12px 10px; font-size: 13px; border-top: 1px solid #374151; border-bottom: 1px solid #374151; }
+        .log-cell { padding: 12px 10px; font-size: 14px; border-top: 1px solid #374151; border-bottom: 1px solid #374151; }
         .log-cell:first-child { border-left: 1px solid #374151; border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
         .log-cell:last-child { border-right: 1px solid #374151; border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-        .status-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; }
+        .status-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 14px; font-weight: bold; }
         .status-pill.defeat { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
         .status-pill.reset { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid #3b82f6; }
-        .sync-badge { font-size: 12px; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; border: 1px solid; }
+        .sync-badge { font-size: 14px; padding: 6px 12px; border-radius: 20px; font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; border: 1px solid; }
         .sync-cloud { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: #059669; }
         .sync-cloud.offline { background: rgba(239, 68, 68, 0.1); color: #f87171; border-color: #b91c1c; }
         /* แก้ไข Class นี้ */
@@ -1882,7 +1896,7 @@
             width: 100%;
             text-align: left;
             padding: 8px 12px;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #e5e7eb;
             display: flex;
@@ -1908,7 +1922,7 @@
             border-radius: 9999px;
             background: #22c55e;
             color: #fff;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 800;
             display: flex;
             align-items: center;
@@ -1918,19 +1932,19 @@
         }
         .selector-card img { width: 100%; height: 100%; object-fit: cover; }
         .selector-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.75); padding: 4px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
-        .selector-text { font-size: 10px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+        .selector-text { font-size: 14px; font-weight: bold; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
         .selector-badge { position: absolute; top: 4px; right: 4px; z-index: 5; transform: scale(0.85); transform-origin: top right; }
-        .selector-category-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #9ca3af; padding: 8px 4px; margin-top: 10px; border-bottom: 1px solid #374151; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .selector-category-title { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #9ca3af; padding: 8px 4px; margin-top: 10px; border-bottom: 1px solid #374151; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .selector-grid-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; margin-bottom: 16px; }
         
         .detail-row { display: flex; border-bottom: 1px solid #374151; padding: 12px 0; }
-        .detail-label { width: 100px; font-size: 12px; color: #9ca3af; font-weight: bold; flex-shrink: 0; }
+        .detail-label { width: 100px; font-size: 14px; color: #9ca3af; font-weight: bold; flex-shrink: 0; }
         .detail-val { flex: 1; }
 
         #contextMenu { display: none; position: absolute; z-index: 9999; background: #161b22; border: 1px solid #30363d; padding: 10px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); min-width: 200px; }
         #textEditorMenu { display: none; position: absolute; z-index: 9999; background: #1f2937; border: 1px solid #4b5563; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); min-width: 150px; overflow: hidden; }
         .ctx-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 8px; }
-        .ctx-btn { height: 28px; border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid; display: flex; align-items: center; justify-content: center; }
+        .ctx-btn { height: 28px; border-radius: 4px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid; display: flex; align-items: center; justify-content: center; }
         .ctx-btn.red { background: rgba(239,68,68,0.1); border-color: #7f1d1d; color: #fca5a5; }
         .ctx-btn.blue { background: rgba(56,189,248,0.1); border-color: #0c4a6e; color: #7dd3fc; }
         .ctx-btn.yellow { background: rgba(250,204,21,0.1); border-color: #713f12; color: #fde047; width: 100%; }
@@ -1944,7 +1958,7 @@
         .ring-option { padding: 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; transition: 0.2s; }
         .ring-option:hover { background: #21262d; border-color: #30363d; }
         .ring-option img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333; }
-        .editor-menu-item { padding: 8px 12px; cursor: pointer; font-size: 12px; font-weight: bold; color: #e5e7eb; display: flex; align-items: center; gap: 8px; transition: 0.1s; }
+        .editor-menu-item { padding: 8px 12px; cursor: pointer; font-size: 14px; font-weight: bold; color: #e5e7eb; display: flex; align-items: center; gap: 8px; transition: 0.1s; }
         .editor-menu-item:hover { background: #374151; }
         .color-dot { width: 10px; height: 10px; border-radius: 50%; }
 
@@ -1956,10 +1970,10 @@
         .dmg-ice { color: #7dd3fc; font-weight: bold; text-shadow: 0 0 5px rgba(125, 211, 252, 0.5); }
 
         /* --- BATTLE RECORDER STYLES --- */
-        .recorder-table th { font-size: 10px; color: #6b7280; text-transform: uppercase; padding: 4px; }
+        .recorder-table th { font-size: 14px; color: #6b7280; text-transform: uppercase; padding: 4px; }
         .recorder-input { 
             width: 100%; background: #0d1117; border: 1px solid #374151; 
-            border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 11px; outline: none;
+            border-radius: 4px; padding: 4px 8px; color: #fff; font-size: 14px; outline: none;
         }
         .recorder-input:focus { border-color: #3b82f6; background: #1f2937; }
         .autocomplete-list {
@@ -1968,7 +1982,7 @@
             max-height: 150px; overflow-y: auto; z-index: 50; display: none;
         }
         .autocomplete-item {
-            padding: 6px 8px; font-size: 11px; cursor: pointer; color: #d1d5db; display: flex; align-items: center; gap: 8px;
+            padding: 6px 8px; font-size: 14px; cursor: pointer; color: #d1d5db; display: flex; align-items: center; gap: 8px;
         }
         .autocomplete-item:hover, .autocomplete-item.selected { background: #3b82f6; color: white; }
         .autocomplete-item img { width: 20px; height: 20px; border-radius: 4px; background: black; }
@@ -1981,7 +1995,7 @@
             background: #000;
             color: #4ade80; /* สีเขียว */
             border: 1px solid #22c55e;
-            font-size: 9px;
+            font-size: 14px;
             font-weight: bold;
             padding: 1px 4px;
             border-radius: 4px;
@@ -2051,7 +2065,7 @@
 
         .ctx-item {
             padding: 10px 15px;
-            font-size: 12px;
+            font-size: 14px;
             color: #c9d1d9;
             cursor: pointer;
             display: flex;
@@ -2082,7 +2096,7 @@
             border: 1px solid #30363d;
             padding: 2px 6px 2px 2px;
             border-radius: 20px;
-            font-size: 10px;
+            font-size: 14px;
             color: #8b949e;
         }
         .skill-node img {
@@ -2091,7 +2105,7 @@
             border-radius: 50%;
             border: 1px solid #30363d;
         }
-        .skill-arrow { color: #58a6ff; font-size: 10px; }
+        .skill-arrow { color: #58a6ff; font-size: 14px; }
 
         /* --- BUTTON CLEANUP --- */
         /* ปุ่มจองสกิลแบบไม่มีพื้นหลัง */
@@ -2238,7 +2252,7 @@
         .ctx-option {
             padding: 8px 12px;
             color: #c9d1d9;
-            font-size: 12px;
+            font-size: 14px;
             cursor: pointer;
             border-radius: 4px;
             display: flex;
@@ -2470,11 +2484,11 @@
         .rec-slot-input {
             position: absolute; inset: 0; width: 100%; height: 100%;
             background: transparent; border: none; outline: none;
-            text-align: center; color: white; font-weight: bold; font-size: 12px; /* 🟢 ตัวใหญ่ขึ้น */
+            text-align: center; color: white; font-weight: bold; font-size: 14px; /* 🟢 ตัวใหญ่ขึ้น */
             z-index: 10; text-shadow: 0 1px 3px black;
         }
         .rec-slot-input:focus { background: rgba(0, 0, 0, 0.85); color: #fbbf24; border-radius: 10px 10px 0 0;}
-        .rec-slot-input::placeholder { color: #6b7280; font-weight: normal; font-size: 11px; }
+        .rec-slot-input::placeholder { color: #6b7280; font-weight: normal; font-size: 14px; }
 
         /* List รายชื่อใหญ่ขึ้น */
         .autocomplete-list {
@@ -2595,6 +2609,24 @@
             background-color: rgba(255, 255, 255, 0.1) !important;
             transform: scale(1.1) !important;
             box-shadow: 0 0 15px rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* === ขนาดฟอนต์ขั้นต่ำ 14px ทั้งโปรแกรม ===
+           Tailwind จะสร้างคลาส .text-[8px] / .text-xs ฯลฯ ตอนรันไทม์ (ไม่อยู่ในไฟล์นี้)
+           จึง override ที่นี่ด้วย !important เพื่อดันทุกคลาสที่เล็กกว่า 14px ขึ้นเป็น 14px
+           ใช้ [class*="..."] เพื่อให้ครอบคลุม responsive variants เช่น md:text-[10px] ด้วย */
+        [class*="text-[7px]"],
+        [class*="text-[8px]"],
+        [class*="text-[9px]"],
+        [class*="text-[10px]"],
+        [class*="text-[10.5px]"],
+        [class*="text-[11px]"],
+        [class*="text-[11.5px]"],
+        [class*="text-[12px]"],
+        [class*="text-[13px]"],
+        [class*="text-[13.5px]"],
+        [class*="text-xs"] {
+            font-size: 14px !important;
         }
     </style>
 </head>
@@ -3182,6 +3214,8 @@
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">🔍</span>
                     <input type="text" id="enemy-search" oninput="renderEnemyPatternGrid()" placeholder="ค้นหาทีมศัตรู / ชื่อตัวละคร..." class="w-full bg-[#111827] border border-gray-700 text-white text-sm rounded-xl pl-9 pr-3 py-2.5 outline-none focus:border-red-500 transition shadow-inner">
                 </div>
+                <!-- 🟢 ตัวกรองด้วยฮีโร่ (สูงสุด 3) — โชว์เฉพาะทีมศัตรูที่มีฮีโร่ที่เลือกครบ -->
+                <div id="enemy-hero-filter" class="mt-3"></div>
             </div>
 
             <div class="flex-1 overflow-y-auto custom-scroll px-6 pb-8">
@@ -3215,6 +3249,27 @@
                         <button onclick="closeEnemyPatternModal()" class="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-bold transition">ปิด</button>
                         <button onclick="saveEnemyPatterns(true)" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow-lg">💾 บันทึก (Save)</button>
                     </div>
+                </footer>
+            </div>
+        </div>
+
+        <!-- 🟢 Picker เลือกฮีโร่สำหรับ "ตัวกรอง" หน้ารูปแบบศัตรู (สูงสุด 3) -->
+        <div id="enemyHeroFilterModal" class="modal-overlay" style="z-index: 250;">
+            <div class="modal-content" style="width: 760px; max-width: 95%;">
+                <header class="flex justify-between items-center px-6 py-4 border-b border-gray-800 bg-[#111827] flex-shrink-0">
+                    <div class="min-w-0">
+                        <div class="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-0.5">Filter by Hero</div>
+                        <h3 class="text-lg font-black text-white">เลือกฮีโร่กรองทีมศัตรู <span class="text-xs font-normal text-gray-400">(สูงสุด 3 ตัว)</span></h3>
+                    </div>
+                    <button onclick="closeEnemyHeroFilterPicker()" class="text-gray-400 hover:text-white hover:bg-red-600/80 rounded-full w-9 h-9 flex items-center justify-center transition text-lg flex-shrink-0">✕</button>
+                </header>
+                <div class="p-4 flex-shrink-0 border-b border-gray-800">
+                    <input type="text" id="enemy-filter-hero-search" oninput="renderEnemyHeroFilterPickerGrid()" placeholder="ค้นหาฮีโร่..." class="w-full bg-[#0d1117] border border-gray-700 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-red-500 transition">
+                </div>
+                <div id="enemy-filter-hero-grid" class="overflow-y-auto custom-scroll p-4 flex-1 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"></div>
+                <footer class="flex justify-end gap-2 px-6 py-3 border-t border-gray-800 bg-[#111827] flex-shrink-0">
+                    <button onclick="clearEnemyFilterHeroes()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-bold transition">ล้างทั้งหมด</button>
+                    <button onclick="closeEnemyHeroFilterPicker()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow-lg">เสร็จ</button>
                 </footer>
             </div>
         </div>
@@ -4975,6 +5030,107 @@
         let enemyPatternsDB = JSON.parse(localStorage.getItem('7k_enemy_patterns')) || [];
         let allEnemyPatternsDB = null; // 🟢 เก็บข้อมูลดิบทั้งหมด (ไม่กรอง)
         let currentPatternIdx = -1;
+        let enemyFilterHeroIds = []; // 🎯 ฮีโร่ที่ใช้กรองหน้ารูปแบบศัตรู (สูงสุด 3)
+
+        // นับว่าฮีโร่ id นี้อยู่ในรูปแบบศัตรูกี่ทีม (ตาม guild ที่เห็นได้)
+        function countEnemyPatternsWithHero(heroId) {
+            const hid = String(heroId);
+            return filterByUserGuild(enemyPatternsDB).filter(p => {
+                if (!p.slots) return false;
+                return Object.values(p.slots).some(s => s && s.id && String(s.id) === hid);
+            }).length;
+        }
+
+        // แถบตัวกรองฮีโร่ (ชิปฮีโร่ที่เลือก + ปุ่มเพิ่ม)
+        function renderEnemyHeroFilter() {
+            const box = document.getElementById('enemy-hero-filter');
+            if (!box) return;
+            let chips = '';
+            enemyFilterHeroIds.forEach(id => {
+                const h = heroesDB.find(x => String(x.id) === String(id));
+                if (!h) return;
+                const cnt = countEnemyPatternsWithHero(id);
+                chips += `<span class="inline-flex items-center gap-1.5 bg-red-900/30 border border-red-700/60 rounded-lg pl-1 pr-2 py-1 text-xs text-red-200">
+                    <img src="${h.img}" class="w-7 h-7 rounded-md object-cover border border-red-600/50">
+                    <span class="font-bold">${h.name}</span>
+                    <span class="text-[10px] text-amber-300">(${cnt} ทีม)</span>
+                    <button onclick="removeEnemyFilterHero('${String(id).replace(/'/g,"\\'")}')" class="ml-0.5 text-red-300 hover:text-white font-bold">✕</button>
+                </span>`;
+            });
+            const canAdd = enemyFilterHeroIds.length < 3;
+            const addBtn = `<button onclick="openEnemyHeroFilterPicker()" ${canAdd?'':'disabled'} class="inline-flex items-center gap-1 ${canAdd?'bg-[#111827] hover:border-red-500 text-gray-300':'bg-gray-800/40 text-gray-600 cursor-not-allowed'} border border-gray-700 rounded-lg px-3 py-1.5 text-xs font-bold transition">🦸 ${enemyFilterHeroIds.length?'เพิ่มฮีโร่กรอง':'กรองด้วยฮีโร่'} ${enemyFilterHeroIds.length?`(${enemyFilterHeroIds.length}/3)`:''}</button>`;
+            const clearBtn = enemyFilterHeroIds.length ? `<button onclick="clearEnemyFilterHeroes()" class="text-[11px] text-gray-400 hover:text-white underline ml-1">ล้าง</button>` : '';
+            const hint = enemyFilterHeroIds.length ? `<span class="text-[10px] text-gray-500 ml-1">โชว์เฉพาะทีมศัตรูที่มีฮีโร่ที่เลือก<b>ครบทุกตัว</b></span>` : '';
+            box.innerHTML = `<div class="flex flex-wrap items-center gap-2">${chips}${addBtn}${clearBtn}${hint}</div>`;
+        }
+
+        function openEnemyHeroFilterPicker() {
+            if (enemyFilterHeroIds.length >= 3) { alert('เลือกได้สูงสุด 3 ตัว'); return; }
+            const modal = document.getElementById('enemyHeroFilterModal');
+            if (modal) modal.style.display = 'flex';
+            const s = document.getElementById('enemy-filter-hero-search');
+            if (s) s.value = '';
+            renderEnemyHeroFilterPickerGrid();
+        }
+
+        function closeEnemyHeroFilterPicker() {
+            const modal = document.getElementById('enemyHeroFilterModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function renderEnemyHeroFilterPickerGrid() {
+            const grid = document.getElementById('enemy-filter-hero-grid');
+            if (!grid) return;
+            const sEl = document.getElementById('enemy-filter-hero-search');
+            const q = (sEl ? sEl.value : '').toLowerCase().trim();
+            // โชว์เฉพาะฮีโร่ที่ปรากฏในรูปแบบศัตรูอย่างน้อย 1 ทีม + เรียงตามจำนวนทีมที่มีมากสุด
+            const list = heroesDB
+                .map(h => ({ h, cnt: countEnemyPatternsWithHero(h.id) }))
+                .filter(o => o.cnt > 0 && (!q || (o.h.name || '').toLowerCase().includes(q) || String(o.h.id).toLowerCase().includes(q)))
+                .sort((a, b) => b.cnt - a.cnt || (a.h.name || '').localeCompare(b.h.name || '', 'th'));
+            if (!list.length) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-500 text-sm py-8">ไม่พบฮีโร่ที่อยู่ในรูปแบบศัตรู</div>';
+                return;
+            }
+            grid.innerHTML = list.map(o => {
+                const picked = enemyFilterHeroIds.some(id => String(id) === String(o.h.id));
+                const sid = String(o.h.id).replace(/'/g, "\\'");
+                return `<div onclick="toggleEnemyFilterHero('${sid}')" title="${(o.h.name||'').replace(/"/g,'&quot;')} — อยู่ ${o.cnt} ทีม" class="relative rounded-lg border-2 ${picked?'border-red-500 ring-2 ring-red-400':'border-gray-700 hover:border-red-500/60'} bg-black cursor-pointer overflow-hidden transition" style="aspect-ratio:1;">
+                    <img src="${o.h.img}" class="w-full h-full object-cover pointer-events-none">
+                    <span class="absolute bottom-0 right-0 bg-black/70 text-amber-300 text-[9px] font-bold px-1 rounded-tl">${o.cnt}</span>
+                    ${picked?'<span class="absolute top-0 left-0 bg-red-600 text-white text-[10px] px-1 rounded-br">✓</span>':''}
+                </div>`;
+            }).join('');
+        }
+
+        function toggleEnemyFilterHero(id) {
+            const sid = String(id);
+            const i = enemyFilterHeroIds.findIndex(x => String(x) === sid);
+            if (i >= 0) {
+                enemyFilterHeroIds.splice(i, 1);
+            } else {
+                if (enemyFilterHeroIds.length >= 3) { alert('เลือกได้สูงสุด 3 ตัว'); return; }
+                enemyFilterHeroIds.push(sid);
+            }
+            renderEnemyHeroFilterPickerGrid();
+            renderEnemyHeroFilter();
+            renderEnemyPatternGrid();
+        }
+
+        function removeEnemyFilterHero(id) {
+            const sid = String(id);
+            enemyFilterHeroIds = enemyFilterHeroIds.filter(x => String(x) !== sid);
+            renderEnemyHeroFilter();
+            renderEnemyPatternGrid();
+            if (document.getElementById('enemyHeroFilterModal')?.style.display === 'flex') renderEnemyHeroFilterPickerGrid();
+        }
+
+        function clearEnemyFilterHeroes() {
+            enemyFilterHeroIds = [];
+            renderEnemyHeroFilter();
+            renderEnemyPatternGrid();
+            if (document.getElementById('enemyHeroFilterModal')?.style.display === 'flex') renderEnemyHeroFilterPickerGrid();
+        }
 
         // เพิ่มเมนูนี้เข้าไปใน ALL_MENUS (ถ้ายังไม่มี)
         const enemyMenuExists = ALL_MENUS.find(m => m.id === 'nav-enemy-manager');
@@ -9391,8 +9547,9 @@
                         actTurn = eff.green_turn || actTurn;
                     }
 
-                    // ถ้าค่าทุกอย่างเป็น 0 แสดงว่า Effect นี้ยังไม่ปลดล็อคที่ดาวนี้ -> ไม่ต้องโชว์
-                    if (actRate === 0 && actVal === 0 && actTurn === 0) return;
+                    // ถ้าค่าตัวเลขเป็น 0 หมด + ไม่มีข้อมูลโครงสร้าง (v2) ที่มีความหมาย -> ไม่ต้องโชว์
+                    const _hasV2 = !!(eff.trigger || eff.target || eff.ignoreDef || eff.trueDamage || eff.lifesteal > 0 || (eff.immuneTags && eff.immuneTags.length) || eff.followUp || (eff.capType && eff.capType !== 'none' && eff.capValue > 0));
+                    if (actRate === 0 && actVal === 0 && actTurn === 0 && !_hasV2) return;
 
                     // --- ส่วนแสดงผล (เหมือนเดิม) ---
                     let rawNote = eff.note || "";
@@ -9409,26 +9566,48 @@
                     else if (eff.type === 'dmg') { colorClass = "bg-red-900/40 text-red-300 border-red-700"; icon = "⚔️"; }
                     else if (eff.type === 'special') { colorClass = "bg-yellow-900/40 text-yellow-300 border-yellow-700"; icon = "✨"; }
 
+                    // ป้ายความหมายของ Value (schema v2) — ทำให้ "60" อ่านเป็น "60% maxHP เป้าหมาย"
+                    const VT_SUFFIX = {
+                        pct_atk: '% ATK', pct_def: '% DEF', pct_hp: '% HP',
+                        pct_maxhp_self: '% maxHP(เรา)', pct_maxhp_target: '% maxHP(เป้า)',
+                        pct_curhp_target: '% HP ปัจจุบัน(เป้า)', pct_damage_dealt: '% ดาเมจ',
+                        pct_stat: '% ' + (eff.scaleStat || 'สเตต'), flat: ''
+                    };
                     let valText = "";
                     if (!shouldHideStats) {
-                        if (actVal > 0) valText += `Val:${actVal} `;
+                        if (actVal > 0) {
+                            const sfx = VT_SUFFIX[eff.valueType];
+                            valText += (sfx !== undefined && eff.valueType && eff.valueType !== 'flat') ? `${actVal}${sfx} ` : `Val:${actVal} `;
+                        }
                         if (actRate > 0 && actRate < 100) valText += `${actRate}% `;
                         if (actTurn > 0) valText += `${actTurn}T `;
                     }
 
+                    // ป้ายข้อมูลโครงสร้าง (schema v2) สำหรับให้คน/AI อ่าน
+                    const TRIGGER_LABELS = { on_apply:'⏱ ทันทีที่ร่าย', on_hit_dealt:'⚔️ เมื่อตีโดน', on_hit_taken:'🛡️ เมื่อถูกตี', on_removed:'💢 เมื่อปลดสถานะ', on_death:'💀 เมื่อตาย', turn_start:'▶️ ต้นเทิร์น', turn_end:'⏹ ท้ายเทิร์น', on_crit:'🔥 เมื่อคริ', on_kill:'☠️ เมื่อสังหาร', passive:'♾️ ติดตัว' };
+                    const TARGET_LABELS = { enemy_single:'ศัตรูเดี่ยว', enemy_all:'ศัตรูทั้งหมด', enemy_random:'สุ่มศัตรู', self:'ตัวเอง', ally_single:'พวกเดี่ยว', ally_all:'พวกทั้งหมด' };
+                    const CAP_SUFFIX = { pct_atk:'% ATK', pct_def:'% DEF', pct_maxhp:'% maxHP', flat:'' };
+                    const v2chip = (txt, cls) => ` <span class="text-[9px] px-1 rounded ml-1 ${cls||'bg-black/30 text-gray-300'}">${txt}</span>`;
+
                     let extra = "";
+                    if (eff.trigger && TRIGGER_LABELS[eff.trigger]) extra += v2chip(TRIGGER_LABELS[eff.trigger], 'bg-cyan-900/50 text-cyan-200');
+                    if (eff.target && TARGET_LABELS[eff.target]) extra += v2chip('🎯 ' + TARGET_LABELS[eff.target], 'bg-indigo-900/50 text-indigo-200');
                     if (cleanCond) extra += ` <span class="text-white opacity-90">(${cleanCond})</span>`;
                     if (valText) extra += ` <span class="bg-black/30 px-1 rounded text-[10px] font-mono text-gray-300 ml-1">${valText}</span>`;
+                    if (eff.ignoreDef) extra += v2chip('ไม่สนป้องกัน', 'bg-red-900/50 text-red-200');
+                    if (eff.trueDamage) extra += v2chip('ดาเมจแท้', 'bg-red-900/50 text-red-200');
+                    if (eff.lifesteal > 0) extra += v2chip('🩸 ดูดเลือด ' + eff.lifesteal + '%', 'bg-pink-900/50 text-pink-200');
+                    if (eff.capType && eff.capType !== 'none' && eff.capValue > 0) extra += v2chip('Cap ' + eff.capValue + (CAP_SUFFIX[eff.capType] || ''), 'bg-amber-900/50 text-amber-200');
+                    else if (eff.cap) extra += ` <span class="text-[9px] text-red-400 ml-1">[Cap: ${eff.cap}]</span>`;
+                    if (Array.isArray(eff.immuneTags) && eff.immuneTags.length) extra += v2chip('🚫 กันติด: ' + eff.immuneTags.join('/'), 'bg-orange-900/50 text-orange-200');
+                    if (eff.followUp) extra += v2chip('↪ ' + eff.followUp, 'bg-purple-900/50 text-purple-200');
                     if (cleanNote) extra += ` <span class="text-[9px] opacity-70 ml-1">- ${cleanNote}</span>`;
-                    if (eff.cap) extra += ` <span class="text-[9px] text-red-400 ml-1">[Cap: ${eff.cap}]</span>`;
-                    
-                    // แสดงป้าย LB เล็กๆ ถ้ามาจาก LB
-                    // if (tierLabel) extra += ` <span class="text-[8px] bg-purple-900 text-purple-200 px-1 rounded ml-1">${tierLabel}</span>`;
+                    const tagBadges = (Array.isArray(eff.tags) ? eff.tags : []).map(t => `<span class="text-[8px] bg-gray-900/60 text-gray-400 px-1 rounded ml-0.5">#${t}</span>`).join('');
 
                     html += `
                     <div class="px-2 py-1 rounded border text-xs flex flex-wrap items-center ${colorClass}">
                         <span class="font-bold mr-1">${icon} ${eff.name}</span>
-                        ${extra}
+                        ${extra}${tagBadges}
                     </div>`;
                 });
                 html += '</div>';
@@ -9487,17 +9666,89 @@
                 _renderSkillLabel('p', 'P');
                 _renderSkillLabel('aw', 'AW');
 
-                document.getElementById('dt-n').innerHTML = (item.skills?.n || '-') + renderEffectTags('n');
-                document.getElementById('dt-p').innerHTML = (item.skills?.p || '-') + renderEffectTags('p');
-                document.getElementById('dt-s1').innerHTML = (item.skills?.s1 || '-') + renderEffectTags('s1');
-                document.getElementById('dt-s2').innerHTML = (item.skills?.s2 || '-') + renderEffectTags('s2');
+                // 💥 บรรทัดดาเมจอิงสเตต (รองรับหลายสเตต) — เลือกค่า Base/Up ตามดาวฟ้าของผู้ดู
+                const renderSkillScaleLine = (skillKey) => {
+                    const conf = item.skillData?.[skillKey];
+                    if (!conf) return '';
+                    const scales = Array.isArray(conf.scales) ? conf.scales : [];
+                    const parts = scales.map(sc => {
+                        const base = parseFloat(sc.percent) || 0;
+                        const up = parseFloat(sc.greenPercent) || 0;
+                        const pct = (currentDetailBlueStars >= 1 && up > 0) ? up : base;
+                        if (!pct) return null;
+                        const label = SKILL_SCALE_LABELS[sc.scale] || sc.scale;
+                        return '<b style="color:#fcd34d">' + pct + '%</b> ของ ' + label;
+                    }).filter(Boolean);
+                    // จำนวนเป้า/ครั้งตี ตามดาวของผู้ดู
+                    const tgt = resolveSkillTierNum(conf.targets || 1, conf.targets_up, conf.targets_c2, conf.targets_c6, currentDetailBlueStars);
+                    const hit = resolveSkillTierNum(conf.hits || 1, conf.hits_up, conf.hits_c2, conf.hits_c6, currentDetailBlueStars);
+                    const extras = [];
+                    if (tgt > 1) extras.push('🎯 ' + tgt + ' เป้า');
+                    if (hit > 1) extras.push('🔂 ' + hit + ' ครั้ง');
+                    if (!parts.length && !extras.length) return '';
+                    let inner = '';
+                    if (parts.length) inner += '💥 ความเสียหายเท่ากับ ' + parts.join(' + ');
+                    if (extras.length) inner += (parts.length ? ' · ' : '') + extras.join(' · ');
+                    return '<div class="mt-2 text-[13px] text-gray-200 bg-[#1f2937]/70 border border-gray-700 rounded-lg px-3 py-2">' + inner + '</div>';
+                };
+                // หมายเหตุ: บรรทัด "💥 ความเสียหายเท่ากับ..." (renderSkillScaleLine) ถูกปิดการแสดงผลตามคำขอ
+                // — ดาเมจ% ให้พิมพ์เป็น Text เอง แต่ "จำนวนเป้า/ครั้งตี" ยังแสดงให้ (เป็นช่วงตามดาว)
+                const renderSkillTargetLine = (skillKey) => {
+                    const conf = item.skillData?.[skillKey];
+                    if (!conf) return '';
+                    const seg = (label, base, up, c2, c6, unit) => {
+                        base = parseInt(base) || 0; up = parseInt(up) || 0; c2 = parseInt(c2) || 0; c6 = parseInt(c6) || 0;
+                        const ups = [];
+                        if (up > 0 && up !== base) ups.push('อัปสกิล ' + up + ' ' + unit);
+                        if (c2 > 0 && c2 !== base) ups.push('LB2 ' + c2 + ' ' + unit);
+                        if (c6 > 0 && c6 !== base) ups.push('LB6 ' + c6 + ' ' + unit);
+                        if (base <= 1 && !ups.length) return null;
+                        let s = label + ' <b class="text-amber-300">' + base + '</b> ' + unit;
+                        if (ups.length) s += ' <span class="text-amber-300/80">→ ' + ups.join(' · ') + '</span>';
+                        return s;
+                    };
+                    const parts = [];
+                    const t = seg('🎯 โจมตี', conf.targets || 1, conf.targets_up, conf.targets_c2, conf.targets_c6, 'เป้า');
+                    const h = seg('🔂 ตี', conf.hits || 1, conf.hits_up, conf.hits_c2, conf.hits_c6, 'ครั้ง');
+                    if (t) parts.push(t);
+                    if (h) parts.push(h);
+                    if (!parts.length) return '';
+                    return '<div class="mt-2 text-[12px] text-amber-100 bg-amber-900/15 border border-amber-800/40 rounded-lg px-3 py-1.5">' + parts.join(' · ') + '</div>';
+                };
+                // 📊 ชิป "ดาเมจอิงสเตต" (เพิ่มสเตต) — สไตล์เดียวกับป้าย Effect
+                const renderSkillScaleChip = (skillKey) => {
+                    const conf = item.skillData?.[skillKey];
+                    if (!conf || !Array.isArray(conf.scales) || !conf.scales.length) return '';
+                    const parts = conf.scales.map(sc => {
+                        const base = parseFloat(sc.percent) || 0;
+                        const up = parseFloat(sc.greenPercent) || 0;
+                        if (!base && !up) return null;
+                        const label = SKILL_SCALE_LABELS[sc.scale] || sc.scale;
+                        if (up > 0 && up !== base) return '<b class="text-yellow-200">' + base + '%→' + up + '%</b> ' + label;
+                        return '<b class="text-yellow-200">' + (base || up) + '%</b> ' + label;
+                    }).filter(Boolean);
+                    if (!parts.length) return '';
+                    return '<div class="mt-2 flex flex-wrap gap-1"><span class="px-2 py-1 rounded border text-xs bg-yellow-900/40 text-yellow-300 border-yellow-700"><span class="font-bold mr-1">📊 อิงสเตต</span>' + parts.join(' + ') + '</span></div>';
+                };
+                const _composeSkill = (txt, key) => {
+                    const extra = renderSkillScaleChip(key) + renderSkillTargetLine(key) + renderEffectTags(key);
+                    const t = txt || '';
+                    return (t.trim() || extra.trim()) ? (t + extra) : '-';
+                };
+
+                document.getElementById('dt-n').innerHTML = _composeSkill(item.skills?.n, 'n');
+                document.getElementById('dt-p').innerHTML = _composeSkill(item.skills?.p, 'p');
+                document.getElementById('dt-s1').innerHTML = _composeSkill(item.skills?.s1, 's1');
+                document.getElementById('dt-s2').innerHTML = _composeSkill(item.skills?.s2, 's2');
 
                 const _awHtml = item.skills?.aw || '';
+                const _awScaleChip = renderSkillScaleChip('aw');
+                const _awTarget = renderSkillTargetLine('aw');
                 const _awTags = renderEffectTags('aw');
-                const _hasAwData = (_awHtml && _awHtml.trim() !== '') || (_awTags && _awTags.trim() !== '');
+                const _hasAwData = (_awHtml && _awHtml.trim() !== '') || (_awTags && _awTags.trim() !== '') || (_awTarget && _awTarget.trim() !== '') || (_awScaleChip && _awScaleChip.trim() !== '');
                 detailHasAwData = _hasAwData;
                 // เก็บเนื้อหาสกิลปลุกพลังไว้เสมอ — การแสดง/ซ่อนคุมด้วยปุ่ม "ปลุกพลัง/ปลดพลัง"
-                document.getElementById('dt-aw').innerHTML = _hasAwData ? (_awHtml || '-') + _awTags : '<span class="text-gray-500">— ยังไม่มีข้อมูลสกิลปลุกพลัง —</span>';
+                document.getElementById('dt-aw').innerHTML = _hasAwData ? (_awHtml || '-') + _awScaleChip + _awTarget + _awTags : '<span class="text-gray-500">— ยังไม่มีข้อมูลสกิลปลุกพลัง —</span>';
                 // ปุ่มสลับดูปลุกพลัง: โชว์เมื่อฮีโร่มีรูปปลุกพลัง (img2)
                 const _awToggleBtn = document.getElementById('dt-awaken-toggle');
                 if (_awToggleBtn) _awToggleBtn.style.display = _hasAwImg ? '' : 'none';
@@ -9998,14 +10249,32 @@
                 // SAVE SKILL DATA
                 let newSkillData = {};
                 ['n', 'p', 's1', 's2', 'aw'].forEach(k => {
+                    // อ่านลิสต์ดาเมจอิงสเตต (เก็บเฉพาะแถวที่มีค่า) — รองรับหลายสเตต
+                    const scales = [];
+                    const scaleList = document.getElementById(`scale-list-${k}`);
+                    if (scaleList) {
+                        scaleList.querySelectorAll('.scale-item').forEach(div => {
+                            const percent = parseFloat(div.querySelector('.sc-per')?.value) || 0;
+                            const greenPercent = parseFloat(div.querySelector('.sc-green')?.value) || 0;
+                            const scale = div.querySelector('.sc-scale')?.value || 'atk';
+                            if (percent > 0 || greenPercent > 0) scales.push({ scale, percent, greenPercent });
+                        });
+                    }
                     let baseConf = {
-                        scale: document.getElementById(`conf-${k}-scale`)?.value || 'atk',
-                        percent: parseFloat(document.getElementById(`conf-${k}-per`)?.value) || 0,
-                        greenPercent: parseFloat(document.getElementById(`conf-${k}-green-per`)?.value) || 0,
-                        // c2Percent: parseFloat(document.getElementById(`conf-${k}-c2-per`)?.value) || 0,
-                        // c6Percent: parseFloat(document.getElementById(`conf-${k}-c6-per`)?.value) || 0,
+                        scales: scales,
+                        // mirror สเตตแรกไว้ในฟิลด์เดิม เผื่อโค้ดส่วนอื่นอ่าน (backward-compat)
+                        scale: scales[0]?.scale || 'atk',
+                        percent: scales[0]?.percent || 0,
+                        greenPercent: scales[0]?.greenPercent || 0,
                         targets: parseInt(document.getElementById(`conf-${k}-tar`)?.value) || 1,
                         hits: parseInt(document.getElementById(`conf-${k}-hit`)?.value) || 1,
+                        // จำนวนเป้า/ครั้งตี ที่อัปตามดาว (0 = เท่า Base)
+                        targets_up: parseInt(document.getElementById(`conf-${k}-tar-up`)?.value) || 0,
+                        targets_c2: parseInt(document.getElementById(`conf-${k}-tar-c2`)?.value) || 0,
+                        targets_c6: parseInt(document.getElementById(`conf-${k}-tar-c6`)?.value) || 0,
+                        hits_up: parseInt(document.getElementById(`conf-${k}-hit-up`)?.value) || 0,
+                        hits_c2: parseInt(document.getElementById(`conf-${k}-hit-c2`)?.value) || 0,
+                        hits_c6: parseInt(document.getElementById(`conf-${k}-hit-c6`)?.value) || 0,
                         img: normalizeDriveImg(document.getElementById(`conf-${k}-img`)?.value || ''),
                         effects: []
                     };
@@ -10014,25 +10283,43 @@
                     if(effContainer) {
                         const effDivs = effContainer.querySelectorAll('.effect-item');
                         effDivs.forEach(div => {
+                            const q = (sel) => div.querySelector(sel);
+                            const num = (sel) => parseFloat(q(sel)?.value) || 0;
+                            const csv = (sel) => (q(sel)?.value || '').split(',').map(s => s.trim()).filter(Boolean);
                             baseConf.effects.push({
-                                type: div.querySelector('.eff-type').value,
-                                name: div.querySelector('.eff-name').value,
-                                stack: div.querySelector('.eff-stack').checked,
-                                note: div.querySelector('.eff-note').value,
-                                cond: div.querySelector('.eff-cond').value, 
-                                cap: div.querySelector('.eff-cap').value,
-                                rate: parseFloat(div.querySelector('.eff-rate').value) || 0,
-                                turn: parseInt(div.querySelector('.eff-turn').value) || 0,
-                                val: parseFloat(div.querySelector('.eff-val').value) || 0,
-                                green_rate: parseFloat(div.querySelector('.eff-green_rate').value) || 0,
-                                green_turn: parseInt(div.querySelector('.eff-green_turn').value) || 0,
-                                green_val: parseFloat(div.querySelector('.eff-green_val').value) || 0,
-                                c2_rate: parseFloat(div.querySelector('.eff-c2_rate').value) || 0,
-                                c2_turn: parseInt(div.querySelector('.eff-c2_turn').value) || 0,
-                                c2_val: parseFloat(div.querySelector('.eff-c2_val').value) || 0,
-                                c6_rate: parseFloat(div.querySelector('.eff-c6_rate').value) || 0,
-                                c6_turn: parseInt(div.querySelector('.eff-c6_turn').value) || 0,
-                                c6_val: parseFloat(div.querySelector('.eff-c6_val').value) || 0,
+                                type: q('.eff-type')?.value,
+                                name: q('.eff-name')?.value,
+                                stack: q('.eff-stack')?.checked || false,
+                                note: q('.eff-note')?.value || '',
+                                cond: q('.eff-cond')?.value || '',
+                                cap: q('.eff-cap')?.value || '',
+                                rate: num('.eff-rate'),
+                                turn: parseInt(q('.eff-turn')?.value) || 0,
+                                val: num('.eff-val'),
+                                green_rate: num('.eff-green_rate'),
+                                green_turn: parseInt(q('.eff-green_turn')?.value) || 0,
+                                green_val: num('.eff-green_val'),
+                                c2_rate: num('.eff-c2_rate'),
+                                c2_turn: parseInt(q('.eff-c2_turn')?.value) || 0,
+                                c2_val: num('.eff-c2_val'),
+                                c6_rate: num('.eff-c6_rate'),
+                                c6_turn: parseInt(q('.eff-c6_turn')?.value) || 0,
+                                c6_val: num('.eff-c6_val'),
+                                // --- schema v2: ฟิลด์มีโครงสร้างสำหรับ AI วิเคราะห์การต่อสู้ ---
+                                trigger: q('.eff-trigger')?.value || '',
+                                target: q('.eff-target')?.value || '',
+                                valueType: q('.eff-valuetype')?.value || '',
+                                scaleStat: q('.eff-scalestat')?.value || '',
+                                ignoreDef: q('.eff-ignoredef')?.checked || false,
+                                trueDamage: q('.eff-truedamage')?.checked || false,
+                                dispellable: q('.eff-dispellable')?.checked || false,
+                                lifesteal: num('.eff-lifesteal'),
+                                maxStacks: parseInt(q('.eff-maxstacks')?.value) || 0,
+                                capType: q('.eff-captype')?.value || 'none',
+                                capValue: num('.eff-capvalue'),
+                                tags: csv('.eff-tags'),
+                                immuneTags: csv('.eff-immunetags'),
+                                followUp: q('.eff-followup')?.value || '',
                             });
                         });
                     }
@@ -10164,9 +10451,71 @@
             editManagerItem(id);
         }
         
+        // 💥 อ่านลิสต์ "ดาเมจอิงสเตต" ของสกิล — รองรับหลายสเตต (scales[]) + ของเก่าที่เป็นสเตตเดียว
+        function getSkillScales(conf) {
+            if (!conf) return [];
+            if (Array.isArray(conf.scales)) {
+                return conf.scales.map(function(s) {
+                    return { scale: s.scale || 'atk', percent: parseFloat(s.percent) || 0, greenPercent: parseFloat(s.greenPercent) || 0 };
+                });
+            }
+            // ของเก่า: scale/percent เดียว → แปลงเป็น 1 รายการ (เฉพาะที่มีค่า)
+            const p = parseFloat(conf.percent) || 0;
+            const g = parseFloat(conf.greenPercent) || 0;
+            if (p > 0 || g > 0) return [{ scale: conf.scale || 'atk', percent: p, greenPercent: g }];
+            return [];
+        }
+
+        const SKILL_SCALE_LABELS = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ พลังเลือด' };
+
+        // เลือกค่าตัวเลขตามระดับดาว (Base→Up→LB2→LB6) — ใช้กับ targets/hits ที่อัปตามดาว (0 = เท่า Base)
+        function resolveSkillTierNum(base, up, c2, c6, blueStars) {
+            base = parseInt(base) || 0; up = parseInt(up) || 0; c2 = parseInt(c2) || 0; c6 = parseInt(c6) || 0;
+            if (blueStars >= 6 && c6 > 0) return c6;
+            if (blueStars >= 2 && c2 > 0) return c2;
+            if (blueStars >= 1 && up > 0) return up;
+            return base;
+        }
+
+        // 📘 คู่มือย่ออธิบาย Effect (พับเก็บได้) — โชว์เหนือรายการ Effect ในแต่ละแท็บสกิล
+        const EFFECT_HELP_HTML = `
+        <details class="bg-[#0d1117] border border-blue-900/50 rounded-lg mb-3">
+            <summary class="cursor-pointer text-[11px] font-bold text-blue-300 px-3 py-2 select-none">📘 Effect คืออะไร? วิธีกรอกแต่ละช่อง (กดเพื่ออ่าน)</summary>
+            <div class="px-3 pb-3 pt-1 text-[11px] text-gray-300 leading-relaxed space-y-2">
+                <p><b class="text-white">Effect = สถานะ/ผลพิเศษที่สกิลนี้สร้าง</b> (เพิ่มจาก "ดาเมจอิงสเตต" ด้านบน) เช่น ติดสตัน เผาไหม้ เพิ่มพลัง ดูดเลือด ระเบิดดาเมจ ฯลฯ — สกิลเดียวใส่ได้หลาย Effect กด "+ Add Effect" เพิ่มทีละอัน</p>
+
+                <div class="bg-[#161b22] rounded p-2 border border-gray-700 space-y-1">
+                    <div class="text-[10px] font-bold text-yellow-400 uppercase">ช่องพื้นฐาน</div>
+                    <div>• <b class="text-blue-300">ประเภท</b> — จัดหมวด+สี (ดาเมจ / DoT พิษ-เผา / CC ควบคุม / Heal / Shield / Buff / Debuff / Stat)</div>
+                    <div>• <b class="text-blue-300">ชื่อสถานะ</b> — เช่น "จุดเยือกแข็ง", "ตีขนาบ"</div>
+                    <div>• <b class="text-blue-300">ตาราง 4 แถว</b> — <b>Chance%</b>=โอกาสติด (100=ติดแน่นอน) · <b>Turn/Hit</b>=ติดกี่เทิร์น/กี่ครั้ง · <b>Value</b>=ค่าตัวเลข (ความหมายตั้งในช่อง "Value คืออะไร")</div>
+                    <div class="pl-3 text-gray-400">แถว <b>Base</b>=ค่าปกติ · <b>Up</b>=เมื่ออัปสกิล · <b>LB2</b>=ปลดล็อกดาว 2 · <b>LB6</b>=ดาว 6 — ใส่เฉพาะแถวที่ค่าเปลี่ยน ถ้าเท่าเดิมปล่อย 0 (ระบบใช้ค่า Base)</div>
+                    <div>• <b class="text-blue-300">เงื่อนไข / ขีดจำกัด(ข้อความ)</b> — คำอธิบายเสริมแบบข้อความ</div>
+                </div>
+
+                <div class="bg-[#161b22] rounded p-2 border border-cyan-900/50 space-y-1">
+                    <div class="text-[10px] font-bold text-cyan-400 uppercase">⚙️ ส่วน Advanced (ทำให้ AI วิเคราะห์ได้)</div>
+                    <div>• <b class="text-cyan-300">Trigger</b> — เอฟเฟกต์ทำงาน "ตอนไหน" (เช่น เมื่อถูกตี, เมื่อสถานะถูกปลด, เมื่อตาย)</div>
+                    <div>• <b class="text-cyan-300">Target</b> — ผลลงที่ใคร (ศัตรูเดี่ยว/ทั้งหมด, ตัวเอง, พวก)</div>
+                    <div>• <b class="text-cyan-300">Value คืออะไร</b> — แปลว่าเลข Value หมายถึงอะไร เช่นเลือก "% maxHP เป้าหมาย" แล้ว Value=60 → ดาเมจ 60% ของเลือดสูงสุดเป้าหมาย</div>
+                    <div>• <b class="text-cyan-300">ไม่สนป้องกัน / ดาเมจแท้ / ดูดเลือด% / maxStacks</b> — ตัวปรับดาเมจและจำนวนชั้นซ้อน</div>
+                    <div>• <b class="text-cyan-300">Cap (ชนิด+ค่า)</b> — เพดานแบบคำนวณได้ เช่น ชนิด "% ATK" + ค่า 400 = ดาเมจไม่เกิน 400% ATK ผู้ร่าย</div>
+                    <div>• <b class="text-cyan-300">Tags</b> — หมวดสถานะ (เช่น freeze) ให้ AI จัดกลุ่ม · <b class="text-cyan-300">กันติด Tags</b> — ขณะมีสถานะนี้จะไม่ติดสถานะหมวดที่ระบุ</div>
+                    <div>• <b class="text-cyan-300">Follow-up</b> — เอฟเฟกต์ที่ทริกเกอร์ต่อเนื่อง</div>
+                </div>
+
+                <div class="bg-[#1a1206] rounded p-2 border border-amber-800/50 space-y-1">
+                    <div class="text-[10px] font-bold text-amber-400 uppercase">ตัวอย่างจริง: "จุดเยือกแข็ง" = แยกเป็น 2 Effect</div>
+                    <div>1) <b>❄️ CC</b> ชื่อ "จุดเยือกแข็ง" · Trigger=ทันทีที่ร่าย · Tags=<code>freeze</code> · กันติด=<code>freeze</code> (ติดอยู่แล้วไม่ติดแช่แข็งซ้ำ)</div>
+                    <div>2) <b>⚔️ Dmg</b> ชื่อ "ระเบิดเยือกแข็ง" · Trigger=เมื่อสถานะถูกปลด · Value คือ=<code>% maxHP เป้าหมาย</code> Value=60 · ✓ไม่สนป้องกัน · Cap=% ATK 400 · ดูดเลือด 100%</div>
+                </div>
+                <p class="text-gray-500">💡 กรอกเท่าที่รู้ก่อนได้ ช่องที่ไม่ระบุจะถูกข้าม — ยิ่งกรอกครบ AI ยิ่งวิเคราะห์แม่น</p>
+            </div>
+        </details>`;
+
         function renderSkillInputs(item) {
             const skills = item.skills || { n:'', p:'', s1:'', s2:'', aw:'' };
-            const defConf = { percent: 100, scale: 'atk', targets: 1, hits: 1, effects: [], img: '' };
+            const defConf = { percent: 0, scale: 'atk', targets: 1, hits: 1, effects: [], img: '', scales: [] };
             const config = item.skillData || { n: { ...defConf }, p: { ...defConf, targets: 0 }, s1: { ...defConf }, s2: { ...defConf }, aw: { ...defConf } };
             if (!config.aw) config.aw = { ...defConf };
 
@@ -10183,83 +10532,182 @@
             const s1 = parseSkill(skills.s1); const s2 = parseSkill(skills.s2);
             const aw = parseSkill(skills.aw);
 
-            // --- Helper: Row ---
-            window.renderEffectRow = (label, color, pfx, eff) => `
-                <div class="grid grid-cols-4 gap-2 items-center mb-1 text-xs">
-                    <div class="${color} font-bold text-right pr-2">${label}</div>
-                    <input type="number" class="eff-${pfx}rate bg-[#111827] border border-gray-600 text-center text-white rounded py-1 focus:border-blue-500 outline-none" value="${eff?.[pfx+'rate'] ?? (eff?.rate||100)}" placeholder="%">
-                    <input type="number" class="eff-${pfx}turn bg-[#111827] border border-gray-600 text-center text-white rounded py-1 focus:border-blue-500 outline-none" value="${eff?.[pfx+'turn'] ?? (eff?.turn||2)}" placeholder="Turn">
-                    <input type="number" class="eff-${pfx}val bg-[#111827] border border-gray-600 text-center text-white rounded py-1 focus:border-blue-500 outline-none" value="${eff?.[pfx+'val'] ?? (eff?.val||0)}" placeholder="Val">
+            // --- Helper: แถวดาเมจอิงสเตต (เลือกสเตต + Base% + Up%) ---
+            window.renderScaleRow = (key, sc) => `
+                <div class="scale-item flex flex-wrap gap-2 items-center bg-[#111827] p-2 rounded border border-gray-700 mb-1">
+                    <select class="sc-scale bg-[#1a202c] border border-gray-600 text-xs text-white rounded py-1 px-1 outline-none">
+                        <option value="atk" ${sc?.scale==='atk'?'selected':''}>⚔️ ATK</option>
+                        <option value="def" ${sc?.scale==='def'?'selected':''}>🛡️ DEF</option>
+                        <option value="hp" ${sc?.scale==='hp'?'selected':''}>❤️ HP</option>
+                    </select>
+                    <div class="bg-[#0d1117] rounded border border-gray-600 flex items-center px-1"><span class="text-[9px] text-gray-400 mr-1">Base</span><input type="number" class="sc-per w-12 bg-transparent text-center text-sm text-white font-mono py-1 outline-none" value="${sc?.percent||0}"><span class="text-[9px] text-gray-500">%</span></div>
+                    <div class="bg-[#0d1117] rounded border border-green-800 flex items-center px-1"><span class="text-[9px] text-green-400 mr-1">Up</span><input type="number" class="sc-green w-12 bg-transparent text-center text-sm text-green-300 font-mono font-bold py-1 outline-none" value="${sc?.greenPercent||0}"><span class="text-[9px] text-gray-500">%</span></div>
+                    <button type="button" onclick="this.closest('.scale-item').remove()" class="ml-auto text-red-400 hover:text-red-300 text-sm font-bold px-2" title="ลบสเตตนี้">✕</button>
                 </div>
             `;
 
-            // --- Effect List (เพิ่มช่อง Condition & Cap) ---
+            // --- Helper: Row ---
+            // แถว Base ตั้งต้น Chance 100% · แถว Up/LB2/LB6 ตั้งต้น 0 (ว่าง = ใช้ค่าเท่ากับ Base)
+            window.renderEffectRow = (label, color, pfx, eff) => {
+                const isBase = !pfx;
+                const rate = eff?.[pfx+'rate'] ?? (isBase ? 100 : 0);
+                const turn = eff?.[pfx+'turn'] ?? (isBase ? 0 : 0);
+                const val  = eff?.[pfx+'val']  ?? 0;
+                return `
+                <div class="grid grid-cols-4 gap-2 items-center mb-1 text-xs">
+                    <div class="${color} font-bold text-right pr-2">${label}</div>
+                    <input type="number" class="eff-${pfx}rate bg-[#111827] border border-gray-600 text-center text-white rounded py-1 focus:border-blue-500 outline-none" value="${rate}" placeholder="%">
+                    <input type="number" class="eff-${pfx}turn bg-[#111827] border border-gray-600 text-center text-white rounded py-1 focus:border-blue-500 outline-none" value="${turn}" placeholder="Turn">
+                    <input type="number" class="eff-${pfx}val bg-[#111827] border border-gray-600 text-center text-white rounded py-1 focus:border-blue-500 outline-none" value="${val}" placeholder="Val">
+                </div>`;
+            };
+
+            // --- การ์ด Effect 1 ใบ (ใช้ร่วมกันทั้งตอน render และตอนกด Add — กันเทมเพลตเพี้ยน) ---
+            // schema v2: เพิ่มฟิลด์มีโครงสร้างสำหรับ AI วิเคราะห์การต่อสู้
+            window.buildEffectCard = (eff) => {
+                eff = eff || {};
+                const o = (v, l, cur) => `<option value="${v}" ${String(cur||'')===v?'selected':''}>${l}</option>`;
+                const chk = (b) => b ? 'checked' : '';
+                const tags = Array.isArray(eff.tags) ? eff.tags.join(', ') : (eff.tags || '');
+                const immune = Array.isArray(eff.immuneTags) ? eff.immuneTags.join(', ') : (eff.immuneTags || '');
+                const advOpen = (eff.trigger||eff.target||eff.valueType||eff.ignoreDef||eff.trueDamage||eff.lifesteal||(eff.capType&&eff.capType!=='none')||tags||immune||eff.dispellable||eff.maxStacks||eff.followUp) ? 'open' : '';
+                return `
+                <div class="bg-[#2d3748] p-3 rounded-lg border border-gray-600 relative group text-sm animate-fade-in effect-item shadow-lg">
+                    <div class="absolute -top-2 -right-2 cursor-pointer text-white bg-red-600 hover:bg-red-500 font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border border-red-400 z-10" onclick="this.parentElement.remove()">×</div>
+
+                    <div class="flex gap-2 mb-2">
+                        <select class="eff-type bg-[#1a202c] border border-gray-500 rounded text-blue-300 w-36 py-1 px-2 font-bold outline-none">
+                            ${o('special','✨ Special',eff.type)}
+                            ${o('dmg','⚔️ Extra Dmg',eff.type)}
+                            ${o('dot','🔥 DoT',eff.type)}
+                            ${o('cc','❄️ CC',eff.type)}
+                            ${o('heal','💚 Heal',eff.type)}
+                            ${o('shield','🧊 Shield',eff.type)}
+                            ${o('buff','⬆️ Buff',eff.type)}
+                            ${o('debuff','⬇️ Debuff',eff.type)}
+                            ${o('stat','📊 Stat',eff.type)}
+                        </select>
+                        <input type="text" class="eff-name bg-transparent border-b border-gray-500 w-full text-white font-bold px-2 outline-none" value="${eff.name || ''}" placeholder="ชื่อสถานะ (เช่น จุดเยือกแข็ง)">
+                    </div>
+
+                    <div class="bg-[#1a202c] p-2 rounded border border-gray-700 mb-2">
+                        <div class="grid grid-cols-4 gap-2 text-[10px] text-gray-400 text-center mb-1 uppercase font-bold">
+                            <div>Level</div><div>Chance %</div><div>Turn/Hit</div><div>Value</div>
+                        </div>
+                        ${window.renderEffectRow('Base', 'text-gray-300', '', eff)}
+                        ${window.renderEffectRow('Up', 'text-green-400', 'green_', eff)}
+                        ${window.renderEffectRow('LB 2', 'text-purple-400', 'c2_', eff)}
+                        ${window.renderEffectRow('LB 6', 'text-purple-400', 'c6_', eff)}
+                        <div class="text-[9px] text-gray-500 mt-1 leading-snug">Chance%=โอกาสติด · Turn=กี่เทิร์น · Value=ค่าตัวเลข · แถว Up/LB2/LB6 ใส่เฉพาะตอนค่าเปลี่ยน (เท่า Base ปล่อย 0)</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700">
+                            <span class="text-[9px] text-yellow-500 font-bold uppercase block">เงื่อนไข (Condition)</span>
+                            <input type="text" class="eff-cond bg-transparent w-full text-xs text-white outline-none" value="${eff.cond||''}" placeholder="เช่น เมื่อตาย, เมื่อตีขนาบ">
+                        </div>
+                        <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700">
+                            <span class="text-[9px] text-red-400 font-bold uppercase block">ขีดจำกัด (ข้อความ)</span>
+                            <input type="text" class="eff-cap bg-transparent w-full text-xs text-white outline-none" value="${eff.cap||''}" placeholder="เช่น สูงสุด 300% ATK">
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 items-center mb-1">
+                        <label class="flex items-center gap-1 text-[10px] text-gray-300 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-stack" ${chk(eff.stack)}> Stack</label>
+                        <input type="text" class="eff-note bg-[#1a202c] border border-gray-600 rounded px-2 py-1 w-full text-[10px] text-gray-300 outline-none" value="${eff.note||''}" placeholder="Note...">
+                    </div>
+
+                    <details class="effv2 bg-[#0d1117] rounded border border-cyan-900/50 mt-1" ${advOpen}>
+                        <summary class="cursor-pointer text-[10px] font-bold text-cyan-300 uppercase tracking-wider px-2 py-1.5 select-none">⚙️ ข้อมูลสำหรับ AI วิเคราะห์การต่อสู้ (Advanced)</summary>
+                        <div class="p-2 pt-0 space-y-2">
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="block" title="เอฟเฟกต์นี้ทำงานตอนไหน เช่น เมื่อถูกตี / เมื่อสถานะถูกปลด / เมื่อตาย"><span class="text-[9px] text-cyan-400 font-bold uppercase">Trigger — เกิดเมื่อ ❓</span>
+                                <select class="eff-trigger w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
+                                    ${o('','— ไม่ระบุ —',eff.trigger)}${o('on_apply','ทันทีที่ร่าย',eff.trigger)}${o('on_hit_dealt','เมื่อเราตีโดน',eff.trigger)}${o('on_hit_taken','เมื่อถูกตี',eff.trigger)}${o('on_removed','เมื่อสถานะถูกปลด',eff.trigger)}${o('on_death','เมื่อตาย',eff.trigger)}${o('turn_start','ต้นเทิร์น',eff.trigger)}${o('turn_end','ท้ายเทิร์น',eff.trigger)}${o('on_crit','เมื่อคริ',eff.trigger)}${o('on_kill','เมื่อสังหาร',eff.trigger)}${o('passive','ติดตัวตลอด',eff.trigger)}
+                                </select></label>
+                                <label class="block"><span class="text-[9px] text-cyan-400 font-bold uppercase">Target — ใส่ใคร</span>
+                                <select class="eff-target w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
+                                    ${o('','— ไม่ระบุ —',eff.target)}${o('enemy_single','ศัตรูเดี่ยว',eff.target)}${o('enemy_all','ศัตรูทั้งหมด',eff.target)}${o('enemy_random','สุ่มศัตรู',eff.target)}${o('self','ตัวเอง',eff.target)}${o('ally_single','พวกเดี่ยว',eff.target)}${o('ally_all','พวกทั้งหมด',eff.target)}
+                                </select></label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="block" title="บอกว่าเลข Value ในตารางด้านบนหมายถึงอะไร เช่น '% maxHP เป้าหมาย' → Value 60 = 60% ของเลือดสูงสุดเป้าหมาย"><span class="text-[9px] text-cyan-400 font-bold uppercase">Value คืออะไร ❓</span>
+                                <select class="eff-valuetype w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
+                                    ${o('','— ไม่ระบุ —',eff.valueType)}${o('flat','ค่าคงที่ (flat)',eff.valueType)}${o('pct_atk','% ATK',eff.valueType)}${o('pct_def','% DEF',eff.valueType)}${o('pct_hp','% HP',eff.valueType)}${o('pct_maxhp_self','% maxHP ตัวเอง',eff.valueType)}${o('pct_maxhp_target','% maxHP เป้าหมาย',eff.valueType)}${o('pct_curhp_target','% HP ปัจจุบันเป้าหมาย',eff.valueType)}${o('pct_damage_dealt','% ดาเมจที่ทำ',eff.valueType)}${o('pct_stat','% ของสเตต (เลือกข้างขวา)',eff.valueType)}
+                                </select></label>
+                                <label class="block"><span class="text-[9px] text-cyan-400 font-bold uppercase">สเตตอ้างอิง (ใช้กับ % สเตต)</span>
+                                <select class="eff-scalestat w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
+                                    ${o('','—',eff.scaleStat)}${o('atk','ATK',eff.scaleStat)}${o('def','DEF',eff.scaleStat)}${o('hp','HP',eff.scaleStat)}${o('spd','SPD',eff.scaleStat)}${o('critRate','Crit Rate',eff.scaleStat)}${o('critDmg','Crit Dmg',eff.scaleStat)}
+                                </select></label>
+                            </div>
+                            <div class="flex flex-wrap gap-2 items-center">
+                                <label class="flex items-center gap-1 text-[10px] text-gray-200 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-ignoredef" ${chk(eff.ignoreDef)}> ไม่สนป้องกัน</label>
+                                <label class="flex items-center gap-1 text-[10px] text-gray-200 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-truedamage" ${chk(eff.trueDamage)}> ดาเมจแท้</label>
+                                <label class="flex items-center gap-1 text-[10px] text-gray-200 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-dispellable" ${chk(eff.dispellable)}> ล้างได้</label>
+                                <div class="bg-[#1a202c] rounded border border-gray-600 flex items-center px-1"><span class="text-[9px] text-pink-300 mr-1">ดูดเลือด%</span><input type="number" class="eff-lifesteal w-12 bg-transparent text-center text-xs text-white outline-none" value="${eff.lifesteal||0}"></div>
+                                <div class="bg-[#1a202c] rounded border border-gray-600 flex items-center px-1"><span class="text-[9px] text-gray-400 mr-1">maxStacks</span><input type="number" class="eff-maxstacks w-10 bg-transparent text-center text-xs text-white outline-none" value="${eff.maxStacks||0}"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="block"><span class="text-[9px] text-cyan-400 font-bold uppercase">Cap — ชนิด</span>
+                                <select class="eff-captype w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
+                                    ${o('none','ไม่มี',eff.capType)}${o('pct_atk','% ATK ผู้ร่าย',eff.capType)}${o('pct_def','% DEF',eff.capType)}${o('pct_maxhp','% maxHP',eff.capType)}${o('flat','ค่าคงที่',eff.capType)}
+                                </select></label>
+                                <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700"><span class="text-[9px] text-cyan-400 font-bold uppercase block">Cap — ค่า</span><input type="number" class="eff-capvalue bg-transparent w-full text-xs text-white outline-none" value="${eff.capValue||0}" placeholder="เช่น 400"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700"><span class="text-[9px] text-emerald-400 font-bold uppercase block">Tags (คั่นด้วย ,)</span><input type="text" class="eff-tags bg-transparent w-full text-xs text-white outline-none" value="${tags}" placeholder="freeze, cc"></div>
+                                <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700"><span class="text-[9px] text-orange-400 font-bold uppercase block">กันติด Tags (immune)</span><input type="text" class="eff-immunetags bg-transparent w-full text-xs text-white outline-none" value="${immune}" placeholder="freeze"></div>
+                            </div>
+                            <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700"><span class="text-[9px] text-purple-300 font-bold uppercase block">Follow-up (effect ที่ทริกเกอร์ต่อ)</span><input type="text" class="eff-followup bg-transparent w-full text-xs text-white outline-none" value="${eff.followUp||''}" placeholder="เช่น ระเบิดดาเมจตอนปลดสถานะ"></div>
+                        </div>
+                    </details>
+                </div>`;
+            };
+
+            // --- Effect List ---
             const renderEffectsList = (key, effects) => {
                 if (!effects) effects = [];
-                let html = `<div id="eff-list-${key}" class="space-y-4 mt-4">`;
-                
-                effects.forEach((eff) => {
-                    html += `
-                    <div class="bg-[#2d3748] p-3 rounded-lg border border-gray-600 relative group text-sm animate-fade-in effect-item shadow-lg">
-                        <div class="absolute -top-2 -right-2 cursor-pointer text-white bg-red-600 hover:bg-red-500 font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border border-red-400 z-10" onclick="this.parentElement.remove()">×</div>
-                        
-                        <div class="flex gap-2 mb-2">
-                            <select class="eff-type bg-[#1a202c] border border-gray-500 rounded text-blue-300 w-32 py-1 px-2 font-bold outline-none">
-                                <option value="special" ${eff.type==='special'?'selected':''}>✨ Special</option>
-                                <option value="dot" ${eff.type==='dot'?'selected':''}>🔥 DoT</option>
-                                <option value="cc" ${eff.type==='cc'?'selected':''}>❄️ CC</option>
-                                <option value="stat" ${eff.type==='stat'?'selected':''}>📊 Stat</option>
-                                <option value="dmg" ${eff.type==='dmg'?'selected':''}>⚔️ Extra Dmg</option>
-                            </select>
-                            <input type="text" class="eff-name bg-transparent border-b border-gray-500 w-full text-white font-bold px-2 outline-none" value="${eff.name || ''}" placeholder="ชื่อสถานะ (เช่น ตีขนาบ)">
-                        </div>
-
-                        <div class="bg-[#1a202c] p-2 rounded border border-gray-700 mb-2">
-                            <div class="grid grid-cols-4 gap-2 text-[10px] text-gray-400 text-center mb-1 uppercase font-bold">
-                                <div>Level</div><div>Chance %</div><div>Turn/Hit</div><div>Value</div>
-                            </div>
-                            ${renderEffectRow('Base', 'text-gray-300', '', eff)}
-                            ${renderEffectRow('Up', 'text-green-400', 'green_', eff)}
-                            ${renderEffectRow('LB 2', 'text-purple-400', 'c2_', eff)}
-                            ${renderEffectRow('LB 6', 'text-purple-400', 'c6_', eff)}
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                            <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700">
-                                <span class="text-[9px] text-yellow-500 font-bold uppercase block">เงื่อนไข (Condition)</span>
-                                <input type="text" class="eff-cond bg-transparent w-full text-xs text-white outline-none" value="${eff.cond||''}" placeholder="เช่น เมื่อตาย, เมื่อตีขนาบ">
-                            </div>
-                            <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700">
-                                <span class="text-[9px] text-red-400 font-bold uppercase block">ขีดจำกัด (Cap/Limit)</span>
-                                <input type="text" class="eff-cap bg-transparent w-full text-xs text-white outline-none" value="${eff.cap||''}" placeholder="เช่น สูงสุด 300% ATK">
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2 items-center">
-                            <label class="flex items-center gap-1 text-[10px] text-gray-300 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-stack" ${eff.stack?'checked':''}> Stack</label>
-                            <input type="text" class="eff-note bg-[#1a202c] border border-gray-600 rounded px-2 py-1 w-full text-[10px] text-gray-300 outline-none" value="${eff.note||''}" placeholder="Note...">
-                        </div>
-                    </div>`;
-                });
-                
+                let html = EFFECT_HELP_HTML;
+                html += `<div id="eff-list-${key}" class="space-y-4 mt-4">`;
+                effects.forEach((eff) => { html += window.buildEffectCard(eff); });
                 html += `</div><button onclick="addEffect('${key}')" class="mt-3 w-full py-2 border-2 border-dashed border-gray-600 text-gray-400 text-xs font-bold hover:text-white hover:border-blue-500 rounded transition">+ Add Effect / Status</button>`;
                 return html;
             };
 
-            // Config Box (Direct Damage)
-            const renderConfigBox = (key, conf) => `
-                <div class="flex flex-wrap gap-2 mb-3 mt-2 items-center bg-[#1f2937] p-3 rounded-lg border border-gray-600 shadow-sm">
-                    <span class="text-xs text-yellow-500 font-bold uppercase mr-2">⚡ Base Hit:</span>
-                    <div class="flex gap-1">
-                        <div class="bg-[#111827] rounded border border-gray-600 flex items-center px-1"><span class="text-[9px] text-gray-400 mr-1">Base</span><input type="number" id="conf-${key}-per" value="${conf?.percent || 0}" class="w-10 bg-transparent text-center text-sm text-white font-mono py-1 outline-none"></div>
-                        <div class="bg-[#111827] rounded border border-green-800 flex items-center px-1"><span class="text-[9px] text-green-400 mr-1">Up</span><input type="number" id="conf-${key}-green-per" value="${conf?.greenPercent || 0}" class="w-10 bg-transparent text-center text-sm text-green-300 font-mono font-bold py-1 outline-none"></div>
+            // Config Box (Direct Damage) — ดาเมจอิงได้หลายสเตต (เพิ่ม/ลบได้)
+            const renderConfigBox = (key, conf) => {
+                const scales = getSkillScales(conf);
+                const rows = (scales.length ? scales : [{ scale: 'atk', percent: 0, greenPercent: 0 }])
+                    .map(function(sc) { return window.renderScaleRow(key, sc); }).join('');
+                return `
+                <div class="mb-3 mt-2 bg-[#1f2937] p-3 rounded-lg border border-gray-600 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-yellow-500 font-bold uppercase">⚡ ดาเมจอิงสเตต (เพิ่มได้หลายสเตต)</span>
                     </div>
-                    <div class="w-px h-6 bg-gray-600 mx-1"></div>
-                    <select id="conf-${key}-scale" class="bg-[#111827] border border-gray-600 text-xs text-white rounded py-1 px-1 outline-none"><option value="atk" ${conf?.scale==='atk'?'selected':''}>ATK</option><option value="def" ${conf?.scale==='def'?'selected':''}>DEF</option><option value="hp" ${conf?.scale==='hp'?'selected':''}>HP</option></select>
-                    <div class="bg-[#111827] rounded border border-gray-600 px-1 flex items-center"><input type="number" id="conf-${key}-tar" value="${conf?.targets || 1}" class="w-6 bg-transparent text-center text-sm text-white font-bold outline-none"><span class="text-[9px] text-gray-400 ml-1">Targets</span></div>
-                    <div class="bg-[#111827] rounded border border-gray-600 px-1 flex items-center"><input type="number" id="conf-${key}-hit" value="${conf?.hits || 1}" class="w-6 bg-transparent text-center text-sm text-white font-bold outline-none"><span class="text-[9px] text-gray-400 ml-1">Hits</span></div>
+                    <div id="scale-list-${key}">${rows}</div>
+                    <button type="button" onclick="addScaleRow('${key}')" class="mt-1 w-full py-1.5 border-2 border-dashed border-gray-600 text-gray-400 text-[11px] font-bold hover:text-white hover:border-yellow-500 rounded transition">+ เพิ่มสเตต (เช่น +% DEF)</button>
+                    <div class="mt-3 pt-3 border-t border-gray-700">
+                        <div class="text-[9px] text-gray-400 uppercase font-bold mb-1">จำนวนเป้า / ครั้งตี — ต่อระดับดาว (0 = เท่า Base)</div>
+                        <div class="grid grid-cols-5 gap-1 text-[8px] text-gray-500 text-center mb-0.5"><div></div><div>Base</div><div>Up</div><div>LB2</div><div>LB6</div></div>
+                        <div class="grid grid-cols-5 gap-1 items-center mb-1">
+                            <div class="text-[10px] text-gray-300 text-right pr-1">🎯 เป้า</div>
+                            <input type="number" id="conf-${key}-tar" value="${conf?.targets || 1}" class="bg-[#111827] border border-gray-600 rounded text-center text-sm text-white py-1 outline-none">
+                            <input type="number" id="conf-${key}-tar-up" value="${conf?.targets_up || 0}" class="bg-[#111827] border border-green-800/60 rounded text-center text-sm text-green-300 py-1 outline-none">
+                            <input type="number" id="conf-${key}-tar-c2" value="${conf?.targets_c2 || 0}" class="bg-[#111827] border border-purple-800/60 rounded text-center text-sm text-purple-300 py-1 outline-none">
+                            <input type="number" id="conf-${key}-tar-c6" value="${conf?.targets_c6 || 0}" class="bg-[#111827] border border-purple-800/60 rounded text-center text-sm text-purple-300 py-1 outline-none">
+                        </div>
+                        <div class="grid grid-cols-5 gap-1 items-center">
+                            <div class="text-[10px] text-gray-300 text-right pr-1">🔂 ครั้ง</div>
+                            <input type="number" id="conf-${key}-hit" value="${conf?.hits || 1}" class="bg-[#111827] border border-gray-600 rounded text-center text-sm text-white py-1 outline-none">
+                            <input type="number" id="conf-${key}-hit-up" value="${conf?.hits_up || 0}" class="bg-[#111827] border border-green-800/60 rounded text-center text-sm text-green-300 py-1 outline-none">
+                            <input type="number" id="conf-${key}-hit-c2" value="${conf?.hits_c2 || 0}" class="bg-[#111827] border border-purple-800/60 rounded text-center text-sm text-purple-300 py-1 outline-none">
+                            <input type="number" id="conf-${key}-hit-c6" value="${conf?.hits_c6 || 0}" class="bg-[#111827] border border-purple-800/60 rounded text-center text-sm text-purple-300 py-1 outline-none">
+                        </div>
+                        <div class="text-[9px] text-gray-500 mt-1">เช่น Normal ตี 1 เป้า → LB6 ตี 3 เป้า: ช่อง 🎯 ใส่ Base=1, LB6=3</div>
+                    </div>
                 </div>
-            `;
+                `;
+            };
 
             // Skill Icon Box (URL + Upload) — for each skill panel
             const renderSkillIconBox = (key, conf) => `
@@ -10289,13 +10737,13 @@
                     </div>
                     <div class="p-4 bg-[#111827]">
                         ${renderSkillIconBox(key, config[key])}
-                        <textarea id="${id}-base" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-20 bg-[#0d1117] border border-gray-600 rounded-md p-3 text-sm text-white mb-3 focus:border-blue-500 transition" placeholder="คำอธิบาย...">${val.base}</textarea>
+                        <textarea id="${id}-base" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-[180px] bg-[#0d1117] border border-gray-600 rounded-md p-3 text-sm text-white mb-3 focus:border-blue-500 transition" placeholder="คำอธิบาย...">${val.base}</textarea>
                         ${renderConfigBox(key, config[key])}
                         ${renderEffectsList(key, config[key]?.effects)}
-                        <div class="mt-6 pt-4 border-t border-gray-700"><div class="text-xs text-green-400 font-bold mb-1 uppercase">⬆️ ผลอัปเกรด</div><textarea id="${id}-green" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-16 bg-green-900/10 border border-green-800/50 rounded-md p-2 text-sm text-green-100 placeholder-green-800/50">${val.green}</textarea></div>
+                        <div class="mt-6 pt-4 border-t border-gray-700"><div class="text-xs text-green-400 font-bold mb-1 uppercase">⬆️ ผลอัปเกรด</div><textarea id="${id}-green" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-[180px] bg-green-900/10 border border-green-800/50 rounded-md p-2 text-sm text-green-100 placeholder-green-800/50">${val.green}</textarea></div>
                         <div class="grid grid-cols-2 gap-4 mt-4">
-                            <div><div class="text-xs text-purple-400 font-bold mb-1 uppercase">⭐ LB 2</div><textarea id="${id}-c2" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-16 bg-purple-900/10 border border-purple-800/50 rounded-md p-2 text-sm text-purple-100 placeholder-purple-800/50">${val.c2}</textarea></div>
-                            <div><div class="text-xs text-purple-400 font-bold mb-1 uppercase">⭐ LB 6</div><textarea id="${id}-c6" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-16 bg-purple-900/10 border border-purple-800/50 rounded-md p-2 text-sm text-purple-100 placeholder-purple-800/50">${val.c6}</textarea></div>
+                            <div><div class="text-xs text-purple-400 font-bold mb-1 uppercase">⭐ LB 2</div><textarea id="${id}-c2" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-[180px] bg-purple-900/10 border border-purple-800/50 rounded-md p-2 text-sm text-purple-100 placeholder-purple-800/50">${val.c2}</textarea></div>
+                            <div><div class="text-xs text-purple-400 font-bold mb-1 uppercase">⭐ LB 6</div><textarea id="${id}-c6" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-[180px] bg-purple-900/10 border border-purple-800/50 rounded-md p-2 text-sm text-purple-100 placeholder-purple-800/50">${val.c6}</textarea></div>
                         </div>
                     </div>
                 </div>`;
@@ -10353,51 +10801,16 @@
             });
         }
 
+        window.addScaleRow = function(key, sc) {
+            const list = document.getElementById(`scale-list-${key}`);
+            if (!list || typeof window.renderScaleRow !== 'function') return;
+            list.insertAdjacentHTML('beforeend', window.renderScaleRow(key, sc || { scale: 'atk', percent: 0, greenPercent: 0 }));
+        };
+
         window.addEffect = function(key) {
             const container = document.getElementById(`eff-list-${key}`);
-            const newHtml = `
-                <div class="bg-[#2d3748] p-3 rounded-lg border border-gray-600 relative group text-sm animate-fade-in effect-item shadow-lg">
-                    <div class="absolute -top-2 -right-2 cursor-pointer text-white bg-red-600 hover:bg-red-500 font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border border-red-400 z-10" onclick="this.parentElement.remove()">×</div>
-                    
-                    <div class="flex gap-2 mb-2">
-                        <select class="eff-type bg-[#1a202c] border border-gray-500 rounded text-blue-300 w-32 py-1 px-2 font-bold outline-none">
-                            <option value="special">✨ Special</option>
-                            <option value="dot">🔥 DoT</option>
-                            <option value="cc">❄️ CC</option>
-                            <option value="stat">📊 Stat</option>
-                            <option value="dmg">⚔️ Extra Dmg</option>
-                        </select>
-                        <input type="text" class="eff-name bg-transparent border-b border-gray-500 w-full text-white font-bold px-2 outline-none" placeholder="ชื่อสถานะ">
-                    </div>
-
-                    <div class="bg-[#1a202c] p-2 rounded border border-gray-700 mb-2">
-                        <div class="grid grid-cols-4 gap-2 text-[10px] text-gray-400 text-center mb-1 uppercase font-bold">
-                            <div>Level</div><div>Chance %</div><div>Turn/Hit</div><div>Value</div>
-                        </div>
-                        ${renderEffectRow('Base', 'text-gray-300', '', null)}
-                        ${renderEffectRow('Up', 'text-green-400', 'green_', null)}
-                        ${renderEffectRow('LB 2', 'text-purple-400', 'c2_', null)}
-                        ${renderEffectRow('LB 6', 'text-purple-400', 'c6_', null)}
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700">
-                            <span class="text-[9px] text-yellow-500 font-bold uppercase block">เงื่อนไข (Condition)</span>
-                            <input type="text" class="eff-cond bg-transparent w-full text-xs text-white outline-none" placeholder="เช่น เมื่อตาย, เมื่อตีขนาบ">
-                        </div>
-                        <div class="bg-[#1a202c] px-2 py-1 rounded border border-gray-700">
-                            <span class="text-[9px] text-red-400 font-bold uppercase block">ขีดจำกัด (Cap/Limit)</span>
-                            <input type="text" class="eff-cap bg-transparent w-full text-xs text-white outline-none" placeholder="เช่น สูงสุด 300% ATK">
-                        </div>
-                    </div>
-
-                    <div class="flex gap-2 items-center">
-                        <label class="flex items-center gap-1 text-[10px] text-gray-300 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-stack"> Stack</label>
-                        <input type="text" class="eff-note bg-[#1a202c] border border-gray-600 rounded px-2 py-1 w-full text-[10px] text-gray-300 outline-none" placeholder="Note...">
-                    </div>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', newHtml);
+            if (!container || typeof window.buildEffectCard !== 'function') return;
+            container.insertAdjacentHTML('beforeend', window.buildEffectCard({}));
         }
 
         // --- ฟังก์ชันคำนวณ Stat (Auto-include Passive Stats) ---
@@ -17103,9 +17516,10 @@
                 heroFilterHTML = `
                     <div class="flex flex-wrap items-center gap-2 mb-5 p-2.5 bg-yellow-900/15 border border-yellow-700/40 rounded-2xl">
                         <span class="text-[11px] font-bold text-yellow-300 uppercase tracking-wider px-2 flex items-center gap-1.5">🔎 ทีมที่ใช้</span>
-                        <div class="flex items-center gap-2 bg-black/30 border border-yellow-700/40 rounded-full pl-1 pr-3 py-1">
+                        <div class="flex items-center gap-2 bg-black/30 border border-yellow-700/40 rounded-full pl-1 pr-1.5 py-1">
                             <img src="${fh ? fh.img : ''}" class="w-7 h-7 rounded-full border border-yellow-500 object-cover bg-black">
                             <span class="text-sm font-bold text-white">${fh ? fh.name : 'ตัวละคร'}</span>
+                            <button onclick="clear3v3HeroFilter()" title="ลบตัวกรอง" class="ml-0.5 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-red-600 text-yellow-200 hover:text-white font-bold text-xs leading-none transition">✕</button>
                         </div>
                         <span class="text-[11px] font-bold text-yellow-200 bg-yellow-900/30 border border-yellow-700/40 px-2.5 py-1 rounded-full">${heroMatchCount} ทีม</span>
                         <button onclick="open3v3HeroFilter()" class="text-[11px] font-bold text-gray-300 hover:text-white bg-[#1f2937] hover:bg-[#2d3748] border border-gray-700 px-3 py-1.5 rounded-lg transition">🔁 เปลี่ยนตัว</button>
@@ -18646,7 +19060,7 @@
                     : '<div style="width:80px;height:80px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;border:2px solid #a855f7;color:#e9d5ff;background:#1f2937;box-shadow:0 0 8px rgba(168,85,247,0.6);">' + f.label + '</div>';
                 return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;" title="แนะนำอัพสกิล ' + f.label + '">' +
                     imgEl +
-                    '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:16px;height:16px;font-size:11px;line-height:16px;text-align:center;">⬆</span>' +
+                    '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:16px;height:16px;font-size: 14px;line-height:16px;text-align:center;">⬆</span>' +
                     '</div>';
             }).join('');
             if (!chips) return ''; // ไม่มีอัพสกิลที่แนะนำ
@@ -18884,8 +19298,8 @@
                                     // 💬 ส่วนที่เพิ่มเข้าไป: การแสดงผล Comment
                                     const commentBlock = slot.comment ? `
                                         <div style="margin-top: 12px; padding: 10px; background: rgba(59, 130, 246, 0.05); border-left: 3px solid #3b82f6; border-radius: 0 8px 8px 0;">
-                                            <div style="font-size: 10px; color: #60a5fa; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">💡 Hero Note</div>
-                                            <div style="font-size: 13px; color: #d1d5db; font-style: italic;">"${slot.comment}"</div>
+                                            <div style="font-size: 14px; color: #60a5fa; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">💡 Hero Note</div>
+                                            <div style="font-size: 14px; color: #d1d5db; font-style: italic;">"${slot.comment}"</div>
                                         </div>
                                     ` : '';
 
@@ -19050,6 +19464,7 @@
 
         // 3. Render การ์ดทั้งหมด (Grid)
         function renderEnemyPatternGrid() {
+            renderEnemyHeroFilter(); // sync แถบตัวกรองฮีโร่
             const grid = document.getElementById('enemy-pattern-grid');
             const emptyBox = document.getElementById('enemy-pattern-empty');
             const searchEl = document.getElementById('enemy-search');
@@ -19068,6 +19483,13 @@
                 // ตั้งชื่ออัตโนมัติจากตัวละคร (ใช้แทนช่องตั้งชื่อ)
                 const autoName = genEnemyPatternName(p);
                 p.name = autoName;
+
+                // 🎯 ตัวกรองฮีโร่: ต้องมีฮีโร่ที่เลือก "ครบทุกตัว"
+                if (enemyFilterHeroIds.length) {
+                    const heroIds = p.slots ? Object.values(p.slots).filter(s => s && s.id).map(s => String(s.id)) : [];
+                    const hasAll = enemyFilterHeroIds.every(fid => heroIds.includes(String(fid)));
+                    if (!hasAll) return;
+                }
 
                 // ค้นหา: เทียบกับชื่ออัตโนมัติ + โน้ต
                 if (search && !autoName.toLowerCase().includes(search) && !(p.note || '').toLowerCase().includes(search)) return;
@@ -20263,6 +20685,7 @@
         opts = opts || {};
         const teamId = opts.teamId != null ? String(opts.teamId) : null;
         const partial = !!opts.partial;
+        const manualOnly = !!opts.manualOnly; // true = จัดเฉพาะแหวนที่ผู้ใช้เลือกเอง (override) ไม่ auto-fill
         const overrides = (teamId && rosterRingPlannerSlotOverrides) ? rosterRingPlannerSlotOverrides : {};
         const slots = (team.slots || []).filter(function(s) { return s && s.id; });
         const assigned = [];
@@ -20306,8 +20729,8 @@
             }
         }
 
-        // Pass 2: greedy ตามเดิมสำหรับช่องที่ยังว่าง
-        for (let i = 0; i < slots.length; i++) {
+        // Pass 2: greedy auto-fill สำหรับช่องที่ยังว่าง — ข้ามเมื่อ manualOnly (โหมดจัดแหวนเอง)
+        for (let i = 0; i < slots.length && !manualOnly; i++) {
             if (handled[i]) continue;
             const options = getRosterSlotRingOptions(normalize3v3Slot(slots[i]));
             if (!options || !options.length) continue;
@@ -20339,7 +20762,8 @@
         if (!entry.match.heroes.length) return false;
         if (!entry.match.heroes.every(function(h) { return h.owned; })) return false;
         if (entry.match.pets.length > 0 && !entry.match.petsOk) return false;
-        return isRosterTeamRingAssignable(entry.team);
+        // โหมดจัดแหวนเอง: ไม่ต้องเช็คว่าแหวนพอ — ทีมที่แหวนไม่พอจะโชว์แล้วให้ตัวละครที่ยังไม่ได้จัดแหวนเป็น Disable
+        return true;
     }
 
     function computeRosterRingPlannerState(analyzed, selectedIds) {
@@ -20351,7 +20775,7 @@
             if (!entry) return;
             const heroIds = getRosterTeamHeroIds(entry.team);
             heroIds.forEach(function(id) { usedHeroIds.add(id); });
-            const assigned = assignTeamRingsFromPool(pool, entry.team, { teamId: String(tid), partial: true });
+            const assigned = assignTeamRingsFromPool(pool, entry.team, { teamId: String(tid), partial: true, manualOnly: true });
             if (assigned) assignments[String(tid)] = assigned;
         });
         return { pool: pool, usedHeroIds: usedHeroIds, assignments: assignments };
@@ -20368,10 +20792,7 @@
         if (heroConflict) {
             return { status: 'disabled', reason: 'hero', heroName: getRosterHeroName(heroConflict) };
         }
-        const trialPool = state.pool.map(function(x) { return { id: x.id, stackId: x.stackId, used: x.used }; });
-        if (!assignTeamRingsFromPool(trialPool, entry.team, { teamId: String(entry.team.id) })) {
-            return { status: 'disabled', reason: 'ring' };
-        }
+        // โหมดจัดแหวนเอง: ไม่บล็อกการเลือกทีมเพราะแหวนไม่พอ — ปล่อยให้ผู้ใช้เลือกแล้วจัดแหวนเอง
         return { status: 'available' };
     }
 
@@ -20581,6 +21002,20 @@
     }
 
     function handleRosterPlannerRingClick(teamId, slotIdx) {
+        const tid = String(teamId);
+        // โหมดจัดแหวนเอง: ต้องเลือกทีมก่อนจึงจัดแหวนได้ — ถ้ายังไม่เลือก ให้เลือกให้อัตโนมัติเมื่อกดช่องแหวน
+        if (rosterRingPlannerSelectedIds.indexOf(tid) < 0) {
+            const entry = (rosterRingPlannerLastAnalyzed || []).find(function(e) { return String(e.team.id) === tid; });
+            if (entry) {
+                const status = getTeamRingPlannerStatus(entry, rosterRingPlannerLastAnalyzed, rosterRingPlannerSelectedIds);
+                if (status.status === 'disabled') {
+                    alert('ไม่สามารถเลือกทีมนี้ — ตัวละครซ้ำกับทีมที่เลือกแล้ว');
+                    return;
+                }
+                rosterRingPlannerSelectedIds.push(tid);
+                refreshRosterRingPlannerView();
+            }
+        }
         openRosterPlannerRingPickDialog(teamId, Number(slotIdx));
     }
 
@@ -20779,38 +21214,42 @@
         const tid = String(entry.team.id);
         const state = computeRosterRingPlannerState(analyzed, selectedIds);
         const bySlot = {};
-        if (state.assignments[tid]) {
+        const isSelected = !!state.assignments[tid];
+        if (isSelected) {
             state.assignments[tid].forEach(function(a) {
                 if (a.slotIdx != null) bySlot[a.slotIdx] = a;
             });
-            return { bySlot: bySlot, isSelected: true };
         }
-        const trialPool = state.pool.map(function(x) {
-            return { id: x.id, stackId: x.stackId, used: x.used };
-        });
-        const preview = assignTeamRingsFromPool(trialPool, entry.team, { teamId: String(entry.team.id), partial: true });
-        if (preview) {
-            preview.forEach(function(a) {
-                if (a.slotIdx != null) bySlot[a.slotIdx] = a;
-            });
-        }
-        return { bySlot: bySlot, isSelected: false };
+        // \u0e42\u0e2b\u0e21\u0e14\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e40\u0e2d\u0e07: \u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e16\u0e39\u0e01\u0e40\u0e25\u0e37\u0e2d\u0e01 = \u0e44\u0e21\u0e48\u0e21\u0e35\u0e1e\u0e23\u0e35\u0e27\u0e34\u0e27\u0e41\u0e2b\u0e27\u0e19\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34 (\u0e0a\u0e48\u0e2d\u0e07\u0e27\u0e48\u0e32\u0e07 \u0e43\u0e2b\u0e49\u0e01\u0e14\u0e08\u0e31\u0e14\u0e40\u0e2d\u0e07)
+        return { bySlot: bySlot, isSelected: isSelected };
     }
 
-    function buildPlannerHeroSlotsHtml(entry) {
+    // \u0e15\u0e23\u0e27\u0e08\u0e27\u0e48\u0e32\u0e0a\u0e48\u0e2d\u0e07\u0e19\u0e35\u0e49 "\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e43\u0e0a\u0e49" \u0e43\u0e19\u0e42\u0e2b\u0e21\u0e14\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e40\u0e2d\u0e07\u0e2b\u0e23\u0e37\u0e2d\u0e22\u0e31\u0e07 \u2014 \u0e15\u0e49\u0e2d\u0e07\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e41\u0e25\u0e49\u0e27 (\u0e16\u0e49\u0e32\u0e0a\u0e48\u0e2d\u0e07\u0e19\u0e31\u0e49\u0e19\u0e15\u0e49\u0e2d\u0e07\u0e43\u0e0a\u0e49\u0e41\u0e2b\u0e27\u0e19) + \u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e14\u0e32\u0e27/\u0e2d\u0e38\u0e1b\u0e01\u0e23\u0e13\u0e4c\u0e1c\u0e48\u0e32\u0e19
+    function isPlannerHeroSlotReady(entry, slot, slotIdx, plan) {
+        const h = entry.match.heroes.find(function(x) { return x.slotIdx === slotIdx; });
+        if (!h) return false;
+        if (!h.starOk || !h.accOk) return false;
+        const ringOptions = getRosterSlotRingOptions(normalize3v3Slot(slot));
+        const ringNeeded = !!(ringOptions && ringOptions.length);
+        if (!ringNeeded) return true;
+        return !!(plan && plan.bySlot && plan.bySlot[slotIdx]);
+    }
+
+    function buildPlannerHeroSlotsHtml(entry, plan) {
         const team = entry.team;
         const slots = (team.slots || []).filter(function(s) { return s && s.id; });
         return slots.map(function(slot, i) {
             const h = entry.match.heroes.find(function(x) { return x.slotIdx === i; });
             if (!h) return '';
-            return renderRosterTeamHeroSlotInteractive(h);
+            // \u0e42\u0e0a\u0e27\u0e4c\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e15\u0e32\u0e21\u0e01\u0e32\u0e23\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19: \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19 \u2192 Disable
+            const ph = Object.assign({}, h, { ready: isPlannerHeroSlotReady(entry, slot, i, plan) });
+            return renderRosterTeamHeroSlotInteractive(ph);
         }).join('');
     }
 
-    function buildPlannerTeamRingsSectionHtml(entry, analyzed, selectedIds) {
+    function buildPlannerTeamRingsSectionHtml(entry, plan) {
         const team = entry.team;
         const slots = (team.slots || []).filter(function(s) { return s && s.id; });
-        const plan = getPlannerSlotAssignmentsBySlot(entry, analyzed, selectedIds);
         let cards = '';
         slots.forEach(function(slot, i) {
             cards += buildPlannerSlotRingCardHtml(plan.bySlot[i], team, i, plan.isSelected);
@@ -20862,35 +21301,26 @@
     function buildRosterRingPlannerHtml(container, analyzed) {
         rosterRingPlannerLastAnalyzed = analyzed;
         const eligible = analyzed.filter(isRosterTeamEligibleForRingPlanner);
-        const state = computeRosterRingPlannerState(analyzed, rosterRingPlannerSelectedIds);
-        const search = rosterRingPlannerSearch.toLowerCase();
 
         let html = '<div class="roster-ring-planner-panel">';
         html += '<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">';
-        html += '<div class="text-sm font-bold text-amber-300">\uD83D\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e17\u0e35\u0e21\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e08\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19/\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>';
+        html += '<div class="text-sm font-bold text-amber-300">\ud83d\uDC8D \u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e15\u0e32\u0e21\u0e41\u0e2b\u0e27\u0e19 \u2014 \u0e40\u0e25\u0e37\u0e2d\u0e01\u0e17\u0e35\u0e21\u0e41\u0e25\u0e49\u0e27\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e40\u0e2d\u0e07</div>';
         html += '<button type="button" onclick="toggleRosterRingPlannerMode()" class="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800">\u2715 \u0e1b\u0e34\u0e14\u0e42\u0e2b\u0e21\u0e14\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21</button></div>';
 
-        // \u0e41\u0e16\u0e1a\u0e1a\u0e2d\u0e01\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e01\u0e32\u0e23\u0e2a\u0e25\u0e31\u0e1a\u0e41\u0e2b\u0e27\u0e19
+        // \u0e41\u0e16\u0e1a\u0e1a\u0e2d\u0e01\u0e2a\u0e16\u0e32\u0e19\u0e30\u0e01\u0e32\u0e23\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19
         const overrideCount = Object.keys(rosterRingPlannerSlotOverrides).length;
         if (overrideCount > 0) {
             html += '<div class="roster-swap-hint roster-swap-hint-info mb-3"><span class="roster-swap-hint-icon">\u270e</span>' +
-                '<span class="flex-1">\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e14\u0e49\u0e27\u0e22\u0e15\u0e31\u0e27\u0e40\u0e2d\u0e07\u0e44\u0e27\u0e49 ' + overrideCount + ' \u0e0a\u0e48\u0e2d\u0e07 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e43\u0e2b\u0e21\u0e48\u0e44\u0e14\u0e49</span>' +
+                '<span class="flex-1">\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e44\u0e27\u0e49\u0e41\u0e25\u0e49\u0e27 ' + overrideCount + ' \u0e0a\u0e48\u0e2d\u0e07 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e0a\u0e48\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19 \ud83d\uDC8D \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19/\u0e16\u0e2d\u0e14\u0e44\u0e14\u0e49</span>' +
                 '<button type="button" onclick="clearRosterRingPlannerOverrides()" class="text-[10px] font-bold px-2 py-1 rounded-md border border-amber-700/60 text-amber-200 hover:bg-amber-900/30">\u21ba \u0e25\u0e49\u0e32\u0e07\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14</button>' +
                 '</div>';
         } else {
             html += '<div class="roster-swap-hint roster-swap-hint-tip mb-3"><span class="roster-swap-hint-icon">\ud83d\udca1</span>' +
-                '<span class="flex-1">\u0e04\u0e25\u0e34\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e02\u0e2d\u0e07\u0e0a\u0e48\u0e2d\u0e07\u0e43\u0e14 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e1b\u0e34\u0e14\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e41\u0e2b\u0e27\u0e19\u0e43\u0e19\u0e04\u0e25\u0e31\u0e07\u0e17\u0e35\u0e48\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e19\u0e31\u0e49\u0e19\u0e23\u0e31\u0e1a\u0e44\u0e14\u0e49 \u2014 \u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49\u0e17\u0e31\u0e49\u0e07\u0e27\u0e07\u0e17\u0e35\u0e48\u0e27\u0e48\u0e32\u0e07\u0e41\u0e25\u0e30\u0e27\u0e07\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e17\u0e35\u0e21\u0e2d\u0e37\u0e48\u0e19</span>' +
+                '<span class="flex-1">\u0e27\u0e34\u0e18\u0e35\u0e43\u0e0a\u0e49: \u0e01\u0e14\u0e1b\u0e38\u0e48\u0e21 "+ \u0e40\u0e25\u0e37\u0e2d\u0e01\u0e17\u0e35\u0e21\u0e19\u0e35\u0e49" \u0e17\u0e35\u0e48\u0e01\u0e32\u0e23\u0e4c\u0e14 \u2192 \u0e08\u0e32\u0e01\u0e19\u0e31\u0e49\u0e19\u0e04\u0e25\u0e34\u0e01\u0e0a\u0e48\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19 \ud83d\uDC8D \u0e02\u0e2d\u0e07\u0e41\u0e15\u0e48\u0e25\u0e30\u0e15\u0e31\u0e27\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e08\u0e32\u0e01\u0e04\u0e25\u0e31\u0e07 \u2014 \u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19 (\u0e2b\u0e23\u0e37\u0e2d\u0e41\u0e2b\u0e27\u0e19\u0e44\u0e21\u0e48\u0e1e\u0e2d) \u0e08\u0e30\u0e02\u0e36\u0e49\u0e19 Disable</span>' +
                 '</div>';
         }
 
-        html += '<div class="mb-3 flex flex-col sm:flex-row gap-2 sm:items-center">';
-        html += '<input type="text" value="' + rosterRingPlannerSearch.replace(/"/g, '&quot;') + '" oninput="filterRosterRingPlannerSearch(this.value)" placeholder="\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e40\u0e2b\u0e25\u0e37\u0e2d / \u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e14\u0e49..." class="flex-1 bg-[#0d1117] border border-gray-600 text-white text-sm px-3 py-2 rounded-lg outline-none focus:border-amber-500">';
-        html += '<span class="text-[11px] text-gray-400 shrink-0">\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e41\u0e25\u0e49\u0e27 ' + rosterRingPlannerSelectedIds.length + ' \u0e17\u0e35\u0e21</span>';
-        html += '</div>';
-
-        if (search) html += buildRingPlannerSearchSummaryHtml(analyzed, rosterRingPlannerSelectedIds, search);
-
-        html += '<div class="text-[11px] text-gray-500 mb-3">\u0e41\u0e2a\u0e14\u0e07\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48 ID \u0e04\u0e23\u0e1a ' + eligible.length + ' \u0e17\u0e35\u0e21 \u2014 \u0e04\u0e25\u0e34\u0e01\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e08\u0e2d\u0e07\u0e41\u0e2b\u0e27\u0e19\u0e41\u0e25\u0e30\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>';
+        html += '<div class="text-[11px] text-gray-500 mb-3">\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e19\u0e44\u0e14\u0e49 ' + eligible.length + ' \u0e17\u0e35\u0e21 \u00b7 \u0e40\u0e25\u0e37\u0e2d\u0e01\u0e41\u0e25\u0e49\u0e27 ' + rosterRingPlannerSelectedIds.length + ' \u0e17\u0e35\u0e21 \u2014 \u0e41\u0e2b\u0e27\u0e19\u0e43\u0e19\u0e04\u0e25\u0e31\u0e07\u0e16\u0e39\u0e01\u0e41\u0e1a\u0e48\u0e07\u0e43\u0e0a\u0e49\u0e23\u0e48\u0e27\u0e21\u0e01\u0e31\u0e19\u0e17\u0e38\u0e01\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01</div>';
 
         if (eligible.length === 0) {
             html += rosterEmptyState('\uD83D\uDC8D', '\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e17\u0e35\u0e21\u0e17\u0e35\u0e48 ID \u0e04\u0e23\u0e1a', '\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23 \u0e41\u0e2b\u0e27\u0e19 \u0e41\u0e25\u0e30\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07\u0e43\u0e19\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e01\u0e48\u0e2d\u0e19');
@@ -20903,10 +21333,6 @@
         eligible.forEach(function(entry) {
             const tid = String(entry.team.id);
             const plannerStatus = getTeamRingPlannerStatus(entry, analyzed, rosterRingPlannerSelectedIds);
-            if (search && plannerStatus.status !== 'selected' &&
-                !teamMatchesRingPlannerSearch(entry, analyzed, rosterRingPlannerSelectedIds, search)) {
-                return;
-            }
 
             const isSelected = plannerStatus.status === 'selected';
             const isDisabled = plannerStatus.status === 'disabled';
@@ -20915,13 +21341,18 @@
             else if (isDisabled) cardClass += 'planner-disabled';
             else cardClass += 'planner-available';
 
-            const clickAttr = isDisabled
-                ? ''
-                : ' onclick="toggleRosterRingPlannerTeam(\'' + tid.replace(/'/g, "\\'") + '\')"';
+            const plan = getPlannerSlotAssignmentsBySlot(entry, analyzed, rosterRingPlannerSelectedIds);
+            // \u0e19\u0e31\u0e1a\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e17\u0e35\u0e48\u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e40\u0e25\u0e48\u0e19 (\u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19\u0e41\u0e25\u0e49\u0e27 + \u0e40\u0e07\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e02\u0e04\u0e23\u0e1a) \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e1a\u0e2d\u0e01\u0e27\u0e48\u0e32\u0e17\u0e35\u0e21\u0e19\u0e35\u0e49\u0e40\u0e25\u0e48\u0e19\u0e44\u0e14\u0e49\u0e2b\u0e23\u0e37\u0e2d\u0e22\u0e31\u0e07
+            const slotsWithId = (entry.team.slots || []).filter(function(s) { return s && s.id; });
+            let readyCount = 0;
+            slotsWithId.forEach(function(slot, i) { if (isPlannerHeroSlotReady(entry, slot, i, plan)) readyCount++; });
+            const allReady = slotsWithId.length > 0 && readyCount === slotsWithId.length;
 
             let badge = '';
             if (isSelected) {
-                badge = '<span class="text-[10px] font-bold text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full">\u2713 \u0e40\u0e25\u0e37\u0e02\u0e01\u0e41\u0e25\u0e49\u0e27</span>';
+                badge = allReady
+                    ? '<span class="text-[10px] font-bold text-green-400 bg-green-900/30 border border-green-800/50 px-2 py-0.5 rounded-full">\u2713 \u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e40\u0e25\u0e48\u0e19</span>'
+                    : '<span class="text-[10px] font-bold text-amber-300 bg-amber-900/30 border border-amber-700/50 px-2 py-0.5 rounded-full">\ud83d\udc8d \u0e08\u0e31\u0e14\u0e41\u0e2b\u0e27\u0e19 ' + readyCount + '/' + slotsWithId.length + '</span>';
             } else if (isDisabled) {
                 const reason = plannerStatus.reason === 'hero'
                     ? '\u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23\u0e16\u0e39\u0e01\u0e43\u0e0a\u0e49\u0e41\u0e25\u0e49\u0e27' + (plannerStatus.heroName ? ' (' + plannerStatus.heroName + ')' : '')
@@ -20931,11 +21362,11 @@
                 badge = '<span class="text-[10px] font-bold text-amber-300 bg-amber-900/20 border border-amber-800/40 px-2 py-0.5 rounded-full">\u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e25\u0e37\u0e02\u0e01</span>';
             }
 
-            const heroPreview = buildPlannerHeroSlotsHtml(entry);
+            const heroPreview = buildPlannerHeroSlotsHtml(entry, plan);
             const petPreview = entry.match.pets.map(function(p) { return renderRosterTeamPetSlotInteractive(p); }).join('');
-            const ringsSection = buildPlannerTeamRingsSectionHtml(entry, analyzed, rosterRingPlannerSelectedIds);
+            const ringsSection = buildPlannerTeamRingsSectionHtml(entry, plan);
 
-            let cardHtml = '<div class="' + cardClass + '"' + clickAttr + '>';
+            let cardHtml = '<div class="' + cardClass + '">';
             cardHtml += '<div class="roster-planner-card-head"><div class="roster-planner-check">' + (isSelected ? '\u2713' : '') + '</div>';
             const _vBadge = (entry.team.video && entry.team.video.embedUrl) ? ' <span class="text-[9px] font-bold text-blue-200 bg-blue-900/50 border border-blue-700/50 px-1.5 py-0.5 rounded-full align-middle">🎬 คลิป</span>' : '';
             cardHtml += '<div class="roster-planner-card-title">' + (entry.team.name || '') + _vBadge + '</div></div>';
@@ -20949,6 +21380,17 @@
                 cardHtml += '<div class="roster-planner-slots">' + petPreview + '</div></div>';
             }
             cardHtml += ringsSection;
+            // ปุ่มเลือก/ยกเลิกทีม (แยกชัดเจน) — กดที่อื่นในการ์ดจะไม่ติ๊กทีมอัตโนมัติ
+            const safeTidBtn = tid.replace(/'/g, "\\'");
+            let selectBtn;
+            if (isDisabled) {
+                selectBtn = '<button type="button" disabled class="mt-2 w-full py-2 rounded-lg text-[11px] font-bold bg-gray-800/60 text-gray-500 border border-gray-700 cursor-not-allowed">🚫 เลือกทีมนี้ไม่ได้</button>';
+            } else if (isSelected) {
+                selectBtn = '<button type="button" onclick="event.stopPropagation(); toggleRosterRingPlannerTeam(\'' + safeTidBtn + '\')" class="mt-2 w-full py-2 rounded-lg text-[11px] font-bold bg-green-900/40 hover:bg-green-800/50 text-green-300 border border-green-700/60 transition">✓ เลือกอยู่ — กดเพื่อยกเลิก</button>';
+            } else {
+                selectBtn = '<button type="button" onclick="event.stopPropagation(); toggleRosterRingPlannerTeam(\'' + safeTidBtn + '\')" class="mt-2 w-full py-2 rounded-lg text-[11px] font-bold bg-amber-900/40 hover:bg-amber-800/50 text-amber-200 border border-amber-700/60 transition">+ เลือกทีมนี้ (จัดแหวน)</button>';
+            }
+            cardHtml += selectBtn;
             cardHtml += '<button type="button" onclick="event.stopPropagation(); showRosterTeamDetail(\'' + tid.replace(/'/g, "\\'") + '\')" class="mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold bg-blue-900/30 hover:bg-blue-800/40 text-blue-300 border border-blue-800/50 transition">📋 ดูรายละเอียด</button>';
             cardHtml += '</div>';
             plannerCards.push({ lineId: getTeamDominantLineId(entry.team), html: cardHtml });
@@ -21340,7 +21782,7 @@
                 ? '<img src="' + img + '" style="width:80px;height:80px;border-radius:10px;object-fit:cover;' + (on ? onCss : 'opacity:0.4;filter:grayscale(1);border:2px solid #374151;') + '">'
                 : '<div style="width:80px;height:80px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;' + (on ? onCss : offCss) + '">' + f.l + '</div>';
             return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="position:relative;">' + inner +
-                (on ? '<span style="position:absolute;top:-5px;right:-3px;background:#a855f7;color:#fff;border-radius:50%;width:15px;height:15px;font-size:9px;line-height:15px;text-align:center;">⬆</span>' : '') +
+                (on ? '<span style="position:absolute;top:-5px;right:-3px;background:#a855f7;color:#fff;border-radius:50%;width:15px;height:15px;font-size: 14px;line-height:15px;text-align:center;">⬆</span>' : '') +
                 '</div></div>';
         }).join('');
         return '<div class="rcm-ring-section"><div class="text-[11px] font-bold text-purple-400 uppercase tracking-wider mb-2">⚡ สกิลแนะนำให้อัพ ' +
@@ -21419,8 +21861,51 @@
     }
 
     function onRosterHeroSlotClick(teamId, slotIdx, ready) {
-        if (ready) openRosterTeamHeroDetail(teamId, slotIdx);
-        else showRosterHeroDisableReason(teamId, slotIdx);
+        if (ready) { openRosterTeamHeroDetail(teamId, slotIdx); return; }
+        // โหมดจัดแหวนเอง: ถ้าตัวละครยังไม่พร้อมเพราะยังไม่ได้จัดแหวน → บอกให้จัดแหวน
+        if (rosterRingPlannerMode) { showRosterPlannerHeroDisableReason(teamId, slotIdx); return; }
+        showRosterHeroDisableReason(teamId, slotIdx);
+    }
+
+    // เหตุผลที่ตัวละครยัง Disable ในโหมดจัดแหวนเอง (เน้นเรื่องแหวนยังไม่ได้จัด)
+    function showRosterPlannerHeroDisableReason(teamId, slotIdx) {
+        const entry = (rosterRingPlannerLastAnalyzed || []).find(function(e) { return String(e.team.id) === String(teamId); });
+        const team = entry ? entry.team : getRosterTeamById(teamId);
+        if (!team || !team.slots || !team.slots[slotIdx]) return;
+        const slot = normalize3v3Slot(team.slots[slotIdx]);
+        const h = heroesDB.find(function(x) { return String(x.id) === String(slot.id); });
+        const hMatch = entry ? entry.match.heroes.find(function(x) { return x.slotIdx === slotIdx; }) : null;
+        const lines = [];
+        if (hMatch && !hMatch.starOk) {
+            if (hMatch.awReq) {
+                lines.push({ text: 'ต้องปลุก Awakening (ตื่นรู้) ก่อน', ok: false });
+            } else {
+                lines.push({ text: 'ดาว (C) ยังไม่ถึงเกณฑ์ — มี C' + (hMatch.ownedStar >= 0 ? hMatch.ownedStar : '-') + ' / ต้อง C' + hMatch.reqStar, ok: false });
+            }
+        }
+        if (hMatch && hMatch.accReq && !hMatch.accOk) {
+            lines.push({ text: 'ต้องมีอุปกรณ์เฉพาะของตัวละครนี้', ok: false });
+        }
+        const ringOptions = getRosterSlotRingOptions(slot);
+        let extra = '';
+        if (ringOptions && ringOptions.length) {
+            const plan = entry ? getPlannerSlotAssignmentsBySlot(entry, rosterRingPlannerLastAnalyzed, rosterRingPlannerSelectedIds) : { bySlot: {} };
+            if (!(plan.bySlot && plan.bySlot[slotIdx])) {
+                lines.push({ text: 'ยังไม่ได้จัดแหวนให้ช่องนี้ — เลือกแหวนให้ตัวนี้ก่อนจึงจะใช้งานได้', ok: false, warn: true });
+                // 💍 แสดงแหวนที่ตัวละครนี้ใส่ได้ (เงื่อนไขของช่อง + มี/ไม่มีในคลัง) + ปุ่มเปิดเลือกแหวนจากคลัง
+                const ownership = buildRosterOwnership();
+                const ringInline = buildRosterRingInlineHtml(slot, ownership);
+                const safeTid = String(teamId).replace(/'/g, "\\'");
+                extra = '<div style="margin-top:0.6rem;border-top:1px solid rgba(75,85,99,0.4);padding-top:0.6rem;">' +
+                    '<div style="font-size:12px;font-weight:800;color:#fcd34d;margin-bottom:0.4rem;">💍 แหวนที่ตัวละครนี้ใส่ได้</div>' +
+                    ringInline +
+                    '<button type="button" onclick="closeRosterConditionModal(); handleRosterPlannerRingClick(\'' + safeTid + '\', ' + slotIdx + ')" class="mt-2 w-full py-2 rounded-lg text-[11px] font-bold bg-amber-900/40 hover:bg-amber-800/50 text-amber-200 border border-amber-700/60 transition">💍 เลือกแหวนจากคลังให้ช่องนี้</button>' +
+                    '</div>';
+            }
+        }
+        if (!lines.length) lines.push({ text: 'ตัวละครนี้ยังใช้ไม่ได้', ok: false });
+        const header = buildRosterHeroHeaderHtml(h, 'เงื่อนไขที่ต้องมี');
+        showRosterConditionModal('ตัวละครยังใช้ไม่ได้', lines, extra, header);
     }
 
     function onRosterPetSlotClick(teamId, petIdx, ready) {
@@ -21732,7 +22217,7 @@
                 ' oncontextmenu="event.preventDefault(); update3v3HeroSkillFlag(' + slotIdx + ', \'' + f.key + '\', ' + (!on) + '); return false;"' +
                 ' title="' + (on ? '\u0e41\u0e19\u0e30\u0e19\u0e33\u0e2d\u0e31\u0e1e ' + f.label + ' (\u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01)' : '\u0e04\u0e25\u0e34\u0e01/\u0e04\u0e25\u0e34\u0e01\u0e02\u0e27\u0e32 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e41\u0e19\u0e30\u0e19\u0e33\u0e2d\u0e31\u0e1e ' + f.label) + '">' +
                 imgEl +
-                (on ? '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:15px;height:15px;font-size:10px;line-height:15px;text-align:center;">\u2b06</span>' : '') +
+                (on ? '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:15px;height:15px;font-size: 14px;line-height:15px;text-align:center;">\u2b06</span>' : '') +
                 '</div>';
         }).join('');
         return '<div class="pb-3 mb-3 border-b border-gray-700/60">' +
@@ -22845,7 +23330,7 @@
             ? '<img src="' + h.img + '" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">'
             : '<div class="w-full h-full flex items-center justify-center text-lg text-gray-600">?</div>';
         const awkBadge = h.awk ? '<span class="roster-team-slot-awk" title="Awakening">✨</span>' : '';
-        return '<div class="roster-team-slot ' + cls + (h.awk ? ' roster-team-slot-awk-on' : '') + '" onclick="onRosterHeroSlotClick(\'' + teamId + '\', ' + slotIdx + ', ' + ready + ')" title="คลิกดูรายละเอียด">' +
+        return '<div class="roster-team-slot ' + cls + (h.awk ? ' roster-team-slot-awk-on' : '') + '" onclick="event.stopPropagation(); onRosterHeroSlotClick(\'' + teamId + '\', ' + slotIdx + ', ' + ready + ')" title="คลิกดูรายละเอียด">' +
             img + awkBadge + '<span class="roster-team-slot-star">C' + h.reqStar + '</span></div>';
     }
 
@@ -22872,7 +23357,7 @@
             titleText = p.name + ' \u2014 \u0e44\u0e21\u0e48\u0e1c\u0e48\u0e32\u0e19 (' + miss.join(', ') + ')';
         }
         const title = titleText.replace(/"/g, '&quot;');
-        return '<div class="roster-team-slot rounded-full ' + cls + '" onclick="onRosterPetSlotClick(\'' + teamId + '\', ' + petIdx + ', ' + ready + ')" title="' + title + '">' + img + '</div>';
+        return '<div class="roster-team-slot rounded-full ' + cls + '" onclick="event.stopPropagation(); onRosterPetSlotClick(\'' + teamId + '\', ' + petIdx + ', ' + ready + ')" title="' + title + '">' + img + '</div>';
     }
 
 
@@ -22883,7 +23368,7 @@
 
 
 
-    function buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview) {
+    function buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview, conflictRings, conflictScope) {
         const tid = String(team.id != null ? team.id : '').replace(/'/g, "\\'");
         const petsBlock = petPreview
             ? '<div class="mb-1 text-[10px] font-bold text-green-400 uppercase tracking-wider">🐾 สัตว์เลี้ยง</div><div class="flex flex-wrap gap-1.5">' + petPreview + '</div>'
@@ -22891,9 +23376,12 @@
         const videoBadge = (team.video && team.video.embedUrl)
             ? '<span class="shrink-0 text-[9px] font-bold text-blue-200 bg-blue-900/50 border border-blue-700/50 px-1.5 py-0.5 rounded-full">🎬 คลิป</span>'
             : '';
+        const conflictBadge = (conflictRings && conflictRings.length)
+            ? '<span class="roster-card-conflict-badge cursor-pointer" onclick="event.stopPropagation(); showRosterRingShareDialog(\'' + tid + '\', \'' + (conflictScope || 'Attack') + '\')" title="กดดูว่าแหวนนี้ใช้ร่วมกับทีมไหนได้บ้าง">⚠️ แชร์แหวน</span>'
+            : '';
         return '<div class="roster-attack-team-card ' + cardClass + ' p-3">' +
             '<div class="flex items-start justify-between gap-2 mb-2">' +
-                '<div class="min-w-0 flex-1 flex items-center gap-1.5"><span class="font-bold text-white text-sm truncate">' + (team.name || '') + '</span>' + videoBadge + '</div>' +
+                '<div class="min-w-0 flex-1 flex items-center gap-1.5"><span class="font-bold text-white text-sm truncate">' + (team.name || '') + '</span>' + videoBadge + conflictBadge + '</div>' +
                 statusBadge +
             '</div>' +
             '<div class="mb-1 text-[10px] font-bold text-yellow-400 uppercase tracking-wider">\u2694\uFE0F \u0e15\u0e31\u0e27\u0e25\u0e30\u0e04\u0e23</div>' +
@@ -23010,6 +23498,164 @@
         showRosterConditionModal('📋 ' + (team.name || 'รายละเอียดทีม'), [], buildRosterTeamDetailHtml(team), buildRosterEnemyHeaderHtml(team));
     }
 
+    // 💍 ===== แจ้งเตือน "แหวนใช้ร่วมกันหลายทีม" (roster ทีมบุก/ทีมรับ) =====
+    // ลูกกิลมีแหวนแต่ละวงเพียงวงเดียว — ถ้าหลายทีมบังคับใช้แหวนวงเดียวกัน จะใส่ได้แค่ทีมเดียวต่อรอบ
+
+    function escapeRosterConflictText(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // คืน Set ของ ringId ที่ทีมนี้ "บังคับ" ใช้ (เฉพาะช่องที่มีตัวเลือกแหวนเดียว —
+    // ช่องที่มีหลายตัวเลือกถือว่ายืดหยุ่น สลับไปใช้แหวนอื่นเลี่ยงการชนกันได้ จึงไม่นับว่าชน)
+    function getRosterTeamHardRingDemands(team) {
+        const ids = new Set();
+        (team.slots || []).forEach(function(slot) {
+            if (!slot || !slot.id) return;
+            const options = getRosterSlotRingOptions(slot);
+            if (!options || options.length !== 1) return;
+            const opt = options[0];
+            if (opt.baseId) ids.add(String(opt.baseId));
+            if (opt.stackId) ids.add(String(opt.stackId)); // แหวนซ้อนใช้สองวงจริง — กินทั้งคู่
+        });
+        return ids;
+    }
+
+    // หาแหวนที่ถูกใช้โดยทีมตั้งแต่ 2 ทีมขึ้นไป — แยกตามประเภท (ทีมบุก / ทีมรับ ไม่นับรวมกัน)
+    // scope = 'Attack' | 'Defense'
+    function computeRosterSharedRingConflicts(scope) {
+        const cache = (typeof rosterSharedTeamsCache === 'object' && rosterSharedTeamsCache)
+            ? rosterSharedTeamsCache : { attack: [], defense: [] };
+        const teams = scope === 'Defense' ? (cache.defense || []) : (cache.attack || []);
+        const ringMap = new Map(); // ringId -> [{ id, name }]
+        teams.forEach(function(team) {
+            if (!team) return;
+            getRosterTeamHardRingDemands(team).forEach(function(rid) {
+                if (!ringMap.has(rid)) ringMap.set(rid, []);
+                ringMap.get(rid).push({ id: String(team.id), name: team.name || '(ไม่มีชื่อ)' });
+            });
+        });
+        const owned = new Set();
+        tempOwnedRings.forEach(function(r) {
+            if (!r) return;
+            if (r.id) owned.add(String(r.id));
+            if (r.stackId) owned.add(String(r.stackId));
+        });
+        const conflicts = [];
+        ringMap.forEach(function(teamList, rid) {
+            const uniq = [];
+            const seen = new Set();
+            teamList.forEach(function(t) { if (!seen.has(t.id)) { seen.add(t.id); uniq.push(t); } });
+            if (uniq.length >= 2) {
+                conflicts.push({ ringId: rid, ringName: getRosterRingName(rid), owned: owned.has(rid), teams: uniq });
+            }
+        });
+        conflicts.sort(function(a, b) {
+            if (a.owned !== b.owned) return a.owned ? -1 : 1;
+            return b.teams.length - a.teams.length;
+        });
+        return conflicts;
+    }
+
+    // teamId -> [{ ringId, ringName, owned, teams }] (รายแหวนที่ทีมนี้ชนกับทีมอื่น) ใช้ติดป้าย + เปิด dialog
+    function buildRosterTeamConflictRingMap(scope) {
+        const map = new Map();
+        computeRosterSharedRingConflicts(scope).forEach(function(c) {
+            c.teams.forEach(function(t) {
+                if (!map.has(t.id)) map.set(t.id, []);
+                map.get(t.id).push(c);
+            });
+        });
+        return map;
+    }
+
+    // รูป icon ฮีโร่ของช่องหนึ่ง (รองรับ awakening)
+    function getRosterSlotHeroIcon(slot) {
+        const sNorm = normalize3v3Slot(slot);
+        const h = heroesDB.find(function(x) { return String(x.id) === String(sNorm.id); });
+        const awk = !!(sNorm.awakened && h && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+        return { img: h ? (awk ? h.img2 : h.img) : '', name: h ? h.name : String(sNorm.id) };
+    }
+
+    // รูปฮีโร่ในทีมที่ "ต้องใช้" แหวนวงนี้ (ช่องที่บังคับแหวนวงเดียว ตรงกับ ringId)
+    function getRosterTeamHeroesUsingRing(team, ringId) {
+        const out = [];
+        (team.slots || []).forEach(function(slot) {
+            if (!slot || !slot.id) return;
+            const options = getRosterSlotRingOptions(slot);
+            if (!options || options.length !== 1) return;
+            const opt = options[0];
+            const ids = [String(opt.baseId)];
+            if (opt.stackId) ids.push(String(opt.stackId));
+            if (ids.indexOf(String(ringId)) < 0) return;
+            out.push(getRosterSlotHeroIcon(slot));
+        });
+        return out;
+    }
+
+    // แถวรูปฮีโร่ทั้งทีม (ใช้ใน header ของ dialog)
+    function buildRosterTeamHeroIconRowHtml(team) {
+        const slots = (team.slots || []).filter(function(s) { return s && s.id; });
+        return slots.map(function(slot) {
+            const hero = getRosterSlotHeroIcon(slot);
+            if (!hero.img) return '';
+            return '<img src="' + hero.img + '" alt="" title="' + escapeRosterConflictText(hero.name) + '" style="width:3rem;height:3rem;border-radius:0.5rem;object-fit:cover;border:1px solid rgba(75,85,99,0.7);background:#000;">';
+        }).join('');
+    }
+
+    // 🔍 Dialog เมื่อกดป้าย "แชร์แหวน" บนการ์ด — บอกว่าแหวนแต่ละวงของทีมนี้ ใช้ร่วมกับทีมไหนได้บ้าง
+    function showRosterRingShareDialog(teamId, scope) {
+        const tid = String(teamId);
+        const team = findRosterTeamById(tid);
+        const conflicts = computeRosterSharedRingConflicts(scope).filter(function(c) {
+            return c.teams.some(function(t) { return t.id === tid; });
+        });
+        const typeLabel = scope === 'Defense' ? 'ทีมรับ' : 'ทีมบุก';
+        const typeIcon = scope === 'Defense' ? '🛡️' : '🎯';
+        if (!conflicts.length) {
+            showRosterConditionModal('💍 แหวนที่ใช้ร่วมกัน', [], '<div class="rcm-condition-row ok"><span class="shrink-0">✓</span><span>ทีมนี้ไม่มีแหวนที่ต้องใช้ร่วมกับทีมอื่น</span></div>');
+            return;
+        }
+        const rows = conflicts.map(function(c) {
+            const r = ringsDB.find(function(x) { return String(x.id) === String(c.ringId); }) ||
+                accessoriesDB.find(function(x) { return String(x.id) === String(c.ringId); });
+            const img = r && r.img
+                ? '<img src="' + r.img + '" alt="" style="width:3rem;height:3rem;border-radius:0.5rem;object-fit:contain;background:#000;flex-shrink:0;">'
+                : '<div style="width:3rem;height:3rem;border-radius:0.5rem;background:#1f2937;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;">💍</div>';
+            const ownTag = c.owned
+                ? '<span style="font-size:9px;font-weight:700;color:#fca5a5;background:rgba(127,29,29,0.45);border:1px solid rgba(248,113,113,0.4);border-radius:9999px;padding:0.05rem 0.45rem;">💍 คุณมีแหวนวงนี้</span>'
+                : '<span style="font-size:9px;font-weight:700;color:#9ca3af;background:rgba(55,65,81,0.5);border:1px solid rgba(107,114,128,0.4);border-radius:9999px;padding:0.05rem 0.45rem;">ยังไม่มีแหวนวงนี้</span>';
+            // แต่ละทีมที่ใช้แหวนวงนี้ → โชว์รูปตัวละครที่ใช้แหวนวงนี้ (ทีมที่กดอยู่ไฮไลต์ทอง = กำลังใช้)
+            const teamRows = c.teams.map(function(t) {
+                const isThis = t.id === tid;
+                const tTeam = findRosterTeamById(t.id);
+                const heroes = tTeam ? getRosterTeamHeroesUsingRing(tTeam, c.ringId) : [];
+                const heroIcons = heroes.map(function(hero) {
+                    if (!hero.img) return '';
+                    return '<img src="' + hero.img + '" alt="" title="' + escapeRosterConflictText(hero.name) + '" style="width:2.5rem;height:2.5rem;border-radius:0.45rem;object-fit:cover;border:2px solid ' + (isThis ? '#fbbf24' : 'rgba(75,85,99,0.7)') + ';background:#000;' + (isThis ? 'box-shadow:0 0 6px rgba(251,191,36,0.55);' : '') + '">';
+                }).join('') || '<span style="font-size:11px;color:#9ca3af;">—</span>';
+                const rowStyle = isThis
+                    ? 'background:rgba(120,53,15,0.4);border:1px solid rgba(251,191,36,0.55);'
+                    : 'background:rgba(0,0,0,0.25);border:1px solid rgba(75,85,99,0.5);';
+                return '<div style="display:flex;align-items:center;gap:0.5rem;border-radius:0.5rem;padding:0.4rem 0.5rem;' + rowStyle + '">' +
+                    '<div style="display:flex;gap:0.3rem;flex-wrap:wrap;flex-shrink:0;">' + heroIcons + '</div>' +
+                    '<div style="min-width:0;font-size:12px;font-weight:700;color:' + (isThis ? '#fde68a' : '#e5e7eb') + ';">' + typeIcon + ' ' + escapeRosterConflictText(t.name) + (isThis ? ' · ทีมนี้ (กำลังใช้)' : '') + '</div>' +
+                    '</div>';
+            }).join('');
+            return '<div style="border:1px solid rgba(251,191,36,0.3);background:rgba(69,26,3,0.18);border-radius:0.6rem;padding:0.6rem;margin-bottom:0.6rem;">' +
+                '<div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">' + img +
+                '<div style="min-width:0;"><div style="font-size:13px;font-weight:800;color:#fde68a;">' + escapeRosterConflictText(c.ringName) + '</div>' +
+                '<div style="margin-top:0.2rem;">' + ownTag + '</div></div></div>' +
+                '<div style="display:flex;flex-direction:column;gap:0.35rem;">' + teamRows + '</div></div>';
+        }).join('');
+        // header: รูปทีมที่กดแชร์แหวน เพื่อรู้ว่ากำลังดูทีมไหน
+        const heroRow = team ? buildRosterTeamHeroIconRowHtml(team) : '';
+        const header = '<div style="margin-bottom:0.75rem;">' +
+            '<div style="font-size:15px;font-weight:800;color:#fff;">' + typeIcon + ' ' + escapeRosterConflictText(team ? (team.name || '') : '') + '</div>' +
+            (heroRow ? '<div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.4rem;">' + heroRow + '</div>' : '') +
+            '<div style="font-size:11px;color:#9ca3af;margin-top:0.4rem;line-height:1.5;">แหวนแต่ละวงใส่ได้ทีมเดียวต่อรอบ — ถ้าใส่ให้ทีมนี้ ' + typeLabel + 'อื่นที่ใช้แหวนวงเดียวกันจะใส่ไม่ได้ เลือกให้ดีว่าจะใส่ทีมไหน</div></div>';
+        showRosterConditionModal('💍 แหวนที่ใช้ร่วมกัน', [], rows, header);
+    }
+
     function buildRosterAttackTeamsListHtml(container, analyzed) {
         if (rosterRingPlannerMode) {
             buildRosterRingPlannerHtml(container, analyzed);
@@ -23041,6 +23687,7 @@
             container.innerHTML = html + rosterEmptyState('\uD83D\uDC8D', '\u0e22\u0e31\u0e07\u0e08\u0e31\u0e14\u0e17\u0e35\u0e21\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e27\u0e19\u0e17\u0e35\u0e48\u0e21\u0e35\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49', '\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e41\u0e2b\u0e27\u0e19\u0e43\u0e19\u0e17\u0e35\u0e21\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13\u0e41\u0e25\u0e49\u0e27\u0e01\u0e14\u0e1b\u0e38\u0e48\u0e21\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e49\u0e07');
             return;
         }
+        const conflictMap = buildRosterTeamConflictRingMap('Attack');
         const assignableIds = new Set(assignableTeams.slice(0, 5).map(x => String(x.team.id)));
         const cards = [];
         list.forEach(({ team, match }) => {
@@ -23058,7 +23705,7 @@
             }
             const petPreview = match.pets.map(p => renderRosterTeamPetSlotInteractive(p)).join('');
             const heroPreview = match.heroes.map(h => renderRosterTeamHeroSlotInteractive(h)).join('');
-            cards.push({ lineId: getTeamDominantLineId(team), html: buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview) });
+            cards.push({ lineId: getTeamDominantLineId(team), html: buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview, conflictMap.get(String(team.id)), 'Attack') });
         });
         html += buildTeamCardsGroupedByLine(cards, 'roster-attack-grid');
         container.innerHTML = html;
@@ -23113,6 +23760,7 @@
         });
 
         let html = '<div class="text-[11px] text-gray-500 mb-4">\u0e17\u0e35\u0e21\u0e23\u0e31\u0e1a\u0e17\u0e35\u0e48\u0e41\u0e0a\u0e23\u0e48 ' + analyzed.length + ' \u0e17\u0e35\u0e21 \u00b7 \u0e2a\u0e35\u0e40\u0e17\u0e32 = \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e04\u0e23\u0e1a C / \u0e41\u0e2b\u0e27\u0e19 / \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e31\u0e15\u0e27\u0e4c\u0e40\u0e25\u0e35\u0e49\u0e22\u0e07</div>';
+        const conflictMap = buildRosterTeamConflictRingMap('Defense');
 
         const cards = [];
         analyzed.forEach(({ team, match }) => {
@@ -23122,7 +23770,7 @@
                 : '<span class="text-[10px] font-bold text-gray-400 bg-gray-800/60 border border-gray-700 px-2 py-0.5 rounded-full">' + match.matched + '/' + match.total + ' \u0e04\u0e23\u0e1a</span>';
             const petPreview = match.pets.map(p => renderRosterTeamPetSlotInteractive(p)).join('');
             const heroPreview = match.heroes.map(h => renderRosterTeamHeroSlotInteractive(h)).join('');
-            cards.push({ lineId: getTeamDominantLineId(team), html: buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview) });
+            cards.push({ lineId: getTeamDominantLineId(team), html: buildRosterAttackTeamCardHtml(team, match, cardClass, statusBadge, heroPreview, petPreview, conflictMap.get(String(team.id)), 'Defense') });
         });
         html += buildTeamCardsGroupedByLine(cards, 'roster-attack-grid');
 
@@ -23284,9 +23932,9 @@
         const borderCls = isAwk ? 'border-purple-500' : 'border-gray-600';
         const awBadge = isAwk ? '<span class="absolute top-0.5 left-0.5 z-10 bg-purple-600 text-white text-[9px] font-bold px-1 rounded shadow">✨</span>' : '';
         // ✨ แท็ก "ปลุกพลัง" — ฮีโร่ที่มีรูปปลุกพลัง (img2) แม้ยังไม่ได้อัพ
-        const awCapTag = (h.img2 && h.img2 !== DRIVE_IMG_PREFIX) ? '<span style="position:absolute;bottom:2px;left:2px;z-index:10;font-size:8px;font-weight:700;background:rgba(59,7,100,0.9);color:#e9d5ff;border:1px solid #a855f7;border-radius:4px;padding:0 3px;line-height:1.5;pointer-events:none;">ปลุกพลัง</span>' : '';
+        const awCapTag = (h.img2 && h.img2 !== DRIVE_IMG_PREFIX) ? '<span style="position:absolute;bottom:2px;left:2px;z-index:10;font-size: 14px;font-weight:700;background:rgba(59,7,100,0.9);color:#e9d5ff;border:1px solid #a855f7;border-radius:4px;padding:0 3px;line-height:1.5;pointer-events:none;">ปลุกพลัง</span>' : '';
         // 💎 ป้าย "E" มุมขวาบน เมื่อใส่อุปกรณ์เฉพาะแล้ว (hasAcc)
-        const accBadge = item.hasAcc ? '<span title="ใส่อุปกรณ์เฉพาะแล้ว" style="position:absolute;top:3px;right:3px;z-index:10;width:18px;height:18px;border-radius:6px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 7px rgba(236,72,153,0.75);border:1px solid rgba(255,255,255,0.45);text-shadow:0 1px 1px rgba(0,0,0,0.3);">E</span>' : '';
+        const accBadge = item.hasAcc ? '<span title="ใส่อุปกรณ์เฉพาะแล้ว" style="position:absolute;top:3px;right:3px;z-index:10;width:18px;height:18px;border-radius:6px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;font-size: 14px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 7px rgba(236,72,153,0.75);border:1px solid rgba(255,255,255,0.45);text-shadow:0 1px 1px rgba(0,0,0,0.3);">E</span>' : '';
         return `<div class="relative roster-hero-card w-20 h-20 md:w-24 md:h-24 rounded-2xl border-2 ${borderCls} bg-black cursor-pointer hover:border-blue-500 hover:scale-105 transition-all shadow-md group"
             onclick="rosterOwnedItemActivate(event, 'PUBLIC-ROSTER-OWNED', ${realIdx})"
             oncontextmenu="event.preventDefault(); return false;"
