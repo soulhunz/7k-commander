@@ -8109,8 +8109,8 @@
                 }
                 else {
                     // กรณี Guild Team หรือ War Room
-                    if(currentView === 'my-teams') renderMyTeams();
-                    
+                    if(currentView === 'my-teams') renderGuildResultMode();
+
                     triggerAutoSave();
                 }
             }
@@ -14260,26 +14260,29 @@
     function checkForUpdates() {
         if (!SCRIPT_URL) return;
 
-        // ดึงข้อมูลมาเช็ค Timestamp เท่านั้น
-        fetch(SCRIPT_URL)
+        // ดึงข้อมูลมาเช็ค Timestamp (ต้อง POST — GET จะได้ HTML กลับมาแล้ว .json() พัง)
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'getAllData' })
+        })
         .then(res => res.json())
         .then(data => {
             updateSyncStatus('online'); // คงสถานะไฟเขียว
 
-            // เปรียบเทียบเวลา: ถ้า Server ใหม่กว่า Local -> แจ้งเตือน
-            // if (data.timestamp && data.timestamp > lastServerTimestamp) {
-            //     console.log("🔔 New update found on server!");
-                
-            //     // พักข้อมูลไว้ในตัวแปร ยังไม่เอาขึ้นหน้าจอ
-            //     pendingUpdateData = data;
-                
-            //     // แสดงแถบแจ้งเตือนด้านบน
-            //     const notif = document.getElementById('update-notification');
-            //     if(notif) {
-            //         notif.classList.remove('hidden');
-            //         notif.classList.add('flex');
-            //     }
-            // }
+            // อย่าแจ้งเตือนระหว่างกำลังบันทึก/มีคิวบันทึกค้าง (กันแจ้งเตือนการแก้ของตัวเอง)
+            if (isSaving || isPendingSave) return;
+
+            // เปรียบเทียบเวลา: ถ้า Server ใหม่กว่า Local -> แจ้งเตือน (ไม่ overwrite เอง รอผู้ใช้กด)
+            if (data && data.timestamp && data.timestamp > lastServerTimestamp) {
+                console.log("🔔 New update found on server!");
+                pendingUpdateData = data; // พักข้อมูลไว้ ยังไม่เอาขึ้นหน้าจอ
+                const notif = document.getElementById('update-notification');
+                if (notif) {
+                    notif.classList.remove('hidden');
+                    notif.classList.add('flex');
+                }
+            }
         })
         .catch(err => {
             console.warn("Background check failed:", err);
@@ -14312,7 +14315,7 @@
         updateSyncStatus('loading');
         
         // เรียกฟังก์ชันดึงข้อมูลเดิม
-        fetchCloudData(false)
+        fetchCloudData('getAllData', false)
             .then(() => {
                 // หน่วงเวลานิดนึงเพื่อให้เห็นว่าหมุนเสร็จแล้ว (UX)
                 setTimeout(() => {
@@ -14330,9 +14333,10 @@
         lastServerTimestamp = data.timestamp || Date.now();
 
         if (data.users) systemUsersDB = data.users;
-        if (data.heroes) heroesDB = data.heroes;
-        if (data.pets) petsDB = data.pets;
-        if (data.rings) ringsDB = data.rings;
+        // กันข้อมูลหลักโดนทับด้วย array ว่างจาก response ชั่วคราว (สอดคล้องกับ equip_sets/accessories ด้านล่าง)
+        if (data.heroes && data.heroes.length > 0) heroesDB = data.heroes;
+        if (data.pets && data.pets.length > 0) petsDB = data.pets;
+        if (data.rings && data.rings.length > 0) ringsDB = data.rings;
         if (typeof normalizeRingsInDb === 'function') normalizeRingsInDb();
         if (data.items) itemsDB = data.items;
         if (data.equip_sets && data.equip_sets.length > 0) {
@@ -14366,14 +14370,17 @@
         }
         
         if (data.affiliations) affiliationsDB = data.affiliations;
-        if (data.tierModes) {
+        if (data.tierModes && data.tierModes.length > 0) {
             tierModesDB = data.tierModes;
             localStorage.setItem('7k_tier_modes_config', JSON.stringify(tierModesDB));
         }
-        if (data.tierLists) tierListsDB = data.tierLists; 
-        if (data.teams) { 
-            if(data.teams.teams) teamsDB = data.teams.teams; else teamsDB = data.teams; 
-            if(data.teams.logs) logsDB = data.teams.logs; 
+        if (data.tierLists) tierListsDB = data.tierLists;
+        if (data.teams) {
+            // กัน array/object ว่างจาก server (ก่อนมีข้อมูลในชีต) ทับ local
+            const _t = (data.teams && data.teams.teams) ? data.teams.teams : data.teams;
+            const _tHas = Array.isArray(_t) ? _t.length > 0 : (_t && Object.keys(_t).length > 0);
+            if (_tHas) teamsDB = _t;
+            if (data.teams.logs && data.teams.logs.length) logsDB = data.teams.logs;
         }
         if (data.knownEnemies) knownEnemies = data.knownEnemies;
         if (data.battleHistory) battleHistoryDB = data.battleHistory;
@@ -14448,7 +14455,12 @@
         if (currentView === 'team-builder-3v3') render3v3Editor();
         if (currentView === 'preparation') renderPreparation();
         if (currentView.includes('manager')) renderManagerUI();
-        
+
+        // 🟢 เริ่ม background sync หลังโหลดข้อมูลเสร็จ (ข้ามหน้า portal ลูกกิล) — startRealTimeSync clearInterval ก่อนเสมอ จึงเรียกซ้ำได้
+        if (!isRosterPortalMode && SCRIPT_URL && typeof startRealTimeSync === 'function') {
+            startRealTimeSync();
+        }
+
         console.log("✅ Data Processed & UI Updated");
     }
 
@@ -15099,7 +15111,7 @@
         } catch (err) {
             console.error("Delete Error:", err);
             alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
-            fetchCloudData(false).then(() => renderSurveyResponses());
+            fetchCloudData('getAllData', false).then(() => renderSurveyResponses());
         } finally {
             hideLoading();
         }
@@ -15625,7 +15637,7 @@
             showLoading("กำลังโหลดข้อมูล...");
             
             // ระบบจะไปดึงข้อมูลล่าสุดจาก Google Sheets มาอัปเดตตัวแปร applicationsDB
-            await fetchCloudData(action = 'getAllData',false);
+            await fetchCloudData('getAllData', false);
 
             // 3. วาดตารางใหม่
             renderSurveyResponses();
@@ -16955,8 +16967,6 @@
         // =========================================================
         // 🎯 SAVE QUEUE SYSTEM for 3v3 Teams
         // =========================================================
-        let save3v3Queue = [];
-        let isProcessing3v3Queue = false;
         let last3v3SaveTime = 0;
         let is3v3Dirty = false; // มีการแก้ไขที่ยังไม่กด Save All
 
@@ -16990,75 +17000,7 @@
             });
         }
 
-        // เพิ่ม request เข้าคิว
-
-
-        // ประมวลผลคิว
-        async function process3v3SaveQueue(retryCount = 0) {
-            if (isProcessing3v3Queue || save3v3Queue.length === 0) return;
-            if (!USE_CLOUD) {
-                console.log('☁️ USE_CLOUD is false, skipping save');
-                save3v3Queue = []; // เคลียร์คิว
-                return;
-            }
-            
-            // 🟢 จำกัด retry สูงสุด 3 ครั้ง
-            if (retryCount > 3) {
-                console.error('❌ Max retry reached, giving up');
-                save3v3Queue = []; // เคลียร์คิวเพื่อหยุด loop
-                isProcessing3v3Queue = false;
-                return;
-            }
-
-            isProcessing3v3Queue = true;
-
-            // เอา request ล่าสุดที่สุด (ข้อมูลใหม่สุด)
-            const latestRequest = save3v3Queue[save3v3Queue.length - 1];
-            save3v3Queue = []; // เคลียร์คิว
-
-            try {
-                // 🟢 ใช้ Action ใหม่ save3v3Teams แทนการใช้ pushData ทั่วไป
-                const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
-                
-                // 🟢 ใช้ no-cors mode (บันทึกได้แต่ไม่ได้ response)
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'saveMany3v3Teams', // 🟢 upsert รายแถว (ไม่ clear ทั้งชีต)
-                        teams_3v3: latestRequest.teams,
-                        deletedIds: [],
-                        timestamp: latestRequest.timestamp,
-                        _userGuild: userGuild,
-                        _userRole: CURRENT_USER?.role || 'user'
-                    })
-                });
-                
-                // ถือว่าสำเร็จ (no-cors ไม่ return response ได้)
-                console.log('✅ Saved to Google Sheets (no-cors mode)');
-                isProcessing3v3Queue = false;
-                
-                localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB));
-            } catch (err) {
-                console.error('❌ Save error:', err);
-                // 🟢 ถ้าเป็น CORS error ไม่ต้อง retry (เปิดผ่าน file://)
-                if (err.message && err.message.includes('Failed to fetch')) {
-                    console.log('⚠️ Network error, stopping retries (use Live Server to fix CORS)');
-                    save3v3Queue = []; // เคลียร์คิว
-                } else {
-                    // คืนค่าเข้าคิวเพื่อลองใหม่ครั้งหน้า (แต่จำกัด retry)
-                    save3v3Queue.unshift(latestRequest);
-                }
-            } finally {
-                isProcessing3v3Queue = false;
-
-                // 🟢 ตรวจสอบคิวใหม่และเรียกด้วย retry count
-                if (save3v3Queue.length > 0) {
-                    setTimeout(() => process3v3SaveQueue(retryCount + 1), 1000); // รอ 1 วินาทีก่อน retry
-                }
-            }
-        }
+        // (ลบ process3v3SaveQueue / save3v3Queue ที่ไม่ถูกเรียกแล้ว — การบันทึก 3v3 ใช้ saveAll3v3Teams)
 
         function mark3v3Dirty() {
             is3v3Dirty = true;
@@ -17566,18 +17508,6 @@
                 showToast('✅ บันทึกสำเร็จ!' + delMsg, 'success');
                 hideLoading();
                 return;
-                
-                if (result.status === 'success') {
-                    // อัพเดท localStorage
-                    localStorage.setItem('7k_teams_3v3', JSON.stringify(allData));
-                    console.log('✅ All teams saved to Google Sheets');
-                    // 🟢 แสดง toast สำเร็จ
-                    showToast(`✅ บันทึกสำเร็จ! (${allData.length} ทีม)`, 'success');
-                } else {
-                    console.warn('⚠️ Save warning:', result.message);
-                    // 🟢 แสดง toast เตือน
-                    showToast('⚠️ บันทึกไม่สำเร็จ: ' + result.message, 'warning');
-                }
             } catch (err) {
                 console.error('❌ Save error:', err);
                 showToast('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
@@ -19708,7 +19638,7 @@
                 // 🟢 ถ้า heroesDB ว่าง ให้โหลดก่อนแสดงผล
                 if (!heroesDB || heroesDB.length === 0) {
                     console.log("🔄 Loading heroesDB for Gallery...");
-                    await loadMasterData();
+                    await fetchCloudData('getAllData', false);
                 }
                 renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 return; // จบฟังก์ชัน ไม่ต้องเรียก Server
@@ -21351,11 +21281,12 @@
         async function loadEnemyPatternsFromCloud() {
             console.log('🔄 Reloading Enemy Patterns from Cloud...');
             try {
-                const response = await fetch(SCRIPT_URL + '?action=getAllData', {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'getAllData' })
                 });
-                
+
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -21381,8 +21312,8 @@
                         console.log('✅ Enemy Patterns reloaded: ' + allEnemyPatternsDB.length + ' total');
                         
                         // Refresh UI ถ้ากำลังแสดงอยู่
-                        if (document.getElementById('enemy-patterns-page')?.classList.contains('active')) {
-                            renderEnemyPatterns();
+                        if (currentView === 'enemy-manager' && typeof renderEnemyManager === 'function') {
+                            renderEnemyManager();
                         }
                     }
                 }
