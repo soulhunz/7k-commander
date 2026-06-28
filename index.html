@@ -14456,10 +14456,9 @@
         if (currentView === 'preparation') renderPreparation();
         if (currentView.includes('manager')) renderManagerUI();
 
-        // 🟢 เริ่ม background sync หลังโหลดข้อมูลเสร็จ (ข้ามหน้า portal ลูกกิล) — startRealTimeSync clearInterval ก่อนเสมอ จึงเรียกซ้ำได้
-        if (!isRosterPortalMode && SCRIPT_URL && typeof startRealTimeSync === 'function') {
-            startRealTimeSync();
-        }
+        // ⛔ ปิด background sync ไว้ก่อน — server timestamp เป็น "เวลาตอนขอข้อมูل" (now) ไม่ใช่ "เวลาแก้ล่าสุด"
+        //    การเทียบ timestamp จึงเป็นจริงตลอด → banner เด้งไม่หยุด ต้องมี dataVersion จริงก่อนถึงเปิดได้
+        // if (!isRosterPortalMode && SCRIPT_URL && typeof startRealTimeSync === 'function') startRealTimeSync();
 
         console.log("✅ Data Processed & UI Updated");
     }
