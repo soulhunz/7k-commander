@@ -2044,6 +2044,24 @@
             border-radius: 0 0 12px 12px;
         }
 
+        /* ⭐ แถวดาวย่อในหน้า Share Gallery (ซ้อนล่างรูปฮีโร่) */
+        .gallery-star-row {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 15;
+            pointer-events: none;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, transparent 100%);
+            border-radius: 0 0 12px 12px;
+            padding-bottom: 1px;
+        }
+        .gallery-star-row .star-icon { font-size: 11px; line-height: 1; margin: 0 -1.5px; filter: drop-shadow(0 0 1px rgba(0,0,0,1)); }
+        .gallery-star-row .star-aw { color: #c084fc; text-shadow: 0 0 4px #a855f7; }
+
         /* ปรับแต่ง Container ในหน้าข้อมูลตัวละคร */
         .star-row-detail {
             display: flex;
@@ -8230,11 +8248,31 @@
             for (let i = 0; i < yellowCount; i++) stars.push('<span class="star-icon star-yellow">★</span>');
 
             const containerClass = detail ? 'star-row-detail' : 'star-row-slot';
-            
+
             // ปรับ style หน้า Detail ให้ขยายใหญ่และมีระยะห่างที่เหมาะสม
             const detailStyle = detail ? 'style="font-size: 28px; gap: 2px; margin-top: 10px;"' : '';
 
             return `<div class="${containerClass}" ${detailStyle}>${stars.join('')}</div>`;
+        }
+
+        // ⭐ แถวดาวแบบย่อสำหรับซ้อนบนรูปฮีโร่ในหน้า Share Gallery
+        // รองรับ Awakening (ดาวม่วง 6), ดาวม่วง/แดง C7+ และดาวฟ้า 1–6 ตามที่ตั้งค่าไว้ในทีม
+        function getGallerySlotStarsHTML(slot) {
+            if (!slot) return '';
+            let inner = '';
+            if (slot.awakened) {
+                for (let i = 0; i < 6; i++) inner += '<span class="star-icon star-aw">★</span>';
+            } else {
+                const lv = parseInt(slot.star, 10);
+                if (!Number.isFinite(lv) || lv < 1) return '';
+                let red = 0, blue, yellow;
+                if (lv > 6) { red = lv - 6; blue = 6 - red; yellow = 0; }
+                else { blue = lv; yellow = 6 - lv; }
+                for (let i = 0; i < red; i++) inner += '<span class="star-icon star-red">★</span>';
+                for (let i = 0; i < blue; i++) inner += '<span class="star-icon star-blue">★</span>';
+                for (let i = 0; i < yellow; i++) inner += '<span class="star-icon star-yellow">★</span>';
+            }
+            return '<div class="gallery-star-row">' + inner + '</div>';
         }
         function dragStart(e, i, p){
             // ถ้า i เป็น 'POOL' แปลว่าลากมาจากคลัง Simulator (p คือ heroId)
@@ -17893,16 +17931,18 @@
 
         // 🟢 คอมโบสกิล: S2 = สกิลบน (UP), S1 = สกิลล่าง (DOWN) — คืนรูปสกิลมาแสดงแทน บน/ล่าง
         function getComboSkillView(hero, type, awakened) {
-            const skillKey = (type === 'UP') ? 's2' : 's1';
+            const skillKey = (type === 'UP') ? 's2' : (type === 'AW') ? 'aw' : 's1';
             const sd = (hero && hero.skillData) || {};
             const skillImg = (sd[skillKey] && sd[skillKey].img && sd[skillKey].img !== DRIVE_IMG_PREFIX) ? sd[skillKey].img : '';
+            // ✨ สกิล Awakening: ถ้าไม่มีไอคอนสกิล ใช้รูปฮีโร่ตื่นรู้ (img2) เป็นภาพแทน
+            const awImg = (type === 'AW' && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX) ? hero.img2 : '';
             const heroImg = hero ? ((awakened && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX) ? hero.img2 : hero.img) : '';
             return {
                 skillKey: skillKey,
-                img: skillImg || heroImg,   // ใช้รูปสกิล ถ้าไม่มีก็ใช้รูปฮีโร่แทน
+                img: skillImg || awImg || heroImg,   // ใช้รูปสกิล ถ้าไม่มีก็ใช้รูปฮีโร่แทน
                 hasSkillImg: !!skillImg,
-                code: (type === 'UP') ? 'S2' : 'S1',
-                text: (type === 'UP') ? 'สกิลบน' : 'สกิลล่าง'
+                code: (type === 'UP') ? 'S2' : (type === 'AW') ? 'AW' : 'S1',
+                text: (type === 'UP') ? 'สกิลบน' : (type === 'AW') ? '✨ Awakening' : 'สกิลล่าง'
             };
         }
 
@@ -18188,31 +18228,37 @@
                         const img = h ? (awk ? h.img2 : h.img) : '';
                         const s2v = getComboSkillView(h, 'UP', awk);   // สกิลบน = S2
                         const s1v = getComboSkillView(h, 'DOWN', awk); // สกิลล่าง = S1
+                        const awv = getComboSkillView(h, 'AW', awk);   // ✨ สกิล Awakening (ปลุกพลัง)
+                        // ✨ แสดงปุ่มจองสกิล Awakening เฉพาะช่องที่เปิด/ติ๊ก Awakening ไว้แล้ว (ดาวม่วง 6) เท่านั้น
+                        const awAvail = awk;
 
                         skillOptionsHTML += `
-                            <div class="bg-[#111827] p-4 rounded-2xl border border-gray-700 flex items-center gap-4 hover:border-gray-500 transition shadow-lg mb-3">
-                                <div class="shrink-0">
-                                    <img src="${img}" class="w-20 h-20 rounded-xl border-2 border-gray-600 bg-black object-cover shadow-md" onerror="this.src='https://placehold.co/100?text=?'">
+                            <div class="bg-[#111827] p-4 rounded-2xl border border-gray-700 flex items-center gap-5 hover:border-gray-500 transition shadow-lg mb-3">
+                                <!-- 🦸 รูปตัวละคร + ชื่ออยู่ใต้รูป -->
+                                <div class="shrink-0 flex flex-col items-center gap-2 w-32">
+                                    <img src="${img}" class="w-28 h-28 rounded-xl border-2 border-gray-600 bg-black object-cover shadow-md" onerror="this.src='https://placehold.co/120?text=?'">
+                                    <span class="text-sm font-black text-white uppercase tracking-wider text-center leading-tight">${h ? h.name : 'Unknown'}</span>
+                                    <span class="text-[10px] text-gray-500 font-bold bg-black/40 px-2 py-0.5 rounded border border-gray-800">SLOT ${sIdx + 1}</span>
                                 </div>
 
-                                <div class="flex-1 flex flex-col gap-3">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm font-black text-white uppercase tracking-wider">${h ? h.name : 'Unknown'}</span>
-                                        <span class="text-[10px] text-gray-500 font-bold bg-black/40 px-2 py-0.5 rounded border border-gray-800">SLOT ${sIdx + 1}</span>
-                                    </div>
-                                    
-                                    <div class="flex gap-2">
-                                        <button onclick="confirmSkillSelection('${sIdx}_UP')" title="สกิลบน (S2)"
-                                            class="flex-1 flex items-center gap-2 bg-yellow-600/10 hover:bg-yellow-500/25 border border-yellow-600/40 py-2 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
-                                            <img src="${s2v.img}" class="w-14 h-14 rounded-lg object-cover border border-yellow-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/56?text=%E2%96%B2'">
-                                            <div class="text-left leading-tight"><div class="text-xs font-black text-yellow-400">สกิลบน</div></div>
-                                        </button>
-                                        <button onclick="confirmSkillSelection('${sIdx}_DOWN')" title="สกิลล่าง (S1)"
-                                            class="flex-1 flex items-center gap-2 bg-blue-600/10 hover:bg-blue-500/25 border border-blue-600/40 py-2 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
-                                            <img src="${s1v.img}" class="w-14 h-14 rounded-lg object-cover border border-blue-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/56?text=%E2%96%BC'">
-                                            <div class="text-left leading-tight"><div class="text-xs font-black text-blue-300">สกิลล่าง</div></div>
-                                        </button>
-                                    </div>
+                                <!-- ⚡ สกิล: ล่าง / บน / ปลุกพลัง (ไอคอน 90px + ชื่อใต้ไอคอน) -->
+                                <div class="flex-1 flex gap-3 justify-center">
+                                    <button onclick="confirmSkillSelection('${sIdx}_DOWN')" title="สกิลล่าง (S1)"
+                                        class="w-[200px] flex flex-col items-center gap-2 bg-blue-600/10 hover:bg-blue-500/25 border border-blue-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                        <img src="${s1v.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-blue-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/90?text=%E2%96%BC'">
+                                        <div class="text-xs font-black text-blue-300">สกิลล่าง</div>
+                                    </button>
+                                    <button onclick="confirmSkillSelection('${sIdx}_UP')" title="สกิลบน (S2)"
+                                        class="w-[200px] flex flex-col items-center gap-2 bg-yellow-600/10 hover:bg-yellow-500/25 border border-yellow-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                        <img src="${s2v.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-yellow-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/90?text=%E2%96%B2'">
+                                        <div class="text-xs font-black text-yellow-400">สกิลบน</div>
+                                    </button>
+                                    ${awAvail ? `
+                                    <button onclick="confirmSkillSelection('${sIdx}_AW')" title="Awakening (ปลุกพลัง ✨)"
+                                        class="w-[200px] flex flex-col items-center gap-2 bg-purple-600/10 hover:bg-purple-500/25 border border-purple-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                        <img src="${awv.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-purple-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/90?text=%E2%9C%A8'">
+                                        <div class="text-xs font-black text-purple-300">✨ ปลุกพลัง</div>
+                                    </button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -18225,8 +18271,8 @@
 
                 modalHTML = `
                 <div class="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-                    <div class="bg-[#161b22] border border-gray-700 rounded-[2rem] w-full max-w-lg shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
-                        
+                    <div class="bg-[#161b22] border border-gray-700 rounded-[2rem] w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]" style="max-width:1000px;">
+
                         <div class="p-6 border-b border-gray-800 bg-[#1f2937] flex justify-between items-center shrink-0">
                             <div class="flex items-center gap-3">
                                 <span class="text-2xl">⚡</span>
@@ -19940,7 +19986,7 @@
                     const info = getSlotImg(s);
                     if (!info) return '';
                     const border = info.awk ? 'border-purple-500' : (isEnemy ? 'border-red-500' : 'border-blue-500');
-                    return `<img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">`;
+                    return `<div class="relative inline-block"><img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
                 }).join('');
 
                 // 2. ดึงสัตว์เลี้ยงแค่ 1 ตัว (รองรับทั้ง pets array และ pet เดี่ยว)
@@ -20005,7 +20051,7 @@
                     const defenseHeroesHTML = top3.map(s => {
                         const info = getSlotImg(s);
                         if (!info) return '';
-                        return `<img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${info.awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md">`;
+                        return `<div class="relative inline-block"><img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${info.awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
                     }).join('');
 
                     cardContent = `
@@ -20726,10 +20772,10 @@
                                                     const targetSlot = team.slots[hIdx];
                                                     if(!targetSlot) return '';
                                                     const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
-                                                    const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
+                                                    const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : (type === 'AW' ? 'text-purple-300 bg-purple-900/30' : 'text-cyan-300 bg-cyan-900/30');
                                                     const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
                                                     const sv = getComboSkillView(h, type, sqAwk);
-                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${sqAwk ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sv.text}</div></div>`;
+                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${(sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sv.text}</div></div>`;
                                                 }).filter(Boolean).join('<div class="text-gray-600 pt-6 shrink-0">➜</div>');
                                                 return cells || '<span class="text-gray-500 text-xs">No Data</span>';
                                             };
@@ -24877,10 +24923,10 @@
             const targetSlot = slots[hIdx];
             if (!targetSlot) return '';
             const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
-            const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
+            const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : (type === 'AW' ? 'text-purple-300 bg-purple-900/30' : 'text-cyan-300 bg-cyan-900/30');
             const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
             const sv = getComboSkillView(h, type, sqAwk);
-            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border ' + (sqAwk ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + sv.img + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + sv.text + '</div></div>';
+            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border ' + ((sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + sv.img + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + sv.text + '</div></div>';
         }).filter(Boolean);
         const skillAlts = (Array.isArray(team.skillQueueAlts) ? team.skillQueueAlts : []).filter(p => Array.isArray(p) && p.some(Boolean));
         let skillHtml;
