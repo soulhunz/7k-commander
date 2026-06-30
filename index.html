@@ -20775,7 +20775,11 @@
                                                     const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : (type === 'AW' ? 'text-purple-300 bg-purple-900/30' : 'text-cyan-300 bg-cyan-900/30');
                                                     const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
                                                     const sv = getComboSkillView(h, type, sqAwk);
-                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${(sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sv.text}</div></div>`;
+                                                    // ✨ Awakening ในหน้า Share: เอาไอคอนออก แสดงเป็นข้อความ "AW"
+                                                    if (type === 'AW') {
+                                                        return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border border-purple-500 bg-black flex items-center justify-center"><span class="text-purple-300 font-black text-2xl">AW</span></div></div>`;
+                                                    }
+                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${sqAwk ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sv.text}</div></div>`;
                                                 }).filter(Boolean).join('<div class="text-gray-600 pt-6 shrink-0">➜</div>');
                                                 return cells || '<span class="text-gray-500 text-xs">No Data</span>';
                                             };
