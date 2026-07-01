@@ -1872,7 +1872,7 @@
             box-shadow: 0 0 10px rgba(245, 158, 11, 0.3); /* เรืองแสง */
         }
         
-        #view-war-room, #view-manager, #view-logs, #view-settings, #view-gallery, #view-tier-viewer, #view-tier-manager, #view-my-teams { display: none; height: 100%; }
+        #view-war-room, #view-manager, #view-logs, #view-settings, #view-gallery, #view-tier-viewer, #view-tier-manager { display: none; height: 100%; }
         .tab-active { display: flex !important; }
 
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 60; align-items: center; justify-content: center; }
@@ -2741,7 +2741,6 @@
                 <div onclick="switchView('pet-manager')" class="menu-item" id="nav-pet-manager">🐾 สัตว์เลี้ยง</div>
                 <!-- <div onclick="switchView('item-manager')" class="menu-item" id="nav-item-manager">⚔️ ไอเทม</div> -->
                 <div onclick="switchView('ring-manager')" class="menu-item" id="nav-ring-manager">💍 แหวน</div>
-                <!-- <div onclick="switchView('set-manager')" class="menu-item" id="nav-set-manager">⚔️ เซ็ตทีม</div> -->
                 <div onclick="switchView('equip-manager')" class="menu-item" id="nav-equip-manager">🛡️ เซ็ตอุปกรณ์</div>
                 <div onclick="switchView('stat-glossary')" class="menu-item" id="nav-stat-glossary">📖 อธิบายสเตตัส (AI)</div>
                 <div onclick="openSkillLibrary()" class="menu-item" id="nav-skill-lib">📚 คลังสกิล (AI)</div>
@@ -2834,65 +2833,7 @@
             </div>
         </div>
 
-        <div id="view-my-teams" class="flex-col hidden h-full">
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg z-10 flex-shrink-0">
-                <div class="flex items-center gap-2 bg-black/30 p-1 rounded-lg border border-gray-700">
-                    <span class="text-gray-500 pl-2">🔍</span>
-                    <input type="text" id="main-member-search" 
-                        onkeyup="filterMainMembers()" 
-                        placeholder="ชื่อสมาชิก..." 
-                        class="bg-transparent border-none text-white text-xs p-1.5 outline-none w-32">
-                        
-                    <div class="w-px h-6 bg-gray-700 mx-1"></div>
-                    
-                    <span class="text-gray-500">🛡️</span>
-                    <input type="text" id="main-hero-search" 
-                        onkeyup="filterMainMembers()" 
-                        placeholder="ตัวละครที่มี (เช่น Rudy)..." 
-                        class="bg-transparent border-none text-white text-xs p-1.5 outline-none w-40">
-                </div>
-            </header>
-            
-            <div class="flex h-full overflow-hidden bg-[#0d1117]">
-                
-                <div class="w-80 border-r border-gray-800 bg-[#111827] flex flex-col flex-shrink-0">
-                    <div class="p-3 bg-[#1f2937] border-b border-gray-700 flex flex-col gap-2">
-                        <label class="text-[10px] text-gray-400 font-bold uppercase mb-[-4px]">เลือกกิลด์ (Select Guild)</label>
-                        <select id="my-teams-guild-selector" onchange="selectActiveGuild(this.value)" class="w-full bg-[#0d1117] border border-gray-600 rounded px-2 py-1.5 text-xs text-blue-300 outline-none font-bold focus:border-blue-500 transition mb-2"></select>
-                        
-                        <div class="flex justify-between items-center text-xs font-bold text-gray-400 uppercase">
-                            <span>Members</span>
-                            <span id="total-gw-stat" class="text-blue-400">Loading...</span>
-                        </div>
-                        <input type="text" onkeyup="filterGuildMemberUI(this.value)" placeholder="Find member..." class="w-full bg-[#0d1117] border border-gray-600 rounded px-3 py-1.5 text-xs text-white outline-none focus:border-blue-500">
-                    </div>
-                    
-                    <div id="guild-member-list" class="overflow-y-auto flex-1 p-2 space-y-1 custom-scroll">
-                        </div>
-                </div>
-
-                <div class="flex-1 flex flex-col h-full overflow-hidden relative bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                    
-                    <div id="member-history-header" class="p-4 border-b border-gray-800 bg-[#161b22]/90 backdrop-blur flex justify-between items-center flex-shrink-0 hidden">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-full bg-blue-900 flex items-center justify-center text-xl font-bold text-white border-2 border-blue-500" id="hist-mem-icon">1</div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white" id="hist-mem-name">Member Name</h3>
-                                <div class="text-xs text-gray-400" id="hist-mem-summary">Stats...</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="member-history-content" class="p-6 overflow-y-auto flex-1 pb-20 custom-scroll">
-                        <div class="flex flex-col items-center justify-center h-full text-gray-500 opacity-50">
-                            <div class="text-6xl mb-4">👈</div>
-                            <div>เลือกสมาชิกจากด้านซ้ายเพื่อดูผลการต่อสู้</div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
+        <!-- [REMOVED] view-my-teams (ทีมของฉัน) — ไม่มีในเมนู ถูกลบออก -->
 
         <div id="view-gallery" class="flex-col">
             <header class="p-6 border-b border-gray-800 bg-[#161b22] flex-col gap-4 shadow-lg z-10">
@@ -3065,32 +3006,7 @@
 
         </div>
 
-        <div id="view-set-manager" class="flex-col hidden h-full"> 
-            <header class="p-6 border-b border-gray-800 bg-[#161b22] flex justify-between items-center shadow-lg z-10 flex-shrink-0">
-                <h2 class="text-2xl font-bold text-white">Manage Hero Sets (ทีมสำเร็จรูป)</h2>
-                <button onclick="addNewHeroSet()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg transition transform hover:scale-105">+ สร้าง Set ใหม่</button>
-            </header>
-    
-            <div class="flex h-full overflow-hidden">
-        
-                <div class="w-96 border-r border-gray-800 bg-[#111827] overflow-y-auto no-scroll p-4 space-y-1" id="set-manager-list">
-                </div>
-        
-                <div class="flex-1 p-8 overflow-y-auto bg-[#0d1117] flex flex-col items-center">
-                    <div id="set-manager-empty" class="flex flex-col items-center justify-center mt-20 text-gray-500">
-                        <div class="text-6xl mb-4 opacity-20">⚔️</div>
-                        <div class="text-lg">เลือก Set จากด้านซ้ายเพื่อแก้ไข</div>
-                    </div>
-            
-            <div id="set-manager-editor" class="hidden w-full max-w-4xl bg-[#161b22] border border-gray-700 rounded-2xl p-6 shadow-xl relative animate-fade-in">
-                </div>
-            
-                    <button id="btn-save-set" onclick="saveHeroSets()" class="hidden mt-6 bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition transform hover:scale-105 flex items-center gap-2">
-                        <span>💾</span> บันทึกทั้งหมด (Save All)
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- [REMOVED] view-set-manager (เซ็ตทีม) — ไม่มีในเมนู ถูกลบออก -->
 
         <div id="archiveModal" class="modal-overlay" style="z-index: 90;">
             <div class="modal-content">
@@ -8024,11 +7940,7 @@
         function updateCurrentViewUI() {
             console.log('updateCurrentViewUI: ' + currentView);
 
-            if (currentView === 'my-teams') {
-                renderGuildResultMode(); // อัปเดตหน้า Guild Team
-            } else if (currentView === 'set-manager') {
-                renderSetManager();    //
-            } else if(currentView === 'guild-manager') {
+            if(currentView === 'guild-manager') {
                 renderGuildManagerView();
             }
         }
