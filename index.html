@@ -2044,6 +2044,24 @@
             border-radius: 0 0 12px 12px;
         }
 
+        /* ⭐ แถวดาวย่อในหน้า Share Gallery (ซ้อนล่างรูปฮีโร่) */
+        .gallery-star-row {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 15;
+            pointer-events: none;
+            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, transparent 100%);
+            border-radius: 0 0 12px 12px;
+            padding-bottom: 1px;
+        }
+        .gallery-star-row .star-icon { font-size: 11px; line-height: 1; margin: 0 -1.5px; filter: drop-shadow(0 0 1px rgba(0,0,0,1)); }
+        .gallery-star-row .star-aw { color: #c084fc; text-shadow: 0 0 4px #a855f7; }
+
         /* ปรับแต่ง Container ในหน้าข้อมูลตัวละคร */
         .star-row-detail {
             display: flex;
@@ -3496,6 +3514,7 @@
             <div class="bg-[#161b22] p-6 sm:p-8 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-lg text-center">
                 <div class="text-4xl mb-3">🏰</div>
                 <h1 class="text-2xl font-bold text-white mb-1">Guild Member Portal</h1>
+                <div id="roster-login-guild" class="hidden mb-3 inline-flex items-center gap-1.5 bg-blue-900/30 border border-blue-700/50 text-blue-300 text-sm font-bold px-3 py-1.5 rounded-lg"></div>
                 <p class="text-xs text-gray-400 mb-6">กรอกรหัสที่หัวหน้ากิลด์แจ้งให้ (ตั้งเองได้ เช่น 001, player01)</p>
                 <input type="text" id="roster-code-input" onkeyup="if(event.key==='Enter')verifyRosterCode()" class="w-full bg-[#0d1117] border border-gray-600 text-white p-4 rounded-xl text-center text-xl mb-4 focus:border-blue-500 outline-none font-mono" placeholder="รหัสสมาชิก">
                 <button onclick="verifyRosterCode()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold shadow-lg mb-3">เข้าสู่ระบบ</button>
@@ -3631,15 +3650,11 @@
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-xl shadow-lg">🛡️</div>
                         <div>
-                            <h2 class="text-xl font-bold text-white">3v3 Team Manager</h2>
-                            <p class="text-xs text-gray-400">จัดการทีม 3v3 สำหรับสมาชิกกิล</p>
+                            <h2 id="view-app-name" class="text-xl font-bold text-white">ผู้สมัคร</h2>
+                            <p id="view-app-contact" class="text-xs text-gray-400">Contact: -</p>
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button data-3v3-save-all onclick="saveAll3v3Teams()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition shadow-lg">💾 Save All</button>
-                        <button onclick="refresh3v3Teams()" class="bg-[#1f2937] hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition">🔄 Refresh</button>
-                    </div>
-                </div> 
+                </div>
                 <div class="p-6 bg-[#0b0e14] overflow-y-auto flex-1 custom-scroll">
                     
                     <div class="mb-6">
@@ -4537,6 +4552,8 @@
             } else {
                 guildsDB = [{ id: 'G_MAIN', name: 'Main Guild', type: 'main', members: [] }];
             }
+            // 🟢 ทำให้กิลด์ที่ user สังกัด "มีจริง" หลังโหลดข้อมูลจาก server (อิงตามข้อมูลกิลใน user)
+            if (typeof ensureUserGuildExists === 'function') ensureUserGuildExists();
             if (activeGuildIndex >= guildsDB.length) activeGuildIndex = 0;
             if (!guildsDB[activeGuildIndex].members) guildsDB[activeGuildIndex].members = [];
             guildMembersDB = guildsDB[activeGuildIndex].members;
@@ -6114,6 +6131,7 @@
                 else if (v === 'roster-login') {
                     const rosterLogin = document.getElementById('view-roster-login');
                     rosterLogin?.classList.remove('roster-awaiting-data');
+                    if (typeof updateRosterLoginGuildBadge === 'function') updateRosterLoginGuildBadge();
                     document.getElementById('roster-code-input')?.focus();
                 }
                 else if (v === 'roster-editor') renderPublicRosterUI();
@@ -8021,8 +8039,8 @@
                 }
                 else {
                     // กรณี Guild Team หรือ War Room
-                    if(currentView === 'my-teams') renderMyTeams();
-                    
+                    if(currentView === 'my-teams') renderGuildResultMode();
+
                     triggerAutoSave();
                 }
             }
@@ -8142,11 +8160,31 @@
             for (let i = 0; i < yellowCount; i++) stars.push('<span class="star-icon star-yellow">★</span>');
 
             const containerClass = detail ? 'star-row-detail' : 'star-row-slot';
-            
+
             // ปรับ style หน้า Detail ให้ขยายใหญ่และมีระยะห่างที่เหมาะสม
             const detailStyle = detail ? 'style="font-size: 28px; gap: 2px; margin-top: 10px;"' : '';
 
             return `<div class="${containerClass}" ${detailStyle}>${stars.join('')}</div>`;
+        }
+
+        // ⭐ แถวดาวแบบย่อสำหรับซ้อนบนรูปฮีโร่ในหน้า Share Gallery
+        // รองรับ Awakening (ดาวม่วง 6), ดาวม่วง/แดง C7+ และดาวฟ้า 1–6 ตามที่ตั้งค่าไว้ในทีม
+        function getGallerySlotStarsHTML(slot) {
+            if (!slot) return '';
+            let inner = '';
+            if (slot.awakened) {
+                for (let i = 0; i < 6; i++) inner += '<span class="star-icon star-aw">★</span>';
+            } else {
+                const lv = parseInt(slot.star, 10);
+                if (!Number.isFinite(lv) || lv < 1) return '';
+                let red = 0, blue, yellow;
+                if (lv > 6) { red = lv - 6; blue = 6 - red; yellow = 0; }
+                else { blue = lv; yellow = 6 - lv; }
+                for (let i = 0; i < red; i++) inner += '<span class="star-icon star-red">★</span>';
+                for (let i = 0; i < blue; i++) inner += '<span class="star-icon star-blue">★</span>';
+                for (let i = 0; i < yellow; i++) inner += '<span class="star-icon star-yellow">★</span>';
+            }
+            return '<div class="gallery-star-row">' + inner + '</div>';
         }
         function dragStart(e, i, p){
             // ถ้า i เป็น 'POOL' แปลว่าลากมาจากคลัง Simulator (p คือ heroId)
@@ -9729,6 +9767,14 @@
 
 
         // --- MANAGER UI ---
+        // เปลี่ยนตัวเลือก Main Stat ของฟอร์ม item-manager เมื่อสลับ Front/Back (เรียกจาก onchange ของ #m-type)
+        function renderMainStatOptions(type) {
+            const sel = document.getElementById('m-main-stat');
+            if (!sel) return;
+            const stats = (MAIN_STAT_RULES && (MAIN_STAT_RULES[type] || MAIN_STAT_RULES['front'])) || [];
+            sel.innerHTML = stats.map(s => `<option value="${s}">${(typeof STAT_DISPLAY !== 'undefined' && STAT_DISPLAY[s]) || s}</option>`).join('');
+        }
+
         function renderManagerUI() {
             const list=document.getElementById('manager-list'), form=document.getElementById('manager-form'), empty=document.getElementById('manager-empty'); list.innerHTML='';
             const titleMap = { 'hero-manager':'Heroes', 'pet-manager':'Pets', 'item-manager':'Items', 'ring-manager':'Rings', 'accessory-manager':'เครื่องประดับ', 'equip-manager':'Equipment Sets' };
@@ -14164,26 +14210,29 @@
     function checkForUpdates() {
         if (!SCRIPT_URL) return;
 
-        // ดึงข้อมูลมาเช็ค Timestamp เท่านั้น
-        fetch(SCRIPT_URL)
+        // ดึงข้อมูลมาเช็ค Timestamp (ต้อง POST — GET จะได้ HTML กลับมาแล้ว .json() พัง)
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'getAllData' })
+        })
         .then(res => res.json())
         .then(data => {
             updateSyncStatus('online'); // คงสถานะไฟเขียว
 
-            // เปรียบเทียบเวลา: ถ้า Server ใหม่กว่า Local -> แจ้งเตือน
-            // if (data.timestamp && data.timestamp > lastServerTimestamp) {
-            //     console.log("🔔 New update found on server!");
-                
-            //     // พักข้อมูลไว้ในตัวแปร ยังไม่เอาขึ้นหน้าจอ
-            //     pendingUpdateData = data;
-                
-            //     // แสดงแถบแจ้งเตือนด้านบน
-            //     const notif = document.getElementById('update-notification');
-            //     if(notif) {
-            //         notif.classList.remove('hidden');
-            //         notif.classList.add('flex');
-            //     }
-            // }
+            // อย่าแจ้งเตือนระหว่างกำลังบันทึก/มีคิวบันทึกค้าง (กันแจ้งเตือนการแก้ของตัวเอง)
+            if (isSaving || isPendingSave) return;
+
+            // เปรียบเทียบเวลา: ถ้า Server ใหม่กว่า Local -> แจ้งเตือน (ไม่ overwrite เอง รอผู้ใช้กด)
+            if (data && data.timestamp && data.timestamp > lastServerTimestamp) {
+                console.log("🔔 New update found on server!");
+                pendingUpdateData = data; // พักข้อมูลไว้ ยังไม่เอาขึ้นหน้าจอ
+                const notif = document.getElementById('update-notification');
+                if (notif) {
+                    notif.classList.remove('hidden');
+                    notif.classList.add('flex');
+                }
+            }
         })
         .catch(err => {
             console.warn("Background check failed:", err);
@@ -14216,7 +14265,7 @@
         updateSyncStatus('loading');
         
         // เรียกฟังก์ชันดึงข้อมูลเดิม
-        fetchCloudData(false)
+        fetchCloudData('getAllData', false)
             .then(() => {
                 // หน่วงเวลานิดนึงเพื่อให้เห็นว่าหมุนเสร็จแล้ว (UX)
                 setTimeout(() => {
@@ -14234,9 +14283,10 @@
         lastServerTimestamp = data.timestamp || Date.now();
 
         if (data.users) systemUsersDB = data.users;
-        if (data.heroes) heroesDB = data.heroes;
-        if (data.pets) petsDB = data.pets;
-        if (data.rings) ringsDB = data.rings;
+        // กันข้อมูลหลักโดนทับด้วย array ว่างจาก response ชั่วคราว (สอดคล้องกับ equip_sets/accessories ด้านล่าง)
+        if (data.heroes && data.heroes.length > 0) heroesDB = data.heroes;
+        if (data.pets && data.pets.length > 0) petsDB = data.pets;
+        if (data.rings && data.rings.length > 0) ringsDB = data.rings;
         if (typeof normalizeRingsInDb === 'function') normalizeRingsInDb();
         if (data.items) itemsDB = data.items;
         if (data.equip_sets && data.equip_sets.length > 0) {
@@ -14270,14 +14320,17 @@
         }
         
         if (data.affiliations) affiliationsDB = data.affiliations;
-        if (data.tierModes) {
+        if (data.tierModes && data.tierModes.length > 0) {
             tierModesDB = data.tierModes;
             localStorage.setItem('7k_tier_modes_config', JSON.stringify(tierModesDB));
         }
-        if (data.tierLists) tierListsDB = data.tierLists; 
-        if (data.teams) { 
-            if(data.teams.teams) teamsDB = data.teams.teams; else teamsDB = data.teams; 
-            if(data.teams.logs) logsDB = data.teams.logs; 
+        if (data.tierLists) tierListsDB = data.tierLists;
+        if (data.teams) {
+            // กัน array/object ว่างจาก server (ก่อนมีข้อมูลในชีต) ทับ local
+            const _t = (data.teams && data.teams.teams) ? data.teams.teams : data.teams;
+            const _tHas = Array.isArray(_t) ? _t.length > 0 : (_t && Object.keys(_t).length > 0);
+            if (_tHas) teamsDB = _t;
+            if (data.teams.logs && data.teams.logs.length) logsDB = data.teams.logs;
         }
         if (data.knownEnemies) knownEnemies = data.knownEnemies;
         if (data.battleHistory) battleHistoryDB = data.battleHistory;
@@ -14352,7 +14405,11 @@
         if (currentView === 'team-builder-3v3') render3v3Editor();
         if (currentView === 'preparation') renderPreparation();
         if (currentView.includes('manager')) renderManagerUI();
-        
+
+        // ⛔ ปิด background sync ไว้ก่อน — server timestamp เป็น "เวลาตอนขอข้อมูل" (now) ไม่ใช่ "เวลาแก้ล่าสุด"
+        //    การเทียบ timestamp จึงเป็นจริงตลอด → banner เด้งไม่หยุด ต้องมี dataVersion จริงก่อนถึงเปิดได้
+        // if (!isRosterPortalMode && SCRIPT_URL && typeof startRealTimeSync === 'function') startRealTimeSync();
+
         console.log("✅ Data Processed & UI Updated");
     }
 
@@ -15003,7 +15060,7 @@
         } catch (err) {
             console.error("Delete Error:", err);
             alert("เกิดข้อผิดพลาดในการลบ: " + err.message);
-            fetchCloudData(false).then(() => renderSurveyResponses());
+            fetchCloudData('getAllData', false).then(() => renderSurveyResponses());
         } finally {
             hideLoading();
         }
@@ -15529,7 +15586,7 @@
             showLoading("กำลังโหลดข้อมูล...");
             
             // ระบบจะไปดึงข้อมูลล่าสุดจาก Google Sheets มาอัปเดตตัวแปร applicationsDB
-            await fetchCloudData(action = 'getAllData',false);
+            await fetchCloudData('getAllData', false);
 
             // 3. วาดตารางใหม่
             renderSurveyResponses();
@@ -16674,9 +16731,61 @@
             }
         }
 
+        // 🟢 [HELPER] อิงตามข้อมูลกิลใน user — กิลด์ไหนที่ผู้ใช้ปัจจุบันมองเห็นได้
+        function getCurrentUserGuild() {
+            return (CURRENT_USER && (CURRENT_USER.guild_name || CURRENT_USER.guildId)) || 'all';
+        }
+        function isGuildVisibleToUser(g) {
+            if (!g) return false;
+            if (CURRENT_USER && CURRENT_USER.role === 'admin') return true;
+            const ug = getCurrentUserGuild();
+            if (ug === 'all') return true;
+            return String(g.name) === String(ug) || String(g.id) === String(ug);
+        }
+        // ทำให้กิลด์ที่ user สังกัด "มีจริง" ใน guildsDB (รองรับหลายกิลด์ — อิงตามข้อมูลกิลใน user)
+        // คืน true ถ้ามีการสร้างกิลด์ใหม่ (เพื่อให้ผู้เรียกตัดสินใจ save/re-render)
+        function ensureUserGuildExists() {
+            if (!CURRENT_USER) return false;
+            const ug = getCurrentUserGuild();
+            if (!ug || ug === 'all') return false;
+            const exists = guildsDB.some(g => String(g.name) === String(ug) || String(g.id) === String(ug));
+            if (exists) return false;
+            guildsDB.push({
+                id: String(ug),
+                name: String(ug),
+                type: guildsDB.length === 0 ? 'main' : 'sub',
+                members: []
+            });
+            console.log(`🟢 ensureUserGuildExists: สร้างกิลด์ "${ug}" ให้ user ${CURRENT_USER.username || CURRENT_USER.id || ''}`);
+            return true;
+        }
+        // คืน index เดิมใน guildsDB ของกิลด์ที่ผู้ใช้เห็นได้ (เก็บ index ดั้งเดิมไว้เพื่อให้ปุ่ม/เมนูอ้างถูกตัว)
+        function getVisibleGuildIndices() {
+            const idxs = guildsDB.map((g, i) => i).filter(i => isGuildVisibleToUser(guildsDB[i]));
+            // ผู้ใช้ที่ผูกกิลด์แต่หากิลด์ไม่เจอ: ไม่ fallback ไปทุกกิลด์ (กันเห็นผิดกิลด์) — คืนค่าว่าง
+            if (idxs.length) return idxs;
+            const isAdmin = CURRENT_USER && CURRENT_USER.role === 'admin';
+            const boundUser = CURRENT_USER && getCurrentUserGuild() !== 'all';
+            if (!isAdmin && boundUser) return [];
+            return guildsDB.map((g, i) => i);
+        }
+        // ให้แน่ใจว่า activeGuildIndex ชี้ไปกิลด์ที่ผู้ใช้เห็นได้
+        function ensureActiveGuildVisible() {
+            ensureUserGuildExists();
+            const visible = getVisibleGuildIndices();
+            if (!visible.length) return;
+            if (!visible.includes(activeGuildIndex)) {
+                activeGuildIndex = visible[0];
+                guildMembersDB = guildsDB[activeGuildIndex].members;
+            }
+        }
+
         function renderGuildManagerView() {
+            ensureActiveGuildVisible();
+            const visibleIdxs = getVisibleGuildIndices();
             const guildListEl = document.getElementById('guild-group-list');
-            guildListEl.innerHTML = guildsDB.map((g, idx) => {
+            guildListEl.innerHTML = visibleIdxs.map((idx) => {
+                const g = guildsDB[idx];
                 const isActive = idx === activeGuildIndex;
                 const activeClass = isActive ? 'bg-blue-900/40 border-blue-500 shadow-md' : 'bg-[#161b22] border-gray-700 hover:border-gray-500';
                 const typeBadge = g.type === 'main' ? '<span class="bg-yellow-600 text-black text-[9px] px-1 rounded font-bold uppercase">MAIN</span>' : '<span class="bg-purple-600 text-white text-[9px] px-1 rounded font-bold uppercase">SUB</span>';
@@ -16703,7 +16812,18 @@
                 `;
             }).join('');
 
+            // กันกรณีไม่มีกิลด์ที่ผู้ใช้เห็นได้ / activeGuildIndex ชี้นอกช่วง → แสดง empty state แทนการอ่านกิลด์ผิด
             const currentGuild = guildsDB[activeGuildIndex];
+            if (!visibleIdxs.length || !currentGuild) {
+                const nameEl = document.getElementById('gm-active-guild-name');
+                if (nameEl) nameEl.innerHTML = '— ไม่มีกิลด์ —';
+                const statsEl = document.getElementById('gm-active-guild-stats');
+                if (statsEl) statsEl.innerText = '0';
+                const btnAdd = document.getElementById('btn-add-guild-member');
+                if (btnAdd) btnAdd.style.display = 'none';
+                renderGuildMembersTable();
+                return;
+            }
             document.getElementById('gm-active-guild-name').innerHTML = `${currentGuild.type === 'main' ? '👑' : '🛡️'} ${currentGuild.name}`;
             
             const countSpan = document.getElementById('gm-active-guild-stats');
@@ -16796,8 +16916,6 @@
         // =========================================================
         // 🎯 SAVE QUEUE SYSTEM for 3v3 Teams
         // =========================================================
-        let save3v3Queue = [];
-        let isProcessing3v3Queue = false;
         let last3v3SaveTime = 0;
         let is3v3Dirty = false; // มีการแก้ไขที่ยังไม่กด Save All
 
@@ -16831,75 +16949,7 @@
             });
         }
 
-        // เพิ่ม request เข้าคิว
-
-
-        // ประมวลผลคิว
-        async function process3v3SaveQueue(retryCount = 0) {
-            if (isProcessing3v3Queue || save3v3Queue.length === 0) return;
-            if (!USE_CLOUD) {
-                console.log('☁️ USE_CLOUD is false, skipping save');
-                save3v3Queue = []; // เคลียร์คิว
-                return;
-            }
-            
-            // 🟢 จำกัด retry สูงสุด 3 ครั้ง
-            if (retryCount > 3) {
-                console.error('❌ Max retry reached, giving up');
-                save3v3Queue = []; // เคลียร์คิวเพื่อหยุด loop
-                isProcessing3v3Queue = false;
-                return;
-            }
-
-            isProcessing3v3Queue = true;
-
-            // เอา request ล่าสุดที่สุด (ข้อมูลใหม่สุด)
-            const latestRequest = save3v3Queue[save3v3Queue.length - 1];
-            save3v3Queue = []; // เคลียร์คิว
-
-            try {
-                // 🟢 ใช้ Action ใหม่ save3v3Teams แทนการใช้ pushData ทั่วไป
-                const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
-                
-                // 🟢 ใช้ no-cors mode (บันทึกได้แต่ไม่ได้ response)
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({
-                        action: 'saveMany3v3Teams', // 🟢 upsert รายแถว (ไม่ clear ทั้งชีต)
-                        teams_3v3: latestRequest.teams,
-                        deletedIds: [],
-                        timestamp: latestRequest.timestamp,
-                        _userGuild: userGuild,
-                        _userRole: CURRENT_USER?.role || 'user'
-                    })
-                });
-                
-                // ถือว่าสำเร็จ (no-cors ไม่ return response ได้)
-                console.log('✅ Saved to Google Sheets (no-cors mode)');
-                isProcessing3v3Queue = false;
-                
-                localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB));
-            } catch (err) {
-                console.error('❌ Save error:', err);
-                // 🟢 ถ้าเป็น CORS error ไม่ต้อง retry (เปิดผ่าน file://)
-                if (err.message && err.message.includes('Failed to fetch')) {
-                    console.log('⚠️ Network error, stopping retries (use Live Server to fix CORS)');
-                    save3v3Queue = []; // เคลียร์คิว
-                } else {
-                    // คืนค่าเข้าคิวเพื่อลองใหม่ครั้งหน้า (แต่จำกัด retry)
-                    save3v3Queue.unshift(latestRequest);
-                }
-            } finally {
-                isProcessing3v3Queue = false;
-
-                // 🟢 ตรวจสอบคิวใหม่และเรียกด้วย retry count
-                if (save3v3Queue.length > 0) {
-                    setTimeout(() => process3v3SaveQueue(retryCount + 1), 1000); // รอ 1 วินาทีก่อน retry
-                }
-            }
-        }
+        // (ลบ process3v3SaveQueue / save3v3Queue ที่ไม่ถูกเรียกแล้ว — การบันทึก 3v3 ใช้ saveAll3v3Teams)
 
         function mark3v3Dirty() {
             is3v3Dirty = true;
@@ -17407,18 +17457,6 @@
                 showToast('✅ บันทึกสำเร็จ!' + delMsg, 'success');
                 hideLoading();
                 return;
-                
-                if (result.status === 'success') {
-                    // อัพเดท localStorage
-                    localStorage.setItem('7k_teams_3v3', JSON.stringify(allData));
-                    console.log('✅ All teams saved to Google Sheets');
-                    // 🟢 แสดง toast สำเร็จ
-                    showToast(`✅ บันทึกสำเร็จ! (${allData.length} ทีม)`, 'success');
-                } else {
-                    console.warn('⚠️ Save warning:', result.message);
-                    // 🟢 แสดง toast เตือน
-                    showToast('⚠️ บันทึกไม่สำเร็จ: ' + result.message, 'warning');
-                }
             } catch (err) {
                 console.error('❌ Save error:', err);
                 showToast('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
@@ -17805,16 +17843,18 @@
 
         // 🟢 คอมโบสกิล: S2 = สกิลบน (UP), S1 = สกิลล่าง (DOWN) — คืนรูปสกิลมาแสดงแทน บน/ล่าง
         function getComboSkillView(hero, type, awakened) {
-            const skillKey = (type === 'UP') ? 's2' : 's1';
+            const skillKey = (type === 'UP') ? 's2' : (type === 'AW') ? 'aw' : 's1';
             const sd = (hero && hero.skillData) || {};
             const skillImg = (sd[skillKey] && sd[skillKey].img && sd[skillKey].img !== DRIVE_IMG_PREFIX) ? sd[skillKey].img : '';
+            // ✨ สกิล Awakening: ถ้าไม่มีไอคอนสกิล ใช้รูปฮีโร่ตื่นรู้ (img2) เป็นภาพแทน
+            const awImg = (type === 'AW' && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX) ? hero.img2 : '';
             const heroImg = hero ? ((awakened && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX) ? hero.img2 : hero.img) : '';
             return {
                 skillKey: skillKey,
-                img: skillImg || heroImg,   // ใช้รูปสกิล ถ้าไม่มีก็ใช้รูปฮีโร่แทน
+                img: skillImg || awImg || heroImg,   // ใช้รูปสกิล ถ้าไม่มีก็ใช้รูปฮีโร่แทน
                 hasSkillImg: !!skillImg,
-                code: (type === 'UP') ? 'S2' : 'S1',
-                text: (type === 'UP') ? 'สกิลบน' : 'สกิลล่าง'
+                code: (type === 'UP') ? 'S2' : (type === 'AW') ? 'AW' : 'S1',
+                text: (type === 'UP') ? 'สกิลบน' : (type === 'AW') ? '✨ Awakening' : 'สกิลล่าง'
             };
         }
 
@@ -18100,31 +18140,37 @@
                         const img = h ? (awk ? h.img2 : h.img) : '';
                         const s2v = getComboSkillView(h, 'UP', awk);   // สกิลบน = S2
                         const s1v = getComboSkillView(h, 'DOWN', awk); // สกิลล่าง = S1
+                        const awv = getComboSkillView(h, 'AW', awk);   // ✨ สกิล Awakening (ปลุกพลัง)
+                        // ✨ แสดงปุ่มจองสกิล Awakening เฉพาะช่องที่เปิด/ติ๊ก Awakening ไว้แล้ว (ดาวม่วง 6) เท่านั้น
+                        const awAvail = awk;
 
                         skillOptionsHTML += `
-                            <div class="bg-[#111827] p-4 rounded-2xl border border-gray-700 flex items-center gap-4 hover:border-gray-500 transition shadow-lg mb-3">
-                                <div class="shrink-0">
-                                    <img src="${img}" class="w-20 h-20 rounded-xl border-2 border-gray-600 bg-black object-cover shadow-md" onerror="this.src='https://placehold.co/100?text=?'">
+                            <div class="bg-[#111827] p-4 rounded-2xl border border-gray-700 flex items-center gap-5 hover:border-gray-500 transition shadow-lg mb-3">
+                                <!-- 🦸 รูปตัวละคร + ชื่ออยู่ใต้รูป -->
+                                <div class="shrink-0 flex flex-col items-center gap-2 w-32">
+                                    <img src="${img}" class="w-28 h-28 rounded-xl border-2 border-gray-600 bg-black object-cover shadow-md" onerror="this.src='https://placehold.co/120?text=?'">
+                                    <span class="text-sm font-black text-white uppercase tracking-wider text-center leading-tight">${h ? h.name : 'Unknown'}</span>
+                                    <span class="text-[10px] text-gray-500 font-bold bg-black/40 px-2 py-0.5 rounded border border-gray-800">SLOT ${sIdx + 1}</span>
                                 </div>
 
-                                <div class="flex-1 flex flex-col gap-3">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm font-black text-white uppercase tracking-wider">${h ? h.name : 'Unknown'}</span>
-                                        <span class="text-[10px] text-gray-500 font-bold bg-black/40 px-2 py-0.5 rounded border border-gray-800">SLOT ${sIdx + 1}</span>
-                                    </div>
-                                    
-                                    <div class="flex gap-2">
-                                        <button onclick="confirmSkillSelection('${sIdx}_UP')" title="สกิลบน (S2)"
-                                            class="flex-1 flex items-center gap-2 bg-yellow-600/10 hover:bg-yellow-500/25 border border-yellow-600/40 py-2 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
-                                            <img src="${s2v.img}" class="w-14 h-14 rounded-lg object-cover border border-yellow-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/56?text=%E2%96%B2'">
-                                            <div class="text-left leading-tight"><div class="text-xs font-black text-yellow-400">สกิลบน</div></div>
-                                        </button>
-                                        <button onclick="confirmSkillSelection('${sIdx}_DOWN')" title="สกิลล่าง (S1)"
-                                            class="flex-1 flex items-center gap-2 bg-blue-600/10 hover:bg-blue-500/25 border border-blue-600/40 py-2 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
-                                            <img src="${s1v.img}" class="w-14 h-14 rounded-lg object-cover border border-blue-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/56?text=%E2%96%BC'">
-                                            <div class="text-left leading-tight"><div class="text-xs font-black text-blue-300">สกิลล่าง</div></div>
-                                        </button>
-                                    </div>
+                                <!-- ⚡ สกิล: ล่าง / บน / ปลุกพลัง (ไอคอน 90px + ชื่อใต้ไอคอน) -->
+                                <div class="flex-1 flex gap-3 justify-center">
+                                    <button onclick="confirmSkillSelection('${sIdx}_DOWN')" title="สกิลล่าง (S1)"
+                                        class="w-[200px] flex flex-col items-center gap-2 bg-blue-600/10 hover:bg-blue-500/25 border border-blue-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                        <img src="${s1v.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-blue-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/90?text=%E2%96%BC'">
+                                        <div class="text-xs font-black text-blue-300">สกิลล่าง</div>
+                                    </button>
+                                    <button onclick="confirmSkillSelection('${sIdx}_UP')" title="สกิลบน (S2)"
+                                        class="w-[200px] flex flex-col items-center gap-2 bg-yellow-600/10 hover:bg-yellow-500/25 border border-yellow-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                        <img src="${s2v.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-yellow-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/90?text=%E2%96%B2'">
+                                        <div class="text-xs font-black text-yellow-400">สกิลบน</div>
+                                    </button>
+                                    ${awAvail ? `
+                                    <button onclick="confirmSkillSelection('${sIdx}_AW')" title="Awakening (ปลุกพลัง ✨)"
+                                        class="w-[200px] flex flex-col items-center gap-2 bg-purple-600/10 hover:bg-purple-500/25 border border-purple-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
+                                        <img src="${awv.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-purple-600/50 bg-black flex-shrink-0" onerror="this.src='https://placehold.co/90?text=%E2%9C%A8'">
+                                        <div class="text-xs font-black text-purple-300">✨ ปลุกพลัง</div>
+                                    </button>` : ''}
                                 </div>
                             </div>
                         `;
@@ -18137,8 +18183,8 @@
 
                 modalHTML = `
                 <div class="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-                    <div class="bg-[#161b22] border border-gray-700 rounded-[2rem] w-full max-w-lg shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]">
-                        
+                    <div class="bg-[#161b22] border border-gray-700 rounded-[2rem] w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]" style="max-width:1000px;">
+
                         <div class="p-6 border-b border-gray-800 bg-[#1f2937] flex justify-between items-center shrink-0">
                             <div class="flex items-center gap-3">
                                 <span class="text-2xl">⚡</span>
@@ -19549,7 +19595,7 @@
                 // 🟢 ถ้า heroesDB ว่าง ให้โหลดก่อนแสดงผล
                 if (!heroesDB || heroesDB.length === 0) {
                     console.log("🔄 Loading heroesDB for Gallery...");
-                    await loadMasterData();
+                    await fetchCloudData('getAllData', false);
                 }
                 renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 return; // จบฟังก์ชัน ไม่ต้องเรียก Server
@@ -19614,7 +19660,144 @@
             }
         }
 
+        // =========================================================
+        // 🔑 MEMBER LOGIN (ลูกกิล) บนหน้าแชร์ — optional · โหลด inventory เพื่อจับคู่ทีม (read-only)
+        // =========================================================
+        let memberSession = null; // { guildId, code, name, memberId, heroIds:Set, heroList:[] }
+        const mlEsc = (s) => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        function memberLoginBtnHTML(){
+            if (memberSession) {
+                return `<button onclick="memberLogout()" title="ออกจากระบบลูกกิล" class="bg-emerald-700/80 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-emerald-500/50 shadow-lg">👤 ${mlEsc(memberSession.name||'ลูกกิล')} <span class="text-emerald-200/80">· ฮีโร่ ${memberSession.heroIds.size}</span> <span class="opacity-70">✕</span></button>`;
+            }
+            return `<button onclick="openMemberLogin()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-blue-500/50 shadow-lg">🔑 เข้าสู่ระบบลูกกิล</button>`;
+        }
+        function memberRefreshGallery(){ try { if (typeof switchGalleryTab === 'function') switchGalleryTab(currentGalleryTab); } catch(e){} }
+        // ชื่อกิลจาก ?g= ในลิงก์ (base64 ของชื่อกิล)
+        function mlUrlGuildName(){
+            try { const g = new URLSearchParams(window.location.search).get('g'); return g ? decodeURIComponent(atob(g)) : ''; } catch(e){ return ''; }
+        }
+        // 🔁 กู้ session ลูกกิลจาก localStorage (login ค้างไว้)
+        function restoreMemberSession(){
+            if (memberSession) return;
+            try {
+                const raw = localStorage.getItem('7k_member_session');
+                if (!raw) return;
+                const s = JSON.parse(raw);
+                if (!s || !s.code) return;
+                const heroIds = new Set((s.heroList||[]).map(h => String(h && h.id != null ? h.id : h)).filter(x=>x && x!=='undefined'));
+                memberSession = { guildId:s.guildId||'', guildName:s.guildName||'', code:s.code, name:s.name||'', memberId:s.memberId||'', heroIds, heroList:s.heroList||[] };
+            } catch(e){}
+        }
+        function openMemberLogin(){
+            let modal = document.getElementById('member-login-modal');
+            if (!modal){ modal = document.createElement('div'); modal.id='member-login-modal'; modal.className='fixed inset-0 z-[560] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4'; document.body.appendChild(modal); }
+            const urlGuildName = mlUrlGuildName();
+            let guildField;
+            if (urlGuildName) {
+                // มี g= ในลิงก์ → ใช้เลย (ใส่แค่รหัส)
+                guildField = `<div class="bg-[#0d1117] border border-gray-700 text-gray-300 p-2 rounded text-sm">🛡️ ${mlEsc(urlGuildName)} <span class="text-[10px] text-gray-500">(จากลิงก์)</span></div>`;
+            } else {
+                // ไม่มี g= → ไม่แสดง dropdown รายชื่อกิลด์ทั้งหมด (กันลูกกิลเลือกกิลด์อื่น) ใช้ช่องกรอกแทน
+                const preGuild = (CURRENT_USER && (CURRENT_USER.guildId || CURRENT_USER.guild_id)) || '';
+                guildField = `<input id="ml-guild" value="${mlEsc(preGuild||'')}" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-blue-500" placeholder="รหัสกิลด์ (เช่น G_MAIN) — แนะนำให้เปิดผ่านลิงก์ที่ได้รับ">`;
+            }
+            modal.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col">
+                <div class="p-4 border-b border-gray-800 flex items-center justify-between"><h3 class="text-white font-bold">🔑 เข้าสู่ระบบลูกกิล</h3><button onclick="closeMemberLogin()" class="text-gray-400 hover:text-white text-xl w-9 h-9 rounded-full hover:bg-white/10">✕</button></div>
+                <div class="p-4 flex flex-col gap-3">
+                    <p class="text-xs text-gray-400">ใส่รหัสสมาชิกเพื่อโหลดฮีโร่ของคุณ — ระบบจะจำการเข้าสู่ระบบไว้ (ไม่บังคับ ดูเฉยๆ ก็ได้)</p>
+                    <div><label class="text-[11px] text-gray-400 font-bold uppercase">กิลด์</label>${guildField}</div>
+                    <div><label class="text-[11px] text-gray-400 font-bold uppercase">รหัสสมาชิก</label><input id="ml-code" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-blue-500" placeholder="เช่น 001, player01" onkeydown="if(event.key==='Enter')submitMemberLogin()"></div>
+                </div>
+                <div class="p-4 border-t border-gray-800 flex justify-end gap-2"><button onclick="closeMemberLogin()" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-700 hover:bg-gray-600 text-white">ยกเลิก</button><button onclick="submitMemberLogin()" class="px-5 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white">เข้าสู่ระบบ</button></div>
+            </div>`;
+            modal.style.display='flex';
+            setTimeout(()=>{ const c=document.getElementById('ml-code'); if(c) c.focus(); }, 50);
+        }
+        function closeMemberLogin(){ const m=document.getElementById('member-login-modal'); if(m) m.style.display='none'; }
+        async function submitMemberLogin(){
+            const urlGuildName = mlUrlGuildName();
+            let guildId = '', guildName = urlGuildName;
+            if (urlGuildName) {
+                const g = (Array.isArray(guildsDB)?guildsDB:[]).find(x => String(x.name||'').toLowerCase() === urlGuildName.toLowerCase());
+                guildId = g ? String(g.id) : '';
+            } else {
+                const el = document.getElementById('ml-guild'); guildId = el ? (el.value||'').trim() : '';
+            }
+            const code = (document.getElementById('ml-code').value || '').trim();
+            if (!code) { alert('ใส่รหัสสมาชิกก่อน'); return; }
+            showLoading('🔑 กำลังเข้าสู่ระบบ...');
+            try {
+                const res = await fetch(SCRIPT_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ action:'getMemberInventory', guild_id: guildId, guild_name: guildName, accessCode: code }) });
+                const j = await res.json().catch(()=>({status:'error'}));
+                hideLoading();
+                if (j.status === 'success') {
+                    const heroIds = new Set((j.hero_list||[]).map(h => String(h && h.id != null ? h.id : h)).filter(x=>x && x!=='undefined'));
+                    memberSession = { guildId, guildName, code, name: j.name || '', memberId: j.member_id || '', heroIds, heroList: j.hero_list || [] };
+                    try { localStorage.setItem('7k_member_session', JSON.stringify({ guildId, guildName, code, name: j.name||'', memberId: j.member_id||'', heroList: j.hero_list||[] })); } catch(e){}
+                    closeMemberLogin();
+                    memberRefreshGallery();
+                    alert('✅ เข้าสู่ระบบแล้ว: ' + (j.name || 'ลูกกิล') + '\nมีฮีโร่ ' + heroIds.size + ' ตัว (จำการเข้าสู่ระบบไว้แล้ว)');
+                } else {
+                    alert('❌ ไม่พบสมาชิก — ตรวจรหัสอีกครั้ง');
+                }
+            } catch(e){ hideLoading(); alert('❌ เชื่อมต่อไม่สำเร็จ'); }
+        }
+        function memberLogout(){ memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch(e){} memberRefreshGallery(); }
+
+        // 🎯 เช็คว่าลูกกิลที่ login จัดทีมนี้ได้ไหม (มีฮีโร่ครบ 3 ตัวไหม)
+        function memberTeamHeroIds(team){
+            const slots = (team && team.data && team.data.slots) ? team.data.slots : [];
+            const ids = [];
+            for (let i=0;i<5 && ids.length<3;i++){ const s = Array.isArray(slots)?slots[i]:slots[i]; if (s && s.id) ids.push(String(s.id)); }
+            return ids;
+        }
+        function memberTeamEligibility(team){
+            if (!memberSession) return null;
+            const ids = memberTeamHeroIds(team);
+            const missing = ids.filter(id => !memberSession.heroIds.has(String(id)));
+            return { ok: missing.length===0 && ids.length>0, total: ids.length, owned: ids.length - missing.length, missing: missing };
+        }
+        function memberTeamBadgeHTML(team){
+            const e = memberTeamEligibility(team);
+            if (!e) return '';
+            if (e.ok) return `<div class="text-[10px] font-bold text-emerald-300 bg-emerald-900/40 border border-emerald-600/40 rounded px-1.5 py-0.5 text-center mt-1">✅ จัดได้ (มีครบ)</div>`;
+            const missNames = e.missing.map(id => { const h = heroesDB.find(x=>String(x.id)===String(id)); return h ? h.name : '?'; });
+            return `<div class="text-[10px] font-bold text-amber-300 bg-amber-900/30 border border-amber-600/40 rounded px-1.5 py-0.5 text-center mt-1" title="ขาด: ${mlEsc(missNames.join(', '))}">⚠️ ขาด ${e.missing.length} (${mlEsc(missNames.join(', '))})</div>`;
+        }
+
+        // 🦸 หน้า "ฮีโร่ของฉัน" (แท็บโผล่เมื่อ login) — ฮีโร่ที่ลูกกิลมี แยกตามประเภทให้ชัด
+        function renderMyHeroesContent(){
+            if (!memberSession) return '<div class="text-gray-500 text-center py-20">กรุณาเข้าสู่ระบบลูกกิลก่อน</div>';
+            const owned = heroesDB.filter(h => h && memberSession.heroIds.has(String(h.id)));
+            const notFound = memberSession.heroIds.size - owned.length;
+            if (!owned.length) return `<div class="text-center text-gray-500 py-20"><div class="text-6xl mb-3 opacity-30">🦸</div><div class="text-sm">ไม่พบฮีโร่ที่ตรงกับฐานข้อมูล (inventory มี ${memberSession.heroIds.size} id)</div></div>`;
+            const groups = {};
+            owned.forEach(h => { const t = h.type || 'อื่นๆ'; (groups[t] = groups[t] || []).push(h); });
+            const rarIdx = (r) => (typeof RARITY_OPTS!=='undefined' && RARITY_OPTS.indexOf(r)>=0) ? RARITY_OPTS.indexOf(r) : 999;
+            const card = (h) => `<div class="group">
+                <div class="aspect-square rounded-xl border-2 border-emerald-600/40 bg-black overflow-hidden shadow relative">
+                    ${h.img?`<img src="${h.img}" class="w-full h-full object-cover">`:'<span class="flex items-center justify-center h-full text-3xl opacity-30">🦸</span>'}
+                    ${(typeof getRarityBadgeHTML==='function')?`<div class="absolute top-0.5 right-0.5">${getRarityBadgeHTML(h.rarity)}</div>`:''}
+                </div>
+                <div class="text-[11px] text-gray-300 text-center truncate mt-1">${mlEsc(h.name)}</div>
+            </div>`;
+            const order = (typeof TYPE_OPTS!=='undefined' && Array.isArray(TYPE_OPTS)) ? TYPE_OPTS.concat(['อื่นๆ']) : Object.keys(groups);
+            const keys = Object.keys(groups).sort((a,b)=>{ let ia=order.indexOf(a), ib=order.indexOf(b); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; });
+            let html = `<div class="max-w-6xl mx-auto w-full pb-20">
+                <div class="mb-5 text-center"><span class="text-emerald-400 font-black text-xl">🦸 ฮีโร่ของฉัน</span> <span class="text-gray-400 text-sm">— มี ${owned.length} ตัว</span>${notFound>0?` <span class="text-[11px] text-gray-600">(+${notFound} ไม่พบในฐานข้อมูล)</span>`:''}</div>`;
+            keys.forEach(t => {
+                const list = groups[t].slice().sort((a,b)=>{ const d=rarIdx(a.rarity)-rarIdx(b.rarity); return d!==0?d:String(a.name||'').localeCompare(String(b.name||''),'th'); });
+                html += `<div class="mb-6">
+                    <div class="text-xs text-emerald-300 font-bold uppercase tracking-wider mb-2 border-b border-gray-800 pb-1 flex items-center gap-2"><span>${mlEsc(t)}</span><span class="text-gray-600 font-normal">(${list.length})</span></div>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">${list.map(card).join('')}</div>
+                </div>`;
+            });
+            html += `</div>`;
+            return html;
+        }
+
         function renderGalleryUI(teams, urlGuild = null) {
+            restoreMemberSession(); // 🔁 login ค้าง: กู้ session ลูกกิลก่อน render (โชว์ปุ่ม/ป้ายตามสถานะ)
             const container = document.getElementById('main-content');
             if (!container) return;
 
@@ -19715,7 +19898,7 @@
                     const info = getSlotImg(s);
                     if (!info) return '';
                     const border = info.awk ? 'border-purple-500' : (isEnemy ? 'border-red-500' : 'border-blue-500');
-                    return `<img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">`;
+                    return `<div class="relative inline-block"><img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
                 }).join('');
 
                 // 2. ดึงสัตว์เลี้ยงแค่ 1 ตัว (รองรับทั้ง pets array และ pet เดี่ยว)
@@ -19780,7 +19963,7 @@
                     const defenseHeroesHTML = top3.map(s => {
                         const info = getSlotImg(s);
                         if (!info) return '';
-                        return `<img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${info.awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md">`;
+                        return `<div class="relative inline-block"><img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${info.awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
                     }).join('');
 
                     cardContent = `
@@ -19810,9 +19993,13 @@
 
             // 🟢 สร้าง HTML สำหรับแสดงผล
             let contentHTML = '';
-            
+
+            // 🦸 แท็บ "ฮีโร่ของฉัน" (เฉพาะตอน login) — ข้ามตรรกะ Attack/Defense
+            if (currentGalleryTab === 'MyHeroes') {
+                contentHTML = renderMyHeroesContent();
+            }
             // 🟢 แยกกลุ่มตาม Guild เมื่อ g=All (ภายในแต่ละ Tab)
-            if (urlGuild?.toLowerCase() === 'all') {
+            else if (urlGuild?.toLowerCase() === 'all') {
                 // 🟢 All Mode: แยกกลุ่มตาม Guild (ภายใน Tab ปัจจุบัน)
                 const guildsMap = new Map();
                 
@@ -19860,12 +20047,16 @@
                                 <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Community <span class="text-blue-500">Gallery</span></h1>
                                 ${isAdmin ? '<span class="bg-purple-600/30 text-purple-300 border border-purple-500/50 px-3 py-1 rounded-full text-xs font-bold uppercase">👑 Admin View</span>' : ''}
                             </div>
-                            <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">↻ Refresh</button>
+                            <div class="flex items-center gap-2">
+                                ${memberLoginBtnHTML()}
+                                <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">↻ Refresh</button>
+                            </div>
                         </div>
                         <div class="flex justify-center mb-6 shrink-0 w-full">
                             <div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
                                 <button onclick="switchGalleryTab('Attack')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Attack' ? btnActiveRed : btnInactive} text-xs font-black uppercase">⚔️ Targets</button>
                                 <button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>
+                                ${memberSession ? `<button onclick="switchGalleryTab('MyHeroes')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'MyHeroes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">🦸 ฮีโร่ของฉัน</button>` : ''}
                             </div>
                         </div>
                         ${contentHTML}
@@ -20280,6 +20471,7 @@
                             <div class="flex gap-1 justify-center bg-black/20 p-1.5 rounded-lg mt-1">
                                 ${miniIcons || '<span class="text-[9px] text-gray-600">Empty</span>'}
                             </div>
+                            ${memberTeamBadgeHTML(t)}
                         </div>
                     `;
                 }).join('');
@@ -20492,10 +20684,12 @@
                                                     const targetSlot = team.slots[hIdx];
                                                     if(!targetSlot) return '';
                                                     const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
-                                                    const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
+                                                    const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : (type === 'AW' ? 'text-purple-300 bg-purple-900/30' : 'text-cyan-300 bg-cyan-900/30');
                                                     const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
                                                     const sv = getComboSkillView(h, type, sqAwk);
-                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${sqAwk ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sv.text}</div></div>`;
+                                                    // ✨ Awakening ในหน้า Share: คงรูปไอคอนไว้ แต่เปลี่ยน "ชื่อสกิล" ใต้รูปเป็น "AW"
+                                                    const sqLabel = (type === 'AW') ? 'AW' : sv.text;
+                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${(sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sqLabel}</div></div>`;
                                                 }).filter(Boolean).join('<div class="text-gray-600 pt-6 shrink-0">➜</div>');
                                                 return cells || '<span class="text-gray-500 text-xs">No Data</span>';
                                             };
@@ -21046,11 +21240,12 @@
         async function loadEnemyPatternsFromCloud() {
             console.log('🔄 Reloading Enemy Patterns from Cloud...');
             try {
-                const response = await fetch(SCRIPT_URL + '?action=getAllData', {
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' }
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'getAllData' })
                 });
-                
+
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -21076,8 +21271,8 @@
                         console.log('✅ Enemy Patterns reloaded: ' + allEnemyPatternsDB.length + ' total');
                         
                         // Refresh UI ถ้ากำลังแสดงอยู่
-                        if (document.getElementById('enemy-patterns-page')?.classList.contains('active')) {
-                            renderEnemyPatterns();
+                        if (currentView === 'enemy-manager' && typeof renderEnemyManager === 'function') {
+                            renderEnemyManager();
                         }
                     }
                 }
@@ -23656,21 +23851,49 @@
             loginEl.style.minHeight = '100%';
         }
         currentView = 'roster-login';
+        updateRosterLoginGuildBadge();
         requestAnimationFrame(() => {
             document.getElementById('roster-code-input')?.focus();
         });
     }
 
+    // 🟢 แสดงชื่อกิลด์จากลิงก์ (g=) ในหน้าใส่รหัส
+    function updateRosterLoginGuildBadge() {
+        const guildBadge = document.getElementById('roster-login-guild');
+        if (!guildBadge) return;
+        const gName = (typeof mlUrlGuildName === 'function') ? mlUrlGuildName() : '';
+        if (gName) {
+            guildBadge.innerHTML = `🛡️ ${mlEsc(gName)}`;
+            guildBadge.classList.remove('hidden');
+        } else {
+            guildBadge.classList.add('hidden');
+        }
+    }
+
+    // กิลด์ที่กำลังเลือกอยู่ในหน้า Guilds & Alliances (ใช้สร้างลิงก์/แสดงผล)
+    function activeGuildForLink() {
+        return (typeof guildsDB !== 'undefined' && guildsDB[activeGuildIndex]) ? guildsDB[activeGuildIndex] : null;
+    }
+
     function buildMemberRosterUrl() {
         const baseUrl = window.location.href.split('?')[0];
-        return `${baseUrl}?mode=roster`;
+        let url = `${baseUrl}?mode=roster`;
+        // 🟢 ผูกลิงก์กับกิลด์ที่เลือกอยู่ (g= = ชื่อกิลด์ที่เข้ารหัส base64) → portal ล็อกกิลด์ให้ลูกกิลอัตโนมัติ
+        const g = activeGuildForLink();
+        if (g && g.name) {
+            try { url += `&g=${btoa(encodeURIComponent(g.name))}`; } catch (e) {}
+        }
+        return url;
     }
 
     function updateMemberRosterLinkPreview() {
         const el = document.getElementById('gm-roster-link-preview');
         if (!el) return;
         const code = normalizeMemberCode(document.getElementById('gm-access-code')?.value);
-        el.innerHTML = `ลิงก์สมาชิก: <span class="text-purple-300">${buildMemberRosterUrl()}</span>` +
+        const g = activeGuildForLink();
+        const gName = g ? (g.name || g.id) : '(ไม่ทราบกิลด์)';
+        el.innerHTML = `กิลด์ของลิงก์นี้: <span class="text-blue-300 font-bold">🛡️ ${gName}</span>` +
+            `<br>ลิงก์สมาชิก: <span class="text-purple-300">${buildMemberRosterUrl()}</span>` +
             (code ? `<br>รหัสที่ต้องแจ้ง: <span class="text-yellow-400 font-bold">${code}</span>` : '');
     }
 
@@ -23684,7 +23907,12 @@
     }
 
     function copyMemberPortalLink() {
-        copyTextToClipboard(buildMemberRosterUrl(), '✅ คัดลอกลิงก์หน้ากรอกรหัสแล้ว — แจ้งรหัสสมาชิกแยกทางแชท');
+        const g = activeGuildForLink();
+        const gName = g ? (g.name || g.id) : '';
+        const msg = gName
+            ? `✅ คัดลอกลิงก์กิลด์ "${gName}" แล้ว — ส่งให้เฉพาะลูกกิลกิลด์นี้ แล้วแจ้งรหัสสมาชิกแยกทางแชท`
+            : '✅ คัดลอกลิงก์หน้ากรอกรหัสแล้ว — แจ้งรหัสสมาชิกแยกทางแชท';
+        copyTextToClipboard(buildMemberRosterUrl(), msg);
     }
 
     function copyMemberCodeOnly() {
@@ -24609,10 +24837,10 @@
             const targetSlot = slots[hIdx];
             if (!targetSlot) return '';
             const h = heroesDB.find(x => String(x.id) === String(targetSlot.id));
-            const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : 'text-cyan-300 bg-cyan-900/30';
+            const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : (type === 'AW' ? 'text-purple-300 bg-purple-900/30' : 'text-cyan-300 bg-cyan-900/30');
             const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
             const sv = getComboSkillView(h, type, sqAwk);
-            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border ' + (sqAwk ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + sv.img + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + sv.text + '</div></div>';
+            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border ' + ((sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + sv.img + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + sv.text + '</div></div>';
         }).filter(Boolean);
         const skillAlts = (Array.isArray(team.skillQueueAlts) ? team.skillQueueAlts : []).filter(p => Array.isArray(p) && p.some(Boolean));
         let skillHtml;
@@ -25264,14 +25492,20 @@
     function renderMemberRosterGuildSelect() {
         const sel = document.getElementById('member-roster-guild-select');
         if (!sel) return;
-        sel.innerHTML = guildsDB.map((g, i) =>
-            `<option value="${i}" ${i === activeGuildIndex ? 'selected' : ''}>${g.name || 'Guild ' + (i + 1)}</option>`
-        ).join('');
+        // อิงตามข้อมูลกิลใน user — แสดงเฉพาะกิลด์ที่ผู้ใช้ปัจจุบันเห็นได้
+        if (typeof ensureActiveGuildVisible === 'function') ensureActiveGuildVisible();
+        const visibleIdxs = typeof getVisibleGuildIndices === 'function'
+            ? getVisibleGuildIndices()
+            : guildsDB.map((g, i) => i);
+        sel.innerHTML = visibleIdxs.map((i) => {
+            const g = guildsDB[i];
+            return `<option value="${i}" ${i === activeGuildIndex ? 'selected' : ''}>${g.name || 'Guild ' + (i + 1)}</option>`;
+        }).join('');
     }
 
     function selectMemberRosterGuild(val) {
+        memberRosterBrowseIdx = -1; // reset ก่อน เพื่อกัน render รอบแรก (ภายใน selectActiveGuild) โชว์สมาชิกของกิลด์เก่า
         selectActiveGuild(val);
-        memberRosterBrowseIdx = -1;
         renderMemberRosterView();
     }
 
