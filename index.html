@@ -4287,6 +4287,10 @@
         let currentGalleryTab = 'Attack';
         let gallerySearchHeroIds = []; // 🔍 ฮีโร่ที่เลือกไว้กรอง/เรียงทีมศัตรูในหน้า Gallery (สูงสุด 5)
         let galleryPickTemp = [];      // ตัวเลือกชั่วคราวขณะเปิด dialog เลือกฮีโร่
+        let galleryVisibleTeams = [];  // ทีมที่ผ่านการกรอง guild แล้ว (ใช้ร่วมกับเมนูวนไม้)
+        let rotationSelectedTargets = []; // 🗡️ ชื่อเป้าหมายที่เลือกไว้วางแผนวนไม้ (สูงสุด 5)
+        let rotationSolution = null;      // ผลลัพธ์ชุดทีมที่ไม่ชนกัน { assignments:[], unsolved:[] }
+        let rotationMode = 'groups';      // โหมดเมนูวนไม้: 'groups' = จัดกลุ่มอัตโนมัติ, 'manual' = เลือกเป้าหมายเอง
 
         // --- 🏰 GUILDS & ALLIANCES LOGIC ---
         let guildsDB = [{ id: 'G_MAIN', name: 'Main Guild (กิลด์หลัก)', type: 'main', members: [] }];
@@ -19836,6 +19840,8 @@
             }
             // 🟢 Admin Mode (ไม่มี urlGuild): เห็นทั้งหมด ไม่ต้องกรอง
 
+            galleryVisibleTeams = teams; // 🗡️ เก็บไว้ให้เมนูวนไม้ใช้ (guild เดียวกับที่แสดงอยู่)
+
             const btnInactive = 'bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-gray-500';
             const btnActiveRed = 'bg-red-600 text-white shadow-lg shadow-red-900/40';
             const btnActiveBlue = 'bg-blue-600 text-white shadow-lg shadow-blue-900/40';
@@ -20010,8 +20016,12 @@
             // 🟢 สร้าง HTML สำหรับแสดงผล
             let contentHTML = '';
 
+            // 🗡️ แท็บ "วนไม้" — เครื่องมือวางแผน 5 ไม้ (ฮีโร่+สัตว์เลี้ยงไม่ชนกัน)
+            if (currentGalleryTab === 'Rotation') {
+                contentHTML = renderRotationPlanner();
+            }
             // 🦸 แท็บ "ฮีโร่ของฉัน" (เฉพาะตอน login) — ข้ามตรรกะ Attack/Defense
-            if (currentGalleryTab === 'MyHeroes') {
+            else if (currentGalleryTab === 'MyHeroes') {
                 contentHTML = renderMyHeroesContent();
             }
             // 🟢 แยกกลุ่มตาม Guild เมื่อ g=All (ภายในแต่ละ Tab)
@@ -20072,10 +20082,11 @@
                             <div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
                                 <button onclick="switchGalleryTab('Attack')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Attack' ? btnActiveRed : btnInactive} text-xs font-black uppercase">⚔️ Targets</button>
                                 <button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>
+                                <button onclick="switchGalleryTab('Rotation')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Rotation' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : btnInactive} text-xs font-black uppercase">🗡️ วนไม้</button>
                                 ${memberSession ? `<button onclick="switchGalleryTab('MyHeroes')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'MyHeroes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">🦸 ฮีโร่ของฉัน</button>` : ''}
                             </div>
                         </div>
-                        ${currentGalleryTab !== 'MyHeroes' ? galleryHeroFilterBarHTML(displayItems.length) : ''}
+                        ${(currentGalleryTab !== 'MyHeroes' && currentGalleryTab !== 'Rotation') ? galleryHeroFilterBarHTML(displayItems.length) : ''}
                         ${contentHTML}
                     </div>
                 </div>`;
@@ -21696,6 +21707,338 @@
     function clearGalleryHeroFilter() {
         gallerySearchHeroIds = [];
         rerenderGallery();
+    }
+
+    // =========================================================
+    // 🗡️ ROTATION PLANNER (วนไม้) — เลือกเป้าหมายสูงสุด 5 → หาชุดทีม Counter
+    //    ที่ฮีโร่ + สัตว์เลี้ยงไม่ซ้ำกันข้ามไม้ (backtracking + หาชุดครอบคลุมมากสุด)
+    // =========================================================
+    let rotationTargetsCache = []; // รายชื่อเป้าหมายล่าสุดที่วาดไว้ (ใช้อ้างอิงตอนกดเลือก)
+
+    // Set ของ id ที่ทีมนี้ "จอง" ไว้ (ฮีโร่ = h:id, สัตว์เลี้ยง = p:id)
+    function counterTeamMembers(team) {
+        const set = new Set();
+        const slots = (team.data && team.data.slots) ? team.data.slots : [];
+        for (let i = 0; i < 5; i++) {
+            const s = Array.isArray(slots) ? slots[i] : slots[i];
+            if (s && s.id) set.add('h:' + String(s.id));
+        }
+        let pets = [];
+        if (team.data && Array.isArray(team.data.pets)) pets = team.data.pets.filter(p => p && p.id);
+        else if (team.data && team.data.pet) {
+            const pid = typeof team.data.pet === 'object' ? team.data.pet.id : team.data.pet;
+            if (pid) pets = [{ id: pid }];
+        }
+        pets.forEach(p => set.add('p:' + String(p.id)));
+        return set;
+    }
+
+    // รายการรูปฮีโร่/สัตว์เลี้ยงของทีม (ใช้แสดงผล)
+    function rotationTeamUnits(team) {
+        const units = [];
+        const slots = (team.data && team.data.slots) ? team.data.slots : [];
+        for (let i = 0; i < 5; i++) {
+            const s = Array.isArray(slots) ? slots[i] : slots[i];
+            if (!s || !s.id) continue;
+            const h = heroesDB.find(x => String(x.id) === String(s.id));
+            if (!h) continue;
+            const awk = !!(s.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+            units.push({ type: 'hero', img: awk ? h.img2 : h.img, name: h.name, awk });
+        }
+        let pets = [];
+        if (team.data && Array.isArray(team.data.pets)) pets = team.data.pets.filter(p => p && p.id);
+        else if (team.data && team.data.pet) {
+            const pid = typeof team.data.pet === 'object' ? team.data.pet.id : team.data.pet;
+            if (pid) pets = [{ id: pid }];
+        }
+        pets.forEach(p => { const pet = petsDB.find(x => String(x.id) === String(p.id)); if (pet) units.push({ type: 'pet', img: pet.img, name: pet.name }); });
+        return units;
+    }
+
+    // ทีมบุก (Attack) ที่เคาน์เตอร์เป้าหมายชื่อนี้ได้
+    function getCounterTeamsForTarget(name) {
+        return (galleryVisibleTeams || []).filter(t =>
+            t.data && t.data.teamType === 'Attack' &&
+            Array.isArray(t.data.enemyTeams) &&
+            t.data.enemyTeams.some(e => e && e.name === name));
+    }
+
+    // รายชื่อเป้าหมายทั้งหมด + จำนวนทีมที่เคาน์เตอร์ได้
+    function rotationAllTargets() {
+        const map = new Map();
+        (galleryVisibleTeams || []).filter(t => t.data && t.data.teamType === 'Attack').forEach(t => {
+            (t.data.enemyTeams || []).forEach(e => { if (e && e.name) map.set(e.name, (map.get(e.name) || 0) + 1); });
+        });
+        return [...map.entries()].map(([name, count]) => ({ name, count }))
+            .sort((a, b) => String(a.name).localeCompare(String(b.name), 'th'));
+    }
+
+    // 🧠 หาชุดทีมที่ไม่ชนกัน (จัดครบให้ได้มากสุด)
+    function solveRotation(targetNames) {
+        const groups = targetNames.map(name => ({
+            name,
+            opts: getCounterTeamsForTarget(name).map(team => ({ team, members: counterTeamMembers(team) }))
+        }));
+        groups.sort((a, b) => a.opts.length - b.opts.length); // เป้าที่ตัวเลือกน้อยสุดก่อน → prune เร็ว
+        let best = { assign: {}, count: -1 };
+        const assign = {};
+        function bt(i, used, count) {
+            if (best.count === groups.length) return;                  // เจอชุดครบแล้ว หยุด
+            if (i === groups.length) { if (count > best.count) best = { assign: Object.assign({}, assign), count }; return; }
+            if (count + (groups.length - i) <= best.count) return;      // prune: ต่อให้จัดครบก็ไม่ดีกว่าเดิม
+            const g = groups[i];
+            for (const opt of g.opts) {
+                let clash = false;
+                for (const m of opt.members) { if (used.has(m)) { clash = true; break; } }
+                if (clash) continue;
+                opt.members.forEach(m => used.add(m));
+                assign[g.name] = opt.team;
+                bt(i + 1, used, count + 1);
+                opt.members.forEach(m => used.delete(m));
+                delete assign[g.name];
+            }
+            bt(i + 1, used, count); // ข้ามเป้านี้ (เผื่อจัดครบไม่ได้)
+        }
+        bt(0, new Set(), 0);
+        const finalAssign = best.assign;
+        const assignments = targetNames.filter(n => finalAssign[n]).map(n => ({ target: n, team: finalAssign[n] }));
+        const unsolved = targetNames.filter(n => !finalAssign[n]);
+        return { assignments, unsolved };
+    }
+
+    // --- UI ---
+    function renderRotationPlanner() {
+        return `<div id="rotation-planner" class="w-full max-w-5xl mx-auto pb-20">${rotationInnerHTML()}</div>`;
+    }
+    function refreshRotationPlanner() {
+        const el = document.getElementById('rotation-planner');
+        if (el) el.innerHTML = rotationInnerHTML();
+        else rerenderGallery();
+    }
+
+    function rotationInnerHTML() {
+        rotationTargetsCache = rotationAllTargets();
+        const header = `<div class="text-center mb-4">
+            <div class="text-amber-400 font-black text-xl">🗡️ วางแผนวนไม้</div>
+            <div class="text-gray-400 text-xs mt-1">แต่ละไม้ห้ามใช้ <b class="text-amber-300">ฮีโร่/สัตว์เลี้ยงซ้ำกัน</b> — สูงสุด 5 ทีมต่อชุด</div>
+        </div>`;
+        const modeToggle = `<div class="flex justify-center mb-5"><div class="bg-[#0b0e14] p-1 rounded-xl border border-gray-800 flex gap-1 shadow-lg">
+            <button onclick="setRotationMode('groups')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition ${rotationMode === 'groups' ? 'bg-amber-600 text-white shadow' : 'text-gray-400 hover:text-white'}">📦 จัดกลุ่มอัตโนมัติ</button>
+            <button onclick="setRotationMode('manual')" class="px-4 py-1.5 rounded-lg text-xs font-bold transition ${rotationMode === 'manual' ? 'bg-amber-600 text-white shadow' : 'text-gray-400 hover:text-white'}">🎯 เลือกเป้าหมายเอง</button>
+        </div></div>`;
+        const body = rotationMode === 'groups' ? renderRotationGroupsHTML() : rotationManualHTML();
+        return header + modeToggle + body;
+    }
+
+    // 🎯 โหมดเลือกเป้าหมายเอง (แบบเดิม)
+    function rotationManualHTML() {
+        const targets = rotationTargetsCache;
+        if (!targets.length) {
+            return `<div class="text-center text-gray-500 py-16"><div class="text-5xl mb-3 opacity-30">🗡️</div>ยังไม่มีทีมบุก (Attack) ที่แชร์ไว้ในกลุ่มนี้</div>`;
+        }
+        let html = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-sm font-bold text-white">เลือกเป้าหมาย <span class="text-amber-400">(${rotationSelectedTargets.length}/5)</span></div>
+                ${rotationSelectedTargets.length ? `<button onclick="clearRotation()" class="text-xs text-gray-400 hover:text-red-400 underline">ล้าง</button>` : ''}
+            </div>
+            <div class="flex flex-wrap gap-2">`;
+        targets.forEach((t, idx) => {
+            const sel = rotationSelectedTargets.includes(t.name);
+            html += `<button onclick="toggleRotationTarget(${idx})" class="px-3 py-1.5 rounded-lg text-xs font-bold border transition ${sel ? 'bg-amber-600 text-white border-amber-500' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-amber-500'}">${mlEsc(t.name)} <span class="opacity-60">(${t.count})</span></button>`;
+        });
+        html += `</div>
+            <div class="mt-4">
+                <button onclick="runRotationSolve()" ${rotationSelectedTargets.length ? '' : 'disabled'} class="w-full ${rotationSelectedTargets.length ? 'bg-amber-600 hover:bg-amber-500' : 'bg-gray-700 cursor-not-allowed opacity-60'} text-white px-4 py-2.5 rounded-xl text-sm font-black transition">🎲 แนะนำชุดที่ไม่ชน</button>
+            </div>
+        </div>`;
+        html += rotationResultHTML();
+        return html;
+    }
+
+    // ชื่อเป้าหมายหลักของทีมบุก (ใช้ enemyTeams ตัวแรก)
+    function rotationTeamTargetName(team) {
+        if (team.data && Array.isArray(team.data.enemyTeams) && team.data.enemyTeams[0] && team.data.enemyTeams[0].name) {
+            return team.data.enemyTeams[0].name;
+        }
+        return '(ไม่ระบุเป้า)';
+    }
+
+    // 📦 โหมดจัดกลุ่มอัตโนมัติ — จัดกลุ่มตาม "ลำดับทีม Counter" ของแต่ละเป้า
+    //    Group A = ทีมลำดับ 1 ของทุกเป้า, Group B = ทีมลำดับ 2, ... (เป้าที่ไม่มีลำดับนั้นก็ข้าม)
+    //    ทีม Counter หนึ่งทีม counter ได้หลายเป้า → นับว่าเป็นทีมของเป้านั้นถ้าเป้าอยู่ใน enemyTeams (เหมือนที่แอปใช้)
+    function buildRotationGroups() {
+        const teams = (galleryVisibleTeams || []).filter(t => t.data && t.data.teamType === 'Attack');
+        // 1) รวมชื่อเป้าทั้งหมด (จากทุก enemyTeams ของทุกทีม)
+        const targetSet = new Set();
+        teams.forEach(t => (Array.isArray(t.data.enemyTeams) ? t.data.enemyTeams : []).forEach(e => { if (e && e.name) targetSet.add(e.name); }));
+        const targetNames = [...targetSet].sort((a, b) => String(a).localeCompare(String(b), 'th'));
+        // 2) แต่ละเป้า → รายชื่อทีมที่ counter เป้านั้น (ตามลำดับที่แชร์) + เก็บ object ศัตรูของเป้านั้นไว้แสดง
+        const map = new Map(); // targetName -> [{team, enemy}]
+        targetNames.forEach(tn => {
+            const list = [];
+            teams.forEach(t => {
+                const enemy = (Array.isArray(t.data.enemyTeams) ? t.data.enemyTeams : []).find(e => e && e.name === tn);
+                if (enemy) list.push({ team: t, enemy });
+            });
+            map.set(tn, list);
+        });
+        const groups = [];
+        const seenSig = new Set();
+        // แบ่งเป้าเป็นหน้าละไม่เกิน 5 (1 ไม้ = 1 เป้า)
+        for (let p = 0; p < targetNames.length; p += 5) {
+            const pageTargets = targetNames.slice(p, p + 5);
+            const pageRounds = pageTargets.reduce((mx, tn) => Math.max(mx, map.get(tn).length), 0);
+            for (let r = 0; r < pageRounds; r++) {
+                // แต่ละ Group = ทีมลำดับที่ r ของทุกเป้า (เป้าที่ทีมน้อยจะวนใช้ซ้ำ → โผล่ทุก Group)
+                const teamsInGroup = [];
+                pageTargets.forEach(tn => {
+                    const opts = map.get(tn);
+                    if (!opts.length) return;
+                    const cand = opts[r % opts.length];
+                    teamsInGroup.push({ team: cand.team, enemy: cand.enemy });
+                });
+                if (!teamsInGroup.length) continue;
+                // กันกลุ่มที่ได้ชุดทีมเดิมเป๊ะ (เช่นทุกเป้ามีทีมเดียว → เหลือกลุ่มเดียว)
+                const sig = teamsInGroup.map(x => String(x.team.id) + '@' + (x.enemy.name || '')).sort().join('|');
+                if (seenSig.has(sig)) continue;
+                seenSig.add(sig);
+                groups.push({ teams: teamsInGroup, rank: r + 1 });
+            }
+        }
+        return groups;
+    }
+
+    // วาดฮีโร่ 3 ตัวแรก (พร้อมดาวซ้อน) จาก slots — ใช้สไตล์เดียวกับการ์ดหน้า Targets
+    function rotationBigHeroesHTML(slots, isEnemy) {
+        let arr = [];
+        if (Array.isArray(slots)) arr = slots;
+        else if (slots && typeof slots === 'object') arr = Object.keys(slots).map(k => slots[k]);
+        const valid = [];
+        for (let i = 0; i < 5 && valid.length < 3; i++) { const s = arr[i]; if (s && s.id) valid.push(s); }
+        return valid.map(s => {
+            const h = heroesDB.find(x => String(x.id) === String(s.id));
+            if (!h) return '';
+            const awk = !!(s.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+            const img = awk ? h.img2 : h.img;
+            const border = awk ? 'border-purple-500' : (isEnemy ? 'border-red-500' : 'border-blue-500');
+            return `<div class="relative inline-block"><img src="${img}" title="${mlEsc(h.name)}" class="w-12 h-12 rounded-xl border-2 ${border} bg-black object-cover shadow-md" onerror="this.style.visibility='hidden'">${getGallerySlotStarsHTML(s)}</div>`;
+        }).join('');
+    }
+
+    // ฝั่งทีมเรา = ฮีโร่ 3 + สัตว์เลี้ยง 1
+    function rotationMySideHTML(team) {
+        const heroesHTML = rotationBigHeroesHTML(team.data && team.data.slots ? team.data.slots : [], false);
+        let petsArray = [];
+        if (team.data && Array.isArray(team.data.pets)) petsArray = team.data.pets.filter(p => p && p.id);
+        else if (team.data && team.data.pet) { const pid = typeof team.data.pet === 'object' ? team.data.pet.id : team.data.pet; if (pid) petsArray = [{ id: pid }]; }
+        let petHTML = '';
+        if (petsArray.length) {
+            const pet = petsDB.find(p => String(p.id) === String(petsArray[0].id));
+            if (pet && pet.img) petHTML = `<img src="${pet.img}" title="${mlEsc(pet.name)}" class="w-12 h-12 rounded-full border-2 border-purple-500 bg-black object-cover shadow-md" onerror="this.style.visibility='hidden'">`;
+        }
+        return `<div class="flex justify-center items-center gap-1.5 flex-wrap">${heroesHTML}${petHTML}</div>`;
+    }
+
+    function rotationGroupTeamCard(team, enemyArg) {
+        const enemy = enemyArg || ((team.data && Array.isArray(team.data.enemyTeams)) ? team.data.enemyTeams[0] : null);
+        const target = (enemy && enemy.name) ? enemy.name : '(ไม่ระบุเป้า)';
+        const enemyHeroesHTML = enemy ? rotationBigHeroesHTML(enemy.slots, true) : '';
+        return `<div onclick="viewTeamFromGallery('${String(team.id).replace(/'/g,"\\'")}')" class="bg-[#161b22] border border-gray-700 rounded-2xl p-4 transition-all duration-200 cursor-pointer group flex flex-col relative overflow-hidden h-full shadow-md hover:-translate-y-1 hover:border-red-500">
+            <div class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow shrink-0">TARGET</span>
+                    <h4 class="text-white font-bold text-sm truncate">${mlEsc(target)}</h4>
+                </div>
+            </div>
+            <div class="flex-1 flex flex-col gap-1.5">
+                <div class="flex flex-col justify-center items-center py-3 bg-blue-900/10 rounded-xl border border-blue-800/40">
+                    <div class="text-[9px] text-blue-400 font-black uppercase tracking-widest mb-2">ทีมเรา</div>
+                    ${rotationMySideHTML(team)}
+                </div>
+                <div class="flex items-center justify-center -my-1 relative z-10"><span class="text-xs font-black text-gray-300 bg-[#161b22] border border-gray-600 rounded-full w-8 h-8 flex items-center justify-center shadow">VS</span></div>
+                <div class="flex flex-col justify-center items-center py-3 bg-red-900/10 rounded-xl border border-red-800/40">
+                    <div class="text-[9px] text-red-400 font-black uppercase tracking-widest mb-2">ศัตรู</div>
+                    <div class="flex justify-center items-center gap-1.5 flex-wrap">${enemyHeroesHTML || '<span class="text-[10px] text-gray-600">—</span>'}</div>
+                </div>
+            </div>
+            <div class="text-gray-300 text-xs font-bold truncate mt-3 text-center">${mlEsc(team.name || '-')}</div>
+            <div class="absolute inset-0 flex items-center justify-center bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm z-30">
+                <span class="text-white font-bold border border-white/30 px-4 py-2 rounded-full bg-white/10 shadow-xl transform scale-90 group-hover:scale-100 transition">View Detail</span>
+            </div>
+        </div>`;
+    }
+
+    function renderRotationGroupsHTML() {
+        const groups = buildRotationGroups();
+        if (!groups.length) return `<div class="text-center text-gray-500 py-16"><div class="text-5xl mb-3 opacity-30">📦</div>ยังไม่มีทีมบุก (Attack) ให้จัดกลุ่ม</div>`;
+        let html = `<div class="text-center text-xs text-gray-400 mb-4">จัดกลุ่มตาม<b class="text-amber-300">ลำดับทีม Counter</b> — Group A = ทีมลำดับ 1 ของแต่ละเป้า, Group B = ทีมลำดับ 2 ... · กดการ์ดเพื่อดูรายละเอียด</div>`;
+        const colors = ['amber', 'emerald', 'sky', 'pink', 'violet', 'orange', 'lime', 'cyan', 'rose', 'teal'];
+        groups.forEach((g, gi) => {
+            const label = String.fromCharCode(65 + (gi % 26)) + (gi >= 26 ? String(Math.floor(gi / 26)) : '');
+            const color = colors[gi % colors.length];
+            html += `<div class="bg-[#0f131a] border-2 border-${color}-500/30 rounded-2xl p-4 mb-4 shadow-lg">
+                <div class="flex items-center gap-2 mb-3 flex-wrap">
+                    <div class="w-8 h-8 rounded-lg bg-${color}-600 text-white font-black flex items-center justify-center shadow">${label}</div>
+                    <div class="text-${color}-400 font-bold uppercase tracking-wider">Group ${label}</div>
+                    <span class="text-[10px] text-gray-400 bg-gray-800/60 px-2 py-0.5 rounded-full">ทีมลำดับที่ ${g.rank}</span>
+                    <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-0.5 rounded-full">${g.teams.length} ไม้</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,340px);gap:0.85rem;justify-content:center;">
+                    ${g.teams.map(it => rotationGroupTeamCard(it.team, it.enemy)).join('')}
+                </div>
+            </div>`;
+        });
+        return html;
+    }
+
+    function setRotationMode(m) { rotationMode = m; refreshRotationPlanner(); }
+
+    function rotationResultHTML() {
+        if (!rotationSolution) return '';
+        const { assignments, unsolved } = rotationSolution;
+        let html = '';
+        if (unsolved.length) {
+            html += `<div class="bg-red-900/20 border border-red-700/50 rounded-xl p-3 mb-4 text-sm text-red-300">⚠️ จัดครบไม่ได้ — จัดได้ ${assignments.length} ไม้ · เป้าหมายที่หาทีมไม่ชนไม่ได้: <b>${unsolved.map(mlEsc).join(', ')}</b><div class="text-[11px] text-red-400/80 mt-1">ลองสลับเป้าหมาย หรือแชร์ทีม Counter เพิ่มเติม</div></div>`;
+        } else if (assignments.length) {
+            html += `<div class="bg-emerald-900/20 border border-emerald-700/50 rounded-xl p-3 mb-4 text-sm text-emerald-300">✅ จัดครบ ${assignments.length} ไม้ · ฮีโร่/สัตว์เลี้ยงไม่ชนกันเลย</div>`;
+        }
+        const allUnits = new Set();
+        assignments.forEach(a => rotationTeamUnits(a.team).forEach(u => allUnits.add(u.type + ':' + u.name)));
+        assignments.forEach((a, i) => {
+            const units = rotationTeamUnits(a.team);
+            const unitsHTML = units.map(u => `<img src="${u.img || ''}" title="${mlEsc(u.name)}" class="w-12 h-12 border-2 ${u.type === 'pet' ? 'border-purple-500 rounded-full' : (u.awk ? 'border-purple-500 rounded-lg' : 'border-blue-500 rounded-lg')} bg-black object-cover" onerror="this.style.visibility='hidden'">`).join('');
+            html += `<div class="bg-[#1f2937] border border-gray-700 rounded-2xl p-4 mb-3 flex items-center gap-4">
+                <div class="shrink-0 w-14 text-center"><div class="text-amber-400 font-black text-2xl leading-none">${i + 1}</div><div class="text-[10px] text-gray-500 font-bold uppercase">ไม้</div></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-2"><span class="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shrink-0">TARGET</span><span class="text-white font-bold text-sm truncate">${mlEsc(a.target)}</span></div>
+                    <div class="text-[11px] text-gray-500 mb-2">ใช้ทีม: <span class="text-gray-300">${mlEsc(a.team.name || '-')}</span></div>
+                    <div class="flex flex-wrap gap-1.5">${unitsHTML}</div>
+                </div>
+            </div>`;
+        });
+        if (assignments.length) {
+            html += `<div class="text-center text-xs text-gray-400 mt-2">รวมใช้ ${allUnits.size} ตัว (ฮีโร่+สัตว์เลี้ยง) ไม่ซ้ำกัน</div>`;
+        }
+        return html;
+    }
+
+    function toggleRotationTarget(idx) {
+        const t = rotationTargetsCache[idx];
+        if (!t) return;
+        const i = rotationSelectedTargets.indexOf(t.name);
+        if (i >= 0) rotationSelectedTargets.splice(i, 1);
+        else {
+            if (rotationSelectedTargets.length >= 5) { alert('เลือกได้สูงสุด 5 เป้าหมาย'); return; }
+            rotationSelectedTargets.push(t.name);
+        }
+        rotationSolution = null; // เปลี่ยนเป้าหมาย → ล้างผลเดิม
+        refreshRotationPlanner();
+    }
+    function clearRotation() { rotationSelectedTargets = []; rotationSolution = null; refreshRotationPlanner(); }
+    function runRotationSolve() {
+        if (!rotationSelectedTargets.length) return;
+        rotationSolution = solveRotation(rotationSelectedTargets);
+        refreshRotationPlanner();
     }
 
 
