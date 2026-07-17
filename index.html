@@ -5135,23 +5135,15 @@
             }
 
             // B. เช็ค Session ผู้ใช้เดิม
-            const savedUser = sessionStorage.getItem('7k_user_session');
+            const savedUser = localStorage.getItem('7k_user_session');
             if (savedUser) {
                 console.log("👤 Session Found -> Auto Login");
                 CURRENT_USER = JSON.parse(savedUser);
                 document.getElementById('login-screen').style.display = 'none';
 
-                // 🔥 มีสิทธิ์แล้ว -> ดึงข้อมูลทั้งหมด
-                if (heroesDB.length === 0) {
-                    // 🟢 ดึงจาก Cloud -> fetchCloudData จัดการ show/hide Loading เอง
-                    await fetchCloudData('getAllData', true);
-                } else {
-                    // 🟢 ใช้ข้อมูลจาก localStorage -> แสดง Loading แล้ว initApp
-                    showLoading("กำลังโหลดข้อมูล...");
-                    if (typeof filterGuildAccessByUser === "function") filterGuildAccessByUser();
-                    initApp();
-                    hideLoading();
-                }
+                // 🔥 มีสิทธิ์แล้ว -> โหลดข้อมูล (ครั้งแรกโหลดทั้งหมด, ครั้งต่อไปโหลดเฉพาะที่เปลี่ยน)
+                if (typeof filterGuildAccessByUser === "function") filterGuildAccessByUser();
+                await loadAppData(true);
             } else {
                 // C. ยังไม่ Login -> แสดงหน้า Login และไม่โหลดข้อมูลใดๆ
                 console.log("🔒 Access Denied -> Require Login");
@@ -5200,9 +5192,9 @@
                 if (result.status === 'success') {
                     // ✅ Login ผ่าน: Server จะส่งข้อมูล User (ไม่มี Password) กลับมาใน result.user
                     loginSuccess(result.user);
-                    
-                    // 🔥 ดึงข้อมูลทั้งหมดทันทีหลังจาก Login ผ่าน
-                    await fetchCloudData('getAllData', true);
+
+                    // 🔥 ดึงข้อมูลทันทีหลัง Login ผ่าน (ครั้งแรกโหลดทั้งหมด, ครั้งต่อไปโหลดเฉพาะที่เปลี่ยน)
+                    await loadAppData(true);
                     
                 } else {
                     // ❌ ไม่ผ่าน: แสดงข้อความจาก Server
@@ -5233,7 +5225,7 @@
                     permissions: user.permissions || [],
                     guild_name: user.guild_name || 'all' // 🟢 เพิ่ม: บันทึก guild_name
                 };
-                sessionStorage.setItem('7k_user_session', JSON.stringify(userData));
+                localStorage.setItem('7k_user_session', JSON.stringify(userData));
                 CURRENT_USER = userData;
 
                 // 2. ตั้งค่าเมนูตามสิทธิ์ และกรองการเข้าถึง Guild
@@ -5273,7 +5265,7 @@
         }
 
         function logout() {
-            sessionStorage.removeItem('7k_user_session');
+            localStorage.removeItem('7k_user_session');
             location.reload(); // รีโหลดหน้าเว็บเพื่อกลับไปหน้า Login
         }
 
@@ -5310,6 +5302,54 @@
 
         function showLoading(text) { document.getElementById('loading-text').innerText = text || 'กำลังโหลด...'; document.getElementById('loading-overlay').classList.add('active'); }
         function hideLoading() { document.getElementById('loading-overlay').classList.remove('active'); }
+
+        // ⚡ MAIN DATA CACHE — หมวดที่ยังไม่เคย persist มาก่อน (heroes/pets/rings/items/affiliations/teams/
+        // battleHistory/seasonInfo/archivedSeasons/heroSets/surveyConfig/applications/knownEnemies/guilds)
+        // เก็บรวมเป็นก้อนเดียว เพื่อให้ login ครั้งต่อไปไม่ต้องโหลดทั้งหมดใหม่ (ดู loadAppData/getUpdates)
+        function hydrateMainDataCache() {
+            try {
+                const raw = JSON.parse(localStorage.getItem('7k_main_data_cache_v1'));
+                if (!raw) return;
+                if (raw.heroes) heroesDB = raw.heroes;
+                if (raw.pets) petsDB = raw.pets;
+                if (raw.rings) ringsDB = raw.rings;
+                if (raw.items) itemsDB = raw.items;
+                if (raw.affiliations) affiliationsDB = raw.affiliations;
+                if (raw.teams) teamsDB = raw.teams;
+                if (raw.battleHistory) battleHistoryDB = raw.battleHistory;
+                if (raw.seasonInfo) currentSeason = raw.seasonInfo;
+                if (raw.archivedSeasons) archivedSeasons = raw.archivedSeasons;
+                if (raw.heroSets) heroSetsDB = raw.heroSets;
+                if (raw.surveyConfig) surveyConfig = raw.surveyConfig;
+                if (raw.applications) applicationsDB = raw.applications;
+                if (raw.knownEnemies) knownEnemies = raw.knownEnemies;
+                if (raw.guilds && raw.guilds.length > 0) {
+                    guildsDB = raw.guilds;
+                    guildMembersDB = guildsDB[activeGuildIndex]?.members || guildsDB[0]?.members || [];
+                }
+            } catch (e) {}
+        }
+        function persistMainDataCache() {
+            try {
+                localStorage.setItem('7k_main_data_cache_v1', JSON.stringify({
+                    heroes: heroesDB, pets: petsDB, rings: ringsDB, items: itemsDB,
+                    affiliations: affiliationsDB, teams: teamsDB, battleHistory: battleHistoryDB,
+                    seasonInfo: currentSeason, archivedSeasons: archivedSeasons, heroSets: heroSetsDB,
+                    surveyConfig: surveyConfig, applications: applicationsDB, knownEnemies: knownEnemies,
+                    guilds: guildsDB
+                }));
+            } catch (e) {}
+        }
+        // ⚡ DATA VERSIONS — เวอร์ชันต่อ category ที่ client มี (ใช้เทียบกับ server ใน getUpdates)
+        function persistDataVersions(versions) {
+            if (!versions) return;
+            try {
+                const existing = JSON.parse(localStorage.getItem('7k_data_versions_v1')) || {};
+                Object.assign(existing, versions);
+                localStorage.setItem('7k_data_versions_v1', JSON.stringify(existing));
+            } catch (e) {}
+        }
+        hydrateMainDataCache();
 
         if (USE_CLOUD && !isRosterPortalMode) startCloudSync(true);
         else {
@@ -5890,7 +5930,58 @@
                 }
             });
         }
-    
+
+        // ⚡ INCREMENTAL: โหลดเฉพาะ category ที่เปลี่ยน (เทียบเวอร์ชันที่ client มี — 7k_data_versions_v1)
+        function fetchCloudDataIncremental(showOverlay = true) {
+            if (!USE_CLOUD) return Promise.resolve({});
+
+            if (showOverlay) showLoading("กำลังตรวจสอบข้อมูลอัปเดต...");
+            updateSyncStatus('loading');
+
+            let clientVersions = {};
+            try { clientVersions = JSON.parse(localStorage.getItem('7k_data_versions_v1')) || {}; } catch (e) {}
+
+            return fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'getUpdates', versions: clientVersions })
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateSyncStatus('online');
+                console.log('⚡ Incremental sync — categories changed:', Object.keys(data.changed || {}));
+                processLoadedData(Object.assign({}, data.changed, { versions: data.versions, timestamp: data.timestamp }));
+                if (!isRosterPortalMode) initApp();
+                if (showOverlay) hideLoading();
+                return data;
+            })
+            .catch(err => {
+                console.error("Incremental Fetch Error:", err);
+                updateSyncStatus('offline');
+                if (showOverlay) {
+                    hideLoading();
+                    alert("การเชื่อมต่อล้มเหลว");
+                }
+            });
+        }
+
+        // มี cache ในเครื่องพร้อมเวอร์ชันแล้วหรือยัง (ถ้ามี ใช้ getUpdates แทน getAllData เต็ม)
+        function hasLocalDataCache() {
+            if (!(heroesDB && heroesDB.length > 0)) return false;
+            try {
+                const v = JSON.parse(localStorage.getItem('7k_data_versions_v1'));
+                return !!(v && Object.keys(v).length > 0);
+            } catch (e) { return false; }
+        }
+
+        // จุดตัดสินใจเดียว: มี cache แล้ว -> โหลดเฉพาะที่เปลี่ยน / ยังไม่มี -> โหลดทั้งหมด
+        async function loadAppData(showOverlay = true) {
+            if (hasLocalDataCache()) {
+                await fetchCloudDataIncremental(showOverlay);
+            } else {
+                await fetchCloudData('getAllData', showOverlay);
+            }
+        }
+
         // 🟢 Serialize การ Save: ทุกครั้งที่เรียก จะรอ save ที่กำลังรันให้จบก่อนแล้วค่อยรันของตัวเอง
         //    - ไม่มีการยิง POST ซ้อน (กัน "Server Busy")
         //    - ไม่มี save ไหนถูก "ทิ้ง" — caller ที่ await จะรอจนบันทึกจริงเสร็จ แล้วได้ผล true/false
@@ -14351,8 +14442,12 @@
 
         // =========================================================
         // 🟢 ระบบจัดการ Guilds & Alliances (สมาชิกแยกแถวใน GuildMembers sheet)
+        // ⚡ เรียกเฉพาะตอนที่ payload มีข้อมูล guilds/guildMembers จริง (กัน getUpdates
+        //    แบบ incremental ที่ guilds ไม่เปลี่ยน ทับ guildsDB กลับไปเป็นค่า default)
         // =========================================================
-        applyGuildsFromServer(data);
+        if (data.guilds !== undefined || data.guildMembers !== undefined) {
+            applyGuildsFromServer(data);
+        }
         // =========================================================
 
         // 🟢 เก็บข้อมูลดิบทั้งหมดไว้ในตัวแปร allTeams3v3DB (ไม่กรอง)
@@ -14411,6 +14506,10 @@
         if (currentView === 'team-builder-3v3') render3v3Editor();
         if (currentView === 'preparation') renderPreparation();
         if (currentView.includes('manager')) renderManagerUI();
+
+        // ⚡ เก็บ cache หมวดที่เพิ่งอัปเดต + เวอร์ชันล่าสุด ไว้ใช้ตอน login ครั้งถัดไป (getUpdates)
+        persistMainDataCache();
+        persistDataVersions(data.versions);
 
         // ⛔ ปิด background sync ไว้ก่อน — server timestamp เป็น "เวลาตอนขอข้อมูل" (now) ไม่ใช่ "เวลาแก้ล่าสุด"
         //    การเทียบ timestamp จึงเป็นจริงตลอด → banner เด้งไม่หยุด ต้องมี dataVersion จริงก่อนถึงเปิดได้
@@ -17494,6 +17593,27 @@
             }, 3000);
         }
 
+        // 🔔 ป๊อปอัพแจ้งเตือนโน้ตทีม (หน้าแชร์) — ใช้เมื่อทีมติ๊ก "แจ้งเตือนโน้ตนี้ในหน้าแชร์"
+        function showTeamNoteAlert(noteText, teamName) {
+            const existing = document.getElementById('team-note-alert-modal');
+            if (existing) existing.remove();
+            const modal = document.createElement('div');
+            modal.id = 'team-note-alert-modal';
+            modal.className = 'fixed inset-0 z-[600] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+            modal.innerHTML = `
+                <div class="bg-[#161b22] border border-yellow-600/50 rounded-2xl w-full max-w-md shadow-2xl flex flex-col">
+                    <div class="p-4 border-b border-gray-800 flex items-center gap-2">
+                        <span class="text-2xl">⚠️</span>
+                        <h3 class="text-yellow-300 font-bold">แจ้งเตือนทีม: ${teamName}</h3>
+                    </div>
+                    <div class="p-4 text-sm text-gray-200 whitespace-pre-line break-words max-h-[50vh] overflow-y-auto">${noteText}</div>
+                    <div class="p-4 border-t border-gray-800 flex justify-end">
+                        <button onclick="document.getElementById('team-note-alert-modal').remove()" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold px-4 py-2 rounded-lg text-sm">รับทราบ</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+
         function update3v3TeamName(val) {
             if (current3v3TeamIdx > -1) {
                 teams3v3DB[current3v3TeamIdx].name = val;
@@ -17887,6 +18007,7 @@
             if (!team.skillQueue) team.skillQueue = ['', '', ''];
             if (!Array.isArray(team.skillQueueAlts)) team.skillQueueAlts = [];
             if (team.isShared === undefined) team.isShared = false;
+            if (team.notifyEnabled === undefined) team.notifyEnabled = false;
             if (!team.enemyTeams) team.enemyTeams = [];
             if (team.note === undefined) team.note = '';
             if (!team.pets) team.pets = [null, null, null];
@@ -17971,6 +18092,11 @@
                         <div>
                             <label class="block text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">รายละเอียดทีม / โน้ต</label>
                             <textarea onchange="update3v3TeamNote(this.value)" placeholder="รายละเอียดแผนทีม, จุดเด่น, วิธีเล่น..." class="bg-[#0b0e14] border border-gray-600 text-gray-200 px-3 py-2 rounded-lg outline-none ${accentFocus} w-full text-sm shadow-inner transition min-h-[78px]">${team.note || ''}</textarea>
+                            <label title="ติ๊กเพื่อขึ้นป๊อปอัพแจ้งเตือนโน้ตนี้ทุกครั้งที่มีคนเปิดดูทีมนี้ในหน้าแชร์"
+                                   class="mt-2 flex items-center gap-2 cursor-pointer select-none w-fit px-3 py-2 rounded-xl border ${team.notifyEnabled ? 'bg-yellow-900/30 border-yellow-700/50' : 'bg-[#0b0e14] border-gray-600'}">
+                                <input type="checkbox" onchange="toggle3v3Notify(this.checked)" ${team.notifyEnabled ? 'checked' : ''} class="w-4 h-4 accent-yellow-500 cursor-pointer">
+                                <span class="text-xs font-bold ${team.notifyEnabled ? 'text-yellow-300' : 'text-gray-400'}">🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์</span>
+                            </label>
                         </div>
                         ${build3v3VideoSectionHTML(team)}
                     </div>
@@ -18411,7 +18537,15 @@
             if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
                 teams3v3DB[current3v3TeamIdx].isShared = val;
                 save3v3Teams();
-                render3v3Editor(); 
+                render3v3Editor();
+            }
+        }
+
+        function toggle3v3Notify(val) {
+            if (current3v3TeamIdx !== -1 && teams3v3DB[current3v3TeamIdx]) {
+                teams3v3DB[current3v3TeamIdx].notifyEnabled = val;
+                save3v3Teams();
+                render3v3Editor();
             }
         }
 
@@ -20453,6 +20587,11 @@
             const team = currentTeamData.data; // ข้อมูลทีมลึกข้างใน
             const teamName = currentTeamData.name;
             const teamOwner = currentTeamData.owner || 'Unknown'; // ชื่อคนจัดทีม (ถ้ามี)
+
+            // 🔔 แจ้งเตือนโน้ตทีม (ถ้าติ๊ก "แจ้งเตือนโน้ตนี้ในหน้าแชร์" ไว้)
+            if (team && team.notifyEnabled && team.note && String(team.note).trim()) {
+                setTimeout(() => showTeamNoteAlert(team.note, teamName), 0);
+            }
             const color = 'red'; // ทีมบุกสีแดงเสมอ
             const hideCounterSection = team && team.teamType === 'Defense';
             const targetPreview = (!hideCounterSection && team && Array.isArray(team.enemyTeams)) ? (function() {

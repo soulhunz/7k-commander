@@ -6,7 +6,7 @@ var VIDEO_FOLDER_ID = '1jTnrjTdNLtw9E58TB_sQ5ShELr-6uPrY'; // โฟลเดอ
 var SKILL_FOLDER_ID = '12S_ycyylGP6T3oQVLtwkoRJwUNVmM-33'; // โฟลเดอร์เก็บไอคอน/รูปสกิลของตัวละคร
 var EQUIP_FOLDER_ID = '14Ci7SczLyh1rg071_jMIP03j0DjSu5Ki'; // โฟลเดอร์เก็บรูปอุปกรณ์ (เซ็ตอุปกรณ์)
 var HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M'; // โฟลเดอร์เก็บรูปฮีโร่ (Normal/Awakening)
-var SERVER_VERSION = "6.0.4"; // Updated Version
+var SERVER_VERSION = "6.0.5"; // Updated Version
 
 // 1. ส่วนเปิดหน้าเว็บ
 function doGet(e) {
@@ -209,7 +209,8 @@ function doPost(e) {
                       slots: JSON.parse(data[i][8] || '[]'),  // 🟢 แก้ Index เป็น 8
                       note: data[i][9] || '',
                       video: JSON.parse(data[i][12] || 'null'),  // 🎬 Video_JSON
-                      skillQueueAlts: JSON.parse(data[i][13] || '[]')  // 🆕 ชุดจองสกิลเสริม B/C/D...
+                      skillQueueAlts: JSON.parse(data[i][13] || '[]'),  // 🆕 ชุดจองสกิลเสริม B/C/D...
+                      notifyEnabled: data[i][14] === true || data[i][14] === "true"  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
                   },
                   guild_name: teamGuild // 🟢 เพิ่ม guild_name
                 };
@@ -267,7 +268,8 @@ function doPost(e) {
                               slots: JSON.parse(data[i][8] || '[]'),
                               note: data[i][9] || '',
                               video: JSON.parse(data[i][12] || 'null'),  // 🎬 Video_JSON
-                              skillQueueAlts: JSON.parse(data[i][13] || '[]')  // 🆕 ชุดจองสกิลเสริม B/C/D...
+                              skillQueueAlts: JSON.parse(data[i][13] || '[]'),  // 🆕 ชุดจองสกิลเสริม B/C/D...
+                              notifyEnabled: data[i][14] === true || data[i][14] === "true"  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
                           },
                           guild_name: teamGuild,
                           date: new Date().toISOString()
@@ -1885,7 +1887,7 @@ function deleteManagerItem(ss, category, id) {
 // =========================================================
 // 🟢 3v3 Teams — upsert/delete ทีละแถว (ไม่ clear ทั้งชีต)
 // =========================================================
-var TEAMS3V3_HEADERS = ["Index", "TeamName", "TeamType", "Formation", "SkillQueue", "Share", "Enemy_Targets", "Pet_JSON", "Slots_JSON", "Note", "LastModified", "Guild_Name", "Video_JSON", "SkillQueueAlts_JSON"];
+var TEAMS3V3_HEADERS = ["Index", "TeamName", "TeamType", "Formation", "SkillQueue", "Share", "Enemy_Targets", "Pet_JSON", "Slots_JSON", "Note", "LastModified", "Guild_Name", "Video_JSON", "SkillQueueAlts_JSON", "NotifyEnabled"];
 
 function ensureTeams3v3Sheet(ss) {
   var sheet = ss.getSheetByName('Teams3v3');
@@ -1894,13 +1896,13 @@ function ensureTeams3v3Sheet(ss) {
     sheet.appendRow(TEAMS3V3_HEADERS);
     sheet.getRange(1, 1, 1, TEAMS3V3_HEADERS.length).setFontWeight("bold").setBackground("#cfe2f3");
     sheet.setFrozenRows(1);
-    sheet.getRange("A:N").setNumberFormat("@");
+    sheet.getRange("A:O").setNumberFormat("@");
   } else if (sheet.getLastColumn() < TEAMS3V3_HEADERS.length) {
-    // 🔁 migration: ชีตเก่ายังไม่มีคอลัมน์ SkillQueueAlts_JSON → เติมหัวคอลัมน์ที่ 14
+    // 🔁 migration: ชีตเก่ายังไม่มีคอลัมน์ที่เพิ่มล่าสุด → เติมหัวคอลัมน์ที่ขาด
     sheet.getRange(1, TEAMS3V3_HEADERS.length)
          .setValue(TEAMS3V3_HEADERS[TEAMS3V3_HEADERS.length - 1])
          .setFontWeight("bold").setBackground("#cfe2f3");
-    sheet.getRange("A:N").setNumberFormat("@");
+    sheet.getRange("A:O").setNumberFormat("@");
   }
   return sheet;
 }
@@ -1920,7 +1922,8 @@ function team3v3ToRow(team, now) {
     team.lastModified || now,
     team.guild_name || 'all',
     JSON.stringify(team.video || null),
-    JSON.stringify(team.skillQueueAlts || [])   // 🆕 ชุดจองสกิลเสริม B/C/D...
+    JSON.stringify(team.skillQueueAlts || []),  // 🆕 ชุดจองสกิลเสริม B/C/D...
+    team.notifyEnabled || false                 // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
   ];
 }
 
@@ -2361,9 +2364,9 @@ function loadFromSheet(ss, name, def) {
     var lastRow = s.getLastRow();
     if (lastRow <= 1) return [];
 
-    // 🟢 รองรับทั้งโครงสร้างเก่า (9-11 คอลัมน์) และใหม่ (12-13 คอลัมน์ พร้อม Guild_Name + Video_JSON)
+    // 🟢 รองรับทั้งโครงสร้างเก่า (9-11 คอลัมน์) และใหม่ (12-15 คอลัมน์ พร้อม Guild_Name + Video_JSON + NotifyEnabled)
     var sheetCols = s.getLastColumn();
-    var readCols = sheetCols >= 14 ? 14 : (sheetCols >= 13 ? 13 : (sheetCols >= 12 ? 12 : (sheetCols >= 11 ? 11 : (sheetCols >= 10 ? 10 : 9))));
+    var readCols = sheetCols >= 15 ? 15 : (sheetCols >= 14 ? 14 : (sheetCols >= 13 ? 13 : (sheetCols >= 12 ? 12 : (sheetCols >= 11 ? 11 : (sheetCols >= 10 ? 10 : 9)))));
     var data = s.getRange(2, 1, lastRow - 1, readCols).getValues();
     return data.map(function(r) {
       try {
@@ -2382,10 +2385,11 @@ function loadFromSheet(ss, name, def) {
             lastModified: r[10] || Date.now(),    // 🟢 Timestamp สำหรับ Queue System
             guild_name: r[11] || 'all',           // 🟢 Guild_Name (Index 11)
             video: JSON.parse(r[12] || 'null'),   // 🎬 Video_JSON (Index 12)
-            skillQueueAlts: JSON.parse(r[13] || '[]')   // 🆕 ชุดจองสกิลเสริม B/C/D... (Index 13)
+            skillQueueAlts: JSON.parse(r[13] || '[]'),  // 🆕 ชุดจองสกิลเสริม B/C/D... (Index 13)
+            notifyEnabled: r[14] === true || r[14] === "true"  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์ (Index 14)
           };
       } catch(e) {
-          return { id: r[0], name: r[1], slots: [], enemyTeams: [], pet: null, pets: [null,null,null], isShared: false, note: '', lastModified: Date.now(), guild_name: 'all' };
+          return { id: r[0], name: r[1], slots: [], enemyTeams: [], pet: null, pets: [null,null,null], isShared: false, note: '', lastModified: Date.now(), guild_name: 'all', notifyEnabled: false };
       }
     });
   }
