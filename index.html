@@ -19574,6 +19574,21 @@
         // 📚 SHARED GALLERY & PUBLIC VIEW SYSTEM
         // =========================================================================
 
+        // ⚡ Static-category cache (heroes/pets/rings/equip_sets/accessories/skillLib) —
+        //    persisted so repeat visitors don't force the backend to re-read sheets that haven't changed
+        const GALLERY_CACHE_KEY = '7k_gallery_static_cache_v1';
+        const GALLERY_CACHE_CATS = ['heroes', 'pets', 'rings', 'equip_sets', 'accessories', 'skillLib'];
+        function loadGalleryStaticCache() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(GALLERY_CACHE_KEY));
+                if (raw && raw.data && raw.versions) return raw;
+            } catch (e) {}
+            return { versions: {}, data: {} };
+        }
+        function saveGalleryStaticCache(cache) {
+            try { localStorage.setItem(GALLERY_CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+        }
+
         // 1. โหลดหน้ารายการทีม + Master Data (All in One)
         async function loadSharedGallery(forceRefresh = false) {
             console.log("🚀 Starting loadSharedGallery...");
@@ -19620,13 +19635,15 @@
                 // 🟢 ดึง guild_name และ role ของ User (หรือใช้จาก URL ถ้าเป็น Public)
                 const userGuild = urlGuild || CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
                 const isAdmin = CURRENT_USER?.role === 'admin';
+                const galleryCache = loadGalleryStaticCache();
 
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'getAllSharedTeams',
                         userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
-                        isAdmin: isAdmin      // 🟢 ส่งสถานะ admin
+                        isAdmin: isAdmin,     // 🟢 ส่งสถานะ admin
+                        versions: galleryCache.versions // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
                     })
                 });
                 const res = await response.json();
@@ -19636,19 +19653,25 @@
                 console.log('🔍 First team from server:', res.teams?.[0]);
 
                 if (res.status === 'success') {
-                    // อัปเดต Master Data (ถ้ามี)
-                    if (res.masterData) {
-                        const m = res.masterData;
-                        if(m.heroes) heroesDB = m.heroes;
-                        if(m.pets) petsDB = m.pets;
-                        if(m.rings) ringsDB = m.rings;
-                        if(m.equip_sets) equipSetsDB = m.equip_sets;
-                        if(m.accessories) accessoriesDB = m.accessories;
-                        if(Array.isArray(m.skillLib)) skillLibDB = m.skillLib;
-                    }
+                    // ⚡ อัปเดต cache เฉพาะ category ที่ server ส่งมา (เปลี่ยนแล้ว) แล้ว hydrate DB จาก cache เสมอ
+                    // (กัน tab/session ใหม่ที่ DB ในหน่วยความจำว่าง แต่ category นั้นไม่เปลี่ยนเลยไม่ถูกส่งมาซ้ำ)
+                    const m = res.masterData || {};
+                    GALLERY_CACHE_CATS.forEach(cat => {
+                        if (m[cat] !== undefined) {
+                            galleryCache.data[cat] = m[cat];
+                            if (res.versions && res.versions[cat] !== undefined) galleryCache.versions[cat] = res.versions[cat];
+                        }
+                    });
+                    heroesDB = galleryCache.data.heroes || [];
+                    petsDB = galleryCache.data.pets || [];
+                    ringsDB = galleryCache.data.rings || [];
+                    equipSetsDB = galleryCache.data.equip_sets || [];
+                    accessoriesDB = galleryCache.data.accessories || [];
+                    skillLibDB = galleryCache.data.skillLib || [];
+                    saveGalleryStaticCache(galleryCache);
 
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
-                    galleryCacheDB = res.teams; 
+                    galleryCacheDB = res.teams;
                     
                     renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 } else {
