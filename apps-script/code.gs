@@ -6,7 +6,7 @@ var VIDEO_FOLDER_ID = '1jTnrjTdNLtw9E58TB_sQ5ShELr-6uPrY'; // โฟลเดอ
 var SKILL_FOLDER_ID = '12S_ycyylGP6T3oQVLtwkoRJwUNVmM-33'; // โฟลเดอร์เก็บไอคอน/รูปสกิลของตัวละคร
 var EQUIP_FOLDER_ID = '14Ci7SczLyh1rg071_jMIP03j0DjSu5Ki'; // โฟลเดอร์เก็บรูปอุปกรณ์ (เซ็ตอุปกรณ์)
 var HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M'; // โฟลเดอร์เก็บรูปฮีโร่ (Normal/Awakening)
-var SERVER_VERSION = "6.0.5"; // Updated Version
+var SERVER_VERSION = "6.0.6"; // Updated Version
 
 // 1. ส่วนเปิดหน้าเว็บ
 function doGet(e) {
