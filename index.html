@@ -2062,6 +2062,13 @@
         .gallery-star-row .star-icon { font-size: 20px; line-height: 1; margin: 0 -1.5px -0.5px; filter: drop-shadow(0 0 5px rgba(0,0,0,1)); }
         .gallery-star-row .star-aw { color: #c084fc; text-shadow: 0 0 4px #a855f7; }
 
+        /* 🟢 Grid การ์ด Targets/Defense ในหน้า Share Gallery — Mobile 1 แถว / Desktop 4 แถว */
+        /* ตัวละคร/สัตว์เลี้ยงในการ์ดคงขนาดเดิมเสมอ (ไม่หด) ถ้าจอแคบกว่าที่การ์ดต้องการ ให้เลื่อนแนวนอนแทน */
+        .gallery-card-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 1024px) {
+            .gallery-card-grid { grid-template-columns: repeat(4, minmax(340px, 1fr)); }
+        }
+
         /* ปรับแต่ง Container ในหน้าข้อมูลตัวละคร */
         .star-row-detail {
             display: flex;
@@ -20114,7 +20121,8 @@
                     const info = getSlotImg(s);
                     if (!info) return '';
                     const border = info.awk ? 'border-purple-500' : (isEnemy ? 'border-red-500' : 'border-blue-500');
-                    return `<div class="relative inline-block"><img src="${info.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-xl border-2 ${border} bg-black object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
+                    // 🟢 Target/Enemy Pattern ไม่มีข้อมูลดาวจริง (ไม่มี UI ตั้งค่าดาวศัตรู) เลยไม่แสดงแถวดาวเพื่อไม่ให้เข้าใจผิด
+                    return `<div class="relative inline-block"><img src="${info.img}" class="w-20 h-20 rounded-xl border-2 ${border} bg-black object-cover shadow-md"></div>`;
                 }).join('');
 
                 // 2. ดึงสัตว์เลี้ยงแค่ 1 ตัว (รองรับทั้ง pets array และ pet เดี่ยว)
@@ -20135,7 +20143,7 @@
                         const petBg = isEnemy ? 'bg-red-900/20' : 'bg-purple-900/20';
                         petsHTML = `
                             <div class="flex flex-col items-center ml-2 border-l-2 ${isEnemy ? 'border-red-500/30' : 'border-purple-500/30'} pl-3 gap-1">
-                                <img src="${pet.img}" class="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 ${petBorder} ${petBg} object-cover shadow-lg" title="${pet.name}">
+                                <img src="${pet.img}" class="w-20 h-20 rounded-full border-2 ${petBorder} ${petBg} object-cover shadow-lg" title="${pet.name}">
                             </div>`;
                     }
                 }
@@ -20179,7 +20187,7 @@
                     const defenseHeroesHTML = top3.map(s => {
                         const info = getSlotImg(s);
                         if (!info) return '';
-                        return `<div class="relative inline-block"><img src="${info.img}" class="w-20 h-20 md:w-15 md:h-15 ${info.awk ? 'border-purple-500' : 'border-blue-500'} object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
+                        return `<div class="relative inline-block"><img src="${info.img}" class="w-20 h-20 rounded-xl border-2 ${info.awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md">${getGallerySlotStarsHTML(s)}</div>`;
                     }).join('');
 
                     cardContent = `
@@ -20245,8 +20253,10 @@
                                 <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${items.length} teams</span>
                                 <div class="flex-1 h-px bg-gradient-to-r from-${guildColor}-500/30 to-transparent"></div>
                             </div>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fill,340px);gap:1rem;justify-content:center;">
-                                ${items.map(item => renderCard(item)).join('')}
+                            <div class="w-full overflow-x-auto">
+                                <div class="gallery-card-grid">
+                                    ${items.map(item => renderCard(item)).join('')}
+                                </div>
                             </div>
                         </div>`;
                 });
@@ -20254,8 +20264,10 @@
                 contentHTML = sectionsHTML || '<div class="text-gray-500 text-center py-20">ไม่มีข้อมูล</div>';
             } else {
                 // 🟢 Normal Mode: แสดงทั้งหมดแบบ grid ธรรมดา
-                contentHTML = `<div class="pb-20 w-full" style="display:grid;grid-template-columns:repeat(auto-fill,340px);gap:1rem;justify-content:center;">
-                    ${displayItems.map(item => renderCard(item)).join('')}
+                contentHTML = `<div class="pb-20 w-full overflow-x-auto">
+                    <div class="gallery-card-grid">
+                        ${displayItems.map(item => renderCard(item)).join('')}
+                    </div>
                 </div>`;
             }
 
