@@ -3497,6 +3497,7 @@
                                     <button type="button" data-browse-tab="heroes" onclick="setMemberRosterBrowseTab('heroes')" class="member-roster-tab-btn flex-1 min-w-[100px] py-2.5 rounded-lg text-xs font-bold transition">⚔️ ตัวละคร</button>
                                     <button type="button" data-browse-tab="rings" onclick="setMemberRosterBrowseTab('rings')" class="member-roster-tab-btn flex-1 min-w-[100px] py-2.5 rounded-lg text-xs font-bold transition">💍 แหวน</button>
                                     <button type="button" data-browse-tab="pets" onclick="setMemberRosterBrowseTab('pets')" class="member-roster-tab-btn flex-1 min-w-[100px] py-2.5 rounded-lg text-xs font-bold transition">🐾 สัตว์เลี้ยง</button>
+                                    <button type="button" data-browse-tab="teams" onclick="setMemberRosterBrowseTab('teams')" class="member-roster-tab-btn flex-1 min-w-[100px] py-2.5 rounded-lg text-xs font-bold transition">🎖️ ทีม</button>
                                 </div>
                                 <div id="browse-panel-heroes" class="browse-roster-panel bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl">
                                     <h4 class="text-lg font-bold text-yellow-500 mb-4 flex items-center gap-2"><span>⭐</span> ตัวละคร</h4>
@@ -3509,6 +3510,20 @@
                                 <div id="browse-panel-pets" class="browse-roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl">
                                     <h4 class="text-lg font-bold text-green-400 mb-4 flex items-center gap-2"><span>🐾</span> สัตว์เลี้ยง</h4>
                                     <div id="browse-roster-pets-grid" class="flex flex-wrap gap-4 content-start min-h-[120px]"></div>
+                                </div>
+                                <!-- 🎖️ จัดทีมให้ลูกกิล (แอดมินจัดให้ · สูงสุด 5 ทีม · ทีมละ 3 ตัวละคร + สแตทแบบ 3v3) -->
+                                <div id="browse-panel-teams" class="browse-roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl">
+                                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                        <div>
+                                            <h4 class="text-lg font-bold text-blue-400 flex items-center gap-2"><span>🎖️</span> ทีมที่จัดให้</h4>
+                                            <p id="member-teams-sub" class="text-[11px] text-gray-500 mt-0.5">—</p>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <div id="member-teams-warning" class="hidden text-[11px] font-bold text-red-300 bg-red-900/20 border border-red-800/60 px-3 py-1.5 rounded-lg"></div>
+                                            <button data-3v3-save-all onclick="saveAll3v3Teams()" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-green-900/30 transition flex items-center gap-1.5"><span>💾</span> Save All</button>
+                                        </div>
+                                    </div>
+                                    <div id="member-teams-slots" class="space-y-4 min-h-[120px]"></div>
                                 </div>
                             </div>
                         </div>
@@ -7920,6 +7935,10 @@
                     } else {
                         const isDup = team.slots.some((s, idx) => s && s.id === String(id) && idx !== slotIdx);
                         if (isDup) return alert("❌ ตัวละครนี้อยู่ในทีมแล้ว");
+
+                        // 🎖️ ทีมของลูกกิล: ห้ามใช้ตัวละครซ้ำข้ามทีมของสมาชิกคนเดียวกัน
+                        const clash = findMemberTeamHeroClash(team, String(id));
+                        if (clash) return alert(`❌ ตัวละครนี้ถูกใช้ใน "${clash.name || 'อีกทีมหนึ่ง'}" ของสมาชิกคนนี้แล้ว\n\nลูกกิล 1 คน ใช้ตัวละครซ้ำข้ามทีมไม่ได้`);
 
                         // รักษาค่าเก่าไว้ถ้ามีการเปลี่ยนตัว (เช่น ดาว, แหวน, เซต)
                         const old = normalize3v3Slot(team.slots[slotIdx] || {});
@@ -17723,6 +17742,8 @@
         function closeTeam3v3Editor() {
             const modal = document.getElementById('team3v3Modal');
             if (modal) modal.style.display = 'none';
+            // 🎖️ ถ้าเปิด editor มาจากหน้า "จัดทีมลูกกิล" ให้กลับไปวาดหน้านั้นแทน
+            if (currentView === 'member-roster') { renderMemberTeamsSlots(); renderMemberRosterMemberList(); return; }
             render3v3TeamsList(); // อัปเดตการ์ดให้ตรงกับที่แก้ไข
         }
 
@@ -17830,8 +17851,8 @@
                 </div>
             ` : '';
 
-            // 🟢 กรองข้อมูลตาม Guild ก่อนแสดง
-            const filteredTeams = filterByUserGuild(teams3v3DB);
+            // 🟢 กรองข้อมูลตาม Guild ก่อนแสดง (🎖️ ทีมที่แอดมินจัดให้ลูกกิลมีหน้าแยก — ไม่แสดงปนที่นี่)
+            const filteredTeams = filterByUserGuild(teams3v3DB).filter(t => !t || !t.owner);
 
             // --- นับจำนวนแต่ละโหมด ---
             const cntAll = filteredTeams.length;
@@ -20003,6 +20024,52 @@
             return html;
         }
 
+        // =========================================================
+        // 🎖️ ทีมที่แอดมินจัดให้ลูกกิล — เมนูในแท็บ Defense ของหน้าแชร์
+        // =========================================================
+        let galleryMemberFilter = '';
+        let gallerySelectedMemberKey = null;
+
+        /** คืน owner ของทีม (รองรับทั้งระดับบนสุดและใน data) */
+        function galleryTeamOwner(t) {
+            const o = (t && t.owner) || (t && t.data && t.data.owner) || null;
+            return (o && o.memberId) ? o : null;
+        }
+
+        /** จัดกลุ่มทีมตามลูกกิล → [{key, name, guildName, teams:[]}] เรียงตามชื่อ */
+        function buildGalleryMemberTeamGroups(teams) {
+            const map = new Map();
+            (teams || []).forEach(t => {
+                const o = galleryTeamOwner(t);
+                if (!o) return;
+                const key = String(o.guildId || '') + '::' + String(o.memberId || '');
+                if (!map.has(key)) map.set(key, { key: key, name: o.memberName || 'ไม่ระบุชื่อ', guildName: o.guildName || '', teams: [] });
+                map.get(key).teams.push(t);
+            });
+            const out = Array.from(map.values());
+            out.forEach(g => g.teams.sort((a, b) => {
+                const sa = parseInt(galleryTeamOwner(a)?.slot, 10) || 0;
+                const sb = parseInt(galleryTeamOwner(b)?.slot, 10) || 0;
+                return sa - sb;
+            }));
+            return out.sort((a, b) => String(a.name).localeCompare(String(b.name), 'th'));
+        }
+
+        /** ค้นหาชื่อลูกกิลแบบไม่ re-render (ไม่ให้ช่องค้นหาเสียโฟกัส) */
+        function galleryFilterMemberList(text) {
+            galleryMemberFilter = String(text || '').trim().toLowerCase();
+            document.querySelectorAll('[data-gallery-member-key]').forEach(el => {
+                const n = String(el.getAttribute('data-gallery-member-name') || '').toLowerCase();
+                el.classList.toggle('hidden', !!galleryMemberFilter && !n.includes(galleryMemberFilter));
+            });
+        }
+
+        /** กดชื่อลูกกิล → เปิด/ปิดรายการทีมของคนนั้น */
+        function galleryShowMemberTeams(key) {
+            gallerySelectedMemberKey = (gallerySelectedMemberKey === key) ? null : key;
+            switchGalleryTab(currentGalleryTab);
+        }
+
         function renderGalleryUI(teams, urlGuild = null) {
             restoreMemberSession(); // 🔁 login ค้าง: กู้ session ลูกกิลก่อน render (โชว์ปุ่ม/ป้ายตามสถานะ)
             const container = document.getElementById('main-content');
@@ -20040,6 +20107,10 @@
                 }
             }
             // 🟢 Admin Mode (ไม่มี urlGuild): เห็นทั้งหมด ไม่ต้องกรอง
+
+            // 🎖️ แยกทีมที่แอดมินจัดให้ลูกกิลออกมา — แสดงในเมนู "ทีมลูกกิล" ของแท็บ Defense เท่านั้น
+            const memberOwnedTeams = teams.filter(t => !!galleryTeamOwner(t));
+            teams = teams.filter(t => !galleryTeamOwner(t));
 
             galleryVisibleTeams = teams; // 🗡️ เก็บไว้ให้เมนูวนไม้ใช้ (guild เดียวกับที่แสดงอยู่)
 
@@ -20271,6 +20342,48 @@
                 </div>`;
             }
 
+            // 🎖️ เมนู "ทีมลูกกิล" (เฉพาะแท็บ Defense) — ลิสต์/ค้นหารายชื่อ → กดดูทีมที่แอดมินจัดให้
+            let memberTeamsPanelHTML = '';
+            if (currentGalleryTab === 'Defense') {
+                const groups = buildGalleryMemberTeamGroups(memberOwnedTeams);
+                if (groups.length) {
+                    const selected = groups.find(g => g.key === gallerySelectedMemberKey) || null;
+                    const nameBtns = groups.map(g => `
+                        <button type="button" data-gallery-member-key="${mlEsc(g.key)}" data-gallery-member-name="${mlEsc(g.name)}"
+                            onclick="galleryShowMemberTeams('${mlEsc(g.key).replace(/'/g, "\\'")}')"
+                            class="px-3 py-2 rounded-xl text-xs font-bold border transition ${g.key === gallerySelectedMemberKey ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-900/40' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-blue-500 hover:text-white'}">
+                            ${mlEsc(g.name)} <span class="opacity-60">(${g.teams.length})</span>
+                        </button>`).join('');
+                    const selectedHTML = selected ? `
+                        <div class="mt-4 pt-4 border-t border-gray-800">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-sm font-black text-white">🎖️ ทีมของ ${mlEsc(selected.name)}</span>
+                                <span class="text-[11px] text-gray-500">${selected.teams.length} ทีม · กดที่การ์ดเพื่อดูรายละเอียด</span>
+                                <button onclick="galleryShowMemberTeams('${mlEsc(selected.key).replace(/'/g, "\\'")}')" class="ml-auto text-xs text-gray-500 hover:text-white underline">ปิด</button>
+                            </div>
+                            <div class="w-full overflow-x-auto"><div class="gallery-card-grid">
+                                ${selected.teams.map(t => renderCard({
+                                    type: 'Defense',
+                                    sourceId: t.id,
+                                    data: t,
+                                    guildName: t.guild_name || 'all'
+                                })).join('')}
+                            </div></div>
+                        </div>` : `<div class="mt-3 text-[11px] text-gray-500">เลือกชื่อลูกกิลเพื่อดูทีมที่จัดให้</div>`;
+                    memberTeamsPanelHTML = `
+                        <div class="w-full mb-6 bg-[#111827] border border-gray-700 rounded-2xl p-4 shadow-xl">
+                            <div class="flex flex-wrap items-center gap-3 mb-3">
+                                <span class="text-sm font-black text-white">👥 ทีมลูกกิล</span>
+                                <span class="text-[11px] text-gray-500">${groups.length} คน</span>
+                                <input type="text" value="${mlEsc(galleryMemberFilter)}" oninput="galleryFilterMemberList(this.value)" placeholder="🔍 ค้นหาชื่อลูกกิล..."
+                                    class="ml-auto w-full sm:w-64 bg-[#0d1117] border border-gray-600 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
+                            </div>
+                            <div class="flex flex-wrap gap-2">${nameBtns}</div>
+                            ${selectedHTML}
+                        </div>`;
+                }
+            }
+
             container.innerHTML = `
                 <div class="w-full h-full flex flex-col overflow-hidden bg-[#0b0e14]">
                     <div class="w-full h-full flex flex-col overflow-y-auto custom-scroll p-4 md:p-6">
@@ -20292,6 +20405,7 @@
                                 ${memberSession ? `<button onclick="switchGalleryTab('MyHeroes')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'MyHeroes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">🦸 ฮีโร่ของฉัน</button>` : ''}
                             </div>
                         </div>
+                        ${memberTeamsPanelHTML}
                         ${(currentGalleryTab !== 'MyHeroes' && currentGalleryTab !== 'Rotation') ? galleryHeroFilterBarHTML(displayItems.length) : ''}
                         ${contentHTML}
                     </div>
@@ -26242,6 +26356,7 @@
 
         listEl.innerHTML = filtered.map(({ mem, idx }) => {
             const counts = getMemberRosterCounts(mem);
+            const teamCount = typeof countMemberTeams === 'function' ? countMemberTeams(mem) : 0;
             const active = idx === memberRosterBrowseIdx ? ' active' : '';
             const name = (mem.name || 'ไม่ระบุชื่อ').replace(/"/g, '&quot;');
             const codeHtml = mem.accessCode
@@ -26255,6 +26370,7 @@
                     <div style="margin:0px 5px;">⚔️ <b>${counts.heroes}</b></div>
                     <div style="margin:0px 5px;">💍 <b>${counts.rings}</b></div>
                     <div style="margin:0px 5px;">🐾 <b>${counts.pets}</b></div>
+                    <div style="margin:0px 5px;" class="${teamCount === 0 ? 'text-gray-600' : (teamCount >= MEMBER_TEAM_MAX ? 'text-emerald-400' : 'text-blue-400')}">🎖️ <b>${teamCount}</b></div>
                 </div>
             </button>`;
         }).join('');
@@ -26294,13 +26410,14 @@
             btn.classList.toggle('active', active);
             btn.classList.toggle('text-gray-500', !active);
         });
-        ['heroes', 'rings', 'pets'].forEach(key => {
+        ['heroes', 'rings', 'pets', 'teams'].forEach(key => {
             const panel = document.getElementById('browse-panel-' + key);
             if (panel) panel.classList.toggle('hidden', memberRosterBrowseTab !== key);
         });
         if (memberRosterBrowseTab === 'heroes') renderBrowseMemberHeroes();
         else if (memberRosterBrowseTab === 'rings') renderBrowseMemberRings();
         else if (memberRosterBrowseTab === 'pets') renderBrowseMemberPets();
+        else if (memberRosterBrowseTab === 'teams') renderMemberTeamsSlots();
     }
 
     function renderMemberRosterView() {
@@ -26313,6 +26430,235 @@
             document.getElementById('member-roster-empty')?.classList.remove('hidden');
             document.getElementById('member-roster-detail')?.classList.add('hidden');
         }
+    }
+
+    // =========================================================
+    // 🎖️ จัดทีมลูกกิล (แอดมินจัดให้) — เก็บเป็นทีม 3v3 ปกติ แต่ผูก owner = สมาชิกกิลด์
+    //    → ใช้ editor/สแตท/การแชร์ ของระบบ 3v3 ได้ทั้งหมด
+    // =========================================================
+    const MEMBER_TEAM_MAX = 5;
+    /** สมาชิกที่กำลังเปิดอยู่ = คนที่เลือกในหน้า "ข้อมูลลูกกิล" (แท็บ 🎖️ ทีม) */
+    function currentMemberTeamsMember() {
+        return (guildMembersDB || [])[memberRosterBrowseIdx] || null;
+    }
+    const mtEsc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    function memberTeamOwnerOf(mem, gIdx) {
+        const g = guildsDB[(gIdx === undefined || gIdx === null) ? activeGuildIndex : gIdx] || guildsDB[0] || {};
+        return {
+            guildId: String(g.id || 'G_MAIN'),
+            guildName: g.name || '',
+            memberId: String(mem && mem.id != null ? mem.id : ''),
+            memberName: (mem && mem.name) || '',
+            slot: 0
+        };
+    }
+
+    function isSameMemberOwner(a, b) {
+        if (!a || !b) return false;
+        if (String(a.guildId || '') !== String(b.guildId || '')) return false;
+        return String(a.memberId || '') === String(b.memberId || '');
+    }
+
+    /** ทีมของสมาชิกคนหนึ่ง เรียงลง 5 ช่องตาม owner.slot (ช่องว่าง = null) */
+    function getMemberTeamSlots(mem, gIdx) {
+        const owner = memberTeamOwnerOf(mem, gIdx);
+        const slots = new Array(MEMBER_TEAM_MAX).fill(null);
+        (teams3v3DB || []).forEach(t => {
+            if (!t || t.deleted || !isSameMemberOwner(t.owner, owner)) return;
+            let s = parseInt(t.owner.slot, 10);
+            if (!(s >= 0 && s < MEMBER_TEAM_MAX)) s = 0;
+            if (slots[s]) {
+                s = slots.findIndex(x => !x);
+                if (s === -1) return; // เกิน 5 ทีม — ข้าม
+            }
+            slots[s] = t;
+        });
+        return slots;
+    }
+
+    function countMemberTeams(mem, gIdx) {
+        return getMemberTeamSlots(mem, gIdx).filter(Boolean).length;
+    }
+
+    /** ตัวละคร heroId ถูกใช้ในทีมอื่นของเจ้าของเดียวกันแล้วหรือยัง → คืนทีมที่ชน */
+    function findMemberTeamHeroClash(team, heroId) {
+        if (!team || !team.owner || !heroId) return null;
+        return (teams3v3DB || []).find(t =>
+            t && !t.deleted && String(t.id) !== String(team.id) &&
+            isSameMemberOwner(t.owner, team.owner) &&
+            (t.slots || []).some(s => s && String(s.id) === String(heroId))
+        ) || null;
+    }
+
+    /** id ตัวละครที่ซ้ำข้ามทีมของสมาชิกคนนี้ (เผื่อข้อมูลเก่า/นำเข้า) */
+    function getMemberTeamDuplicateHeroes(mem, gIdx) {
+        const seen = new Set();
+        const dup = new Set();
+        getMemberTeamSlots(mem, gIdx).forEach(t => {
+            if (!t) return;
+            const ids = new Set((t.slots || []).filter(s => s && s.id).map(s => String(s.id)));
+            ids.forEach(id => { if (seen.has(id)) dup.add(id); else seen.add(id); });
+        });
+        return Array.from(dup);
+    }
+
+    /** รูปตัวละคร 1 ช่องในการ์ดพรีวิว */
+    function memberTeamHeroThumb(slot, isDup) {
+        if (!slot || !slot.id) {
+            return `<div class="w-16 h-16 md:w-20 md:h-20 rounded-xl border-2 border-dashed border-gray-700 bg-[#0d1117] flex items-center justify-center text-gray-700 text-xl">+</div>`;
+        }
+        const h = (heroesDB || []).find(x => String(x.id) === String(slot.id));
+        if (!h) return `<div class="w-16 h-16 md:w-20 md:h-20 rounded-xl border-2 border-red-800 bg-[#0d1117] flex items-center justify-center text-red-500 text-[9px] text-center px-1">ไม่พบฮีโร่</div>`;
+        const awk = !!(slot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+        const img = awk ? h.img2 : h.img;
+        const stars = typeof getStarsHTML === 'function' ? getStarsHTML(parseInt(slot.star, 10) || 0, false) : '';
+        const statCount = Object.keys(slot.stats || {}).filter(k => {
+            const v = slot.stats[k];
+            return v !== '' && v !== null && v !== undefined && String(v) !== '0';
+        }).length;
+        return `<div class="relative w-16 h-16 md:w-20 md:h-20 rounded-xl border-2 ${isDup ? 'border-red-500' : 'border-gray-600'} bg-black overflow-hidden shrink-0" title="${mtEsc(h.name)}${isDup ? ' — ⚠️ ซ้ำกับทีมอื่น' : ''}">
+            <img src="${img}" class="w-full h-full object-cover" draggable="false" alt="">
+            <div class="absolute bottom-0 left-0 right-0 flex justify-center scale-[0.7] origin-bottom">${stars}</div>
+            ${statCount ? `<div class="absolute top-0.5 right-0.5 bg-black/75 text-[9px] text-amber-300 font-bold px-1 rounded">${statCount}</div>` : ''}
+            ${isDup ? '<div class="absolute top-0.5 left-0.5 text-[10px]">⚠️</div>' : ''}
+        </div>`;
+    }
+
+    function renderMemberTeamsSlots() {
+        const wrap = document.getElementById('member-teams-slots');
+        if (!wrap) return;
+        const mem = currentMemberTeamsMember();
+        if (!mem) { wrap.innerHTML = ''; return; }
+        const slots = getMemberTeamSlots(mem);
+        const dupIds = getMemberTeamDuplicateHeroes(mem);
+        const used = slots.filter(Boolean).length;
+
+        const subEl = document.getElementById('member-teams-sub');
+        if (subEl) subEl.textContent = `${mem.name || 'สมาชิก'} · จัดแล้ว ${used}/${MEMBER_TEAM_MAX} ทีม · ทีมละ 3 ตัวละคร (ห้ามซ้ำข้ามทีม)`;
+
+        const warnEl = document.getElementById('member-teams-warning');
+        if (warnEl) {
+            if (dupIds.length) {
+                const names = dupIds.map(id => (heroesDB || []).find(h => String(h.id) === String(id))?.name || id).join(', ');
+                warnEl.textContent = `⚠️ ตัวละครซ้ำข้ามทีม: ${names}`;
+                warnEl.classList.remove('hidden');
+            } else {
+                warnEl.classList.add('hidden');
+            }
+        }
+
+        wrap.innerHTML = slots.map((team, i) => {
+            if (!team) {
+                return `<button type="button" onclick="createMemberTeam(${i})" class="w-full border-2 border-dashed border-gray-700 hover:border-blue-500 hover:bg-blue-900/10 rounded-2xl p-5 text-gray-500 hover:text-blue-300 transition text-left flex items-center gap-3">
+                    <span class="text-2xl">＋</span>
+                    <span class="text-sm font-bold">สร้างทีม ${i + 1}</span>
+                    <span class="text-[11px] opacity-70 ml-auto">3 ตัวละคร + สแตท</span>
+                </button>`;
+            }
+            const heroCells = [0, 1, 2].map(k => {
+                const s = team.slots && team.slots[k];
+                const isDup = !!(s && s.id && dupIds.includes(String(s.id)));
+                return memberTeamHeroThumb(s, isDup);
+            }).join('');
+            const filled = (team.slots || []).filter(s => s && s.id).length;
+            return `<div class="bg-[#161b22] border ${team.isShared ? 'border-emerald-700/60' : 'border-gray-700'} rounded-2xl p-4 md:p-5 shadow-lg">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="bg-blue-900/40 text-blue-300 border border-blue-700/50 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">ทีม ${i + 1}</span>
+                        <span class="text-white font-bold truncate">${mtEsc(team.name || 'ทีม')}</span>
+                        <span class="text-[10px] text-gray-500">${filled}/3 ตัว</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="toggleMemberTeamShare('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold border transition ${team.isShared ? 'bg-emerald-700/40 text-emerald-200 border-emerald-600/60' : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white'}">${team.isShared ? '🌎 แชร์อยู่' : '🔒 ไม่แชร์'}</button>
+                        <button onclick="renameMemberTeam('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#0d1117] text-gray-400 border border-gray-700 hover:text-white transition">✎ ชื่อ</button>
+                        <button onclick="openMemberTeamEditor('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white transition">⚙️ แก้ไข/สแตท</button>
+                        <button onclick="deleteMemberTeam('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#0d1117] text-red-400 border border-red-900/60 hover:bg-red-900/40 transition">🗑️</button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-start gap-3">${heroCells}</div>
+                ${team.note ? `<p class="text-[11px] text-gray-400 mt-3 italic border-t border-gray-800 pt-2">📝 ${mtEsc(team.note)}</p>` : ''}
+            </div>`;
+        }).join('');
+    }
+
+    function createMemberTeam(slotIdx) {
+        const mem = currentMemberTeamsMember();
+        if (!mem) return;
+        if (mem.id == null || String(mem.id) === '') return alert('สมาชิกคนนี้ยังไม่มี ID — กรุณาบันทึกสมาชิกในหน้า 🏰 กิลด์ ก่อน');
+        const slots = getMemberTeamSlots(mem);
+        if (slots.filter(Boolean).length >= MEMBER_TEAM_MAX) return alert(`⛔ สมาชิกคนนี้มีครบ ${MEMBER_TEAM_MAX} ทีมแล้ว`);
+        if (slots[slotIdx]) return;
+
+        const now = Date.now();
+        const owner = memberTeamOwnerOf(mem);
+        owner.slot = slotIdx;
+        const newTeam = {
+            id: '3V3_M' + now,
+            name: `${mem.name || 'สมาชิก'} · ทีม ${slotIdx + 1}`,
+            note: '',
+            formation: 'basic',
+            slots: [{}, {}, {}],
+            pet: null,
+            pets: [null, null, null],
+            teamType: 'Defense',
+            isShared: true,           // ตั้งใจให้ลูกกิลเปิดดูในหน้าแชร์ได้เลย
+            notifyEnabled: false,
+            enemyTeams: [],
+            skillQueue: [],
+            skillQueueAlts: [],
+            createdAt: now,
+            lastModified: now,
+            guild_name: CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all',
+            owner: owner
+        };
+        teams3v3DB.unshift(newTeam);
+        if (!allTeams3v3DB) allTeams3v3DB = [];
+        allTeams3v3DB.unshift(newTeam);
+        mark3v3Dirty();
+        renderMemberRosterMemberList();
+        renderMemberTeamsSlots();
+        openTeam3v3Editor(0);
+    }
+
+    function findMemberTeamIdx(teamId) {
+        return (teams3v3DB || []).findIndex(t => t && String(t.id) === String(teamId));
+    }
+
+    function openMemberTeamEditor(teamId) {
+        const idx = findMemberTeamIdx(teamId);
+        if (idx === -1) return alert('ไม่พบทีมนี้');
+        openTeam3v3Editor(idx);
+    }
+
+    function renameMemberTeam(teamId) {
+        const idx = findMemberTeamIdx(teamId);
+        if (idx === -1) return;
+        const cur = teams3v3DB[idx].name || '';
+        const next = prompt('ชื่อทีม:', cur);
+        if (next === null) return;
+        teams3v3DB[idx].name = String(next).trim() || cur;
+        mark3v3Dirty();
+        renderMemberTeamsSlots();
+    }
+
+    function toggleMemberTeamShare(teamId) {
+        const idx = findMemberTeamIdx(teamId);
+        if (idx === -1) return;
+        teams3v3DB[idx].isShared = !teams3v3DB[idx].isShared;
+        mark3v3Dirty();
+        renderMemberTeamsSlots();
+    }
+
+    function deleteMemberTeam(teamId) {
+        const idx = findMemberTeamIdx(teamId);
+        if (idx === -1) return;
+        const team = teams3v3DB[idx];
+        if (!confirm(`⚠️ ลบทีม "${team.name || teamId}" ?\n\n• กด Save All เพื่อลบถาวรจากระบบ`)) return;
+        set3v3TeamDeletedFlag(team.id, true);
+        mark3v3Dirty();
+        renderMemberRosterMemberList();
+        renderMemberTeamsSlots();
     }
 
     function renderBrowseHeroCard(item, h) {

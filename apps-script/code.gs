@@ -269,8 +269,10 @@ function doPost(e) {
                               note: data[i][9] || '',
                               video: JSON.parse(data[i][12] || 'null'),  // 🎬 Video_JSON
                               skillQueueAlts: JSON.parse(data[i][13] || '[]'),  // 🆕 ชุดจองสกิลเสริม B/C/D...
-                              notifyEnabled: data[i][14] === true || data[i][14] === "true"  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
+                              notifyEnabled: data[i][14] === true || data[i][14] === "true",  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
+                              owner: JSON.parse(data[i][15] || 'null')  // 👥 ทีมที่แอดมินจัดให้ลูกกิล
                           },
+                          owner: JSON.parse(data[i][15] || 'null'),
                           guild_name: teamGuild,
                           date: new Date().toISOString()
                         };
@@ -1887,7 +1889,7 @@ function deleteManagerItem(ss, category, id) {
 // =========================================================
 // 🟢 3v3 Teams — upsert/delete ทีละแถว (ไม่ clear ทั้งชีต)
 // =========================================================
-var TEAMS3V3_HEADERS = ["Index", "TeamName", "TeamType", "Formation", "SkillQueue", "Share", "Enemy_Targets", "Pet_JSON", "Slots_JSON", "Note", "LastModified", "Guild_Name", "Video_JSON", "SkillQueueAlts_JSON", "NotifyEnabled"];
+var TEAMS3V3_HEADERS = ["Index", "TeamName", "TeamType", "Formation", "SkillQueue", "Share", "Enemy_Targets", "Pet_JSON", "Slots_JSON", "Note", "LastModified", "Guild_Name", "Video_JSON", "SkillQueueAlts_JSON", "NotifyEnabled", "Owner_JSON"];
 
 function ensureTeams3v3Sheet(ss) {
   var sheet = ss.getSheetByName('Teams3v3');
@@ -1896,13 +1898,13 @@ function ensureTeams3v3Sheet(ss) {
     sheet.appendRow(TEAMS3V3_HEADERS);
     sheet.getRange(1, 1, 1, TEAMS3V3_HEADERS.length).setFontWeight("bold").setBackground("#cfe2f3");
     sheet.setFrozenRows(1);
-    sheet.getRange("A:O").setNumberFormat("@");
+    sheet.getRange("A:P").setNumberFormat("@");
   } else if (sheet.getLastColumn() < TEAMS3V3_HEADERS.length) {
-    // 🔁 migration: ชีตเก่ายังไม่มีคอลัมน์ที่เพิ่มล่าสุด → เติมหัวคอลัมน์ที่ขาด
-    sheet.getRange(1, TEAMS3V3_HEADERS.length)
-         .setValue(TEAMS3V3_HEADERS[TEAMS3V3_HEADERS.length - 1])
+    // 🔁 migration: ชีตเก่ายังไม่มีคอลัมน์ที่เพิ่มล่าสุด → เขียนหัวคอลัมน์ใหม่ทั้งแถว
+    sheet.getRange(1, 1, 1, TEAMS3V3_HEADERS.length)
+         .setValues([TEAMS3V3_HEADERS])
          .setFontWeight("bold").setBackground("#cfe2f3");
-    sheet.getRange("A:O").setNumberFormat("@");
+    sheet.getRange("A:P").setNumberFormat("@");
   }
   return sheet;
 }
@@ -1923,7 +1925,8 @@ function team3v3ToRow(team, now) {
     team.guild_name || 'all',
     JSON.stringify(team.video || null),
     JSON.stringify(team.skillQueueAlts || []),  // 🆕 ชุดจองสกิลเสริม B/C/D...
-    team.notifyEnabled || false                 // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
+    team.notifyEnabled || false,                // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
+    JSON.stringify(team.owner || null)          // 👥 ทีมที่แอดมินจัดให้ลูกกิล {guildId,guildName,memberId,memberName,slot}
   ];
 }
 
@@ -2366,7 +2369,7 @@ function loadFromSheet(ss, name, def) {
 
     // 🟢 รองรับทั้งโครงสร้างเก่า (9-11 คอลัมน์) และใหม่ (12-15 คอลัมน์ พร้อม Guild_Name + Video_JSON + NotifyEnabled)
     var sheetCols = s.getLastColumn();
-    var readCols = sheetCols >= 15 ? 15 : (sheetCols >= 14 ? 14 : (sheetCols >= 13 ? 13 : (sheetCols >= 12 ? 12 : (sheetCols >= 11 ? 11 : (sheetCols >= 10 ? 10 : 9)))));
+    var readCols = Math.max(9, Math.min(sheetCols, TEAMS3V3_HEADERS.length));
     var data = s.getRange(2, 1, lastRow - 1, readCols).getValues();
     return data.map(function(r) {
       try {
@@ -2386,10 +2389,11 @@ function loadFromSheet(ss, name, def) {
             guild_name: r[11] || 'all',           // 🟢 Guild_Name (Index 11)
             video: JSON.parse(r[12] || 'null'),   // 🎬 Video_JSON (Index 12)
             skillQueueAlts: JSON.parse(r[13] || '[]'),  // 🆕 ชุดจองสกิลเสริม B/C/D... (Index 13)
-            notifyEnabled: r[14] === true || r[14] === "true"  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์ (Index 14)
+            notifyEnabled: r[14] === true || r[14] === "true",  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์ (Index 14)
+            owner: JSON.parse(r[15] || 'null')    // 👥 ทีมที่แอดมินจัดให้ลูกกิล (Index 15)
           };
       } catch(e) {
-          return { id: r[0], name: r[1], slots: [], enemyTeams: [], pet: null, pets: [null,null,null], isShared: false, note: '', lastModified: Date.now(), guild_name: 'all', notifyEnabled: false };
+          return { id: r[0], name: r[1], slots: [], enemyTeams: [], pet: null, pets: [null,null,null], isShared: false, note: '', lastModified: Date.now(), guild_name: 'all', notifyEnabled: false, owner: null };
       }
     });
   }
