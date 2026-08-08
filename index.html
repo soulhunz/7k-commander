@@ -2783,9 +2783,9 @@
             <div onclick="switchView('hero-build')" class="menu-item" id="nav-hero-build">🔨 บิ้วตัวละคร</div>
             <div onclick="switchView('team-builder-3v3')" class="menu-item" id="nav-team-builder-3v3">⚔️ สร้างทีม 3v3</div>
             <div onclick="switchView('enemy-manager')" class="menu-item" id="nav-enemy-manager">🎯 รูปแบบศัตรู</div>
-            <div onclick="switchView('member-roster')" class="menu-item" id="nav-member-roster">👥 ข้อมูลลูกกิล</div>
-            <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ แกลเลอรี</div>
+            <!-- <div onclick="switchView('member-roster')" class="menu-item" id="nav-member-roster">👥 ข้อมูลลูกกิล</div> -->
             <div onclick="switchView('castle-comp')" class="menu-item" id="nav-castle-comp">🏰 นับคอมพ์ปราสาท</div>
+            <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ แกลเลอรี</div>
             <!-- <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🧩 ปรับแต่ง</div> -->
 
             <div id="database-menu-group" class="my-4 pt-4 border-t border-gray-800">
@@ -4671,7 +4671,7 @@
                     { id: 'nav-hero-build', icon: '🔨', label: 'บิ้วตัวละคร', action: () => switchView('hero-build') },
                     { id: 'nav-team-builder-3v3', icon: '⚔️', label: 'สร้างทีม 3v3', action: () => switchView('team-builder-3v3') },
                     { id: 'nav-enemy-manager', icon: '🎯', label: 'รูปแบบศัตรู', action: () => switchView('enemy-manager') },
-                    { id: 'nav-member-roster', icon: '👥', label: 'ข้อมูลลูกกิล', action: () => switchView('member-roster') },
+                    { id: 'nav-castle-comp', icon: '🏰', label: 'นับคอมพ์ปราสาท', action: () => switchView('castle-comp') },
                     { id: 'nav-gallery', icon: '🌍', label: 'แกลเลอรีชุมชน', action: () => switchView('gallery') }
                 ]
             },
@@ -4751,9 +4751,9 @@
             { id: 'nav-hero-build', label: '🔨 บิ้วตัวละคร', default: false },
             { id: 'nav-team-builder-3v3', label: '⚔️ สร้างทีม 3v3', default: false },
             { id: 'nav-enemy-manager', label: '🎯 รูปแบบศัตรู', default: false },
-            { id: 'nav-member-roster', label: '👥 ข้อมูลลูกกิล', default: true },
+            // { id: 'nav-member-roster', label: '👥 ข้อมูลลูกกิล', default: true },  // ปิดเมนูแล้ว
+            { id: 'nav-castle-comp', label: '🏰 นับคอมพ์ปราสาท', default: true },
             { id: 'nav-gallery', label: '🖼️ แกลเลอรี', default: false },
-            { id: 'nav-castle-comp', label: '🏰 นับคอมพ์ปราสาท', default: false },
             { id: 'nav-tier-viewer', label: '🧩 ปรับแต่ง', default: false },
 
             // Database Manager
@@ -8848,6 +8848,19 @@
                 return;
             }
 
+            // 0.4 กรณี: นำเข้าทีมศัตรูจากทีมบุก (ATK) ที่แชร์ มาเป็นคอมพ์
+            if (i === 'CASTLE-COMP-ATK') {
+                editContext = { i, p, type: 'pattern' };
+                selectorActiveCategory = 'All';
+                selectorExcludedIds = [];
+                document.getElementById('selector-title').innerText = 'เลือกทีมศัตรูจากทีมบุกที่แชร์';
+                selectorCurrentData = [];
+                document.getElementById('selector-search').value = '';
+                document.getElementById('selectorModal').style.display = 'flex';
+                renderCastleAtkSelector('');
+                return;
+            }
+
             // 1. กรณี: Enemy Pattern Manager
             if (i === 'ENEMY-PATTERN') {
                 editContext = { i, p, type };
@@ -9079,8 +9092,9 @@
             const lower = text.toLowerCase();
             const grid = document.getElementById('selector-grid');
 
-            // 🎯 โหมดเลือก "รูปแบบศัตรู" ใช้การ์ดคนละแบบ — ส่งคำค้นไปให้ตัววาดของมันเอง
+            // 🎯 โหมดเลือกทีม (รูปแบบศัตรู / ทีมศัตรูจาก ATK ที่แชร์) ใช้การ์ดคนละแบบ — ส่งคำค้นให้ตัววาดของมันเอง
             if (editContext && editContext.type === 'pattern') {
+                if (editContext.i === 'CASTLE-COMP-ATK') { renderCastleAtkSelector(text); return; }
                 if (typeof renderPatternSelector === 'function') renderPatternSelector(text);
                 return;
             }
@@ -11637,9 +11651,10 @@
                             <tr>
                                 <th class="cc-sticky-col p-3 text-left text-xs font-black text-gray-500 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
                                 ${headCells}
-                                <th class="p-2 align-middle min-w-[290px]">
+                                <th class="p-2 align-middle min-w-[440px]">
                                     <div class="flex items-center gap-2">
                                         <button type="button" class="cc-add-btn" onclick="castleCompPickPattern()" title="ดึงตัวละครจากเมนู 'รูปแบบศัตรู' มาเป็นคอมพ์">🎯 จากรูปแบบศัตรู</button>
+                                        <button type="button" class="cc-add-btn" onclick="castleCompPickAtk()" title="ดึงทีมศัตรูที่บันทึกไว้ในทีมบุก (ATK) ที่แชร์ มาเป็นคอมพ์">🤝 จากที่แชร์ ATK</button>
                                         <button type="button" class="cc-add-btn" onclick="castleCompAddColumn()" title="สร้างคอมพ์เปล่า แล้วเลือกฮีโร่เอง 3 ตัว">＋ เพิ่มฮีโร่เอง</button>
                                     </div>
                                 </th>
@@ -12001,6 +12016,121 @@
 
             castleCompDB.comps.push({ id: ccUid('CP'), heroes });
             castleCompSave();
+            renderCastleComp();
+        }
+
+        // ---------- เพิ่มคอมพ์จากทีมศัตรูที่บันทึกไว้ในทีมบุก (ATK) ที่แชร์ ----------
+        let castleCompAtkList = []; // รายการที่กำลังโชว์ใน dialog (อ้างด้วย index)
+
+        // รวบรวม enemyTeams จากทีมประเภท Attack ทั้งหมด แล้วยุบตัวที่ฮีโร่ชุดเดียวกัน
+        function castleCompCollectAtkEnemies() {
+            const src = (typeof teams3v3DB !== 'undefined' && Array.isArray(teams3v3DB)) ? teams3v3DB : [];
+            const bySig = new Map();
+
+            src.forEach(t => {
+                if (!t || (t.teamType || 'Attack') !== 'Attack') return;
+                const list = Array.isArray(t.enemyTeams) ? t.enemyTeams : [];
+                list.forEach(et => {
+                    if (!et) return;
+                    const heroes = [];
+                    for (let i = 0; i < CASTLE_COMP_MAX; i++) {
+                        const s = et.slots ? et.slots[i] : null;
+                        if (s && s.id) heroes.push(String(s.id));
+                    }
+                    if (!heroes.length) return;
+
+                    const sig = heroes.slice().sort().join(',');
+                    if (!bySig.has(sig)) {
+                        bySig.set(sig, {
+                            heroes,
+                            name: et.name || '(ทีมศัตรูไม่มีชื่อ)',
+                            formation: et.formation || '',
+                            note: et.note || '',
+                            froms: []
+                        });
+                    }
+                    const entry = bySig.get(sig);
+                    const from = t.name || t.player || '(ทีมบุกไม่มีชื่อ)';
+                    if (!entry.froms.includes(from)) entry.froms.push(from);
+                });
+            });
+
+            return [...bySig.values()].sort((a, b) => b.froms.length - a.froms.length);
+        }
+
+        function castleCompPickAtk() {
+            castleCompLoad();
+            castleCompAtkList = castleCompCollectAtkEnemies();
+            if (!castleCompAtkList.length) {
+                alert('ยังไม่มีทีมศัตรูในทีมบุก (ATK) ที่แชร์ไว้\n\nไปที่เมนู "⚔️ สร้างทีม 3v3" → เปิดทีมประเภท Attack แล้วเพิ่มทีมศัตรูก่อนนะครับ');
+                return;
+            }
+            openSelector('CASTLE-COMP-ATK', null, 'pattern');
+        }
+
+        // วาดการ์ดใน dialog (ใช้ #selector-grid ร่วมกับตัวเลือกอื่น)
+        function renderCastleAtkSelector(searchText) {
+            const grid = document.getElementById('selector-grid');
+            if (!grid) return;
+            grid.className = 'grid grid-cols-1 gap-3 p-2 w-full';
+
+            const q = String(searchText || '').trim().toLowerCase();
+            const rows = castleCompAtkList
+                .map((e, idx) => ({ e, idx }))
+                .filter(({ e }) => {
+                    if (!q) return true;
+                    if (String(e.name).toLowerCase().includes(q)) return true;
+                    if (String(e.note).toLowerCase().includes(q)) return true;
+                    if (e.froms.some(f => String(f).toLowerCase().includes(q))) return true;
+                    return e.heroes.some(hid => {
+                        const h = heroesDB.find(x => String(x.id) === String(hid));
+                        return h && String(h.name || '').toLowerCase().includes(q);
+                    });
+                });
+
+            if (!rows.length) {
+                grid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-500 opacity-50 h-[200px]">
+                        <span class="text-5xl mb-3">🔍</span>
+                        <span class="text-base font-bold">ไม่พบทีมศัตรูที่ตรงกับคำค้น</span>
+                        <span class="text-xs mt-1">ค้นได้จากชื่อทีมศัตรู · โน้ต · ชื่อตัวละคร · ชื่อทีมบุกที่แชร์</span>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = rows.map(({ e, idx }) => {
+                const icons = e.heroes.map((hid, i) => {
+                    const h = heroesDB.find(x => String(x.id) === String(hid));
+                    if (!h) return '';
+                    return `<div class="relative w-14 h-14 rounded-lg border-2 border-gray-600 bg-black shadow-md overflow-hidden shrink-0 group-hover:border-red-400 transition">
+                                <img src="${h.img}" class="w-full h-full object-cover">
+                                <div class="absolute bottom-0 right-0 bg-black/60 text-[8px] text-white px-1 font-bold">#${i + 1}</div>
+                            </div>`;
+                }).join('');
+
+                return `
+                    <div onclick="castleCompAddFromAtk(${idx})"
+                        class="relative w-full min-h-[110px] bg-[#161b22] border border-gray-700 hover:border-emerald-500 hover:bg-[#1f2937] rounded-xl flex items-center justify-between px-6 py-3 transition-all cursor-pointer shadow-lg group overflow-hidden">
+                        <div class="flex flex-col gap-1 z-10 flex-1 min-w-0 mr-4">
+                            <h4 class="text-xl font-black text-gray-200 group-hover:text-white truncate tracking-tight">${ccEsc(e.name)}</h4>
+                            <div class="flex items-center gap-3 flex-wrap">
+                                ${e.formation ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-900/30 text-red-300 border border-red-900/50 uppercase tracking-wider">${ccEsc(e.formation)}</span>` : ''}
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/30 text-emerald-300 border border-emerald-900/50">🤝 อยู่ใน ${e.froms.length} ทีมบุก</span>
+                                <span class="text-xs text-gray-500 truncate italic max-w-[280px]">${ccEsc(e.froms.join(' · '))}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 bg-black/20 p-2 rounded-lg border border-white/5 z-10 shrink-0">${icons}</div>
+                    </div>`;
+            }).join('');
+        }
+
+        function castleCompAddFromAtk(idx) {
+            const e = castleCompAtkList[idx];
+            if (!e) return;
+            castleCompLoad();
+            castleCompDB.comps.push({ id: ccUid('CP'), heroes: e.heroes.slice(0, CASTLE_COMP_MAX) });
+            castleCompSave();
+            closeSelector();
             renderCastleComp();
         }
 
