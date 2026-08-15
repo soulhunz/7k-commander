@@ -1738,6 +1738,42 @@
         .castle-btn.active { background: rgba(37, 99, 235, 0.2); color: #60a5fa; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
         .castle-group-label { font-size: 0.78rem; color: #6b7280; font-weight: bold; text-transform: uppercase; margin-right: 10px; min-width: 60px; display: inline-block; }
 
+        /* 🧬 หัวข้อกลุ่ม Type ในแกลเลอรี — ตรึงชิดขอบบนสุดจริง
+           กล่องที่ scroll มี padding (p-4 / md:p-6) sticky เลยไปเกาะที่ขอบ content ไม่ใช่ขอบบน
+           แก้ด้วย top ติดลบเท่า padding แล้วชดเชยกลับด้วย padding-top ของแถบเอง
+           ส่วน margin ซ้าย/ขวาติดลบ ทำให้พื้นหลังทึบเต็มความกว้าง ไม่มีช่องให้การ์ดโผล่ */
+        .cc-sticky-head {
+            position: sticky;
+            top: -1rem;
+            z-index: 20;
+            background: #0b0e14;
+            margin-left: -1rem;
+            margin-right: -1rem;
+            padding: 1.75rem 1rem 0.75rem;
+        }
+        @media (min-width: 768px) {
+            .cc-sticky-head {
+                top: -1.5rem;
+                margin-left: -1.5rem;
+                margin-right: -1.5rem;
+                padding: 2.25rem 1.5rem 0.75rem;
+            }
+        }
+
+        /* แบบเดียวกัน แต่สำหรับหัวข้อที่อยู่ในกล่องกลุ่ม guild (กล่องมี p-6 + พื้นหลังคนละเฉด) */
+        .cc-sticky-head-card {
+            position: sticky;
+            top: -1rem;
+            z-index: 20;
+            background: #0f131a;
+            margin-left: -1.5rem;
+            margin-right: -1.5rem;
+            padding: 1.75rem 1.5rem 0.75rem;
+        }
+        @media (min-width: 768px) {
+            .cc-sticky-head-card { top: -1.5rem; padding-top: 2.25rem; }
+        }
+
         /* 🏰 ตารางนับคอมพ์ตามปราสาท */
         .cc-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
         .cc-table th, .cc-table td { border-bottom: 1px solid #1f2937; border-right: 1px solid #1f2937; }
@@ -2785,6 +2821,7 @@
             <div onclick="switchView('enemy-manager')" class="menu-item" id="nav-enemy-manager">🎯 รูปแบบศัตรู</div>
             <!-- <div onclick="switchView('member-roster')" class="menu-item" id="nav-member-roster">👥 ข้อมูลลูกกิล</div> -->
             <div onclick="switchView('castle-comp')" class="menu-item" id="nav-castle-comp">🏰 นับคอมพ์ปราสาท</div>
+            <div onclick="switchView('battle-sim')" class="menu-item" id="nav-battle-sim">⚔️ จำลองการต่อสู้</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ แกลเลอรี</div>
             <!-- <div onclick="switchView('tier-viewer')" class="menu-item" id="nav-tier-viewer">🧩 ปรับแต่ง</div> -->
 
@@ -3220,6 +3257,25 @@
             <div class="flex-1 overflow-y-auto custom-scroll p-6">
                 <p class="text-xs text-gray-500 mb-4 max-w-3xl">เขียนคำอธิบายของแต่ละสเตตัส/ความสามารถ ว่าหมายถึงอะไร ทำงานอย่างไร เพื่อให้ระบบ AI เข้าใจและนำไปวิเคราะห์ทีม/บิ้วได้ถูกต้อง — <span class="text-gray-400">บันทึกอัตโนมัติ</span></p>
                 <div id="stat-glossary-body" class="space-y-2 max-w-4xl"></div>
+            </div>
+        </div>
+
+        <!-- ⚔️ เครื่องจำลองการต่อสู้ / ตารางแพ้ทาง -->
+        <div id="view-battle-sim" class="flex-col hidden h-full bg-[#0b0e14]">
+            <header class="p-4 md:p-6 border-b border-gray-800 bg-[#111827] flex flex-wrap justify-between items-center gap-3 shadow-lg flex-shrink-0">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-black text-indigo-400 uppercase tracking-tighter flex items-center gap-3"><span>⚔️</span> จำลองการต่อสู้</h2>
+                    <p class="text-xs text-gray-500 mt-1">คำนวณจากสเตตัส + สกิลที่เซ็ตไว้ → ตาราง “ตัวไหนแพ้ตัวไหน” · กดช่องในตารางเพื่อดู log ทีละเทิร์น</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="simOpenHeroPicker()" class="bg-[#1f2937] hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-600 shadow-lg">🦸 เลือกฮีโร่</button>
+                    <button onclick="simRunMatrix()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-indigo-900/30">▶ รันจำลอง</button>
+                    <button onclick="simToggleSettings()" class="bg-[#1f2937] hover:bg-white hover:text-black text-gray-300 px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-600">⚙️ สูตรดาเมจ</button>
+                </div>
+            </header>
+            <div class="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 md:p-6">
+                <div id="sim-settings" class="hidden mb-5"></div>
+                <div id="sim-body"></div>
             </div>
         </div>
 
@@ -4354,6 +4410,11 @@
         let currentGalleryTab = 'Attack';
         let gallerySearchHeroIds = []; // 🔍 ฮีโร่ที่เลือกไว้กรอง/เรียงทีมศัตรูในหน้า Gallery (สูงสุด 5)
         let galleryPickTemp = [];      // ตัวเลือกชั่วคราวขณะเปิด dialog เลือกฮีโร่
+        let galleryFilterHeroPool = new Set(); // 🔍 id ฮีโร่ที่มีอยู่จริงในทีมที่แสดงผลอยู่ (คลังของ dialog กรอง)
+        let galleryTypeFilter = null;  // 🧬 กรอง Targets ตาม Type ของฮีโร่ (null = ทั้งหมด)
+        let gallerySearchText = '';    // 🔤 คำค้นชื่อทีม/โน้ต/ชื่อฮีโร่ในหน้า Gallery
+        let galleryTextFocus = false;  // คืน focus ให้ช่องค้นหาหลังวาดใหม่
+        let _gallerySearchTimer = null;
         let galleryVisibleTeams = [];  // ทีมที่ผ่านการกรอง guild แล้ว (ใช้ร่วมกับเมนูวนไม้)
         let rotationSelectedTargets = []; // 🗡️ ชื่อเป้าหมายที่เลือกไว้วางแผนวนไม้ (สูงสุด 5)
         let rotationSolution = null;      // ผลลัพธ์ชุดทีมที่ไม่ชนกัน { assignments:[], unsolved:[] }
@@ -4753,6 +4814,8 @@
             { id: 'nav-enemy-manager', label: '🎯 รูปแบบศัตรู', default: false },
             // { id: 'nav-member-roster', label: '👥 ข้อมูลลูกกิล', default: true },  // ปิดเมนูแล้ว
             { id: 'nav-castle-comp', label: '🏰 นับคอมพ์ปราสาท', default: true },
+            // ⚔️ จำลองการต่อสู้ — จงใจไม่ใส่ในลิสต์นี้ = ไม่ผ่านระบบสิทธิ์ แสดงให้ทุกคนเสมอ
+            // (applyUserRole() ซ่อนเฉพาะเมนูที่อยู่ใน ALL_MENUS)
             { id: 'nav-gallery', label: '🖼️ แกลเลอรี', default: false },
             { id: 'nav-tier-viewer', label: '🧩 ปรับแต่ง', default: false },
 
@@ -6307,7 +6370,8 @@
                 'hero-build': 'view-hero-build',
                 'stat-glossary': 'view-stat-glossary',
                 'enemy-manager' : 'view-enemy-manager',
-                'castle-comp': 'view-castle-comp'
+                'castle-comp': 'view-castle-comp',
+                'battle-sim': 'view-battle-sim'
             };
 
             const targetId = targetViewMap[v];
@@ -6336,6 +6400,7 @@
                 else if (v === 'hero-build') hbShowList();
                 else if (v === 'stat-glossary') renderStatGlossary();
                 else if (v === 'castle-comp') renderCastleComp();
+                else if (v === 'battle-sim') renderBattleSim();
                 else if (v.includes('manager')) renderManagerUI();
                 else if (v === 'survey-admin') renderSurveyBuilder();
                 else if (v === 'application-form') renderApplicationForm();
@@ -10722,6 +10787,8 @@
                         hits_c2: parseInt(document.getElementById(`conf-${k}-hit-c2`)?.value) || 0,
                         hits_c6: parseInt(document.getElementById(`conf-${k}-hit-c6`)?.value) || 0,
                         img: normalizeDriveImg(document.getElementById(`conf-${k}-img`)?.value || ''),
+                        // ⏳ คูลดาวน์ (เทิร์น) — ใช้ในเครื่องจำลองการต่อสู้ 0 = กดได้ทุกเทิร์น
+                        cooldown: parseInt(document.getElementById(`conf-${k}-cd`)?.value) || 0,
                         effects: []
                     };
 
@@ -11172,6 +11239,11 @@
                             <input type="number" id="conf-${key}-hit-c6" value="${conf?.hits_c6 || 0}" class="bg-[#111827] border border-purple-800/60 rounded text-center text-sm text-purple-300 py-1 outline-none">
                         </div>
                         <div class="text-[9px] text-gray-500 mt-1">เช่น Normal ตี 1 เป้า → LB6 ตี 3 เป้า: ช่อง 🎯 ใส่ Base=1, LB6=3</div>
+                        <div class="grid grid-cols-5 gap-1 items-center mt-2 pt-2 border-t border-gray-700/60">
+                            <div class="text-[10px] text-gray-300 text-right pr-1">⏳ คูลดาวน์</div>
+                            <input type="number" min="0" id="conf-${key}-cd" value="${conf?.cooldown || 0}" class="bg-[#111827] border border-amber-800/60 rounded text-center text-sm text-amber-300 py-1 outline-none">
+                            <div class="col-span-3 text-[9px] text-gray-500 leading-snug self-center">ข้อจำกัด<b>เพิ่มเติม</b>เฉพาะสกิลใบนี้ · 0 = ไม่จำกัด — กฎหลัก "ตีปกติ 2 เทิร์นก่อนออกสกิลอีก" ตั้งที่หน้า ⚔️ จำลองการต่อสู้</div>
+                        </div>
                     </div>
                 </div>
                 `;
@@ -19878,6 +19950,654 @@
             return out;
         }
 
+        // =========================================================
+        // ⚔️ BATTLE SIMULATOR — เทิร์นเบส 1v1 จากสเตตัส + สกิลที่เซ็ตไว้
+        //    เฟส 1 ค่าคงที่สูตรดาเมจ · เฟส 2 เครื่องจำลอง · เฟส 3 ตารางแพ้ทาง
+        //    หมายเหตุ: สูตรเป็นค่าเริ่มต้นมาตรฐาน ไม่ใช่สูตรจริงของเกม — จูนได้ในหน้าตั้งค่า
+        // =========================================================
+        const SIM_CFG_KEY = '7k_battle_sim_cfg';
+        const SIM_DEFAULT_CFG = {
+            defK: 2000,       // ดาเมจ = ดิบ × defK/(defK+DEF) — ยิ่งมาก DEF ยิ่งกันได้น้อย (ตั้งให้ใกล้ค่า DEF ทั่วไปในเกม)
+            weakMul: 1.5,     // ตัวคูณตอนเข้าจุดอ่อน
+            blockRed: 30,     // บล็อกแล้วลดดาเมจกี่ %
+            critDmgDefault: 50, // ถ้าฮีโร่ไม่ได้กรอก critDmg ใช้ค่านี้ (%)
+            ccFloor: 5,       // โอกาสติด CC ต่ำสุด (%) กันติดลบ
+            ccCeil: 95,       // โอกาสติด CC สูงสุด (%)
+            skillGateTurns: 2, // ⏳ กฎเกม: ออกสกิลแล้วต้องตีปกติกี่เทิร์นถึงออกสกิลได้อีก (เทิร์นแรกออกได้เลย)
+            maxTurns: 30,     // เกินนี้ = เสมอ ตัดสินด้วย % HP ที่เหลือ
+            runs: 9,          // จำลองกี่รอบต่อคู่ (เลขคี่ ตัดสินด้วยเสียงข้างมาก)
+            blueStar: 6, redStar: 0, awakened: false, skillUp: true
+        };
+        let simCfg = null;
+        let simPickedIds = [];      // ฮีโร่ที่เลือกมาเข้าตาราง
+        let simMatrix = null;       // ผลรันล่าสุด
+        let simLogPair = null;      // คู่ที่กำลังเปิดดู log
+
+        function simLoadCfg() {
+            if (simCfg) return simCfg;
+            simCfg = Object.assign({}, SIM_DEFAULT_CFG);
+            try {
+                const raw = localStorage.getItem(SIM_CFG_KEY);
+                if (raw) {
+                    const p = JSON.parse(raw);
+                    if (p && typeof p === 'object') {
+                        Object.keys(SIM_DEFAULT_CFG).forEach(k => { if (p[k] !== undefined) simCfg[k] = p[k]; });
+                        if (Array.isArray(p.picked)) simPickedIds = p.picked.map(String);
+                    }
+                }
+            } catch (e) { console.warn('sim cfg load fail', e); }
+            return simCfg;
+        }
+        function simSaveCfg() {
+            try { localStorage.setItem(SIM_CFG_KEY, JSON.stringify(Object.assign({}, simCfg, { picked: simPickedIds }))); }
+            catch (e) { console.error('sim cfg save fail', e); }
+        }
+
+        // สุ่มแบบกำหนด seed ได้ — ผลรันซ้ำได้เหมือนเดิมทุกครั้ง
+        function simRng(seed) {
+            let s = seed >>> 0;
+            return function () {
+                s |= 0; s = (s + 0x6D2B79F5) | 0;
+                let t = Math.imul(s ^ (s >>> 15), 1 | s);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        // สเตตัสฮีโร่แบบไม่พึ่ง heroBuildState (hbHeroStats ใช้ตัวแปร global ของหน้า build)
+        function simHeroStats(hero, cfg) {
+            const out = {};
+            const aws = hero && hero.awakenStats;
+            const useAw = !!cfg.awakened && aws && Object.keys(aws).some(k => parseFloat(aws[k]));
+            const base = useAw ? aws : ((hero && hero.baseStats) ? hero.baseStats : {});
+            const gc = (hero && hero.growthConfig) ? hero.growthConfig : {};
+            const percentStats = ['critRate', 'critDmg', 'block', 'dmgRed', 'acc', 'resist', 'weakness'];
+            const blue = parseInt(cfg.blueStar) || 0;
+            const redMul = 1 + (parseInt(cfg.redStar) || 0) * ((parseFloat(gc.redStarPerLevel) || 2) / 100);
+
+            STAT_KEYS.forEach(k => {
+                const b = parseFloat(base[k]) || 0;
+                out[k] = ['hp', 'atk', 'def'].includes(k) ? b * redMul : b;
+            });
+            [1, 2, 3, 4, 5, 6].forEach(lvl => {
+                if (blue < lvl) return;
+                const conf = gc['blue' + lvl];
+                if (!conf || !conf.stat || !STAT_KEYS.includes(conf.stat)) return;
+                const val = parseFloat(conf.percent) || 0;
+                if (percentStats.includes(conf.stat)) out[conf.stat] = (out[conf.stat] || 0) + val;
+                else out[conf.stat] = (out[conf.stat] || 0) + (parseFloat(base[conf.stat]) || 0) * (val / 100);
+            });
+            // พาสซีฟที่เป็น stat (เดาสเตตจากชื่อ — ตรรกะเดียวกับ hbHeroStats)
+            const pe = hero && hero.skillData && hero.skillData.p && hero.skillData.p.effects;
+            if (Array.isArray(pe)) {
+                pe.forEach(eff => {
+                    if (!eff || eff.type !== 'stat') return;
+                    let v = eff.val || 0;
+                    if (cfg.skillUp) {
+                        if (eff.green_val) v = eff.green_val;
+                        if (blue >= 2 && eff.c2_val) v = eff.c2_val;
+                        if (blue >= 6 && eff.c6_val) v = eff.c6_val;
+                    }
+                    if (!(v > 0)) return;
+                    const tk = simStatKeyFromName(eff.name);
+                    if (!tk) return;
+                    if (percentStats.includes(tk)) out[tk] = (out[tk] || 0) + v;
+                    else out[tk] = (out[tk] || 0) + (parseFloat(base[tk]) || 0) * (v / 100);
+                });
+            }
+            return out;
+        }
+
+        function simStatKeyFromName(nameRaw) {
+            const name = String(nameRaw || '').toLowerCase();
+            if (name.includes('hp') || name.includes('เลือด')) return 'hp';
+            if (name.includes('atk') || name.includes('โจมตี')) return 'atk';
+            if (name.includes('def') || name.includes('ป้องกัน')) return 'def';
+            if (name.includes('spd') || name.includes('speed') || name.includes('ความเร็ว')) return 'spd';
+            if (name.includes('block') || name.includes('บล็อก')) return 'block';
+            if (name.includes('crit') || name.includes('คริ')) return 'critRate';
+            if (name.includes('weak') || name.includes('จุดอ่อน')) return 'weakness';
+            if (name.includes('acc') || name.includes('แม่น')) return 'acc';
+            if (name.includes('resist') || name.includes('ต้าน')) return 'resist';
+            return null;
+        }
+
+        // เลือกค่าตามระดับที่ตั้งไว้ (Base → Up → LB2 → LB6)
+        function simPickVal(eff, field, cfg) {
+            const blue = parseInt(cfg.blueStar) || 0;
+            let v = eff[field] || 0;
+            if (cfg.skillUp) {
+                if (eff['green_' + field]) v = eff['green_' + field];
+                if (blue >= 2 && eff['c2_' + field]) v = eff['c2_' + field];
+                if (blue >= 6 && eff['c6_' + field]) v = eff['c6_' + field];
+            }
+            return v || 0;
+        }
+
+        function simMakeUnit(hero, cfg) {
+            const st = simHeroStats(hero, cfg);
+            const sd = hero.skillData || {};
+            const mkSkill = (key, label) => {
+                const c = sd[key];
+                if (!c) return null;
+                const scales = Array.isArray(c.scales) && c.scales.length
+                    ? c.scales
+                    : (c.percent ? [{ scale: c.scale || 'atk', percent: c.percent, greenPercent: c.greenPercent }] : []);
+                const effects = Array.isArray(c.effects) ? c.effects : [];
+                if (!scales.length && !effects.length) return null;
+                return {
+                    key, label,
+                    scales, effects,
+                    hits: Math.max(1, parseInt(c.hits) || 1),
+                    cooldown: Math.max(0, parseInt(c.cooldown) || 0),
+                    cdLeft: 0
+                };
+            };
+            return {
+                id: String(hero.id), name: hero.name || '(ไม่มีชื่อ)', img: hero.img || '',
+                type: hero.type || '',
+                maxHp: Math.max(1, st.hp || 1), hp: Math.max(1, st.hp || 1),
+                atk: st.atk || 0, def: st.def || 0, spd: st.spd || 0,
+                critRate: st.critRate || 0, critDmg: st.critDmg || cfg.critDmgDefault,
+                block: st.block || 0, dmgRed: st.dmgRed || 0,
+                acc: st.acc || 0, resist: st.resist || 0, weakness: st.weakness || 0,
+                skills: [mkSkill('s2', 'Skill 2'), mkSkill('s1', 'Skill 1'), mkSkill('n', 'Normal')].filter(Boolean),
+                skillGate: 0,   // ⏳ >0 = ยังต้องตีปกติอีกกี่เทิร์นก่อนออกสกิลได้
+                statuses: [],   // { name, kind:'cc'|'dot'|'buff'|'debuff'|'shield', turns, val, stat }
+                shield: 0
+            };
+        }
+
+        // ค่าสเตตหลังรวมบัฟ/ดีบัฟที่ติดอยู่
+        function simEffStat(u, key) {
+            let mul = 1;
+            u.statuses.forEach(s => {
+                if (s.stat !== key) return;
+                if (s.kind === 'buff') mul += (s.val || 0) / 100;
+                if (s.kind === 'debuff') mul -= (s.val || 0) / 100;
+            });
+            return Math.max(0, (u[key] || 0) * Math.max(0.1, mul));
+        }
+
+        function simIsStunned(u) {
+            return u.statuses.some(s => s.kind === 'cc');
+        }
+
+        function simTakeDamage(u, dmg, log, label) {
+            let d = Math.max(0, Math.round(dmg));
+            if (u.shield > 0) {
+                const absorbed = Math.min(u.shield, d);
+                u.shield -= absorbed; d -= absorbed;
+                if (absorbed > 0) log.push(`   🧊 โล่กัน ${absorbed}`);
+            }
+            u.hp = Math.max(0, u.hp - d);
+            log.push(`   ${label} ${d} → ${u.name} เหลือ ${Math.round(u.hp)}/${Math.round(u.maxHp)}`);
+        }
+
+        // ตีหนึ่งครั้งด้วยสกิลหนึ่งใบ
+        function simUseSkill(att, def, skill, cfg, rand, log) {
+            // 1) ดาเมจจาก scales
+            let raw = 0;
+            skill.scales.forEach(sc => {
+                const pct = (cfg.skillUp && sc.greenPercent) ? sc.greenPercent : (sc.percent || 0);
+                if (!pct) return;
+                const stat = sc.scale === 'def' ? simEffStat(att, 'def')
+                    : sc.scale === 'hp' ? att.maxHp
+                        : simEffStat(att, 'atk');
+                raw += stat * (pct / 100);
+            });
+            raw *= Math.max(1, skill.hits);
+
+            if (raw > 0) {
+                let dmg = raw * (cfg.defK / (cfg.defK + simEffStat(def, 'def')));
+                let tags = [];
+                if (rand() * 100 < att.critRate) { dmg *= 1 + (att.critDmg / 100); tags.push('CRIT'); }
+                if (rand() * 100 < att.weakness) { dmg *= cfg.weakMul; tags.push('จุดอ่อน'); }
+                if (rand() * 100 < def.block) { dmg *= 1 - (cfg.blockRed / 100); tags.push('บล็อก'); }
+                dmg *= 1 - Math.min(90, def.dmgRed) / 100;
+                simTakeDamage(def, dmg, log, `⚔️ ${skill.label}${tags.length ? ' [' + tags.join('/') + ']' : ''}`);
+            } else {
+                log.push(`   ✨ ${att.name} ใช้ ${skill.label}`);
+            }
+
+            // 2) เอฟเฟกต์
+            skill.effects.forEach(eff => {
+                if (!eff || !eff.type) return;
+                const rate = simPickVal(eff, 'rate', cfg);
+                const turn = simPickVal(eff, 'turn', cfg);
+                const val = simPickVal(eff, 'val', cfg);
+                const toSelf = ['heal', 'shield', 'buff'].includes(eff.type) || String(eff.target || '').includes('self');
+                const target = toSelf ? att : def;
+
+                // โอกาสติด: เอฟเฟกต์ที่ลงศัตรู หักด้วยต้านทาน บวกด้วยผลเข้าเป้า
+                let chance = rate > 0 ? rate : 100;
+                if (!toSelf) chance = chance + (att.acc || 0) - (def.resist || 0);
+                chance = Math.min(cfg.ccCeil, Math.max(cfg.ccFloor, chance));
+                if (rate > 0 && rand() * 100 >= chance) { log.push(`   ↯ ${eff.name || eff.type} พลาด (${Math.round(chance)}%)`); return; }
+
+                const nm = eff.name || eff.type;
+                if (eff.type === 'cc') {
+                    target.statuses.push({ name: nm, kind: 'cc', turns: Math.max(1, turn || 1) });
+                    log.push(`   ❄️ ติด ${nm} ${Math.max(1, turn || 1)} เทิร์น`);
+                } else if (eff.type === 'dot') {
+                    const per = val > 0 ? (simEffStat(att, 'atk') * val / 100) : simEffStat(att, 'atk') * 0.15;
+                    target.statuses.push({ name: nm, kind: 'dot', turns: Math.max(1, turn || 1), val: per });
+                    log.push(`   🔥 ติด ${nm} ${Math.max(1, turn || 1)} เทิร์น (${Math.round(per)}/เทิร์น)`);
+                } else if (eff.type === 'heal') {
+                    const amt = val > 0 ? (target.maxHp * val / 100) : target.maxHp * 0.1;
+                    target.hp = Math.min(target.maxHp, target.hp + amt);
+                    log.push(`   💚 ฟื้น ${Math.round(amt)} → ${Math.round(target.hp)}`);
+                } else if (eff.type === 'shield') {
+                    const amt = val > 0 ? (target.maxHp * val / 100) : target.maxHp * 0.1;
+                    target.shield += amt;
+                    log.push(`   🧊 โล่ +${Math.round(amt)}`);
+                } else if (eff.type === 'buff' || eff.type === 'debuff') {
+                    const stat = simStatKeyFromName(nm) || 'atk';
+                    target.statuses.push({ name: nm, kind: eff.type, turns: Math.max(1, turn || 1), val: val || 10, stat });
+                    log.push(`   ${eff.type === 'buff' ? '⬆️' : '⬇️'} ${nm} (${stat} ${val || 10}%) ${Math.max(1, turn || 1)} เทิร์น`);
+                } else if (eff.type === 'dmg') {
+                    const extra = simEffStat(att, 'atk') * (val > 0 ? val / 100 : 0.3);
+                    simTakeDamage(def, extra * (cfg.defK / (cfg.defK + simEffStat(def, 'def'))), log, `💥 ${nm}`);
+                }
+            });
+        }
+
+        // ต้นเทิร์น: DoT กัด + ลดคูลดาวน์ (ยังไม่ลดอายุสถานะ ไม่งั้น CC 1 เทิร์นหมดอายุก่อนได้ผล)
+        function simStartTurn(u, log) {
+            u.statuses.forEach(s => {
+                if (s.kind === 'dot' && s.val > 0) {
+                    u.hp = Math.max(0, u.hp - s.val);
+                    log.push(`   🔥 ${s.name} กัด ${Math.round(s.val)} → ${u.name} เหลือ ${Math.round(u.hp)}`);
+                }
+            });
+            u.skills.forEach(sk => { if (sk.cdLeft > 0) sk.cdLeft -= 1; });
+        }
+
+        // จบเทิร์น: ค่อยนับอายุสถานะถอยหลัง
+        function simEndTurn(u) {
+            u.statuses.forEach(s => { s.turns -= 1; });
+            u.statuses = u.statuses.filter(s => s.turns > 0);
+        }
+
+        // สกิลตีปกติ (ใช้ตอนติดประตูสกิล) — ถ้าฮีโร่ไม่มีช่อง n ให้ใช้ใบท้ายสุดแทน
+        function simNormalSkill(u) {
+            return u.skills.find(sk => sk.key === 'n') || u.skills[u.skills.length - 1] || null;
+        }
+
+        /**
+         * กฎเกม: เทิร์นแรกออกสกิลได้เลย · ออกแล้วต้องตีปกติ N เทิร์นถึงออกได้อีก
+         * คูลดาวน์รายสกิล (ถ้ากรอกไว้) เป็นข้อจำกัดเพิ่ม ไม่ใช่ตัวหลัก
+         */
+        function simChooseSkill(u, cfg) {
+            const normal = simNormalSkill(u);
+            if (u.skillGate > 0) return { skill: normal, isNormal: true };
+            const sk = u.skills.find(s => s.key !== 'n' && s.cdLeft <= 0);
+            if (sk) return { skill: sk, isNormal: false };
+            return { skill: normal, isNormal: true };
+        }
+
+        /** จำลอง 1v1 หนึ่งรอบ → { winner:'A'|'B'|'draw', turns, log, hpA, hpB } */
+        function simulateBattle(heroA, heroB, cfg, seed) {
+            const rand = simRng(seed || 1);
+            const A = simMakeUnit(heroA, cfg);
+            const B = simMakeUnit(heroB, cfg);
+            const log = [];
+            if (!A.skills.length || !B.skills.length) {
+                return { winner: 'draw', turns: 0, hpA: 1, hpB: 1, log: ['⚠️ ฝ่ายใดฝ่ายหนึ่งยังไม่ได้ตั้งค่าสกิล — จำลองไม่ได้'] };
+            }
+            log.push(`🥊 ${A.name} (SPD ${Math.round(A.spd)}) vs ${B.name} (SPD ${Math.round(B.spd)})`);
+
+            // เร็วกว่าได้ตีก่อน เท่ากันตัดสินด้วยสุ่ม
+            let aFirst = A.spd !== B.spd ? A.spd > B.spd : rand() < 0.5;
+            let turn = 0;
+            while (turn < cfg.maxTurns && A.hp > 0 && B.hp > 0) {
+                turn++;
+                log.push(`— เทิร์น ${turn} —`);
+                const order = aFirst ? [[A, B], [B, A]] : [[B, A], [A, B]];
+                for (const [att, def] of order) {
+                    if (att.hp <= 0 || def.hp <= 0) continue;
+                    simStartTurn(att, log);
+                    if (att.hp <= 0) { simEndTurn(att); break; }
+
+                    if (simIsStunned(att)) {
+                        const cc = att.statuses.filter(s => s.kind === 'cc').map(s => s.name).join('/');
+                        log.push(`   💤 ${att.name} ติด ${cc} — ข้ามเทิร์น`);
+                    } else {
+                        const pick = simChooseSkill(att, cfg);
+                        if (!pick.skill) log.push(`   ⏳ ${att.name} ไม่มีสกิลให้ใช้`);
+                        else if (pick.isNormal) {
+                            // ตีปกติ → เดินประตูสกิลถอยหลัง 1 เทิร์น
+                            const left = Math.max(0, att.skillGate - 1);
+                            simUseSkill(att, def, pick.skill, cfg, rand, log);
+                            att.skillGate = left;
+                            if (left > 0) log.push(`   ⏳ ${att.name} ออกสกิลได้อีกใน ${left} เทิร์น`);
+                        } else {
+                            pick.skill.cdLeft = pick.skill.cooldown;
+                            att.skillGate = Math.max(0, parseInt(cfg.skillGateTurns) || 0);
+                            simUseSkill(att, def, pick.skill, cfg, rand, log);
+                            if (att.skillGate > 0) log.push(`   ⏳ ${att.name} ต้องตีปกติ ${att.skillGate} เทิร์นก่อนออกสกิลอีก`);
+                        }
+                    }
+
+                    simEndTurn(att);
+                    if (def.hp <= 0) { log.push(`☠️ ${def.name} ตาย`); break; }
+                }
+            }
+
+            const pA = A.hp / A.maxHp, pB = B.hp / B.maxHp;
+            let winner = 'draw';
+            if (A.hp <= 0 && B.hp > 0) winner = 'B';
+            else if (B.hp <= 0 && A.hp > 0) winner = 'A';
+            else if (Math.abs(pA - pB) > 0.05) winner = pA > pB ? 'A' : 'B'; // ครบเทิร์น → ใครเหลือ HP % มากกว่า
+            log.push(`🏁 จบที่เทิร์น ${turn} — ${A.name} ${Math.round(pA * 100)}% · ${B.name} ${Math.round(pB * 100)}%`);
+            return { winner, turns: turn, hpA: pA, hpB: pB, log };
+        }
+
+        // ---------- UI ----------
+        function renderBattleSim() {
+            simLoadCfg();
+            simRenderSettings();
+            simRenderBody();
+        }
+
+        function simToggleSettings() {
+            const el = document.getElementById('sim-settings');
+            if (el) el.classList.toggle('hidden');
+        }
+
+        const SIM_FIELD_LABELS = {
+            defK: ['ค่า K ของ DEF', 'ดาเมจ = ดิบ × K/(K+DEF) · ยิ่งมาก DEF ยิ่งกันได้น้อย'],
+            weakMul: ['ตัวคูณจุดอ่อน', 'เข้าจุดอ่อนแล้วดาเมจคูณเท่าไร'],
+            blockRed: ['บล็อกลดดาเมจ %', 'บล็อกติดแล้วลดกี่ %'],
+            critDmgDefault: ['Crit Dmg เริ่มต้น %', 'ใช้เมื่อฮีโร่ไม่ได้กรอกค่า'],
+            ccFloor: ['โอกาสติดต่ำสุด %', 'กันไม่ให้ต้านทานสูงจนติดไม่ได้เลย'],
+            ccCeil: ['โอกาสติดสูงสุด %', 'กันไม่ให้ 100% เสมอ'],
+            skillGateTurns: ['ตีปกติกี่เทิร์นก่อนออกสกิลอีก', 'กฎเกม: เทิร์นแรกออกได้เลย · ออกแล้วต้องตีปกติเท่านี้ก่อน'],
+            maxTurns: ['เทิร์นสูงสุด', 'เกินนี้ตัดสินด้วย % HP ที่เหลือ'],
+            runs: ['จำลองกี่รอบต่อคู่', 'เลขคี่ ตัดสินด้วยเสียงข้างมาก'],
+            blueStar: ['ดาวฟ้า', 'ระดับที่ใช้คำนวณทุกตัว'],
+            redStar: ['ดาวแดง', 'ระดับที่ใช้คำนวณทุกตัว']
+        };
+
+        function simRenderSettings() {
+            const box = document.getElementById('sim-settings');
+            if (!box) return;
+            const rows = Object.keys(SIM_FIELD_LABELS).map(k => {
+                const [label, hint] = SIM_FIELD_LABELS[k];
+                return `
+                    <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3">
+                        <div class="text-xs font-bold text-gray-200 mb-1">${label}</div>
+                        <input type="number" step="any" value="${simCfg[k]}" oninput="simSetCfg('${k}', this.value)"
+                            class="w-full bg-[#111827] border border-gray-600 text-white px-2 py-1.5 rounded-lg text-sm outline-none focus:border-indigo-500">
+                        <div class="text-[10px] text-gray-600 mt-1 leading-snug">${hint}</div>
+                    </div>`;
+            }).join('');
+
+            box.innerHTML = `
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4 shadow-xl">
+                    <div class="flex flex-wrap items-center gap-3 mb-3">
+                        <h3 class="text-sm font-black text-white uppercase tracking-wider">⚙️ สูตรดาเมจ</h3>
+                        <span class="text-[11px] text-amber-400">⚠️ เป็นสูตรมาตรฐาน ไม่ใช่สูตรจริงของเกม — จูนเลขให้ตรงผลที่เจอในเกมเอง</span>
+                        <button onclick="simResetCfg()" class="ml-auto text-xs text-gray-400 hover:text-red-400 underline">คืนค่าเริ่มต้น</button>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">${rows}</div>
+                    <div class="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-gray-800">
+                        <label class="flex items-center gap-2 text-xs text-gray-300 font-bold cursor-pointer">
+                            <input type="checkbox" ${simCfg.skillUp ? 'checked' : ''} onchange="simSetCfg('skillUp', this.checked)" class="accent-indigo-500"> อัพสกิลแล้ว (ใช้ค่า Up/LB)
+                        </label>
+                        <label class="flex items-center gap-2 text-xs text-gray-300 font-bold cursor-pointer">
+                            <input type="checkbox" ${simCfg.awakened ? 'checked' : ''} onchange="simSetCfg('awakened', this.checked)" class="accent-indigo-500"> ปลุกพลัง
+                        </label>
+                    </div>
+                </div>`;
+        }
+
+        function simSetCfg(key, value) {
+            simLoadCfg();
+            simCfg[key] = (typeof value === 'boolean') ? value : (parseFloat(value) || 0);
+            simSaveCfg();
+        }
+        function simResetCfg() {
+            if (!confirm('คืนค่าสูตรดาเมจทั้งหมดเป็นค่าเริ่มต้น?')) return;
+            simCfg = Object.assign({}, SIM_DEFAULT_CFG);
+            simSaveCfg();
+            simRenderSettings();
+        }
+
+        function simRenderBody() {
+            const box = document.getElementById('sim-body');
+            if (!box) return;
+
+            if (!simPickedIds.length) {
+                box.innerHTML = `
+                    <div class="flex flex-col items-center justify-center text-center py-24 px-6 border-2 border-dashed border-gray-800 rounded-3xl bg-[#0f131a]">
+                        <div class="text-6xl mb-4 opacity-40">⚔️</div>
+                        <h3 class="text-lg font-bold text-gray-300 mb-2">ยังไม่ได้เลือกฮีโร่</h3>
+                        <p class="text-xs text-gray-500 max-w-md leading-relaxed mb-5">กด “🦸 เลือกฮีโร่” เลือกตัวที่อยากเทียบ แล้วกด “▶ รันจำลอง” ระบบจะสู้ทุกคู่แล้วสรุปเป็นตารางแพ้ทาง</p>
+                        <button onclick="simOpenHeroPicker()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-black transition shadow-lg">🦸 เลือกฮีโร่</button>
+                    </div>`;
+                return;
+            }
+
+            const picked = simPickedIds.map(id => heroesDB.find(h => String(h.id) === String(id))).filter(Boolean);
+            const noSkill = picked.filter(h => !h.skillData || !Object.keys(h.skillData).some(k => {
+                const c = h.skillData[k];
+                return c && ((Array.isArray(c.scales) && c.scales.length) || (Array.isArray(c.effects) && c.effects.length) || c.percent);
+            }));
+
+            const warn = noSkill.length ? `
+                <div class="bg-amber-900/20 border border-amber-700/50 rounded-xl p-3 mb-4 text-xs text-amber-300">
+                    ⚠️ ${noSkill.length} ตัวยังไม่ได้ตั้งค่าสกิล (${noSkill.map(h => ccEsc(h.name)).join(', ')}) — จำลองไม่ได้ ไปกรอกที่เมนู 🦸 ฮีโร่ ก่อน
+                </div>` : '';
+
+            const chips = picked.map(h => `
+                <span class="flex items-center gap-1.5 bg-[#161b22] border border-gray-700 text-gray-200 text-xs font-bold pl-1 pr-2 py-1 rounded-lg">
+                    <img src="${h.img || ''}" class="w-6 h-6 rounded object-cover bg-black">${ccEsc(h.name)}
+                    <button onclick="simRemoveHero('${String(h.id).replace(/'/g, "\\'")}')" class="ml-0.5 text-gray-500 hover:text-red-400">✕</button>
+                </span>`).join('');
+
+            box.innerHTML = `
+                ${warn}
+                <div class="flex flex-wrap items-center gap-2 mb-5">
+                    <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider">เลือกไว้ ${picked.length} ตัว</span>
+                    ${chips}
+                    <button onclick="simClearHeroes()" class="text-xs text-gray-500 hover:text-red-400 underline ml-1">ล้างทั้งหมด</button>
+                </div>
+                <div id="sim-matrix">${simMatrix ? simMatrixHTML() : '<div class="text-xs text-gray-600 italic">กด “▶ รันจำลอง” เพื่อเริ่ม</div>'}</div>
+                <div id="sim-log" class="mt-5"></div>`;
+        }
+
+        function simRunMatrix() {
+            simLoadCfg();
+            const picked = simPickedIds.map(id => heroesDB.find(h => String(h.id) === String(id))).filter(Boolean);
+            if (picked.length < 2) { alert('เลือกฮีโร่อย่างน้อย 2 ตัวก่อน'); return; }
+
+            const cells = {};
+            picked.forEach(a => {
+                picked.forEach(b => {
+                    if (String(a.id) === String(b.id)) return;
+                    cells[a.id + '|' + b.id] = simRunPair(a, b, simCfg);
+                });
+            });
+            simMatrix = { ids: picked.map(h => String(h.id)), cells };
+            simLogPair = null;
+            simRenderBody();
+        }
+
+        function simMatrixHTML() {
+            const heroes = simMatrix.ids.map(id => heroesDB.find(h => String(h.id) === String(id))).filter(Boolean);
+            const th = heroes.map(h => `
+                <th class="p-2 min-w-[64px]">
+                    <img src="${h.img || ''}" title="${ccEsc(h.name)}" class="w-12 h-12 rounded-lg border-2 border-gray-700 object-cover bg-black mx-auto">
+                </th>`).join('');
+
+            const rows = heroes.map(a => {
+                const tds = heroes.map(b => {
+                    if (String(a.id) === String(b.id)) return '<td class="p-1 text-center text-gray-700">—</td>';
+                    const r = simMatrix.cells[a.id + '|' + b.id];
+                    if (!r) return '<td class="p-1"></td>';
+                    // สีตามอัตราชนะของ "แถว" เมื่อเจอ "คอลัมน์"
+                    const c = r.rate >= 70 ? 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50'
+                        : r.rate >= 55 ? 'bg-emerald-900/25 text-emerald-400/90 border-emerald-800/40'
+                            : r.rate <= 30 ? 'bg-red-900/50 text-red-300 border-red-700/50'
+                                : r.rate <= 45 ? 'bg-red-900/25 text-red-400/90 border-red-800/40'
+                                    : 'bg-gray-800/40 text-gray-400 border-gray-700/50';
+                    return `<td class="p-1">
+                        <button onclick="simShowLog('${a.id}','${b.id}')" title="${ccEsc(a.name)} เจอ ${ccEsc(b.name)} — ชนะ ${r.winA}/${r.runs} · เฉลี่ย ${r.avgTurns} เทิร์น"
+                            class="w-full border rounded-lg py-2 text-xs font-black hover:brightness-125 transition ${c}">${r.rate}%</button>
+                    </td>`;
+                }).join('');
+                return `<tr>
+                    <th class="cc-sticky-col p-2 text-left">
+                        <div class="flex items-center gap-2">
+                            <img src="${a.img || ''}" class="w-10 h-10 rounded-lg border-2 border-gray-700 object-cover bg-black flex-shrink-0">
+                            <span class="text-xs text-gray-200 font-bold truncate">${ccEsc(a.name)}</span>
+                        </div>
+                    </th>${tds}</tr>`;
+            }).join('');
+
+            return `
+                <div class="w-full overflow-x-auto custom-scroll border border-gray-800 rounded-2xl bg-[#0b0e14] shadow-2xl">
+                    <table class="cc-table text-sm">
+                        <thead><tr><th class="cc-sticky-col p-3 text-left text-[10px] font-black text-gray-500 uppercase tracking-wider">แถว = ฝ่ายเรา ↓ / คอลัมน์ = คู่ต่อสู้ →</th>${th}</tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 mt-3 text-[11px] text-gray-500">
+                    <span>ตัวเลข = % ที่ <b class="text-gray-300">แถว</b> ชนะ <b class="text-gray-300">คอลัมน์</b> จาก ${simCfg.runs} รอบ</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-emerald-900/50 border border-emerald-700/50"></span> ได้เปรียบ</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-red-900/50 border border-red-700/50"></span> เสียเปรียบ</span>
+                    <span>กดที่ช่องเพื่อดู log ทีละเทิร์น</span>
+                </div>`;
+        }
+
+        function simShowLog(aId, bId) {
+            const box = document.getElementById('sim-log');
+            if (!box || !simMatrix) return;
+            const r = simMatrix.cells[aId + '|' + bId];
+            const a = heroesDB.find(h => String(h.id) === String(aId));
+            const b = heroesDB.find(h => String(h.id) === String(bId));
+            if (!r || !a || !b) return;
+            simLogPair = aId + '|' + bId;
+
+            box.innerHTML = `
+                <div class="bg-[#161b22] border border-indigo-700/50 rounded-2xl p-4 shadow-xl">
+                    <div class="flex flex-wrap items-center gap-3 mb-3 pb-3 border-b border-gray-800">
+                        <img src="${a.img || ''}" class="w-12 h-12 rounded-lg border-2 border-emerald-600 object-cover bg-black">
+                        <span class="text-sm font-black text-white">${ccEsc(a.name)}</span>
+                        <span class="text-gray-600 font-black">VS</span>
+                        <img src="${b.img || ''}" class="w-12 h-12 rounded-lg border-2 border-red-600 object-cover bg-black">
+                        <span class="text-sm font-black text-white">${ccEsc(b.name)}</span>
+                        <span class="ml-auto text-xs text-gray-400">ชนะ <b class="text-emerald-400">${r.winA}</b> / แพ้ <b class="text-red-400">${r.winB}</b> / เสมอ ${r.draw} · เฉลี่ย ${r.avgTurns} เทิร์น</span>
+                        <button onclick="document.getElementById('sim-log').innerHTML=''" class="text-gray-500 hover:text-white text-lg">✕</button>
+                    </div>
+                    <div class="text-[11px] text-gray-500 mb-2">log ของรอบแรก (seed คงที่ — รันซ้ำได้ผลเดิม)</div>
+                    <pre class="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap font-mono bg-[#0d1117] border border-gray-800 rounded-xl p-3 max-h-[420px] overflow-y-auto custom-scroll">${ccEsc(r.sample.log.join('\n'))}</pre>
+                </div>`;
+            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // ---------- ตัวเลือกฮีโร่ ----------
+        function simOpenHeroPicker() {
+            simLoadCfg();
+            let modal = document.getElementById('sim-hero-picker');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'sim-hero-picker';
+                modal.className = 'fixed inset-0 z-[560] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]">
+                    <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+                        <h3 class="text-white font-bold">🦸 เลือกฮีโร่เข้าตาราง <span id="shp-count" class="text-xs text-gray-400 font-normal"></span></h3>
+                        <button onclick="simCloseHeroPicker()" class="text-gray-400 hover:text-white text-xl w-9 h-9 rounded-full hover:bg-white/10">✕</button>
+                    </div>
+                    <div class="p-3 border-b border-gray-800">
+                        <input id="shp-search" onkeyup="simRenderPickerGrid(this.value)" placeholder="พิมพ์ชื่อฮีโร่..."
+                            class="w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded-lg text-sm outline-none focus:border-indigo-500">
+                    </div>
+                    <div id="shp-grid" class="p-3 overflow-y-auto custom-scroll grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"></div>
+                    <div class="p-4 border-t border-gray-800 flex justify-between gap-2">
+                        <button onclick="simClearHeroes(true)" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-700 hover:bg-gray-600 text-white">ล้างที่เลือก</button>
+                        <button onclick="simCloseHeroPicker(); renderBattleSim();" class="px-5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white">เสร็จแล้ว</button>
+                    </div>
+                </div>`;
+            modal.style.display = 'flex';
+            simRenderPickerGrid('');
+            setTimeout(() => { const s = document.getElementById('shp-search'); if (s) s.focus(); }, 50);
+        }
+        function simCloseHeroPicker() { const m = document.getElementById('sim-hero-picker'); if (m) m.style.display = 'none'; }
+
+        function simRenderPickerGrid(q) {
+            const grid = document.getElementById('shp-grid');
+            if (!grid) return;
+            q = (q || '').toLowerCase();
+            const cnt = document.getElementById('shp-count');
+            if (cnt) cnt.textContent = `(เลือกแล้ว ${simPickedIds.length} ตัว)`;
+
+            const list = [...heroesDB]
+                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th'))
+                .filter(h => !q || String(h.name || '').toLowerCase().includes(q));
+
+            grid.innerHTML = list.map(h => {
+                const sel = simPickedIds.includes(String(h.id));
+                const hasSkill = h.skillData && Object.keys(h.skillData).some(k => {
+                    const c = h.skillData[k];
+                    return c && ((Array.isArray(c.scales) && c.scales.length) || (Array.isArray(c.effects) && c.effects.length) || c.percent);
+                });
+                return `<div onclick="simToggleHero('${String(h.id).replace(/'/g, "\\'")}')" class="cursor-pointer group ${sel ? 'ring-2 ring-indigo-500 rounded-lg' : ''}">
+                    <div class="aspect-square rounded-lg border ${sel ? 'border-indigo-500' : 'border-gray-700'} group-hover:border-indigo-500 bg-black overflow-hidden relative">
+                        <img src="${h.img || ''}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">
+                        ${sel ? '<div class="absolute top-0.5 right-0.5 bg-indigo-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">✓</div>' : ''}
+                        ${hasSkill ? '' : '<div class="absolute bottom-0 inset-x-0 bg-amber-900/80 text-amber-200 text-[8px] text-center font-bold py-0.5">ไม่มีสกิล</div>'}
+                    </div>
+                    <div class="text-[10px] text-gray-300 text-center truncate mt-1">${ccEsc(h.name)}</div>
+                </div>`;
+            }).join('') || '<div class="col-span-full text-center text-gray-600 text-xs py-8">ไม่พบฮีโร่</div>';
+        }
+
+        function simToggleHero(id) {
+            id = String(id);
+            const i = simPickedIds.indexOf(id);
+            if (i >= 0) simPickedIds.splice(i, 1);
+            else {
+                if (simPickedIds.length >= 16) { alert('เลือกได้สูงสุด 16 ตัว (ตารางจะใหญ่เกินไป)'); return; }
+                simPickedIds.push(id);
+            }
+            simMatrix = null;
+            simSaveCfg();
+            simRenderPickerGrid((document.getElementById('shp-search') || {}).value || '');
+        }
+        function simRemoveHero(id) {
+            simPickedIds = simPickedIds.filter(x => String(x) !== String(id));
+            simMatrix = null;
+            simSaveCfg();
+            renderBattleSim();
+        }
+        function simClearHeroes(fromPicker) {
+            simPickedIds = [];
+            simMatrix = null;
+            simSaveCfg();
+            if (fromPicker) simRenderPickerGrid((document.getElementById('shp-search') || {}).value || '');
+            else renderBattleSim();
+        }
+
+        /** รันหลายรอบต่อคู่ → เสียงข้างมาก */
+        function simRunPair(heroA, heroB, cfg) {
+            let winA = 0, winB = 0, draw = 0, turnSum = 0;
+            let sample = null;
+            const runs = Math.max(1, parseInt(cfg.runs) || 1);
+            for (let i = 0; i < runs; i++) {
+                const r = simulateBattle(heroA, heroB, cfg, 1000 + i * 7919);
+                if (r.winner === 'A') winA++; else if (r.winner === 'B') winB++; else draw++;
+                turnSum += r.turns;
+                if (i === 0) sample = r;
+            }
+            const rate = runs ? Math.round((winA / runs) * 100) : 0;
+            return { winA, winB, draw, runs, rate, avgTurns: Math.round(turnSum / runs), sample };
+        }
+
         // คำนวณสเตตัสสุทธิ = base + (ออฟหลัก/รอง 4 ชิ้น) + โบนัสเซต
         function hbCompute(){
             const hero = heroesDB.find(h => String(h.id) === String(heroBuildState.heroId)) || null;
@@ -20998,18 +21718,12 @@
 
             if (!teams) teams = [];
 
-            // 🟢 DEBUG: ตรวจสอบข้อมูลเข้า
-            console.log('🔍 renderGalleryUI called with teams:', teams?.length, 'urlGuild:', urlGuild);
-            console.log('🔍 heroesDB length:', heroesDB?.length);
-
             // 🟢 ตรวจสอบสถานะ Admin และ Public Mode
             const isAdmin = CURRENT_USER?.role === 'admin';
             const urlParams = new URLSearchParams(window.location.search);
             // 🌍 Public Mode: มี key (k) หรือ guild (g) ใน URL แต่ไม่มี mode=gallery (หรือมีก็ได้)
             const isPublicMode = !!urlParams.get('k') || !!urlParams.get('g') || urlParams.get('mode') === 'gallery';
             const hasUrlGuild = !!urlGuild;
-
-            console.log('🔍 isAdmin:', isAdmin, 'isPublicMode:', isPublicMode, 'hasUrlGuild:', hasUrlGuild);
 
             // 🟢 กรองทีมตาม Guild
             if (hasUrlGuild && urlGuild.toLowerCase() !== 'all') {
@@ -21019,12 +21733,10 @@
                     const teamGuild = (t.guild_name || t.guildId || 'all').toString().toLowerCase();
                     return teamGuild === urlGuildLower || teamGuild === 'all';
                 });
-                console.log('🔍 After URL Guild filter:', teams?.length, 'for guild:', urlGuild);
             } else if (!isAdmin) {
                 // 🔐 Login Mode (ไม่ใช่ Admin): กรองตาม Guild ของผู้ใช้
                 if (!isPublicMode && CURRENT_USER) {
                     teams = filterByUserGuild(teams);
-                    console.log('🔍 After User Guild filter:', teams?.length);
                 }
             }
             // 🟢 Admin Mode (ไม่มี urlGuild): เห็นทั้งหมด ไม่ต้องกรอง
@@ -21041,7 +21753,11 @@
 
             let displayItems = [];
 
-            if (currentGalleryTab === 'Attack') {
+            // 🦸 แท็บ "ฮีโร่ของฉัน" วาดเองทั้งหมด — ไม่ต้องเตรียม displayItems ให้เปลืองแรง
+            if (currentGalleryTab === 'MyHeroes') {
+                displayItems = [];
+            }
+            else if (currentGalleryTab === 'Attack') {
                 const attackTeams = teams.filter(t => t.data && t.data.teamType === 'Attack');
                 const uniqueTargets = new Map();
                 
@@ -21069,6 +21785,11 @@
                 });
             }
 
+            // 🔍 คลังฮีโร่ของ dialog "กรองจากฮีโร่" = ฮีโร่ที่มีจริงในทีมของแท็บนี้
+            //    เก็บ "ก่อน" กรอง เพื่อให้ยังเลือกตัวอื่นเพิ่มได้หลังกรองไปแล้ว
+            galleryFilterHeroPool = new Set();
+            displayItems.forEach(it => galleryItemHeroIds(it).forEach(id => galleryFilterHeroPool.add(String(id))));
+
             // 🔍 กรอง/เรียงทีมตามฮีโร่ที่เลือกไว้ (ช่วยหาทีมเมื่อศัตรูเยอะ) — เฉพาะแท็บ Attack/Defense
             if (gallerySearchHeroIds.length && currentGalleryTab !== 'MyHeroes') {
                 const want = gallerySearchHeroIds.map(String);
@@ -21081,6 +21802,18 @@
                     .filter(x => x.matched > 0)          // แสดงเฉพาะทีมที่มีฮีโร่ที่เลือกอย่างน้อย 1 ตัว
                     .sort((a, b) => b.matched - a.matched) // ทีมที่ตรงมากสุดอยู่บน
                     .map(x => x.it);
+            }
+
+            // 🔤 กรองด้วยคำค้น (ชื่อทีม · โน้ต · ชื่อฮีโร่ในทีม)
+            if (gallerySearchText && currentGalleryTab !== 'MyHeroes') {
+                const q = gallerySearchText.toLowerCase();
+                displayItems = displayItems.filter(it => galleryItemSearchText(it).includes(q));
+            }
+
+            // 🧬 กรอง Targets ตาม Type — เก็บรายการก่อนกรองไว้นับเลขบนปุ่ม
+            const typeBarItems = (currentGalleryTab === 'Attack') ? displayItems.slice() : [];
+            if (currentGalleryTab === 'Attack' && galleryTypeFilter) {
+                displayItems = displayItems.filter(it => galleryItemTypes(it).has(galleryTypeFilter));
             }
 
             const isAttackMode = (currentGalleryTab === 'Attack');
@@ -21218,6 +21951,41 @@
             else if (currentGalleryTab === 'MyHeroes') {
                 contentHTML = renderMyHeroesContent();
             }
+            // 🧬 แท็บ Targets — แบ่งกลุ่มตาม Type ที่เยอะสุดในทีม
+            else if (currentGalleryTab === 'Attack') {
+                const typeMap = new Map();
+                displayItems.forEach(item => {
+                    const t = galleryItemMainType(item);
+                    if (!typeMap.has(t)) typeMap.set(t, []);
+                    typeMap.get(t).push(item);
+                });
+
+                // เรียงหัวข้อตามลำดับใน TYPE_OPTS แล้วปิดท้ายด้วย "ไม่ระบุ"
+                const order = [...TYPE_OPTS, 'ไม่ระบุ'].filter(t => typeMap.has(t));
+                let sectionsHTML = '';
+                order.forEach(t => {
+                    const items = typeMap.get(t);
+                    const st = GALLERY_TYPE_STYLE[t] || GALLERY_TYPE_STYLE['ไม่ระบุ'];
+                    sectionsHTML += `
+                        <div class="mb-8">
+                            <div class="cc-sticky-head flex items-center gap-3 mb-4 border-b-2 border-gray-800">
+                                <div class="w-3 h-3 rounded-full ${st.dot}"></div>
+                                <h2 class="text-lg font-bold ${st.text} uppercase tracking-wider">${mlEsc(t)}</h2>
+                                <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${items.length} ทีม</span>
+                                <div class="flex-1 h-px bg-gradient-to-r ${st.line} to-transparent"></div>
+                            </div>
+                            <div class="w-full overflow-x-auto">
+                                <div class="gallery-card-grid">
+                                    ${items.map(item => renderCard(item)).join('')}
+                                </div>
+                            </div>
+                        </div>`;
+                });
+
+                contentHTML = sectionsHTML
+                    ? `<div class="pb-20 w-full">${sectionsHTML}</div>`
+                    : '<div class="text-gray-500 text-center py-20">ไม่มีทีมที่ตรงกับตัวกรอง</div>';
+            }
             // 🟢 แยกกลุ่มตาม Guild เมื่อ g=All (ภายในแต่ละ Tab)
             else if (urlGuild?.toLowerCase() === 'all') {
                 // 🟢 All Mode: แยกกลุ่มตาม Guild (ภายใน Tab ปัจจุบัน)
@@ -21239,7 +22007,7 @@
                     
                     sectionsHTML += `
                         <div class="mb-8 bg-[#0f131a] border-2 border-${guildColor}-500/30 rounded-2xl p-6 shadow-xl shadow-${guildColor}-500/5">
-                            <div class="flex items-center gap-3 mb-4 sticky top-0 z-10 bg-[#0b0e14]/95 backdrop-blur py-3 border-b-2 border-${guildColor}-500/50">
+                            <div class="cc-sticky-head-card flex items-center gap-3 mb-4 border-b-2 border-${guildColor}-500/50">
                                 <div class="w-3 h-3 rounded-full bg-${guildColor}-500 shadow-lg shadow-${guildColor}-500/50"></div>
                                 <h2 class="text-lg font-bold text-${guildColor}-400 uppercase tracking-wider">${guildName}</h2>
                                 <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${items.length} teams</span>
@@ -21328,9 +22096,17 @@
                         </div>
                         ${memberTeamsPanelHTML}
                         ${(currentGalleryTab !== 'MyHeroes' && currentGalleryTab !== 'Rotation') ? galleryHeroFilterBarHTML(displayItems.length) : ''}
+                        ${currentGalleryTab === 'Attack' ? galleryTypeFilterBarHTML(typeBarItems) : ''}
                         ${contentHTML}
                     </div>
                 </div>`;
+
+            // 🔤 พิมพ์อยู่แล้ววาดใหม่ → คืนโฟกัส + วางเคอร์เซอร์ท้ายข้อความ
+            if (galleryTextFocus) {
+                const si = document.getElementById('gallery-text-search');
+                if (si) { si.focus(); const n = si.value.length; try { si.setSelectionRange(n, n); } catch (e) {} }
+                galleryTextFocus = false;
+            }
         }
         
         // ✅ ฟังก์ชันเดิม: แก้ไขให้รองรับการแสดงผลแบบใหม่
@@ -22896,6 +23672,72 @@
         return ids;
     }
 
+    // =========================================================
+    // 🧬 แยก Targets ตาม Type ของฮีโร่ (กายภาพ/เวทมนตร์/ป้องกัน/สมดุล/สนับสนุน)
+    // =========================================================
+    const GALLERY_TYPE_STYLE = {
+        'กายภาพ':    { dot: 'bg-red-500',       text: 'text-red-400',       line: 'from-red-500/40',       on: 'bg-red-600 text-white border-red-400' },
+        'เวทมนตร์':  { dot: 'bg-sky-500',       text: 'text-sky-400',       line: 'from-sky-500/40',       on: 'bg-sky-600 text-white border-sky-400' },
+        'ป้องกัน':   { dot: 'bg-[#a1662f]',     text: 'text-[#c98a4b]',     line: 'from-[#a1662f]/50',     on: 'bg-[#a1662f] text-white border-[#c98a4b]' },
+        'สมดุล':     { dot: 'bg-purple-500',    text: 'text-purple-400',    line: 'from-purple-500/40',    on: 'bg-purple-600 text-white border-purple-400' },
+        'สนับสนุน':  { dot: 'bg-yellow-400',    text: 'text-yellow-300',    line: 'from-yellow-400/40',    on: 'bg-yellow-500 text-black border-yellow-300' },
+        'ไม่ระบุ':   { dot: 'bg-gray-500',      text: 'text-gray-400',      line: 'from-gray-500/40',      on: 'bg-gray-600 text-white border-gray-400' }
+    };
+
+    // type ทั้งหมดที่มีอยู่ในทีมนี้
+    function galleryItemTypes(item) {
+        const s = new Set();
+        galleryItemHeroIds(item).forEach(id => {
+            const h = heroesDB.find(x => String(x.id) === String(id));
+            if (h && h.type) s.add(h.type);
+        });
+        return s;
+    }
+
+    // type ที่เยอะสุดในทีม (เสมอกัน → เอาตามลำดับใน TYPE_OPTS)
+    function galleryItemMainType(item) {
+        const cnt = {};
+        galleryItemHeroIds(item).forEach(id => {
+            const h = heroesDB.find(x => String(x.id) === String(id));
+            if (h && h.type) cnt[h.type] = (cnt[h.type] || 0) + 1;
+        });
+        let best = null, bestN = 0;
+        TYPE_OPTS.forEach(t => { if ((cnt[t] || 0) > bestN) { best = t; bestN = cnt[t]; } });
+        return best || 'ไม่ระบุ';
+    }
+
+    // แถบปุ่มกรอง type (โชว์เฉพาะแท็บ Targets) — นับจากรายการ "ก่อน" กรอง type
+    function galleryTypeFilterBarHTML(items) {
+        const counts = {};
+        items.forEach(it => galleryItemTypes(it).forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+        const avail = TYPE_OPTS.filter(t => counts[t] > 0);
+        if (!avail.length) return '';
+
+        const off = 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500';
+        let html =`<button onclick="setGalleryTypeFilter(null)" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${!galleryTypeFilter ? 'bg-white text-black border-white' : off}">ทั้งหมด <span class="opacity-60">(${items.length})</span></button>`;
+        avail.forEach(t => {
+            const st = GALLERY_TYPE_STYLE[t] || GALLERY_TYPE_STYLE['ไม่ระบุ'];
+            const active = galleryTypeFilter === t;
+            html += `
+            <button onclick="setGalleryTypeFilter('${String(t).replace(/'/g, "\\'")}')"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${active ? st.on : off}">
+                <span class="w-2 h-2 rounded-full ${st.dot}"></span>${mlEsc(t)} <span class="opacity-60">(${counts[t]})</span>
+            </button>`;
+        });
+
+        return `<div class="flex justify-center mb-4 shrink-0 w-full">
+            <div class="flex flex-wrap items-center gap-2 justify-center max-w-4xl">
+                <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">🧬 Type</span>
+                ${html}
+            </div>
+        </div>`;
+    }
+
+    function setGalleryTypeFilter(t) {
+        galleryTypeFilter = (galleryTypeFilter === t) ? null : t;
+        rerenderGallery();
+    }
+
     // แถบเครื่องมือกรอง (ปุ่มเปิด dialog + ป้ายฮีโร่ที่เลือก)
     function galleryHeroFilterBarHTML(resultCount) {
         const chips = gallerySearchHeroIds.map(id => {
@@ -22904,13 +23746,57 @@
             const img = (h && h.img) ? `<img src="${h.img}" class="w-5 h-5 rounded object-cover">` : '';
             return `<span class="flex items-center gap-1 bg-blue-900/40 border border-blue-600/50 text-blue-200 text-xs font-bold pl-1 pr-2 py-1 rounded-lg">${img}${mlEsc(nm)}<button onclick="removeGalleryPickHero('${String(id).replace(/'/g,"\\'")}')" class="ml-0.5 text-blue-300 hover:text-white">✕</button></span>`;
         }).join('');
-        return `<div class="flex justify-center mb-6 shrink-0 w-full">
+        const anyFilter = gallerySearchHeroIds.length > 0 || !!gallerySearchText || !!galleryTypeFilter;
+
+        return `<div class="flex justify-center mb-4 shrink-0 w-full">
             <div class="flex flex-wrap items-center gap-2 justify-center max-w-4xl">
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔤</span>
+                    <input id="gallery-text-search" type="text" value="${mlEsc(gallerySearchText)}"
+                        oninput="galleryOnSearchInput(this.value)" placeholder="ค้นหาชื่อทีม / โน้ต / ชื่อฮีโร่..."
+                        class="w-64 bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-blue-500">
+                </div>
                 <button onclick="openGalleryHeroPicker()" class="bg-[#1f2937] hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">🔍 กรองจากฮีโร่ <span class="text-[10px] opacity-70">(เลือกได้ 5)</span></button>
                 ${chips}
-                ${gallerySearchHeroIds.length ? `<span class="text-xs font-bold text-emerald-300 bg-emerald-900/30 border border-emerald-600/40 rounded-lg px-2 py-1">พบ ${resultCount != null ? resultCount : 0} ทีม</span><button onclick="clearGalleryHeroFilter()" class="text-xs text-gray-400 hover:text-red-400 underline">ล้างตัวกรอง</button>` : '<span class="text-xs text-gray-500">เลือกฮีโร่เพื่อค้นหาทีมที่มีตัวนั้น</span>'}
+                ${anyFilter
+                    ? `<span class="text-xs font-bold text-emerald-300 bg-emerald-900/30 border border-emerald-600/40 rounded-lg px-2 py-1">พบ ${resultCount != null ? resultCount : 0} ทีม</span>
+                       <button onclick="clearGalleryAllFilters()" class="text-xs font-bold text-gray-300 hover:text-white bg-[#1f2937] hover:bg-red-600 border border-gray-600 rounded-lg px-3 py-1.5 transition">✕ ล้างตัวกรองทั้งหมด</button>`
+                    : '<span class="text-xs text-gray-500">พิมพ์ชื่อ หรือเลือกฮีโร่เพื่อค้นหาทีม</span>'}
             </div>
         </div>`;
+    }
+
+    // ข้อความที่ใช้ค้นของการ์ดหนึ่งใบ: ชื่อ + โน้ต + ชื่อฮีโร่ในทีม
+    function galleryItemSearchText(item) {
+        const parts = [];
+        if (item.type === 'Target') {
+            parts.push(item.enemyData && item.enemyData.name, item.enemyData && item.enemyData.note);
+        } else if (item.data) {
+            parts.push(item.data.name, item.data.data && item.data.data.note);
+        }
+        parts.push(item.guildName);
+        galleryItemHeroIds(item).forEach(id => {
+            const h = heroesDB.find(x => String(x.id) === String(id));
+            if (h) parts.push(h.name);
+        });
+        return parts.filter(Boolean).join(' ').toLowerCase();
+    }
+
+    /** พิมพ์ในช่องค้นหา → หน่วงแล้ววาดใหม่ (คืนโฟกัสให้ช่องหลังวาดเสร็จ) */
+    function galleryOnSearchInput(v) {
+        gallerySearchText = String(v || '').trim();
+        galleryTextFocus = true;
+        clearTimeout(_gallerySearchTimer);
+        _gallerySearchTimer = setTimeout(() => rerenderGallery(), 220);
+    }
+
+    function clearGalleryAllFilters() {
+        gallerySearchHeroIds = [];
+        galleryPickTemp = [];
+        galleryTypeFilter = null;
+        gallerySearchText = '';
+        galleryTextFocus = false;
+        rerenderGallery();
     }
 
     function openGalleryHeroPicker() {
@@ -22943,8 +23829,15 @@
     function renderGalleryPickerGrid(q) {
         const grid = document.getElementById('ghp-grid'); if (!grid) return;
         q = (q || '').toLowerCase();
-        const cnt = document.getElementById('ghp-count'); if (cnt) cnt.textContent = `(${galleryPickTemp.length}/5)`;
-        const list = [...heroesDB].sort((a, b) => {
+        // 🔍 เอาเฉพาะฮีโร่ที่มีอยู่จริงในทีมที่แสดงผลอยู่ + ตัวที่เลือกค้างไว้ (จะได้กดเอาออกได้)
+        const pool = new Set(galleryFilterHeroPool);
+        galleryPickTemp.forEach(id => pool.add(String(id)));
+        const source = pool.size ? heroesDB.filter(h => pool.has(String(h.id))) : [];
+
+        const cnt = document.getElementById('ghp-count');
+        if (cnt) cnt.textContent = `(เลือก ${galleryPickTemp.length}/5 · มีในหน้านี้ ${source.length} ตัว)`;
+
+        const list = [...source].sort((a, b) => {
             let rA = RARITY_OPTS.indexOf(a.rarity), rB = RARITY_OPTS.indexOf(b.rarity);
             if (rA < 0) rA = 999; if (rB < 0) rB = 999;
             if (rA !== rB) return rA - rB;
@@ -22953,7 +23846,7 @@
         grid.innerHTML = list.map(h => {
             const sel = galleryPickTemp.includes(String(h.id));
             return `<div onclick="toggleGalleryPickHero('${String(h.id).replace(/'/g,"\\'")}')" class="cursor-pointer group ${sel ? 'ring-2 ring-blue-500 rounded-lg' : ''}"><div class="aspect-square rounded-lg border ${sel ? 'border-blue-500' : 'border-gray-700'} group-hover:border-blue-500 bg-black overflow-hidden relative"><img src="${h.img || ''}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">${sel ? '<div class="absolute top-0.5 right-0.5 bg-blue-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">✓</div>' : ''}</div><div class="text-[10px] text-gray-300 text-center truncate mt-1">${mlEsc(h.name)}</div></div>`;
-        }).join('') || '<div class="col-span-full text-center text-gray-600 text-xs py-8">ไม่พบฮีโร่</div>';
+        }).join('') || `<div class="col-span-full text-center text-gray-600 text-xs py-8">${source.length ? 'ไม่พบฮีโร่ที่ตรงกับคำค้น' : 'ไม่มีฮีโร่ในทีมที่แสดงอยู่'}</div>`;
     }
 
     function toggleGalleryPickHero(id) {
