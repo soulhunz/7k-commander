@@ -3271,14 +3271,22 @@
                     <p class="text-xs text-gray-500 mt-1">คำนวณจากสเตตัส + สกิลที่เซ็ตไว้ → ตาราง “ตัวไหนแพ้ตัวไหน” · กดช่องในตารางเพื่อดู log ทีละเทิร์น</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button onclick="simOpenHeroPicker()" class="bg-[#1f2937] hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-600 shadow-lg">🦸 เลือกฮีโร่</button>
-                    <button onclick="simRunMatrix()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-indigo-900/30">▶ รันจำลอง</button>
+                    <span id="sim-matrix-actions" class="flex flex-wrap items-center gap-2">
+                        <button onclick="simOpenHeroPicker()" class="bg-[#1f2937] hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-600 shadow-lg">🦸 เลือกฮีโร่</button>
+                        <button onclick="simRunMatrix()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-indigo-900/30">▶ รันจำลอง</button>
+                    </span>
                     <button onclick="simToggleSettings()" class="bg-[#1f2937] hover:bg-white hover:text-black text-gray-300 px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-600">⚙️ สูตรดาเมจ</button>
                 </div>
             </header>
             <div class="flex-1 min-h-0 overflow-y-auto custom-scroll p-4 md:p-6">
                 <div id="sim-settings" class="hidden mb-5"></div>
+                <!-- แท็บ: ตารางแพ้ทาง / หาตัวแก้ -->
+                <div class="flex flex-wrap gap-2 mb-5 bg-[#111827] border border-gray-800 p-2 rounded-2xl">
+                    <button onclick="simSetTab('matrix')" id="sim-tab-matrix" class="px-4 py-2 rounded-xl text-xs font-black transition">📊 ตารางแพ้ทาง</button>
+                    <button onclick="simSetTab('counter')" id="sim-tab-counter" class="px-4 py-2 rounded-xl text-xs font-black transition">🎯 หาตัวแก้</button>
+                </div>
                 <div id="sim-body"></div>
+                <div id="sim-counter" class="hidden"></div>
             </div>
         </div>
 
@@ -20319,17 +20327,8 @@
                         if (blueLvl >= 6 && eff.c6_val) v = eff.c6_val;   // C6 (ดาวฟ้า 6)
                     }
                     if (!(v > 0)) return;
-                    const name = String(eff.name||'').toLowerCase();
-                    let tk = null;
-                    if (name.includes('hp') || name.includes('เลือด')) tk = 'hp';
-                    else if (name.includes('atk') || name.includes('โจมตี')) tk = 'atk';
-                    else if (name.includes('def') || name.includes('ป้องกัน')) tk = 'def';
-                    else if (name.includes('spd') || name.includes('speed') || name.includes('ความเร็ว')) tk = 'spd';
-                    else if (name.includes('block') || name.includes('บล็อก')) tk = 'block';
-                    else if (name.includes('crit') || name.includes('คริ')) tk = 'critRate';
-                    else if (name.includes('weak') || name.includes('จุดอ่อน')) tk = 'weakness';
-                    else if (name.includes('acc') || name.includes('แม่น')) tk = 'acc';
-                    else if (name.includes('resist') || name.includes('ต้าน')) tk = 'resist';
+                    // ⚠️ ใช้ตัวจับชื่อตัวเดียวกับเครื่องจำลอง — แยก "ความแรงคริ" (critDmg) ออกจาก "โอกาสคริ" (critRate)
+                    const tk = simStatKeyFromName(eff.name);
                     if (!tk) return;
                     if (percentStats.includes(tk)) out[tk] = (out[tk]||0) + v;
                     else out[tk] = (out[tk]||0) + (parseFloat(base[tk])||0) * (v/100);
@@ -20352,9 +20351,14 @@
             ccFloor: 5,       // โอกาสติด CC ต่ำสุด (%) กันติดลบ
             ccCeil: 95,       // โอกาสติด CC สูงสุด (%)
             skillGateTurns: 2, // ⏳ กฎเกม: ออกสกิลแล้วต้องตีปกติกี่เทิร์นถึงออกสกิลได้อีก (เทิร์นแรกออกได้เลย)
-            maxTurns: 30,     // เกินนี้ = เสมอ ตัดสินด้วย % HP ที่เหลือ
+            maxTurns: 300,    // เพดานกันลูปค้าง (ปกติจบด้วยเวลาก่อน) — นับทีละ action: 0=สกิล 1=ตีปกติ 2=สกิล...
+            secPerTurn: 4,        // ⏱️ 1 เทิร์น (1 action) กินเวลากี่วินาทีในเกมจริง — จูนให้ตรงของจริงเอง
+            timeLimitSmall: 150,  // ⏱️ เวลาจำกัด 1v1 / 3v3 (วินาที) = 2:30
+            timeLimitBig: 300,    // ⏱️ เวลาจำกัด 5v5 (วินาที) = 5:00
             runs: 9,          // จำลองกี่รอบต่อคู่ (เลขคี่ ตัดสินด้วยเสียงข้างมาก)
-            blueStar: 6, redStar: 0, awakened: false, skillUp: true
+            blueStar: 6, redStar: 0, awakened: false, skillUp: true,
+            cfCandidates: 12, // 🎯 หาตัวแก้ทีม: คัดผู้สมัครกี่ตัวจากรอบ 1v1 ก่อนจับคู่เป็นทีม
+            cfTeamRuns: 3     // 🎯 จำลองกี่รอบต่อทีมผู้ท้าชิง 1 ชุด
         };
         let simCfg = null;
         let simPickedIds = [];      // ฮีโร่ที่เลือกมาเข้าตาราง
@@ -20443,9 +20447,12 @@
             if (name.includes('def') || name.includes('ป้องกัน')) return 'def';
             if (name.includes('spd') || name.includes('speed') || name.includes('ความเร็ว')) return 'spd';
             if (name.includes('block') || name.includes('บล็อก')) return 'block';
+            // ⚠️ ต้องเช็ค "ความแรงคริ / คริดาเมจ" ก่อน ไม่งั้นคำว่า "คริ" จะไปเพิ่มโอกาสคริแทน
+            if (/crit\s*d(?:a?m|mg)|critdmg|คริ.*ดาเมจ|ดาเมจ.*คริ|ความแรงคริ|แรงคริ|พลังคริ/.test(name)) return 'critDmg';
             if (name.includes('crit') || name.includes('คริ')) return 'critRate';
             if (name.includes('weak') || name.includes('จุดอ่อน')) return 'weakness';
             if (name.includes('acc') || name.includes('แม่น')) return 'acc';
+            if (/ลดดาเมจ|ลดความเสียหาย|dmgred|damage reduc/.test(name)) return 'dmgRed';
             if (name.includes('resist') || name.includes('ต้าน')) return 'resist';
             return null;
         }
@@ -20460,6 +20467,28 @@
                 if (blue >= 6 && eff['c6_' + field]) v = eff['c6_' + field];
             }
             return v || 0;
+        }
+
+        /**
+         * ❤️ พาสซีฟคืนชีพ — อ่านจากเอฟเฟกต์ชนิด ✨ Special ที่ชื่อมีคำว่า "คืนชีพ / ฟื้นคืน / revive / resurrect"
+         *    ค่า val = ฟื้นกลับมากี่ % ของ HP เต็ม (ไม่กรอก = 30%) · ใช้ได้ครั้งเดียวต่อการต่อสู้
+         */
+        function simFindRevive(hero, cfg) {
+            const sd = (hero && hero.skillData) || {};
+            const re = /คืนชีพ|ฟื้นคืน|ชุบชีวิต|revive|resurrect|rebirth/i;
+            let found = null;
+            Object.keys(sd).forEach(key => {
+                const effs = sd[key] && sd[key].effects;
+                if (!Array.isArray(effs)) return;
+                effs.forEach(eff => {
+                    if (!eff || found) return;
+                    if (eff.type !== 'special') return;
+                    if (!re.test(String(eff.name || ''))) return;
+                    const pct = simPickVal(eff, 'val', cfg) || 30;
+                    found = { pct: Math.max(1, Math.min(100, pct)), left: 1 };
+                });
+            });
+            return found;
         }
 
         function simMakeUnit(hero, cfg) {
@@ -20492,7 +20521,9 @@
                 skills: [mkSkill('s2', 'Skill 2'), mkSkill('s1', 'Skill 1'), mkSkill('n', 'Normal')].filter(Boolean),
                 skillGate: 0,   // ⏳ >0 = ยังต้องตีปกติอีกกี่เทิร์นก่อนออกสกิลได้
                 statuses: [],   // { name, kind:'cc'|'dot'|'buff'|'debuff'|'shield', turns, val, stat }
-                shield: 0
+                shield: 0,
+                revive: simFindRevive(hero, cfg),   // ❤️ พาสซีฟคืนชีพ { pct, left } — null = ไม่มี
+                _dead: false
             };
         }
 
@@ -20523,7 +20554,7 @@
         }
 
         // ตีหนึ่งครั้งด้วยสกิลหนึ่งใบ
-        function simUseSkill(att, def, skill, cfg, rand, log) {
+        function simUseSkill(att, def, skill, cfg, rand, log, allies) {
             // 1) ดาเมจจาก scales
             let raw = 0;
             skill.scales.forEach(sc => {
@@ -20555,7 +20586,14 @@
                 const turn = simPickVal(eff, 'turn', cfg);
                 const val = simPickVal(eff, 'val', cfg);
                 const toSelf = ['heal', 'shield', 'buff'].includes(eff.type) || String(eff.target || '').includes('self');
-                const target = toSelf ? att : def;
+                // 🤝 สู้แบบทีม: ฟื้น/โล่ ลงเพื่อนที่ % เลือดน้อยสุด (บัฟลงตัวเอง)
+                let target = toSelf ? att : def;
+                if (toSelf && Array.isArray(allies) && allies.length && (eff.type === 'heal' || eff.type === 'shield')) {
+                    const liveAllies = allies.filter(u => u.hp > 0);
+                    if (liveAllies.length) {
+                        target = liveAllies.slice().sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+                    }
+                }
 
                 // โอกาสติด: เอฟเฟกต์ที่ลงศัตรู หักด้วยต้านทาน บวกด้วยผลเข้าเป้า
                 let chance = rate > 0 ? rate : 100;
@@ -20613,79 +20651,57 @@
         }
 
         /**
-         * กฎเกม: เทิร์นแรกออกสกิลได้เลย · ออกแล้วต้องตีปกติ N เทิร์นถึงออกได้อีก
-         * คูลดาวน์รายสกิล (ถ้ากรอกไว้) เป็นข้อจำกัดเพิ่ม ไม่ใช่ตัวหลัก
+         * ⚠️ ไม่ได้ใช้แล้วตั้งแต่เปลี่ยนเป็นเครื่องยนต์เทิร์นแบบทีม (simTeamBattle)
+         *    เก็บไว้เผื่ออยากย้อนดูตรรกะเดิม — การเลือกสกิลตอนนี้อยู่ที่ simTeamUseSkill
          */
-        function simChooseSkill(u, cfg) {
+        function simChooseSkill(u, cfg, rand) {
             const normal = simNormalSkill(u);
             if (u.skillGate > 0) return { skill: normal, isNormal: true };
-            const sk = u.skills.find(s => s.key !== 'n' && s.cdLeft <= 0);
-            if (sk) return { skill: sk, isNormal: false };
-            return { skill: normal, isNormal: true };
+            const ready = u.skills.filter(s => s.key !== 'n' && s.cdLeft <= 0);
+            if (!ready.length) return { skill: normal, isNormal: true };
+            const roll = (typeof rand === 'function') ? rand() : Math.random();
+            const sk = ready[Math.min(ready.length - 1, Math.floor(roll * ready.length))];
+            return { skill: sk, isNormal: false };
         }
 
-        /** จำลอง 1v1 หนึ่งรอบ → { winner:'A'|'B'|'draw', turns, log, hpA, hpB } */
+        /**
+         * จำลอง 1v1 หนึ่งรอบ — ใช้เครื่องยนต์เดียวกับโหมดทีม (ทีมละ 1 ตัว)
+         * คืนค่ารูปแบบเดิม { winner:'A'|'B'|'draw', turns, log, hpA, hpB } เพื่อไม่ให้ตารางแพ้ทางพัง
+         */
         function simulateBattle(heroA, heroB, cfg, seed) {
-            const rand = simRng(seed || 1);
-            const A = simMakeUnit(heroA, cfg);
-            const B = simMakeUnit(heroB, cfg);
-            const log = [];
-            if (!A.skills.length || !B.skills.length) {
-                return { winner: 'draw', turns: 0, hpA: 1, hpB: 1, log: ['⚠️ ฝ่ายใดฝ่ายหนึ่งยังไม่ได้ตั้งค่าสกิล — จำลองไม่ได้'] };
-            }
-            log.push(`🥊 ${A.name} (SPD ${Math.round(A.spd)}) vs ${B.name} (SPD ${Math.round(B.spd)})`);
-
-            // เร็วกว่าได้ตีก่อน เท่ากันตัดสินด้วยสุ่ม
-            let aFirst = A.spd !== B.spd ? A.spd > B.spd : rand() < 0.5;
-            let turn = 0;
-            while (turn < cfg.maxTurns && A.hp > 0 && B.hp > 0) {
-                turn++;
-                log.push(`— เทิร์น ${turn} —`);
-                const order = aFirst ? [[A, B], [B, A]] : [[B, A], [A, B]];
-                for (const [att, def] of order) {
-                    if (att.hp <= 0 || def.hp <= 0) continue;
-                    simStartTurn(att, log);
-                    if (att.hp <= 0) { simEndTurn(att); break; }
-
-                    if (simIsStunned(att)) {
-                        const cc = att.statuses.filter(s => s.kind === 'cc').map(s => s.name).join('/');
-                        log.push(`   💤 ${att.name} ติด ${cc} — ข้ามเทิร์น`);
-                    } else {
-                        const pick = simChooseSkill(att, cfg);
-                        if (!pick.skill) log.push(`   ⏳ ${att.name} ไม่มีสกิลให้ใช้`);
-                        else if (pick.isNormal) {
-                            // ตีปกติ → เดินประตูสกิลถอยหลัง 1 เทิร์น
-                            const left = Math.max(0, att.skillGate - 1);
-                            simUseSkill(att, def, pick.skill, cfg, rand, log);
-                            att.skillGate = left;
-                            if (left > 0) log.push(`   ⏳ ${att.name} ออกสกิลได้อีกใน ${left} เทิร์น`);
-                        } else {
-                            pick.skill.cdLeft = pick.skill.cooldown;
-                            att.skillGate = Math.max(0, parseInt(cfg.skillGateTurns) || 0);
-                            simUseSkill(att, def, pick.skill, cfg, rand, log);
-                            if (att.skillGate > 0) log.push(`   ⏳ ${att.name} ต้องตีปกติ ${att.skillGate} เทิร์นก่อนออกสกิลอีก`);
-                        }
-                    }
-
-                    simEndTurn(att);
-                    if (def.hp <= 0) { log.push(`☠️ ${def.name} ตาย`); break; }
-                }
-            }
-
-            const pA = A.hp / A.maxHp, pB = B.hp / B.maxHp;
-            let winner = 'draw';
-            if (A.hp <= 0 && B.hp > 0) winner = 'B';
-            else if (B.hp <= 0 && A.hp > 0) winner = 'A';
-            else if (Math.abs(pA - pB) > 0.05) winner = pA > pB ? 'A' : 'B'; // ครบเทิร์น → ใครเหลือ HP % มากกว่า
-            log.push(`🏁 จบที่เทิร์น ${turn} — ${A.name} ${Math.round(pA * 100)}% · ${B.name} ${Math.round(pB * 100)}%`);
-            return { winner, turns: turn, hpA: pA, hpB: pB, log };
+            return simTeamBattle([heroA], [heroB], cfg, seed);
         }
 
         // ---------- UI ----------
+        let simTab = 'matrix';   // matrix = ตารางแพ้ทาง, counter = หาตัวแก้
+
         function renderBattleSim() {
             simLoadCfg();
             simRenderSettings();
             simRenderBody();
+            simRenderCounter();
+            simApplyTab();
+        }
+
+        function simSetTab(tab) {
+            simTab = (tab === 'counter') ? 'counter' : 'matrix';
+            simApplyTab();
+        }
+
+        function simApplyTab() {
+            const onCls = ['bg-indigo-600', 'text-white'];
+            const offCls = ['text-gray-400', 'hover:text-white'];
+            const body = document.getElementById('sim-body');
+            const counter = document.getElementById('sim-counter');
+            const actions = document.getElementById('sim-matrix-actions');
+            const tabM = document.getElementById('sim-tab-matrix');
+            const tabC = document.getElementById('sim-tab-counter');
+            const isCounter = simTab === 'counter';
+            if (body) body.classList.toggle('hidden', isCounter);
+            if (counter) counter.classList.toggle('hidden', !isCounter);
+            if (actions) actions.classList.toggle('hidden', isCounter);
+            if (tabM) { onCls.forEach(c => tabM.classList.toggle(c, !isCounter)); offCls.forEach(c => tabM.classList.toggle(c, isCounter)); }
+            if (tabC) { onCls.forEach(c => tabC.classList.toggle(c, isCounter)); offCls.forEach(c => tabC.classList.toggle(c, !isCounter)); }
         }
 
         function simToggleSettings() {
@@ -20701,10 +20717,15 @@
             ccFloor: ['โอกาสติดต่ำสุด %', 'กันไม่ให้ต้านทานสูงจนติดไม่ได้เลย'],
             ccCeil: ['โอกาสติดสูงสุด %', 'กันไม่ให้ 100% เสมอ'],
             skillGateTurns: ['ตีปกติกี่เทิร์นก่อนออกสกิลอีก', 'กฎเกม: เทิร์นแรกออกได้เลย · ออกแล้วต้องตีปกติเท่านี้ก่อน'],
-            maxTurns: ['เทิร์นสูงสุด', 'เกินนี้ตัดสินด้วย % HP ที่เหลือ'],
+            maxTurns: ['เทิร์นสูงสุด (เพดานกัน)', 'ปกติจบด้วยเวลาก่อน — นับทีละ action: 0=สกิล 1=ตีปกติ 2=สกิล...'],
+            secPerTurn: ['วินาทีต่อเทิร์น', '1 action กินเวลากี่วินาที — ใช้แปลงเวลาจำกัดเป็นจำนวนเทิร์น'],
+            timeLimitSmall: ['เวลาจำกัด 1v1/3v3 (วิ)', '150 = 2:30 นาที'],
+            timeLimitBig: ['เวลาจำกัด 5v5 (วิ)', '300 = 5:00 นาที'],
             runs: ['จำลองกี่รอบต่อคู่', 'เลขคี่ ตัดสินด้วยเสียงข้างมาก'],
             blueStar: ['ดาวฟ้า', 'ระดับที่ใช้คำนวณทุกตัว'],
-            redStar: ['ดาวแดง', 'ระดับที่ใช้คำนวณทุกตัว']
+            redStar: ['ดาวแดง', 'ระดับที่ใช้คำนวณทุกตัว'],
+            cfCandidates: ['หาตัวแก้: คัดผู้สมัคร', 'รอบ 1v1 คัดกี่ตัวมาจับเป็นทีม — ยิ่งมากยิ่งครบแต่ช้ากว่ามาก'],
+            cfTeamRuns: ['หาตัวแก้: รอบต่อทีม', 'จำลองกี่รอบต่อทีมผู้ท้าชิง 1 ชุด']
         };
 
         function simRenderSettings() {
@@ -20795,6 +20816,14 @@
                 <div id="sim-log" class="mt-5"></div>`;
         }
 
+        function simCloseLog() {
+            const row = document.getElementById('sim-log-row');
+            if (row && row.parentNode) row.parentNode.removeChild(row);
+            const box = document.getElementById('sim-log');
+            if (box) box.innerHTML = '';
+            simLogPair = null;
+        }
+
         function simRunMatrix() {
             simLoadCfg();
             const picked = simPickedIds.map(id => heroesDB.find(h => String(h.id) === String(id))).filter(Boolean);
@@ -20835,7 +20864,7 @@
                             class="w-full border rounded-lg py-2 text-xs font-black hover:brightness-125 transition ${c}">${r.rate}%</button>
                     </td>`;
                 }).join('');
-                return `<tr>
+                return `<tr id="sim-row-${a.id}">
                     <th class="cc-sticky-col p-2 text-left">
                         <div class="flex items-center gap-2">
                             <img src="${a.img || ''}" class="w-10 h-10 rounded-lg border-2 border-gray-700 object-cover bg-black flex-shrink-0">
@@ -20859,9 +20888,81 @@
                 </div>`;
         }
 
+        /**
+         * 📜 แปลง log ดิบ → การ์ดแยกรายเทิร์น
+         *    บรรทัด "— เทิร์น N (...) —" คือหัวเทิร์น · บรรทัดก่อนเทิร์นแรกเป็นหัวเรื่อง (SPD/คิว)
+         */
+        function simGroupLogByTurn(lines) {
+            const head = [];
+            const turns = [];
+            let cur = null;
+            (lines || []).forEach(raw => {
+                const line = String(raw);
+                const m = line.match(/^\s*—\s*เทิร์น\s+(\d+)\s*(?:\(([^)]*)\))?/);
+                if (m) {
+                    cur = { no: m[1], tag: m[2] || '', lines: [] };
+                    turns.push(cur);
+                    return;
+                }
+                (cur ? cur.lines : head).push(line);
+            });
+            return { head, turns };
+        }
+
+        // สีของบรรทัดตามชนิดเหตุการณ์
+        function simLogLineClass(line) {
+            if (line.indexOf('☠️') >= 0) return 'text-red-400 font-bold';
+            if (line.indexOf('❤️') >= 0) return 'text-pink-300 font-bold';
+            if (line.indexOf('🎲') >= 0) return 'text-indigo-300';
+            if (line.indexOf('👊') >= 0) return 'text-gray-400';
+            if (line.indexOf('⚔️') >= 0 || line.indexOf('💥') >= 0) return 'text-amber-300';
+            if (line.indexOf('💚') >= 0 || line.indexOf('🧊') >= 0) return 'text-emerald-300';
+            if (line.indexOf('❄️') >= 0 || line.indexOf('💤') >= 0) return 'text-sky-300';
+            if (line.indexOf('🔥') >= 0) return 'text-orange-300';
+            if (line.indexOf('↯') >= 0) return 'text-gray-600';
+            return 'text-gray-300';
+        }
+
+        /** log ทั้งก้อน → HTML แยกเป็นการ์ดรายเทิร์น */
+        function simLogHTML(lines) {
+            const g = simGroupLogByTurn(lines);
+            const headHTML = g.head.length
+                ? `<div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 mb-3 flex flex-col gap-1">
+                        ${g.head.map(l => `<div class="text-[11px] ${simLogLineClass(l)}">${ccEsc(l)}</div>`).join('')}
+                   </div>`
+                : '';
+            const turnsHTML = g.turns.map(t => `
+                <div class="bg-[#0d1117] border border-gray-800 rounded-xl overflow-hidden">
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-[#161b22] border-b border-gray-800">
+                        <span class="text-[10px] font-black text-white bg-indigo-600 rounded-md px-2 py-0.5">เทิร์น ${ccEsc(t.no)}</span>
+                        ${t.tag ? `<span class="text-[10px] text-gray-500 font-bold">${ccEsc(t.tag)}</span>` : ''}
+                    </div>
+                    <div class="p-2.5 flex flex-col gap-1">
+                        ${t.lines.map(l => `<div class="text-[11px] leading-relaxed break-words ${simLogLineClass(l)}">${ccEsc(l.replace(/^\s+/, ''))}</div>`).join('') || '<div class="text-[11px] text-gray-600 italic">—</div>'}
+                    </div>
+                </div>`).join('');
+            return `${headHTML}<div class="flex flex-col gap-2">${turnsHTML}</div>`;
+        }
+
         function simShowLog(aId, bId) {
-            const box = document.getElementById('sim-log');
-            if (!box || !simMatrix) return;
+            if (!simMatrix) return;
+            // 📌 วางกล่อง log ไว้ "ใต้แถวของตัวที่กด" ไม่ต้องเลื่อนลงไปท้ายหน้า
+            const row = document.getElementById('sim-row-' + aId);
+            let box = document.getElementById('sim-log-row');
+            if (row && row.parentNode) {
+                if (!box) {
+                    box = document.createElement('tr');
+                    box.id = 'sim-log-row';
+                    box.innerHTML = '<td id="sim-log-cell" class="p-0"></td>';
+                }
+                const cell = box.querySelector('td');
+                if (cell) cell.colSpan = Math.max(2, simMatrix.ids.length + 1);
+                row.parentNode.insertBefore(box, row.nextSibling);
+                box = box.querySelector('td');
+            } else {
+                box = document.getElementById('sim-log');
+            }
+            if (!box) return;
             const r = simMatrix.cells[aId + '|' + bId];
             const a = heroesDB.find(h => String(h.id) === String(aId));
             const b = heroesDB.find(h => String(h.id) === String(bId));
@@ -20869,7 +20970,7 @@
             simLogPair = aId + '|' + bId;
 
             box.innerHTML = `
-                <div class="bg-[#161b22] border border-indigo-700/50 rounded-2xl p-4 shadow-xl">
+                <div class="bg-[#161b22] border border-indigo-700/50 rounded-2xl p-4 shadow-xl m-2">
                     <div class="flex flex-wrap items-center gap-3 mb-3 pb-3 border-b border-gray-800">
                         <img src="${a.img || ''}" class="w-12 h-12 rounded-lg border-2 border-emerald-600 object-cover bg-black">
                         <span class="text-sm font-black text-white">${ccEsc(a.name)}</span>
@@ -20877,12 +20978,11 @@
                         <img src="${b.img || ''}" class="w-12 h-12 rounded-lg border-2 border-red-600 object-cover bg-black">
                         <span class="text-sm font-black text-white">${ccEsc(b.name)}</span>
                         <span class="ml-auto text-xs text-gray-400">ชนะ <b class="text-emerald-400">${r.winA}</b> / แพ้ <b class="text-red-400">${r.winB}</b> / เสมอ ${r.draw} · เฉลี่ย ${r.avgTurns} เทิร์น</span>
-                        <button onclick="document.getElementById('sim-log').innerHTML=''" class="text-gray-500 hover:text-white text-lg">✕</button>
+                        <button onclick="simCloseLog()" class="text-gray-500 hover:text-white text-lg">✕</button>
                     </div>
                     <div class="text-[11px] text-gray-500 mb-2">log ของรอบแรก (seed คงที่ — รันซ้ำได้ผลเดิม)</div>
-                    <pre class="text-[11px] text-gray-300 leading-relaxed whitespace-pre-wrap font-mono bg-[#0d1117] border border-gray-800 rounded-xl p-3 max-h-[420px] overflow-y-auto custom-scroll">${ccEsc(r.sample.log.join('\n'))}</pre>
+                    ${simLogHTML(r.sample.log)}
                 </div>`;
-            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         // ---------- ตัวเลือกฮีโร่ ----------
@@ -20984,6 +21084,513 @@
             }
             const rate = runs ? Math.round((winA / runs) * 100) : 0;
             return { winA, winB, draw, runs, rate, avgTurns: Math.round(turnSum / runs), sample };
+        }
+
+        // =========================================================
+        // 👥 BATTLE SIMULATOR — โหมดทีม (NvN)
+        //   กติกาที่ใช้ (ตามที่เจ้าของโปรเจกต์ระบุ):
+        //   • ลำดับตาเรียงตาม SPD ของทุกตัวในสนาม (มากไปน้อย) — SPD อันดับ 1 ทำให้ทีมตัวเองได้เริ่มก่อน
+        //   • พอถึงตาของทีมไหน → สุ่ม 1 สกิลจาก "สกิลทั้งทีมที่ไม่ติดคูลดาวน์"
+        //     เจ้าของสกิลใบนั้นเป็นคนออก ไม่ว่าคิวจะเป็นของใครอยู่
+        //   • ไม่มีสกิลว่างเลย → ตัวที่ถึงคิวตีปกติ
+        //   • เลือกเป้า: มีโอกาสเท่ากับค่า "จุดอ่อน" ของผู้ตี → ตีตัวที่ HP เหลือน้อยสุด
+        //     (เสมอกันเอาตัวที่ HP เต็มน้อยกว่า) นอกนั้นสุ่มเป้า
+        // =========================================================
+
+        // เลือกเป้าตามกฎจุดอ่อน
+        function simPickTarget(att, foes, rand) {
+            const live = foes.filter(u => u.hp > 0);
+            if (!live.length) return null;
+            if (live.length === 1) return live[0];
+            if (rand() * 100 < (att.weakness || 0)) {
+                return live.slice().sort((a, b) => (a.hp - b.hp) || (a.maxHp - b.maxHp))[0];
+            }
+            return live[Math.floor(rand() * live.length)];
+        }
+
+        // เรียงตัวที่ยังไม่ตายตาม SPD มากไปน้อย
+        function simSpdOrder(team, rand) {
+            return team.filter(u => u.hp > 0).sort((a, b) => (b.spd - a.spd) || (rand() < 0.5 ? -1 : 1));
+        }
+
+        // สกิลทั้งทีมที่พร้อมใช้ (ไม่ติดคูลดาวน์ · เจ้าของยังไม่ตาย · ไม่โดน CC)
+        function simReadySkillPool(team) {
+            const pool = [];
+            team.forEach(u => {
+                if (u.hp <= 0 || simIsStunned(u)) return;
+                u.skills.forEach(sk => { if (sk.key !== 'n' && sk.cdLeft <= 0) pool.push({ u, sk }); });
+            });
+            return pool;
+        }
+
+        /**
+         * ออกสกิล 1 ใบของทีม
+         * reserve = คิวจองสกิล [{ heroId, skillKey }] — ถ้าใบที่จองพร้อมใช้จะออกใบนั้นก่อน ไม่งั้นสุ่ม
+         * จำนวนที่จองได้: ทีม 1 ตัว = 2 ใบ · ทีม 2 ตัวขึ้นไป = 3 ใบ (ตรวจที่ simNormalizeReserve)
+         */
+        function simTeamUseSkill(team, foes, cfg, rand, log, reserve) {
+            const pool = simReadySkillPool(team);
+            if (!pool.length) { log.push('   ⏳ ไม่มีสกิลพร้อมใช้ — ข้ามช่วงสกิล'); return false; }
+
+            let pick = null;
+            while (reserve && reserve.length && !pick) {
+                const want = reserve.shift();
+                pick = pool.find(x => String(x.u.id) === String(want.heroId) && x.sk.key === want.skillKey) || null;
+                if (!pick) log.push(`   ↯ สกิลที่จองไว้ยังไม่พร้อม — ข้ามคิวจอง`);
+            }
+            if (!pick) pick = pool[Math.min(pool.length - 1, Math.floor(rand() * pool.length))];
+
+            const att = pick.u, skill = pick.sk;
+            const def = simPickTarget(att, foes, rand);
+            if (!def) return false;
+            skill.cdLeft = skill.cooldown;
+            log.push(`   🎲 ${att.name} ออก ${skill.label} ใส่ ${def.name} (พร้อม ${pool.length} ใบ)`);
+            simUseSkill(att, def, skill, cfg, rand, log, team);
+            return true;
+        }
+
+        // ตีปกติ 1 ครั้งโดยตัวที่ระบุ
+        function simTeamNormalHit(unit, team, foes, cfg, rand, log) {
+            if (!unit || unit.hp <= 0) return;
+            if (simIsStunned(unit)) { log.push(`   💤 ${unit.name} ติดสถานะ — ตีปกติไม่ได้`); return; }
+            const normal = simNormalSkill(unit);
+            const def = simPickTarget(unit, foes, rand);
+            if (!normal || !def) return;
+            log.push(`   👊 ${unit.name} เข้าตีปกติใส่ ${def.name}`);
+            simUseSkill(unit, def, normal, cfg, rand, log, team);
+        }
+
+        /** จำกัดจำนวนสกิลที่จองได้: ทีม 1 ตัว = 2 ใบ · ตั้งแต่ 2 ตัวขึ้นไป = 3 ใบ */
+        function simNormalizeReserve(reserve, teamSize) {
+            if (!Array.isArray(reserve) || !reserve.length) return [];
+            const cap = teamSize <= 1 ? 2 : 3;
+            return reserve.slice(0, cap).map(r => ({ heroId: String(r.heroId), skillKey: String(r.skillKey) }));
+        }
+
+        /**
+         * จำลองทีมปะทะทีม → { winner:'A'|'B'|'draw', turns, hpA, hpB, log }
+         *
+         * โครงเทิร์น (ตามกติกาเกม):
+         *   • SPD "รวมทั้งทีม" มากกว่า = ทีมนั้นได้ออกสกิลก่อน · เท่ากันเป่ายิงฉุบ
+         *   • คิวตีปกติเป็น "คิวรวมทั้งสนาม" เรียงตาม SPD รายตัวข้ามทีม (มากไปน้อย)
+         *     เท่ากันเป่ายิงฉุบ · หมดคิวแล้ววนใหม่
+         *   • นับเทิร์นเริ่มที่ 0 — เทิร์นเลขคู่ = ใช้สกิล "แล้วตีปกติต่อในเทิร์นเดียวกัน"
+         *     เทิร์นเลขคี่ = ตีปกติอย่างเดียว · ฝั่งที่ออกสกิลสลับกันทุกเทิร์นคู่
+         *   • จบด้วยเวลา: 1v1/3v3 = timeLimitSmall · 5v5 = timeLimitBig (แปลงเป็นเทิร์นด้วย secPerTurn)
+         *   • opts.reserveA / opts.reserveB = คิวจองสกิล [{heroId, skillKey}] (ไม่ใส่ = สุ่ม)
+         */
+        function simTeamBattle(heroesA, heroesB, cfg, seed, opts) {
+            const rand = simRng(seed || 1);
+            const A = heroesA.map(h => simMakeUnit(h, cfg)).filter(Boolean);
+            const B = heroesB.map(h => simMakeUnit(h, cfg)).filter(Boolean);
+            const log = [];
+            const bad = A.some(u => !u.skills.length) || B.some(u => !u.skills.length);
+            if (!A.length || !B.length || bad) {
+                return { winner: 'draw', turns: 0, hpA: 1, hpB: 1, log: ['⚠️ มีตัวที่ยังไม่ได้ตั้งค่าสกิล — จำลองไม่ได้'] };
+            }
+
+            const o = opts || {};
+            const reserve = {
+                A: simNormalizeReserve(o.reserveA, A.length),
+                B: simNormalizeReserve(o.reserveB, B.length)
+            };
+
+            log.push(`🥊 ${A.map(u => u.name).join(' + ')}  vs  ${B.map(u => u.name).join(' + ')}`);
+            // 📋 สเตตัสที่คำนวณได้จริง — ไว้เช็คว่าทำไมคริบ่อย/ดาเมจแปลก
+            A.concat(B).forEach(u => {
+                log.push(`📋 ${u.name}: HP ${Math.round(u.maxHp)} · ATK ${Math.round(u.atk)} · DEF ${Math.round(u.def)} · SPD ${Math.round(u.spd)} · คริ ${Math.round(u.critRate)}% (แรง ${Math.round(u.critDmg)}%) · จุดอ่อน ${Math.round(u.weakness)}% · บล็อก ${Math.round(u.block)}%`);
+            });
+
+            // 1) SPD รวมทีม ตัดสินว่าใครเริ่มก่อน — เท่ากันเป่ายิงฉุบ
+            const spdA = A.reduce((a, u) => a + u.spd, 0);
+            const spdB = B.reduce((a, u) => a + u.spd, 0);
+            let side = spdA !== spdB ? (spdA > spdB ? 'A' : 'B') : (rand() < 0.5 ? 'A' : 'B');
+            log.push(`⚡ SPD รวม — ฝ่ายเรา ${Math.round(spdA)} · ศัตรู ${Math.round(spdB)} → ${side === 'A' ? 'ฝ่ายเรา' : 'ศัตรู'} เริ่มก่อน${spdA === spdB ? ' (เป่ายิงฉุบ)' : ''}`);
+
+            const alive = arr => arr.filter(u => u.hp > 0);
+            const hpSum = arr => {
+                const max = arr.reduce((a, u) => a + u.maxHp, 0);
+                return max > 0 ? arr.reduce((a, u) => a + u.hp, 0) / max : 0;
+            };
+            const markDead = arr => arr.forEach(u => {
+                if (u.hp > 0 || u._dead) return;
+                u._dead = true;
+                log.push(`☠️ ${u.name} ตาย`);
+                dropFromQueue(u);
+                // ❤️ พาสซีฟคืนชีพ — ฟื้นทันที แล้วไปต่อท้ายคิวเสมอ
+                if (u.revive && u.revive.left > 0) {
+                    u.revive.left -= 1;
+                    u._dead = false;
+                    u.hp = Math.max(1, Math.round(u.maxHp * u.revive.pct / 100));
+                    u.statuses = [];
+                    u.shield = 0;
+                    queue.push(u);
+                    log.push(`❤️ ${u.name} คืนชีพ ${u.revive.pct}% (${Math.round(u.hp)}/${Math.round(u.maxHp)}) — ต่อท้ายคิว`);
+                }
+            });
+
+            // ⏱️ เวลาจำกัดตามขนาดทีม → แปลงเป็นจำนวนเทิร์น (1 เทิร์น = 1 action)
+            const teamSize = Math.max(A.length, B.length);
+            const timeLimit = teamSize >= 5 ? (parseFloat(cfg.timeLimitBig) || 300) : (parseFloat(cfg.timeLimitSmall) || 150);
+            const secPerTurn = Math.max(0.1, parseFloat(cfg.secPerTurn) || 4);
+            const turnsByTime = Math.max(1, Math.floor(timeLimit / secPerTurn));
+            const turnCap = Math.min(parseInt(cfg.maxTurns) || 300, turnsByTime);
+            const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+            log.push(`⏱️ เวลาจำกัด ${mmss(timeLimit)} · ${secPerTurn} วิ/เทิร์น → สูงสุด ${turnsByTime} เทิร์น`);
+
+            let turn = 0;
+
+            // 🏃 คิวตีปกติรวมทั้งสนาม — เรียง SPD รายตัวข้ามทีม
+            //    SPD เท่ากัน → ฝั่งที่ได้เปิดก่อน (ชนะ SPD รวม/เป่ายิงฉุบไปแล้ว) ได้ตีก่อน
+            //    ไม่เป่ายิงฉุบซ้ำอีกรอบ — เช่น 1v1 ตัวที่เปิดสกิลก่อนย่อมได้ตีปกติในเทิร์นนั้นด้วย
+            //    ตีเสร็จ → ไปต่อท้ายคิว · ตาย → หลุดออกจากคิว · คืนชีพ → ต่อท้ายคิวเสมอ
+            const openerRank = u => ((A.indexOf(u) >= 0 ? 'A' : 'B') === side ? 0 : 1);
+            let queue = A.concat(B).filter(u => u.hp > 0)
+                .sort((a, b) => (b.spd - a.spd) || (openerRank(a) - openerRank(b)) || (rand() < 0.5 ? -1 : 1));
+            const dropFromQueue = u => { const i = queue.indexOf(u); if (i >= 0) queue.splice(i, 1); };
+            const nextHitter = () => {
+                while (queue.length) {
+                    const u = queue.shift();
+                    if (u.hp > 0) { queue.push(u); return u; }   // ตีเสร็จไปต่อท้าย
+                }
+                return null;
+            };
+            log.push(`🏃 คิวตีปกติ (SPD รายตัว): ${queue.map(u => `${u.name} ${Math.round(u.spd)}`).join(' → ')}`);
+
+            while (turn < turnCap && alive(A).length && alive(B).length) {
+                const isSkillTurn = (turn % 2 === 0);   // เลขคู่ = สกิล · เลขคี่ = ตีปกติ
+
+                // เข้าตีปกติ 1 ครั้งตามคิว SPD รวมทั้งสนาม
+                const doNormalHit = () => {
+                    const hitter = nextHitter();
+                    if (!hitter) { log.push('   ⚠️ ไม่มีตัวเข้าตี'); return; }
+                    const hTeam = A.indexOf(hitter) >= 0 ? A : B;
+                    const hFoes = hTeam === A ? B : A;
+                    simTeamNormalHit(hitter, hTeam, hFoes, cfg, rand, log);
+                    markDead(A); markDead(B);
+                };
+
+                if (isSkillTurn) {
+                    const team = side === 'A' ? A : B;
+                    const foes = side === 'A' ? B : A;
+                    const tag = side === 'A' ? 'ฝ่ายเรา' : 'ศัตรู';
+                    log.push(`— เทิร์น ${turn} (สกิล: ${tag} + ตีปกติ) —`);
+
+                    // ต้นตาของทีมนี้: DoT กัด + ลดคูลดาวน์
+                    team.forEach(u => { if (u.hp > 0) simStartTurn(u, log); });
+                    simTeamUseSkill(team, foes, cfg, rand, log, reserve[side]);
+                    markDead(A); markDead(B);
+
+                    // ออกสกิลแล้วเข้าตีปกติต่อในเทิร์นเดียวกัน
+                    if (alive(A).length && alive(B).length) doNormalHit();
+                    team.forEach(u => { if (u.hp > 0) simEndTurn(u); });
+
+                    side = side === 'A' ? 'B' : 'A';   // ตาสกิลถัดไปเป็นของอีกฝั่ง
+                } else {
+                    log.push(`— เทิร์น ${turn} (ตีปกติ) —`);
+                    doNormalHit();
+                }
+                turn++;
+            }
+
+            const pA = hpSum(A), pB = hpSum(B);
+            let winner = 'draw';
+            if (!alive(A).length && alive(B).length) winner = 'B';
+            else if (!alive(B).length && alive(A).length) winner = 'A';
+            else if (Math.abs(pA - pB) > 0.05) winner = pA > pB ? 'A' : 'B';
+            const usedSec = turn * secPerTurn;
+            const endWhy = (turn >= turnCap) ? 'หมดเวลา' : 'ล้มทีมได้';
+            log.push(`🏁 จบที่เทิร์น ${turn} (≈ ${mmss(usedSec)}) · ${endWhy} — ฝ่ายเรา ${Math.round(pA * 100)}% · ศัตรู ${Math.round(pB * 100)}%`);
+            return { winner, turns: turn, hpA: pA, hpB: pB, log };
+        }
+
+        /** รันทีมเดิมหลายรอบ → % ชนะ */
+        function simRunTeamPair(heroesA, heroesB, cfg, runs, opts) {
+            const n = Math.max(1, parseInt(runs) || 1);
+            let winA = 0, turnSum = 0, hpSum = 0, sample = null;
+            for (let i = 0; i < n; i++) {
+                // คิวจองถูก shift ทิ้งระหว่างสู้ — ต้อง clone ใหม่ทุกรอบ
+                const perRun = opts ? {
+                    reserveA: (opts.reserveA || []).map(x => ({ heroId: x.heroId, skillKey: x.skillKey })),
+                    reserveB: (opts.reserveB || []).map(x => ({ heroId: x.heroId, skillKey: x.skillKey }))
+                } : undefined;
+                const r = simTeamBattle(heroesA, heroesB, cfg, 500 + i * 6151, perRun);
+                if (r.winner === 'A') winA++;
+                turnSum += r.turns; hpSum += r.hpA;
+                if (i === 0) sample = r;
+            }
+            return { runs: n, winA, rate: Math.round((winA / n) * 100), avgTurns: Math.round(turnSum / n), avgHp: hpSum / n, sample };
+        }
+
+        // =========================================================
+        // 🎯 หาตัวแก้ (Counter Finder) — 1v1 / 3v3 / 5v5
+        // =========================================================
+        let cfMode = 1;                       // 1 | 3 | 5 = จำนวนตัวต่อทีม
+        let cfEnemy = [null, null, null, null, null];
+        let cfResult = null;                  // { mode, list:[...] }
+        let cfBusy = false;
+        let cfPickSlot = -1;
+
+        function cfHeroById(id) { return heroesDB.find(h => String(h.id) === String(id)) || null; }
+
+        // ฮีโร่ที่ตั้งค่าสกิลไว้แล้วเท่านั้นถึงจำลองได้
+        function cfPlayableHeroes() {
+            return heroesDB.filter(h => h && h.skillData && Object.keys(h.skillData).some(k => {
+                const c = h.skillData[k];
+                return c && ((Array.isArray(c.scales) && c.scales.length) || (Array.isArray(c.effects) && c.effects.length) || c.percent);
+            }));
+        }
+
+        function cfEnemyHeroes() {
+            return cfEnemy.slice(0, cfMode).map(cfHeroById).filter(Boolean);
+        }
+
+        function cfSetMode(m) {
+            cfMode = parseInt(m) || 1;
+            cfResult = null;
+            simRenderCounter();
+        }
+
+        function cfClearEnemy() { cfEnemy = [null, null, null, null, null]; cfResult = null; simRenderCounter(); }
+        function cfClearSlot(i) { cfEnemy[i] = null; cfResult = null; simRenderCounter(); }
+
+        // ---- คิวงานแบบแบ่งก้อน กันหน้าเว็บค้าง ----
+        function cfYield() { return new Promise(r => setTimeout(r, 0)); }
+        function cfSetProgress(done, total, text) {
+            const bar = document.getElementById('cf-progress-bar');
+            const lbl = document.getElementById('cf-progress-text');
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            if (bar) bar.style.width = pct + '%';
+            if (lbl) lbl.textContent = `${text} ${done}/${total} (${pct}%)`;
+        }
+
+        // ทุกชุดย่อยขนาด k จากรายการ (combination)
+        function cfCombos(arr, k) {
+            const out = [];
+            const pick = (start, cur) => {
+                if (cur.length === k) { out.push(cur.slice()); return; }
+                for (let i = start; i < arr.length; i++) { cur.push(arr[i]); pick(i + 1, cur); cur.pop(); }
+            };
+            pick(0, []);
+            return out;
+        }
+
+        async function cfRun() {
+            if (cfBusy) return;
+            simLoadCfg();
+            const foes = cfEnemyHeroes();
+            if (foes.length !== cfMode) { alert(`เลือกศัตรูให้ครบ ${cfMode} ตัวก่อน`); return; }
+
+            const pool = cfPlayableHeroes();
+            if (!pool.length) { alert('ยังไม่มีฮีโร่ที่ตั้งค่าสกิลไว้'); return; }
+
+            cfBusy = true; cfResult = null;
+            simRenderCounter();
+
+            try {
+                if (cfMode === 1) {
+                    // ---- โหมด 1v1: ไล่ทุกตัวชนศัตรูตัวเดียว ----
+                    const target = foes[0];
+                    const list = [];
+                    for (let i = 0; i < pool.length; i++) {
+                        const h = pool[i];
+                        if (String(h.id) === String(target.id)) { cfSetProgress(i + 1, pool.length, 'จำลอง'); continue; }
+                        const r = simRunPair(h, target, simCfg);
+                        list.push({ heroes: [h], rate: r.rate, avgTurns: r.avgTurns, runs: r.runs });
+                        if (i % 10 === 0) { cfSetProgress(i + 1, pool.length, 'จำลอง'); await cfYield(); }
+                    }
+                    cfSetProgress(pool.length, pool.length, 'จำลอง');
+                    list.sort((a, b) => b.rate - a.rate || a.avgTurns - b.avgTurns);
+                    cfResult = { mode: 1, poolSize: pool.length, list: list.slice(0, 30) };
+                } else {
+                    // ---- โหมดทีม: รอบคัดตัว (1v1 เจอศัตรูทุกตัว) → จับทีมจากตัวที่ผ่านเข้ารอบ ----
+                    const scored = [];
+                    for (let i = 0; i < pool.length; i++) {
+                        const h = pool[i];
+                        if (foes.some(f => String(f.id) === String(h.id))) { continue; }
+                        let sum = 0;
+                        foes.forEach(f => { sum += simRunPair(h, f, Object.assign({}, simCfg, { runs: 3 })).rate; });
+                        scored.push({ h, score: sum / foes.length });
+                        if (i % 10 === 0) { cfSetProgress(i + 1, pool.length, 'รอบคัดตัว'); await cfYield(); }
+                    }
+                    cfSetProgress(pool.length, pool.length, 'รอบคัดตัว');
+                    scored.sort((a, b) => b.score - a.score);
+
+                    const k = Math.max(cfMode, Math.min(scored.length, parseInt(simCfg.cfCandidates) || 12));
+                    const cands = scored.slice(0, k).map(x => x.h);
+                    const combos = cfCombos(cands, cfMode);
+
+                    const list = [];
+                    for (let i = 0; i < combos.length; i++) {
+                        const r = simRunTeamPair(combos[i], foes, simCfg, simCfg.cfTeamRuns);
+                        list.push({ heroes: combos[i], rate: r.rate, avgTurns: r.avgTurns, avgHp: r.avgHp, runs: r.runs });
+                        if (i % 5 === 0) { cfSetProgress(i + 1, combos.length, 'จับทีม'); await cfYield(); }
+                    }
+                    cfSetProgress(combos.length, combos.length, 'จับทีม');
+                    list.sort((a, b) => b.rate - a.rate || b.avgHp - a.avgHp);
+                    cfResult = { mode: cfMode, poolSize: pool.length, candCount: cands.length, comboCount: combos.length, list: list.slice(0, 10) };
+                }
+            } catch (err) {
+                console.error('❌ counter finder error:', err);
+                alert('❌ หาตัวแก้ไม่สำเร็จ: ' + err.message);
+            } finally {
+                cfBusy = false;
+                simRenderCounter();
+            }
+        }
+
+        // ดู log ของผลลัพธ์แถวหนึ่ง
+        function cfShowLog(idx) {
+            if (!cfResult || !cfResult.list[idx]) return;
+            simLoadCfg();
+            const row = cfResult.list[idx];
+            const foes = cfEnemyHeroes();
+            const r = (cfResult.mode === 1)
+                ? simulateBattle(row.heroes[0], foes[0], simCfg, 1000)
+                : simTeamBattle(row.heroes, foes, simCfg, 500);
+            // 📌 วางใต้แถวที่กดเลย
+            const box = document.getElementById('cf-log-' + idx);
+            document.querySelectorAll('[id^="cf-log-"]').forEach(el => { if (el !== box) el.innerHTML = ''; });
+            if (!box) return;
+            box.innerHTML = `
+                <div class="bg-[#0b0e14] border border-indigo-700/50 rounded-2xl p-4 mt-2">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-black text-white">📜 log — ${row.heroes.map(h => ccEsc(h.name)).join(' + ')} vs ${foes.map(h => ccEsc(h.name)).join(' + ')}</h4>
+                        <button onclick="document.getElementById('cf-log-${idx}').innerHTML=''" class="text-gray-500 hover:text-white text-xs">ปิด</button>
+                    </div>
+                    ${simLogHTML(r.log)}
+                </div>`;
+        }
+
+        // ---- UI หาตัวแก้ ----
+        function simRenderCounter() {
+            const box = document.getElementById('sim-counter');
+            if (!box) return;
+            simLoadCfg();
+
+            const modeBtn = (m, label) => `<button onclick="cfSetMode(${m})" class="px-4 py-2 rounded-xl text-xs font-black border transition ${cfMode === m ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white'}">${label}</button>`;
+
+            const slots = [];
+            for (let i = 0; i < cfMode; i++) {
+                const h = cfHeroById(cfEnemy[i]);
+                slots.push(h
+                    ? `<div class="relative">
+                            <img src="${h.img || ''}" title="${ccEsc(h.name)}" onclick="cfOpenPicker(${i})" class="w-16 h-16 rounded-xl border-2 border-red-600 object-cover bg-black cursor-pointer">
+                            <button onclick="cfClearSlot(${i})" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold">✕</button>
+                            <div class="text-[10px] text-gray-400 text-center truncate w-16 mt-1">${ccEsc(h.name)}</div>
+                        </div>`
+                    : `<button onclick="cfOpenPicker(${i})" class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-700 text-gray-600 hover:border-red-500 hover:text-red-400 text-2xl transition">+</button>`);
+            }
+
+            const progress = cfBusy ? `
+                <div class="mt-4">
+                    <div class="h-2 bg-gray-800 rounded-full overflow-hidden"><div id="cf-progress-bar" class="h-full bg-indigo-500 transition-all" style="width:0%"></div></div>
+                    <div id="cf-progress-text" class="text-[11px] text-gray-500 mt-1">กำลังคำนวณ...</div>
+                </div>` : '';
+
+            let resultHTML = '';
+            if (cfResult && cfResult.list.length) {
+                const rows = cfResult.list.map((row, idx) => {
+                    const imgs = row.heroes.map(h => `<img src="${h.img || ''}" title="${ccEsc(h.name)}" class="w-11 h-11 rounded-lg border-2 border-gray-700 object-cover bg-black">`).join('');
+                    const names = row.heroes.map(h => ccEsc(h.name)).join(' + ');
+                    const c = row.rate >= 70 ? 'text-emerald-300' : row.rate >= 55 ? 'text-emerald-400/90' : row.rate <= 30 ? 'text-red-300' : row.rate <= 45 ? 'text-red-400/90' : 'text-gray-400';
+                    return `
+                        <button onclick="cfShowLog(${idx})" class="w-full text-left bg-[#161b22] hover:bg-[#1c2430] border border-gray-800 rounded-xl p-3 flex items-center gap-3 transition">
+                            <span class="text-xs font-black text-gray-600 w-6 text-center flex-shrink-0">${idx + 1}</span>
+                            <div class="flex gap-1.5 flex-shrink-0">${imgs}</div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-bold text-gray-200 truncate">${names}</div>
+                                <div class="text-[10px] text-gray-500">เฉลี่ย ${row.avgTurns} เทิร์น · ${row.runs} รอบ</div>
+                            </div>
+                            <span class="text-lg font-black ${c} flex-shrink-0">${row.rate}%</span>
+                        </button>
+                        <div id="cf-log-${idx}"></div>`;
+                }).join('');
+
+                const meta = cfResult.mode === 1
+                    ? `ไล่ครบ ${cfResult.poolSize} ตัว — แสดง ${cfResult.list.length} อันดับแรก`
+                    : `คัด ${cfResult.candCount} ตัวจาก ${cfResult.poolSize} → จับได้ ${cfResult.comboCount} ทีม — แสดง 10 อันดับแรก`;
+
+                resultHTML = `
+                    <div class="mt-5">
+                        <div class="text-[11px] text-gray-500 mb-2">${meta}</div>
+                        <div class="flex flex-col gap-2">${rows}</div>
+                    </div>`;
+            } else if (cfResult) {
+                resultHTML = '<div class="mt-5 text-xs text-gray-600 italic">ไม่พบผลลัพธ์</div>';
+            } else {
+                resultHTML = '';
+            }
+
+            box.innerHTML = `
+                <div class="bg-[#111827] border border-gray-800 rounded-2xl p-4">
+                    <div class="flex flex-wrap items-center gap-2 mb-4">
+                        <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">โหมด</span>
+                        ${modeBtn(1, '1v1')} ${modeBtn(3, '3v3')} ${modeBtn(5, '5v5')}
+                        <button onclick="cfClearEnemy()" class="ml-auto text-xs text-gray-500 hover:text-red-400 underline">ล้างศัตรู</button>
+                    </div>
+                    <div class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mb-2">🎯 ทีมศัตรูที่อยากเอาชนะ (${cfMode} ตัว)</div>
+                    <div class="flex flex-wrap items-start gap-3">${slots.join('')}</div>
+                    <button onclick="cfRun()" ${cfBusy ? 'disabled' : ''} class="mt-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl text-xs font-black transition shadow-lg">
+                        ${cfBusy ? '⏳ กำลังคำนวณ...' : '▶ หาตัวแก้'}
+                    </button>
+                    ${cfMode > 1 ? `<div class="text-[10px] text-gray-600 mt-2 leading-relaxed">คัดผู้สมัคร ${simCfg.cfCandidates} ตัวจากรอบ 1v1 ก่อน แล้วจับเป็นทีมทุกแบบ — ปรับเลขได้ที่ ⚙️ สูตรดาเมจ (ยิ่งมากยิ่งครบแต่ช้ากว่ามาก)</div>` : ''}
+                    ${progress}
+                </div>
+                ${resultHTML}`;
+        }
+
+        // ---- ตัวเลือกศัตรูของหน้าหาตัวแก้ ----
+        function cfOpenPicker(slot) {
+            cfPickSlot = slot;
+            let modal = document.getElementById('cf-hero-picker');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'cf-hero-picker';
+                modal.className = 'fixed inset-0 z-[560] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col max-h-[85vh]">
+                    <div class="p-4 border-b border-gray-800 flex items-center justify-between">
+                        <h3 class="text-white font-bold">🎯 เลือกศัตรูช่องที่ ${slot + 1}</h3>
+                        <button onclick="cfClosePicker()" class="text-gray-400 hover:text-white text-xl w-9 h-9 rounded-full hover:bg-white/10">✕</button>
+                    </div>
+                    <div class="p-3 border-b border-gray-800">
+                        <input id="cf-search" onkeyup="cfRenderPickerGrid(this.value)" placeholder="พิมพ์ชื่อฮีโร่..."
+                            class="w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded-lg text-sm outline-none focus:border-red-500">
+                    </div>
+                    <div id="cf-grid" class="p-3 overflow-y-auto custom-scroll grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2"></div>
+                </div>`;
+            modal.style.display = 'flex';
+            cfRenderPickerGrid('');
+            setTimeout(() => { const el = document.getElementById('cf-search'); if (el) el.focus(); }, 50);
+        }
+        function cfClosePicker() {
+            const m = document.getElementById('cf-hero-picker');
+            if (m) m.style.display = 'none';
+            cfPickSlot = -1;
+        }
+        function cfRenderPickerGrid(q) {
+            const grid = document.getElementById('cf-grid');
+            if (!grid) return;
+            q = (q || '').toLowerCase();
+            const list = [...heroesDB]
+                .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'th'))
+                .filter(h => !q || String(h.name || '').toLowerCase().includes(q));
+            grid.innerHTML = list.map(h => `
+                <div onclick="cfPickHero('${String(h.id).replace(/'/g, "\\'")}')" class="cursor-pointer group">
+                    <div class="aspect-square rounded-lg border border-gray-700 group-hover:border-red-500 bg-black overflow-hidden">
+                        <img src="${h.img || ''}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">
+                    </div>
+                    <div class="text-[10px] text-gray-300 text-center truncate mt-1">${ccEsc(h.name)}</div>
+                </div>`).join('') || '<div class="col-span-full text-center text-gray-600 text-xs py-8">ไม่พบฮีโร่</div>';
+        }
+        function cfPickHero(id) {
+            if (cfPickSlot >= 0 && cfPickSlot < 5) cfEnemy[cfPickSlot] = String(id);
+            cfResult = null;
+            cfClosePicker();
+            simRenderCounter();
         }
 
         // คำนวณสเตตัสสุทธิ = base + (ออฟหลัก/รอง 4 ชิ้น) + โบนัสเซต
