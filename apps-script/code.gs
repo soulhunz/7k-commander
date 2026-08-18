@@ -6,7 +6,7 @@ var VIDEO_FOLDER_ID = '1jTnrjTdNLtw9E58TB_sQ5ShELr-6uPrY'; // โฟลเดอ
 var SKILL_FOLDER_ID = '12S_ycyylGP6T3oQVLtwkoRJwUNVmM-33'; // โฟลเดอร์เก็บไอคอน/รูปสกิลของตัวละคร
 var EQUIP_FOLDER_ID = '14Ci7SczLyh1rg071_jMIP03j0DjSu5Ki'; // โฟลเดอร์เก็บรูปอุปกรณ์ (เซ็ตอุปกรณ์)
 var HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M'; // โฟลเดอร์เก็บรูปฮีโร่ (Normal/Awakening)
-var SERVER_VERSION = "6.0.6"; // Updated Version
+var SERVER_VERSION = "6.0.8"; // Updated Version
 
 // 1. ส่วนเปิดหน้าเว็บ
 function doGet(e) {
@@ -108,6 +108,21 @@ function doPost(e) {
        bumpVersion_(ss, 'teams_3v3');
        return out({ status: 'success', teams_3v3: loadFromSheet(ss, 'Teams3v3', []) });
     }
+    // 🗑️ ถังขยะทีม 3v3 — ดูรายการที่ถูกลบ / กู้คืน / ลบถาวร
+    if (action === 'getDeleted3v3Teams') {
+       return out({ status: 'success', teams: loadDeleted3v3Teams_(ss) });
+    }
+    if (action === 'restore3v3Team') {
+       var rTeam = restoreOne3v3Team(ss, request.id);
+       if (!rTeam) return out({ status: 'error', message: 'ไม่พบทีมนี้ในถังขยะ' });
+       bumpVersion_(ss, 'teams_3v3');
+       return out({ status: 'success', team: rTeam });
+    }
+    if (action === 'purge3v3Team') {
+       hardDeleteOne3v3Team(ss, request.id);
+       bumpVersion_(ss, 'teams_3v3');
+       return out({ status: 'success' });
+    }
     if (action === 'saveManyEnemyPatterns') {
        var epList = request.enemyPatterns || [];
        var epDel = request.deletedIds || [];
@@ -188,6 +203,7 @@ function doPost(e) {
         var isAdmin = request.isAdmin === true || request.isAdmin === 'true';
 
         for (var i = 1; i < data.length; i++) {
+            if (is3v3RowDeleted_(data[i][16])) continue;   // 🗑️ ข้ามทีมที่ถูกลบ (soft delete)
             if (String(data[i][0]) === String(request.teamId) && (data[i][5] === true || data[i][5] === "true")) {
                 var teamGuild = data[i][11] || 'all'; // 🟢 Guild_Name = คอลัมน์ที่ 12 (index 11); index 10 คือ LastModified
 
@@ -244,6 +260,7 @@ function doPost(e) {
                 // เช็ค Share (Index 5) - รองรับทุกกรณี
                 var shareVal = data[i][5];
                 var isShared = shareVal === true || shareVal === "true" || shareVal === "TRUE" || shareVal === "True";
+                if (is3v3RowDeleted_(data[i][16])) continue;   // 🗑️ ข้ามทีมที่ถูกลบ (soft delete)
                 
                 if (isShared) {
                     try {
@@ -1889,7 +1906,13 @@ function deleteManagerItem(ss, category, id) {
 // =========================================================
 // 🟢 3v3 Teams — upsert/delete ทีละแถว (ไม่ clear ทั้งชีต)
 // =========================================================
-var TEAMS3V3_HEADERS = ["Index", "TeamName", "TeamType", "Formation", "SkillQueue", "Share", "Enemy_Targets", "Pet_JSON", "Slots_JSON", "Note", "LastModified", "Guild_Name", "Video_JSON", "SkillQueueAlts_JSON", "NotifyEnabled", "Owner_JSON"];
+// 🗑️ Deleted/DeletedAt = soft delete — แถวยังอยู่ในชีต แต่แอปไม่อ่านขึ้นมา
+var TEAMS3V3_HEADERS = ["Index", "TeamName", "TeamType", "Formation", "SkillQueue", "Share", "Enemy_Targets", "Pet_JSON", "Slots_JSON", "Note", "LastModified", "Guild_Name", "Video_JSON", "SkillQueueAlts_JSON", "NotifyEnabled", "Owner_JSON", "Deleted", "DeletedAt"];
+
+// อ่านธง Deleted จากชีต (คอลัมน์เป็น text ค่าที่อ่านได้จึงมีทั้ง boolean และ "TRUE")
+function is3v3RowDeleted_(v) {
+  return v === true || String(v).toLowerCase() === 'true';
+}
 
 function ensureTeams3v3Sheet(ss) {
   var sheet = ss.getSheetByName('Teams3v3');
@@ -1898,13 +1921,13 @@ function ensureTeams3v3Sheet(ss) {
     sheet.appendRow(TEAMS3V3_HEADERS);
     sheet.getRange(1, 1, 1, TEAMS3V3_HEADERS.length).setFontWeight("bold").setBackground("#cfe2f3");
     sheet.setFrozenRows(1);
-    sheet.getRange("A:P").setNumberFormat("@");
+    sheet.getRange("A:R").setNumberFormat("@");
   } else if (sheet.getLastColumn() < TEAMS3V3_HEADERS.length) {
     // 🔁 migration: ชีตเก่ายังไม่มีคอลัมน์ที่เพิ่มล่าสุด → เขียนหัวคอลัมน์ใหม่ทั้งแถว
     sheet.getRange(1, 1, 1, TEAMS3V3_HEADERS.length)
          .setValues([TEAMS3V3_HEADERS])
          .setFontWeight("bold").setBackground("#cfe2f3");
-    sheet.getRange("A:P").setNumberFormat("@");
+    sheet.getRange("A:R").setNumberFormat("@");
   }
   return sheet;
 }
@@ -1926,7 +1949,9 @@ function team3v3ToRow(team, now) {
     JSON.stringify(team.video || null),
     JSON.stringify(team.skillQueueAlts || []),  // 🆕 ชุดจองสกิลเสริม B/C/D...
     team.notifyEnabled || false,                // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์
-    JSON.stringify(team.owner || null)          // 👥 ทีมที่แอดมินจัดให้ลูกกิล {guildId,guildName,memberId,memberName,slot}
+    JSON.stringify(team.owner || null),         // 👥 ทีมที่แอดมินจัดให้ลูกกิล {guildId,guildName,memberId,memberName,slot}
+    team.deleted === true ? 'TRUE' : '',        // 🗑️ Deleted — soft delete
+    team.deleted === true ? (team.deletedAt || new Date().toISOString()) : ''   // DeletedAt
   ];
 }
 
@@ -1941,12 +1966,76 @@ function upsertOne3v3Team(ss, team, userGuild) {
   return true;
 }
 
+// 🗑️ ลบทีม 3v3 = soft delete — ไม่ลบแถวทิ้ง แค่ติดธง Deleted + DeletedAt
+//    แถวยังอยู่ในชีตเป็นข้อมูลสำรอง แต่แอปจะไม่เห็น
+//    กู้คืน: ล้างค่าในคอลัมน์ Deleted (Q) ของแถวนั้นในชีต
 function deleteOne3v3Team(ss, id) {
+  if (id == null) return true;
+  var sheet = ensureTeams3v3Sheet(ss);   // migrate หัวคอลัมน์ก่อน — ชีตเก่ายังไม่มี Deleted/DeletedAt
+  if (!sheet) return true;
+  var foundRow = findManagerRowById(sheet, id);
+  if (foundRow === -1) return true;
+  var delCol = TEAMS3V3_HEADERS.indexOf('Deleted') + 1;      // 17
+  sheet.getRange(foundRow, delCol, 1, 2).setValues([['TRUE', new Date().toISOString()]]);
+  return true;
+}
+
+// ⚠️ ลบถาวรจริง (ลบแถวทิ้ง กู้ไม่ได้) — ไม่มีที่ไหนเรียกอัตโนมัติ
+//    ใช้เคลียร์ถังขยะเองจาก Apps Script editor เท่านั้น
+function hardDeleteOne3v3Team(ss, id) {
   var sheet = ss.getSheetByName('Teams3v3');
   if (!sheet || id == null) return true;
   var foundRow = findManagerRowById(sheet, id);
   if (foundRow !== -1) sheet.deleteRow(foundRow);
   return true;
+}
+
+// 🗑️ อ่านรายการทีมในถังขยะ (แถวที่ Deleted = TRUE)
+function loadDeleted3v3Teams_(ss) {
+  var sheet = ss.getSheetByName('Teams3v3');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  var readCols = Math.max(9, Math.min(sheet.getLastColumn(), TEAMS3V3_HEADERS.length));
+  if (readCols < 17) return [];   // ชีตยังไม่มีคอลัมน์ Deleted → ไม่มีของในถังขยะ
+  var data = sheet.getRange(2, 1, lastRow - 1, readCols).getValues();
+  var list = [];
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    if (!is3v3RowDeleted_(r[16])) continue;
+    var item = {
+      id: r[0],
+      name: r[1],
+      teamType: r[2] || 'Attack',
+      formation: r[3] || 'Basic',
+      slots: [],
+      pets: [],
+      note: r[9] || '',
+      guild_name: r[11] || 'all',
+      deletedAt: r[17] || ''
+    };
+    try { item.slots = JSON.parse(r[8] || '[]'); } catch (e) {}
+    try { item.pets = JSON.parse(r[7] || '[]'); } catch (e) {}
+    list.push(item);
+  }
+  return list;
+}
+
+// ↩️ กู้คืนทีมจากถังขยะ — ล้างธง Deleted/DeletedAt แล้วคืนข้อมูลทีมเต็ม
+function restoreOne3v3Team(ss, id) {
+  if (id == null) return null;
+  var sheet = ensureTeams3v3Sheet(ss);
+  if (!sheet) return null;
+  var foundRow = findManagerRowById(sheet, id);
+  if (foundRow === -1) return null;
+  var delCol = TEAMS3V3_HEADERS.indexOf('Deleted') + 1;
+  if (!is3v3RowDeleted_(sheet.getRange(foundRow, delCol).getValue())) return null;  // ไม่ได้อยู่ในถังขยะ
+  sheet.getRange(foundRow, delCol, 1, 2).setValues([['', '']]);
+  var all = loadFromSheet(ss, 'Teams3v3', []);
+  for (var i = 0; i < all.length; i++) {
+    if (String(all[i].id) === String(id)) return all[i];
+  }
+  return null;
 }
 
 // =========================================================
@@ -2390,12 +2479,14 @@ function loadFromSheet(ss, name, def) {
             video: JSON.parse(r[12] || 'null'),   // 🎬 Video_JSON (Index 12)
             skillQueueAlts: JSON.parse(r[13] || '[]'),  // 🆕 ชุดจองสกิลเสริม B/C/D... (Index 13)
             notifyEnabled: r[14] === true || r[14] === "true",  // 🔔 แจ้งเตือนโน้ตนี้ในหน้าแชร์ (Index 14)
-            owner: JSON.parse(r[15] || 'null')    // 👥 ทีมที่แอดมินจัดให้ลูกกิล (Index 15)
+            owner: JSON.parse(r[15] || 'null'),   // 👥 ทีมที่แอดมินจัดให้ลูกกิล (Index 15)
+            deleted: is3v3RowDeleted_(r[16]),     // 🗑️ soft delete (Index 16)
+            deletedAt: r[17] || ''                // (Index 17)
           };
       } catch(e) {
-          return { id: r[0], name: r[1], slots: [], enemyTeams: [], pet: null, pets: [null,null,null], isShared: false, note: '', lastModified: Date.now(), guild_name: 'all', notifyEnabled: false, owner: null };
+          return { id: r[0], name: r[1], slots: [], enemyTeams: [], pet: null, pets: [null,null,null], isShared: false, note: '', lastModified: Date.now(), guild_name: 'all', notifyEnabled: false, owner: null, deleted: is3v3RowDeleted_(r[16]), deletedAt: r[17] || '' };
       }
-    });
+    }).filter(function(t) { return t && t.deleted !== true; });   // 🗑️ ทีมที่ถูก soft delete ไม่ส่งกลับไปให้แอป
   }
 
   // 🟢 LOAD EquipSets
