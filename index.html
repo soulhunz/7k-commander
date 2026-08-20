@@ -11042,6 +11042,8 @@
                                 type: q('.eff-type')?.value,
                                 name: q('.eff-name')?.value,
                                 stack: q('.eff-stack')?.checked || false,
+                                perHit: q('.eff-perhit')?.checked || false,   // ⚔️ "ในแต่ละการโจมตี" — ทอยเท่าจำนวนครั้งที่ตี
+                                skipPrimary: q('.eff-skipprimary')?.checked || false,  // 💥 ลูกหลง — ไม่ลงเป้าหลัก
                                 note: q('.eff-note')?.value || '',
                                 cond: q('.eff-cond')?.value || '',
                                 cap: q('.eff-cap')?.value || '',
@@ -11060,6 +11062,8 @@
                                 // --- schema v2: ฟิลด์มีโครงสร้างสำหรับ AI วิเคราะห์การต่อสู้ ---
                                 trigger: q('.eff-trigger')?.value || '',
                                 target: q('.eff-target')?.value || '',
+                                targets: parseInt(q('.eff-targets')?.value) || 0,   // ⚔️ จำนวนเป้าเฉพาะผลนี้ (0 = ตามสกิล)
+                                libId: q('.eff-libid')?.value || '',                 // 📚 ผูกกับคลังสกิล (Value ว่าง = ใช้ค่าคลัง)
                                 valueType: q('.eff-valuetype')?.value || '',
                                 scaleStat: q('.eff-scalestat')?.value || '',
                                 ignoreDef: q('.eff-ignoredef')?.checked || false,
@@ -11252,6 +11256,22 @@
         }
 
         // 📘 คู่มือย่ออธิบาย Effect (พับเก็บได้) — โชว์เหนือรายการ Effect ในแต่ละแท็บสกิล
+        /** เลือกสถานะจากคลัง → เติมชื่อ + หมวดให้อัตโนมัติ (ไม่ทับ Value ที่กรอกไว้เอง) */
+        function effApplyLib(sel){
+            const card = sel && sel.closest('.effect-item');
+            if (!card) return;
+            const item = (Array.isArray(skillLibDB) ? skillLibDB : []).find(x => String(x.id) === String(sel.value));
+            if (!item) return;
+            const nameEl = card.querySelector('.eff-name');
+            if (nameEl && !String(nameEl.value || '').trim()) nameEl.value = item.name || '';
+            const typeEl = card.querySelector('.eff-type');
+            const catToType = { cc:'cc', dot:'dot', buff:'buff', debuff:'debuff', special:'special' };
+            const t = catToType[item.category];
+            if (typeEl && t && !typeEl.dataset.touched) typeEl.value = t;
+            const valEl = card.querySelector('.eff-val');
+            if (valEl) valEl.placeholder = item.defVal ? ('คลัง: ' + item.defVal) : 'Val';
+        }
+
         const EFFECT_HELP_HTML = `
         <details class="bg-[#0d1117] border border-blue-900/50 rounded-lg mb-3">
             <summary class="cursor-pointer text-[11px] font-bold text-blue-300 px-3 py-2 select-none">📘 Effect คืออะไร? วิธีกรอกแต่ละช่อง (กดเพื่ออ่าน)</summary>
@@ -11344,7 +11364,7 @@
                 const chk = (b) => b ? 'checked' : '';
                 const tags = Array.isArray(eff.tags) ? eff.tags.join(', ') : (eff.tags || '');
                 const immune = Array.isArray(eff.immuneTags) ? eff.immuneTags.join(', ') : (eff.immuneTags || '');
-                const advOpen = (eff.trigger||eff.target||eff.valueType||eff.ignoreDef||eff.trueDamage||eff.lifesteal||(eff.capType&&eff.capType!=='none')||tags||immune||eff.dispellable||eff.maxStacks||eff.followUp) ? 'open' : '';
+                const advOpen = (eff.targets||eff.trigger||eff.target||eff.valueType||eff.ignoreDef||eff.trueDamage||eff.lifesteal||(eff.capType&&eff.capType!=='none')||tags||immune||eff.dispellable||eff.maxStacks||eff.followUp) ? 'open' : '';
                 return `
                 <div class="bg-[#2d3748] p-3 rounded-lg border border-gray-600 relative group text-sm animate-fade-in effect-item shadow-lg">
                     <div class="absolute -top-2 -right-2 cursor-pointer text-white bg-red-600 hover:bg-red-500 font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border border-red-400 z-10" onclick="this.parentElement.remove()">×</div>
@@ -11359,9 +11379,23 @@
                             ${o('shield','🧊 Shield',eff.type)}
                             ${o('buff','⬆️ Buff',eff.type)}
                             ${o('debuff','⬇️ Debuff',eff.type)}
+                            ${o('dispel','🧹 ขจัดบัฟ',eff.type)}
+                            ${o('execute','☠️ สำเร็จโทษ',eff.type)}
                             ${o('stat','📊 Stat',eff.type)}
                         </select>
                         <input type="text" class="eff-name bg-transparent border-b border-gray-500 w-full text-white font-bold px-2 outline-none" value="${eff.name || ''}" placeholder="ชื่อสถานะ (เช่น จุดเยือกแข็ง)">
+                    </div>
+
+                    <div class="flex gap-2 items-center mb-2 bg-[#1a202c] rounded border border-indigo-800/50 px-2 py-1.5">
+                        <span class="text-[9px] text-indigo-300 font-bold uppercase whitespace-nowrap">📚 ดึงจากคลัง</span>
+                        <select class="eff-libid flex-1 bg-[#111827] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none"
+                            onchange="effApplyLib(this)">
+                            <option value="">— ไม่ผูกกับคลัง (กรอก Value เอง) —</option>
+                            ${(Array.isArray(skillLibDB) ? skillLibDB : []).slice()
+                                .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'th'))
+                                .map(x=>`<option value="${x.id}" ${String(eff.libId||'')===String(x.id)?'selected':''}>${(x.name||'(ไม่มีชื่อ)').replace(/</g,'&lt;')}${x.defVal?' · '+x.defVal:''}</option>`).join('')}
+                        </select>
+                        <span class="text-[9px] text-gray-500 whitespace-nowrap">Value ว่าง = ใช้ค่าคลัง</span>
                     </div>
 
                     <div class="bg-[#1a202c] p-2 rounded border border-gray-700 mb-2">
@@ -11388,6 +11422,10 @@
 
                     <div class="flex gap-2 items-center mb-1">
                         <label class="flex items-center gap-1 text-[10px] text-gray-300 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-stack" ${chk(eff.stack)}> Stack</label>
+                        <label class="flex items-center gap-1 text-[10px] text-indigo-200 bg-[#1a202c] px-2 py-1 rounded border border-indigo-700/60 whitespace-nowrap"
+                            title="สกิลที่เขียนว่า &quot;ในแต่ละการโจมตี&quot; — ตี 2 ครั้ง = ทอยโอกาสติด 2 รอบ"><input type="checkbox" class="eff-perhit" ${chk(eff.perHit)}> ⚔️ ทอยทุกครั้งที่ตี</label>
+                        <label class="flex items-center gap-1 text-[10px] text-indigo-200 bg-[#1a202c] px-2 py-1 rounded border border-indigo-700/60 whitespace-nowrap"
+                            title="ลูกหลง — ผลนี้ลงเฉพาะตัวอื่น ไม่ลงเป้าหลัก (เช่น &quot;ศัตรูที่อยู่แถวเดียวกับเป้าหมายสกิลหลัก&quot;)"><input type="checkbox" class="eff-skipprimary" ${chk(eff.skipPrimary)}> 💥 ไม่ลงเป้าหลัก</label>
                         <input type="text" class="eff-note bg-[#1a202c] border border-gray-600 rounded px-2 py-1 w-full text-[10px] text-gray-300 outline-none" value="${eff.note||''}" placeholder="Note...">
                     </div>
 
@@ -11399,6 +11437,10 @@
                                 <select class="eff-trigger w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
                                     ${o('','— ไม่ระบุ —',eff.trigger)}${o('on_apply','ทันทีที่ร่าย',eff.trigger)}${o('on_hit_dealt','เมื่อเราตีโดน',eff.trigger)}${o('on_hit_taken','เมื่อถูกตี',eff.trigger)}${o('on_removed','เมื่อสถานะถูกปลด',eff.trigger)}${o('on_death','เมื่อตาย',eff.trigger)}${o('turn_start','ต้นเทิร์น',eff.trigger)}${o('turn_end','ท้ายเทิร์น',eff.trigger)}${o('on_crit','เมื่อคริ',eff.trigger)}${o('on_kill','เมื่อสังหาร',eff.trigger)}${o('passive','ติดตัวตลอด',eff.trigger)}
                                 </select></label>
+                                <label class="block"><span class="text-[9px] text-indigo-300 font-bold uppercase">⚔️ จำนวนเป้าของผลนี้</span>
+                                <input type="number" min="0" class="eff-targets w-full bg-[#1a202c] border border-indigo-700/60 rounded text-xs text-white py-1 px-2 outline-none"
+                                    value="${eff.targets || 0}" placeholder="0 = ตามสกิล"
+                                    title="เช่น ดาเมจลงศัตรูเดี่ยว แต่เผาไหม้ลงศัตรู 3 คน → ใส่ 3 ที่นี่ · 0 = ใช้จำนวนเป้าของสกิล"></label>
                                 <label class="block"><span class="text-[9px] text-cyan-400 font-bold uppercase">Target — ใส่ใคร</span>
                                 <select class="eff-target w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
                                     ${o('','— ไม่ระบุ —',eff.target)}${o('enemy_single','ศัตรูเดี่ยว',eff.target)}${o('enemy_all','ศัตรูทั้งหมด',eff.target)}${o('enemy_random','สุ่มศัตรู',eff.target)}${o('self','ตัวเอง',eff.target)}${o('ally_single','พวกเดี่ยว',eff.target)}${o('ally_all','พวกทั้งหมด',eff.target)}
@@ -14404,13 +14446,45 @@
             <div class="p-4 flex flex-col gap-3 overflow-y-auto custom-scroll">
                 <div><label class="text-[11px] text-gray-400 font-bold uppercase">ชื่อ</label><input id="sl-f-name" value="${slEsc(s.name)}" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-indigo-500" placeholder="เช่น จุดเยือกแข็ง, อมตะ"></div>
                 <div><label class="text-[11px] text-gray-400 font-bold uppercase">หมวด</label><select id="sl-f-cat" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-indigo-500">${catOpts}</select></div>
+                <div class="bg-[#0d1117] border-2 border-indigo-800/60 rounded-lg p-2.5">
+                    <label class="text-[11px] text-indigo-300 font-bold uppercase">⚔️ ค่าประจำสถานะนี้ (เครื่องจำลองใช้)</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input id="sl-f-defval" type="number" step="any" value="${s.defVal || 0}"
+                            class="w-24 bg-[#111827] border border-gray-600 text-white p-2 rounded text-sm text-center outline-none focus:border-indigo-500" placeholder="0">
+                        <span id="sl-f-defval-unit" class="text-[11px] text-gray-400"></span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 mt-1 leading-snug">
+                        กรอกที่นี่ที่เดียว ทุกตัวละครที่ติดสถานะนี้ใช้ค่าเดียวกัน — เช่น เผาไหม้ = <b class="text-orange-300">80</b> (80% ATK ต่อเทิร์น)<br>
+                        ตัวไหนแรงต่างจากนี้ (เช่น C6) ไปใส่ Value ที่สกิลของตัวนั้นทับได้
+                    </div>
+                </div>
                 <div><label class="text-[11px] text-gray-400 font-bold uppercase">คำอธิบาย / กลไก (สำหรับ AI)</label><textarea id="sl-f-raw" rows="8" class="w-full bg-[#0d1117] border border-gray-600 text-gray-200 p-2 rounded text-xs outline-none focus:border-indigo-500" placeholder="วางข้อความนิยามสถานะ...">${slEsc(s.rawText)}</textarea></div>
                 <label class="flex items-center gap-2 text-xs text-gray-300"><input id="sl-f-draft" type="checkbox" ${s.isDraft?'checked':''}> ยังเป็นร่าง (ยังไม่ได้ตั้งค่าโครงสร้างครบ)</label>
             </div>
             <div class="p-4 border-t border-gray-800 flex justify-end gap-2"><button onclick="slCloseEdit()" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-700 hover:bg-gray-600 text-white">ยกเลิก</button><button onclick="slSaveEdit()" class="px-5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white">💾 บันทึก</button></div>
         </div>`;
         modal.style.display='flex';
+        slSyncDefValUnit();
+        const _cat = document.getElementById('sl-f-cat');
+        if (_cat) _cat.onchange = slSyncDefValUnit;
         setTimeout(()=>{ const n=document.getElementById('sl-f-name'); if(n) n.focus(); }, 50);
+    }
+
+    /** ป้ายหน่วยของค่าประจำสถานะ — เปลี่ยนตามหมวดที่เลือก */
+    function slSyncDefValUnit(){
+        const cat = (document.getElementById('sl-f-cat')||{}).value || 'other';
+        const el = document.getElementById('sl-f-defval-unit');
+        if (!el) return;
+        const map = {
+            dot:     '% ของ ATK ผู้ร่าย ต่อเทิร์น',
+            buff:    '% ที่เพิ่มสเตต',
+            debuff:  '% ที่ลดสเตต',
+            special: '% ของ HP สูงสุด (โล่ / ฟื้นฟู / คืนชีพ)',
+            cc:      '— CC ไม่ใช้ค่านี้ (ใช้ Chance/Turn ที่สกิลแทน)',
+            other:   '% (ความหมายตามชนิดผลที่ใช้)'
+        };
+        el.textContent = map[cat] || map.other;
+        el.className = 'text-[11px] ' + (cat === 'cc' ? 'text-gray-600 italic' : 'text-gray-400');
     }
     function slCloseEdit(){ const m=document.getElementById('sl-edit-modal'); if(m) m.style.display='none'; window._slEditing=null; }
     async function slSaveEdit(){
@@ -14419,6 +14493,7 @@
         if (!s.name){ alert('ใส่ชื่อก่อน'); return; }
         s.category = document.getElementById('sl-f-cat').value || 'other';
         s.rawText = document.getElementById('sl-f-raw').value || '';
+        s.defVal = parseFloat((document.getElementById('sl-f-defval')||{}).value) || 0;   // ⚔️ ค่ากลางของสถานะ
         s.isDraft = document.getElementById('sl-f-draft').checked;
         const idx = skillLibDB.findIndex(x=>String(x.id)===String(s.id));
         const clean = Object.assign({}, s); delete clean._isNew;
@@ -20577,9 +20652,14 @@
             critDmgDefault: 50, // ถ้าฮีโร่ไม่ได้กรอก critDmg ใช้ค่านี้ (%)
             ccFloor: 5,       // โอกาสติด CC ต่ำสุด (%) กันติดลบ
             ccCeil: 95,       // โอกาสติด CC สูงสุด (%)
+            executeGuardPct: 120, // ☠️ สำเร็จโทษไม่มีผล ถ้า HP ปัจจุบันเป้าหมาย > กี่ % ของ ATK ผู้ร่าย
             skillGateTurns: 2, // ⏳ กฎเกม: ออกสกิลแล้วต้องตีปกติกี่เทิร์นถึงออกสกิลได้อีก (เทิร์นแรกออกได้เลย)
             maxTurns: 300,    // เพดานกันลูปค้าง (ปกติจบด้วยเวลาก่อน) — นับทีละ action: 0=สกิล 1=ตีปกติ 2=สกิล...
-            secPerTurn: 4,        // ⏱️ 1 เทิร์น (1 action) กินเวลากี่วินาทีในเกมจริง — จูนให้ตรงของจริงเอง
+            // ⏱️ เวลาที่แต่ละการกระทำกินไป (วินาที) — เกมมีอนิเมชันหน่วง ไม่ใช่จบทันที
+            //    คูลดาวน์สกิลในเกมเป็น "วินาที" จึงต้องเดินนาฬิกาจริง ไม่ใช่นับเทิร์น
+            animNormal: 2,        // ตีปกติ
+            animSkill1: 2.5,      // สกิล 1 (สกิลล่าง)
+            animSkill2: 4.5,      // สกิล 2 (สกิลบน)
             timeLimitSmall: 150,  // ⏱️ เวลาจำกัด 1v1 / 3v3 (วินาที) = 2:30
             timeLimitBig: 300,    // ⏱️ เวลาจำกัด 5v5 (วินาที) = 5:00
             runs: 9,          // จำลองกี่รอบต่อคู่ (เลขคี่ ตัดสินด้วยเสียงข้างมาก)
@@ -20684,6 +20764,23 @@
             return null;
         }
 
+        /**
+         * 📚 ค่าประจำสถานะจากคลังสกิล — ใช้เมื่อ effect ไม่ได้กรอก Value เอง
+         * หาโดย libId ก่อน ถ้าไม่มีค่อยเทียบชื่อ (ของเก่าที่ยังไม่ได้ผูกก็ได้ค่าไปด้วย)
+         */
+        function simLibDefVal(eff) {
+            if (!eff) return 0;
+            const lib = (typeof skillLibDB !== 'undefined' && Array.isArray(skillLibDB)) ? skillLibDB : [];
+            if (!lib.length) return 0;
+            let item = null;
+            if (eff.libId) item = lib.find(x => String(x.id) === String(eff.libId)) || null;
+            if (!item) {
+                const nm = String(eff.name || '').trim().toLowerCase();
+                if (nm) item = lib.find(x => String(x.name || '').trim().toLowerCase() === nm) || null;
+            }
+            return item ? (parseFloat(item.defVal) || 0) : 0;
+        }
+
         // เลือกค่าตามระดับที่ตั้งไว้ (Base → Up → LB2 → LB6)
         function simPickVal(eff, field, cfg) {
             const blue = parseInt(cfg.blueStar) || 0;
@@ -20723,17 +20820,20 @@
          * จะได้จำลองได้ทุกตัว ไม่ต้องรอกรอกสกิลครบก่อน
          * ตัวที่มีสกิลอยู่แล้วแต่ขาดช่อง n ก็ได้ตีปกติใบนี้ไปด้วย (ประตูสกิลบังคับให้ต้องตีปกติ)
          */
-        function simEnsureSkills(list) {
+        function simEnsureSkills(list, cfg) {
             const out = Array.isArray(list) ? list.slice() : [];
             if (!out.some(sk => sk && sk.key === 'n')) {
                 out.push({
                     key: 'n', label: 'Normal',
                     scales: [{ scale: 'atk', percent: 100 }],
                     effects: [],
-                    hits: 1, cooldown: 0, cdLeft: 0,
+                    hits: 1, targets: 1, cooldown: 0, cdLeft: 0, readyAt: 0,
+                    anim: 2,             // จะถูกทับด้วยค่าจริงใน simEnsureSkills ตอนรู้ cfg
                     _auto: true          // ระบบแจกให้ ไม่ได้มาจากที่กรอกไว้
                 });
             }
+            const n = out.find(sk => sk.key === 'n');
+            if (n && cfg) n.anim = parseFloat(cfg.animNormal) || 2;
             return out;
         }
 
@@ -20752,8 +20852,14 @@
                     key, label,
                     scales, effects,
                     hits: Math.max(1, parseInt(c.hits) || 1),
-                    cooldown: Math.max(0, parseInt(c.cooldown) || 0),
-                    cdLeft: 0
+                    // ⚔️ จำนวนศัตรูที่ "ดาเมจ" ลง — อัปตามระดับดาวได้
+                    targets: Math.max(1, resolveSkillTierNum(c.targets || 1, c.targets_up, c.targets_c2, c.targets_c6, parseInt(cfg.blueStar) || 0)),
+                    cooldown: Math.max(0, parseFloat(c.cooldown) || 0),   // ⏱️ วินาที (เลข ⏱ บนไอคอนสกิลในเกม)
+                    anim: key === 's2' ? (parseFloat(cfg.animSkill2) || 4.5)
+                        : key === 's1' ? (parseFloat(cfg.animSkill1) || 2.5)
+                            : (parseFloat(cfg.animNormal) || 2),
+                    readyAt: 0,      // ใช้ได้อีกครั้งเมื่อนาฬิกาถึงวินาทีนี้
+                    cdLeft: 0        // เก็บไว้รองรับโค้ดเก่า
                 };
             };
             return {
@@ -20764,7 +20870,7 @@
                 critRate: st.critRate || 0, critDmg: st.critDmg || cfg.critDmgDefault,
                 block: st.block || 0, dmgRed: st.dmgRed || 0,
                 acc: st.acc || 0, resist: st.resist || 0, weakness: st.weakness || 0,
-                skills: simEnsureSkills([mkSkill('s2', 'Skill 2'), mkSkill('s1', 'Skill 1'), mkSkill('n', 'Normal')].filter(Boolean)),
+                skills: simEnsureSkills([mkSkill('s2', 'Skill 2'), mkSkill('s1', 'Skill 1'), mkSkill('n', 'Normal')].filter(Boolean), cfg),
                 skillGate: 0,   // ⏳ >0 = ยังต้องตีปกติอีกกี่เทิร์นก่อนออกสกิลได้
                 statuses: [],   // { name, kind:'cc'|'dot'|'buff'|'debuff'|'shield', turns, val, stat }
                 shield: 0,
@@ -20800,7 +20906,25 @@
         }
 
         // ตีหนึ่งครั้งด้วยสกิลหนึ่งใบ
-        function simUseSkill(att, def, skill, cfg, rand, log, allies) {
+        /**
+         * เลือกเป้าหมาย n ตัวจากฝั่งศัตรู — เอาเป้าหลักก่อน แล้วไล่ตัวที่เหลือ
+         * n <= 1 → เป้าหลักตัวเดียว · n >= จำนวนที่เหลือ → ทั้งหมด
+         */
+        function simTargetList(primary, foes, n) {
+            const live = (Array.isArray(foes) ? foes : []).filter(u => u && u.hp > 0);
+            if (!live.length) return primary && primary.hp > 0 ? [primary] : [];
+            const want = Math.max(1, parseInt(n) || 1);
+            const out = [];
+            if (primary && primary.hp > 0) out.push(primary);
+            for (const u of live) {
+                if (out.length >= want) break;
+                if (out.indexOf(u) < 0) out.push(u);
+            }
+            return out;
+        }
+
+        function simUseSkill(att, def, skill, cfg, rand, log, allies, foes) {
+            const foeList = Array.isArray(foes) && foes.length ? foes : [def];
             // 1) ดาเมจจาก scales
             let raw = 0;
             skill.scales.forEach(sc => {
@@ -20814,13 +20938,17 @@
             raw *= Math.max(1, skill.hits);
 
             if (raw > 0) {
-                let dmg = raw * (cfg.defK / (cfg.defK + simEffStat(def, 'def')));
-                let tags = [];
-                if (rand() * 100 < att.critRate) { dmg *= 1 + (att.critDmg / 100); tags.push('CRIT'); }
-                if (rand() * 100 < att.weakness) { dmg *= cfg.weakMul; tags.push('จุดอ่อน'); }
-                if (rand() * 100 < def.block) { dmg *= 1 - (cfg.blockRed / 100); tags.push('บล็อก'); }
-                dmg *= 1 - Math.min(90, def.dmgRed) / 100;
-                simTakeDamage(def, dmg, log, `⚔️ ${skill.label}${tags.length ? ' [' + tags.join('/') + ']' : ''}`);
+                const hitTargets = simTargetList(def, foeList, skill.targets || 1);
+                if (hitTargets.length > 1) log.push(`   🎯 ลง ${hitTargets.length} เป้า: ${hitTargets.map(u => u.name).join(', ')}`);
+                hitTargets.forEach(tg => {
+                    let dmg = raw * (cfg.defK / (cfg.defK + simEffStat(tg, 'def')));
+                    let tags = [];
+                    if (rand() * 100 < att.critRate) { dmg *= 1 + (att.critDmg / 100); tags.push('CRIT'); }
+                    if (rand() * 100 < att.weakness) { dmg *= cfg.weakMul; tags.push('จุดอ่อน'); }
+                    if (rand() * 100 < tg.block) { dmg *= 1 - (cfg.blockRed / 100); tags.push('บล็อก'); }
+                    dmg *= 1 - Math.min(90, tg.dmgRed) / 100;
+                    simTakeDamage(tg, dmg, log, `⚔️ ${skill.label}${tags.length ? ' [' + tags.join('/') + ']' : ''}`);
+                });
             } else {
                 log.push(`   ✨ ${att.name} ใช้ ${skill.label}`);
             }
@@ -20830,7 +20958,13 @@
                 if (!eff || !eff.type) return;
                 const rate = simPickVal(eff, 'rate', cfg);
                 const turn = simPickVal(eff, 'turn', cfg);
-                const val = simPickVal(eff, 'val', cfg);
+                // Value ที่กรอกในสกิลมาก่อนเสมอ · ว่าง (0) → ใช้ค่ากลางจากคลังสกิล
+                let val = simPickVal(eff, 'val', cfg);
+                let valFromLib = false;
+                if (!val) {
+                    const libVal = simLibDefVal(eff);
+                    if (libVal > 0) { val = libVal; valFromLib = true; }
+                }
                 const toSelf = ['heal', 'shield', 'buff'].includes(eff.type) || String(eff.target || '').includes('self');
                 // 🤝 สู้แบบทีม: ฟื้น/โล่ ลงเพื่อนที่ % เลือดน้อยสุด (บัฟลงตัวเอง)
                 let target = toSelf ? att : def;
@@ -20841,20 +20975,47 @@
                     }
                 }
 
-                // โอกาสติด: เอฟเฟกต์ที่ลงศัตรู หักด้วยต้านทาน บวกด้วยผลเข้าเป้า
-                let chance = rate > 0 ? rate : 100;
-                if (!toSelf) chance = chance + (att.acc || 0) - (def.resist || 0);
-                chance = Math.min(cfg.ccCeil, Math.max(cfg.ccFloor, chance));
-                if (rate > 0 && rand() * 100 >= chance) { log.push(`   ↯ ${eff.name || eff.type} พลาด (${Math.round(chance)}%)`); return; }
+                // ⚔️ ผลนี้ลงกี่เป้า — ช่อง "จำนวนเป้าของผลนี้" (0 = ตามสกิล) · enemy_all = ทั้งหมด
+                let effTargets = [target];
+                if (!toSelf) {
+                    const wantAll = String(eff.target || '') === 'enemy_all';
+                    const n = wantAll ? foeList.length : (parseInt(eff.targets) || skill.targets || 1);
+                    if (eff.skipPrimary) {
+                        // 💥 ลูกหลง: เอาตัวอื่นที่ไม่ใช่เป้าหลัก
+                        effTargets = simTargetList(def, foeList, n + 1).filter(u => u !== def);
+                    } else {
+                        effTargets = simTargetList(def, foeList, n);
+                    }
+                }
+                if (!effTargets.length) return;
 
                 const nm = eff.name || eff.type;
+                if (!toSelf && effTargets.length > 1) log.push(`   🎯 ${nm} ลง ${effTargets.length} เป้า`);
+
+                // ⚔️ "ในแต่ละการโจมตี" → ทอยเท่าจำนวนครั้งที่ตี · ติดรอบไหนก็พอ
+                const rolls = eff.perHit ? Math.max(1, skill.hits || 1) : 1;
+
+                effTargets.forEach(target => {
+                // โอกาสติด: เอฟเฟกต์ที่ลงศัตรู หักด้วยต้านทาน บวกด้วยผลเข้าเป้า — ทอยแยกรายเป้า
+                let chance = rate > 0 ? rate : 100;
+                if (!toSelf) chance = chance + (att.acc || 0) - (target.resist || 0);
+                chance = Math.min(cfg.ccCeil, Math.max(cfg.ccFloor, chance));
+                if (rate > 0) {
+                    let landed = false;
+                    for (let i = 0; i < rolls; i++) { if (rand() * 100 < chance) { landed = true; break; } }
+                    if (!landed) {
+                        log.push(`   ↯ ${nm} พลาด${effTargets.length > 1 ? ' (' + target.name + ')' : ''} (${Math.round(chance)}%${rolls > 1 ? ' ×' + rolls + ' ครั้ง' : ''})`);
+                        return;
+                    }
+                }
+
                 if (eff.type === 'cc') {
                     target.statuses.push({ name: nm, kind: 'cc', turns: Math.max(1, turn || 1) });
                     log.push(`   ❄️ ติด ${nm} ${Math.max(1, turn || 1)} เทิร์น`);
                 } else if (eff.type === 'dot') {
                     const per = val > 0 ? (simEffStat(att, 'atk') * val / 100) : simEffStat(att, 'atk') * 0.15;
                     target.statuses.push({ name: nm, kind: 'dot', turns: Math.max(1, turn || 1), val: per });
-                    log.push(`   🔥 ติด ${nm} ${Math.max(1, turn || 1)} เทิร์น (${Math.round(per)}/เทิร์น)`);
+                    log.push(`   🔥 ติด ${nm} ${Math.max(1, turn || 1)} เทิร์น (${Math.round(per)}/เทิร์น${valFromLib ? ' · จากคลัง' : ''})`);
                 } else if (eff.type === 'heal') {
                     const amt = val > 0 ? (target.maxHp * val / 100) : target.maxHp * 0.1;
                     target.hp = Math.min(target.maxHp, target.hp + amt);
@@ -20867,10 +21028,60 @@
                     const stat = simStatKeyFromName(nm) || 'atk';
                     target.statuses.push({ name: nm, kind: eff.type, turns: Math.max(1, turn || 1), val: val || 10, stat });
                     log.push(`   ${eff.type === 'buff' ? '⬆️' : '⬇️'} ${nm} (${stat} ${val || 10}%) ${Math.max(1, turn || 1)} เทิร์น`);
+                } else if (eff.type === 'dispel') {
+                    // 🧹 ขจัดบัฟ N ผล — Value = จำนวนผลที่ล้าง (ล้างตามลำดับที่ติด)
+                    const want = Math.max(1, Math.round(val) || 1);
+                    const buffs = target.statuses.filter(x => x.kind === 'buff').slice(0, want);
+                    if (!buffs.length) {
+                        log.push(`   🧹 ${nm} — ${target.name} ไม่มีบัฟให้ล้าง`);
+                    } else {
+                        target.statuses = target.statuses.filter(x => buffs.indexOf(x) < 0);
+                        log.push(`   🧹 ${nm} ล้างบัฟ ${buffs.length} ผล (${buffs.map(x => x.name).join(', ')})`);
+                    }
+                } else if (eff.type === 'execute') {
+                    // ☠️ สำเร็จโทษ — HP ต่ำกว่า Value% ตายทันที
+                    //    กันไว้: ไม่มีผลถ้า HP ปัจจุบันเกิน executeGuardPct% ของ ATK ผู้ร่าย
+                    const thr = val > 0 ? val : 0;
+                    const guard = simEffStat(att, 'atk') * ((parseFloat(cfg.executeGuardPct) || 120) / 100);
+                    const pct = target.maxHp > 0 ? (target.hp / target.maxHp) * 100 : 0;
+                    if (target.hp > guard) {
+                        log.push(`   ☠️ ${nm} ไม่เข้าเงื่อนไข — ${target.name} HP ${Math.round(target.hp)} เกินเพดาน ${Math.round(guard)}`);
+                    } else if (pct < thr) {
+                        target.hp = 0;
+                        log.push(`   ☠️ ${nm} สังหาร ${target.name} ทันที (HP ${pct.toFixed(1)}% < ${thr}%)`);
+                    } else {
+                        log.push(`   ☠️ ${nm} ไม่ติด — ${target.name} HP ${pct.toFixed(1)}% ยังไม่ต่ำกว่า ${thr}%`);
+                    }
                 } else if (eff.type === 'dmg') {
-                    const extra = simEffStat(att, 'atk') * (val > 0 ? val / 100 : 0.3);
-                    simTakeDamage(def, extra * (cfg.defK / (cfg.defK + simEffStat(def, 'def'))), log, `💥 ${nm}`);
+                    // 💥 ดาเมจเสริม — ความหมายของ Value ตามช่อง "Value คืออะไร"
+                    const vt = String(eff.valueType || '');
+                    const pctVal = val > 0 ? val / 100 : 0;
+                    let extra, hpBased = false;
+                    if (vt === 'pct_maxhp_target') { extra = target.maxHp * pctVal; hpBased = true; }
+                    else if (vt === 'pct_curhp_target') { extra = target.hp * pctVal; hpBased = true; }
+                    else if (vt === 'pct_def') extra = simEffStat(att, 'def') * pctVal;
+                    else if (vt === 'flat') extra = val;
+                    else extra = simEffStat(att, 'atk') * (pctVal || 0.3);
+
+                    // 🧢 เพดานดาเมจ
+                    let capped = false;
+                    const capT = String(eff.capType || 'none');
+                    const capV = parseFloat(eff.capValue) || 0;
+                    if (capT !== 'none' && capV > 0) {
+                        let cap = Infinity;
+                        if (capT === 'pct_atk') cap = simEffStat(att, 'atk') * capV / 100;
+                        else if (capT === 'pct_def') cap = simEffStat(att, 'def') * capV / 100;
+                        else if (capT === 'pct_maxhp') cap = target.maxHp * capV / 100;
+                        else if (capT === 'flat') cap = capV;
+                        if (extra > cap) { extra = cap; capped = true; }
+                    }
+
+                    // ดาเมจอิง %HP เจาะเกราะโดยธรรมชาติ · ATK-based หักเกราะตามปกติ (ติ๊กข้ามได้)
+                    const pierce = hpBased || eff.trueDamage || eff.ignoreDef;
+                    const mit = pierce ? 1 : (cfg.defK / (cfg.defK + simEffStat(target, 'def')));
+                    simTakeDamage(target, extra * mit, log, `💥 ${nm}${capped ? ' [ชนเพดาน]' : ''}`);
                 }
+                });   // จบ effTargets.forEach
             });
         }
 
@@ -20882,7 +21093,7 @@
                     log.push(`   🔥 ${s.name} กัด ${Math.round(s.val)} → ${u.name} เหลือ ${Math.round(u.hp)}`);
                 }
             });
-            u.skills.forEach(sk => { if (sk.cdLeft > 0) sk.cdLeft -= 1; });
+            // คูลดาวน์เป็น "วินาที" แล้ว (sk.readyAt) จึงไม่ต้องนับถอยหลังรายเทิร์นอีก
         }
 
         // จบเทิร์น: ค่อยนับอายุสถานะถอยหลัง
@@ -20900,10 +21111,11 @@
          * ⚠️ ไม่ได้ใช้แล้วตั้งแต่เปลี่ยนเป็นเครื่องยนต์เทิร์นแบบทีม (simTeamBattle)
          *    เก็บไว้เผื่ออยากย้อนดูตรรกะเดิม — การเลือกสกิลตอนนี้อยู่ที่ simTeamUseSkill
          */
-        function simChooseSkill(u, cfg, rand) {
+        function simChooseSkill(u, cfg, rand, now) {
+            const t = (typeof now === 'number') ? now : 0;
             const normal = simNormalSkill(u);
             if (u.skillGate > 0) return { skill: normal, isNormal: true };
-            const ready = u.skills.filter(s => s.key !== 'n' && s.cdLeft <= 0);
+            const ready = u.skills.filter(s => s.key !== 'n' && (s.readyAt || 0) <= t);
             if (!ready.length) return { skill: normal, isNormal: true };
             const roll = (typeof rand === 'function') ? rand() : Math.random();
             const sk = ready[Math.min(ready.length - 1, Math.floor(roll * ready.length))];
@@ -20962,9 +21174,12 @@
             critDmgDefault: ['Crit Dmg เริ่มต้น %', 'ใช้เมื่อฮีโร่ไม่ได้กรอกค่า'],
             ccFloor: ['โอกาสติดต่ำสุด %', 'กันไม่ให้ต้านทานสูงจนติดไม่ได้เลย'],
             ccCeil: ['โอกาสติดสูงสุด %', 'กันไม่ให้ 100% เสมอ'],
+            executeGuardPct: ['สำเร็จโทษ — เพดาน HP %', 'ไม่มีผลถ้า HP ปัจจุบันเป้าหมายเกินกี่ % ของ ATK ผู้ร่าย'],
             skillGateTurns: ['ตีปกติกี่เทิร์นก่อนออกสกิลอีก', 'กฎเกม: เทิร์นแรกออกได้เลย · ออกแล้วต้องตีปกติเท่านี้ก่อน'],
             maxTurns: ['เทิร์นสูงสุด (เพดานกัน)', 'ปกติจบด้วยเวลาก่อน — นับทีละ action: 0=สกิล 1=ตีปกติ 2=สกิล...'],
-            secPerTurn: ['วินาทีต่อเทิร์น', '1 action กินเวลากี่วินาที — ใช้แปลงเวลาจำกัดเป็นจำนวนเทิร์น'],
+            animNormal: ['อนิเมชัน ตีปกติ (วิ)', 'ตีปกติ 1 ครั้งกินเวลากี่วินาที'],
+            animSkill1: ['อนิเมชัน สกิล 1 (วิ)', 'สกิลล่างกินเวลากี่วินาที'],
+            animSkill2: ['อนิเมชัน สกิล 2 (วิ)', 'สกิลบนกินเวลากี่วินาที'],
             timeLimitSmall: ['เวลาจำกัด 1v1/3v3 (วิ)', '150 = 2:30 นาที'],
             timeLimitBig: ['เวลาจำกัด 5v5 (วิ)', '300 = 5:00 นาที'],
             runs: ['จำลองกี่รอบต่อคู่', 'เลขคี่ ตัดสินด้วยเสียงข้างมาก'],
@@ -21499,11 +21714,17 @@
         }
 
         // สกิลทั้งทีมที่พร้อมใช้ (ไม่ติดคูลดาวน์ · เจ้าของยังไม่ตาย · ไม่โดน CC)
-        function simReadySkillPool(team) {
+        /** สกิลที่พร้อมใช้ ณ วินาที now — คูลดาวน์ในเกมเป็นวินาที ไม่ใช่เทิร์น */
+        function simReadySkillPool(team, now) {
+            const t = (typeof now === 'number') ? now : 0;
             const pool = [];
             team.forEach(u => {
                 if (u.hp <= 0 || simIsStunned(u)) return;
-                u.skills.forEach(sk => { if (sk.key !== 'n' && sk.cdLeft <= 0) pool.push({ u, sk }); });
+                u.skills.forEach(sk => {
+                    if (sk.key === 'n') return;
+                    if ((sk.readyAt || 0) > t) return;    // ยังติดคูลดาวน์
+                    pool.push({ u, sk });
+                });
             });
             return pool;
         }
@@ -21513,9 +21734,10 @@
          * reserve = คิวจองสกิล [{ heroId, skillKey }] — ถ้าใบที่จองพร้อมใช้จะออกใบนั้นก่อน ไม่งั้นสุ่ม
          * จำนวนที่จองได้: ทีม 1 ตัว = 2 ใบ · ทีม 2 ตัวขึ้นไป = 3 ใบ (ตรวจที่ simNormalizeReserve)
          */
-        function simTeamUseSkill(team, foes, cfg, rand, log, reserve) {
-            const pool = simReadySkillPool(team);
-            if (!pool.length) { log.push('   ⏳ ไม่มีสกิลพร้อมใช้ — ข้ามช่วงสกิล'); return false; }
+        /** ออกสกิล 1 ใบให้ทีมนี้ → คืน { u, sk } เพื่อให้ผู้เรียกหักเวลาอนิเมชัน + ตั้งคูลดาวน์ */
+        function simTeamUseSkill(team, foes, cfg, rand, log, reserve, now) {
+            const pool = simReadySkillPool(team, now);
+            if (!pool.length) { log.push('   ⏳ ไม่มีสกิลพร้อมใช้ (ติดคูลดาวน์) — ข้ามช่วงสกิล'); return null; }
 
             let pick = null;
             while (reserve && reserve.length && !pick) {
@@ -21527,11 +21749,10 @@
 
             const att = pick.u, skill = pick.sk;
             const def = simPickTarget(att, foes, rand);
-            if (!def) return false;
-            skill.cdLeft = skill.cooldown;
+            if (!def) return null;
             log.push(`   🎲 ${att.name} ออก ${skill.label} ใส่ ${def.name} (พร้อม ${pool.length} ใบ)`);
-            simUseSkill(att, def, skill, cfg, rand, log, team);
-            return true;
+            simUseSkill(att, def, skill, cfg, rand, log, team, foes);
+            return { u: att, sk: skill };
         }
 
         // ตีปกติ 1 ครั้งโดยตัวที่ระบุ
@@ -21542,7 +21763,7 @@
             const def = simPickTarget(unit, foes, rand);
             if (!normal || !def) return;
             log.push(`   👊 ${unit.name} เข้าตีปกติใส่ ${def.name}`);
-            simUseSkill(unit, def, normal, cfg, rand, log, team);
+            simUseSkill(unit, def, normal, cfg, rand, log, team, foes);
         }
 
         /** จำกัดจำนวนสกิลที่จองได้: ทีม 1 ตัว = 2 ใบ · ตั้งแต่ 2 ตัวขึ้นไป = 3 ใบ */
@@ -21561,7 +21782,9 @@
          *     เท่ากันเป่ายิงฉุบ · หมดคิวแล้ววนใหม่
          *   • นับเทิร์นเริ่มที่ 0 — เทิร์นเลขคู่ = ใช้สกิล "แล้วตีปกติต่อในเทิร์นเดียวกัน"
          *     เทิร์นเลขคี่ = ตีปกติอย่างเดียว · ฝั่งที่ออกสกิลสลับกันทุกเทิร์นคู่
-         *   • จบด้วยเวลา: 1v1/3v3 = timeLimitSmall · 5v5 = timeLimitBig (แปลงเป็นเทิร์นด้วย secPerTurn)
+         *   • จบด้วยเวลา: 1v1/3v3 = timeLimitSmall · 5v5 = timeLimitBig
+         *   • นาฬิกาเดินตามเวลาอนิเมชันจริง (animNormal / animSkill1 / animSkill2)
+         *     คูลดาวน์สกิลเป็น "วินาที" ตามเลข ⏱ บนไอคอนสกิลในเกม
          *   • opts.reserveA / opts.reserveB = คิวจองสกิล [{heroId, skillKey}] (ไม่ใส่ = สุ่ม)
          */
         function simTeamBattle(heroesA, heroesB, cfg, seed, opts) {
@@ -21578,6 +21801,7 @@
             // 🎬 โหมดบันทึกภาพ (opts.record) — เก็บสถานะทุกตัวทุกครั้งที่มี log
             //    ดักที่ log.push ทำให้ครอบคลุมทุกฟังก์ชันย่อยที่รับ log ไปใช้ โดยไม่ต้องแก้ทีละจุด
             let turn = 0;
+            let clock = 0;              // ⏱️ วินาทีที่ผ่านไปในการต่อสู้
             const record = !!o.record;
             const frames = [];
             const snapUnit = u => ({
@@ -21588,7 +21812,7 @@
                 st: (u.statuses || []).map(x => ({ n: x.name, k: x.kind, t: x.turns }))
             });
             const snap = text => {
-                frames.push({ text: String(text), turn: turn, A: A.map(snapUnit), B: B.map(snapUnit) });
+                frames.push({ text: String(text), turn: turn, clock: clock, A: A.map(snapUnit), B: B.map(snapUnit) });
             };
             if (record) {
                 const _push = log.push.bind(log);
@@ -21638,14 +21862,20 @@
                 }
             });
 
-            // ⏱️ เวลาจำกัดตามขนาดทีม → แปลงเป็นจำนวนเทิร์น (1 เทิร์น = 1 action)
+            // ⏱️ นาฬิกาจริง — แต่ละการกระทำกินเวลาไม่เท่ากัน (อนิเมชัน) และคูลดาวน์สกิลเป็นวินาที
             const teamSize = Math.max(A.length, B.length);
             const timeLimit = teamSize >= 5 ? (parseFloat(cfg.timeLimitBig) || 300) : (parseFloat(cfg.timeLimitSmall) || 150);
-            const secPerTurn = Math.max(0.1, parseFloat(cfg.secPerTurn) || 4);
-            const turnsByTime = Math.max(1, Math.floor(timeLimit / secPerTurn));
-            const turnCap = Math.min(parseInt(cfg.maxTurns) || 300, turnsByTime);
+            const turnCap = parseInt(cfg.maxTurns) || 300;   // เพดานกันลูปค้างเท่านั้น ปกติจบด้วยเวลา
             const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
-            log.push(`⏱️ เวลาจำกัด ${mmss(timeLimit)} · ${secPerTurn} วิ/เทิร์น → สูงสุด ${turnsByTime} เทิร์น`);
+            clock = 0;
+            const spend = (sec, why) => {
+                clock += Math.max(0, sec || 0);
+                if (why) log.push(`   ⏱️ ${why} ${sec} วิ → นาฬิกา ${mmss(clock)}`);
+            };
+            const _aN = parseFloat(cfg.animNormal) || 2;
+            const _a1 = parseFloat(cfg.animSkill1) || 2.5;
+            const _a2 = parseFloat(cfg.animSkill2) || 4.5;
+            log.push(`⏱️ เวลาจำกัด ${mmss(timeLimit)} · อนิเมชัน ตีปกติ ${_aN} วิ · S1 ${_a1} วิ · S2 ${_a2} วิ`);
 
             // 🏃 คิวตีปกติรวมทั้งสนาม — เรียง SPD รายตัวข้ามทีม
             //    SPD เท่ากัน → ฝั่งที่ได้เปิดก่อน (ชนะ SPD รวม/เป่ายิงฉุบไปแล้ว) ได้ตีก่อน
@@ -21664,7 +21894,7 @@
             };
             log.push(`🏃 คิวตีปกติ (SPD รายตัว): ${queue.map(u => `${u.name} ${Math.round(u.spd)}`).join(' → ')}`);
 
-            while (turn < turnCap && alive(A).length && alive(B).length) {
+            while (clock < timeLimit && turn < turnCap && alive(A).length && alive(B).length) {
                 const isSkillTurn = (turn % 2 === 0);   // เลขคู่ = สกิล · เลขคี่ = ตีปกติ
 
                 // เข้าตีปกติ 1 ครั้งตามคิว SPD รวมทั้งสนาม
@@ -21675,6 +21905,8 @@
                     const hFoes = hTeam === A ? B : A;
                     simTeamNormalHit(hitter, hTeam, hFoes, cfg, rand, log);
                     markDead(A); markDead(B);
+                    const nsk = simNormalSkill(hitter);
+                    spend(nsk ? nsk.anim : (parseFloat(cfg.animNormal) || 2));
                 };
 
                 if (isSkillTurn) {
@@ -21685,8 +21917,16 @@
 
                     // ต้นตาของทีมนี้: DoT กัด + ลดคูลดาวน์
                     team.forEach(u => { if (u.hp > 0) simStartTurn(u, log); });
-                    simTeamUseSkill(team, foes, cfg, rand, log, reserve[side]);
+                    const used = simTeamUseSkill(team, foes, cfg, rand, log, reserve[side], clock);
                     markDead(A); markDead(B);
+                    if (used && used.sk) {
+                        // ⏱️ ออกสกิลแล้ว: กินเวลาอนิเมชัน + ตั้งเวลาที่สกิลใบนี้จะพร้อมอีกครั้ง
+                        spend(used.sk.anim);
+                        used.sk.readyAt = clock + used.sk.cooldown;
+                        if (used.sk.cooldown > 0) {
+                            log.push(`   ⏳ ${used.u.name} · ${used.sk.label} คูลดาวน์ ${used.sk.cooldown} วิ → พร้อมอีกครั้ง ${mmss(used.sk.readyAt)}`);
+                        }
+                    }
 
                     // ออกสกิลแล้วเข้าตีปกติต่อในเทิร์นเดียวกัน
                     if (alive(A).length && alive(B).length) doNormalHit();
@@ -21705,9 +21945,8 @@
             if (!alive(A).length && alive(B).length) winner = 'B';
             else if (!alive(B).length && alive(A).length) winner = 'A';
             else if (Math.abs(pA - pB) > 0.05) winner = pA > pB ? 'A' : 'B';
-            const usedSec = turn * secPerTurn;
-            const endWhy = (turn >= turnCap) ? 'หมดเวลา' : 'ล้มทีมได้';
-            log.push(`🏁 จบที่เทิร์น ${turn} (≈ ${mmss(usedSec)}) · ${endWhy} — ฝ่ายเรา ${Math.round(pA * 100)}% · ศัตรู ${Math.round(pB * 100)}%`);
+            const endWhy = (clock >= timeLimit) ? 'หมดเวลา' : (turn >= turnCap) ? 'ชนเพดานเทิร์น' : 'ล้มทีมได้';
+            log.push(`🏁 จบที่ ${mmss(clock)} / ${mmss(timeLimit)} (${turn} เทิร์น) · ${endWhy} — ฝ่ายเรา ${Math.round(pA * 100)}% · ศัตรู ${Math.round(pB * 100)}%`);
             return { winner, turns: turn, hpA: pA, hpB: pB, log, frames };
         }
 
