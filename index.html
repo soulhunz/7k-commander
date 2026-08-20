@@ -1861,9 +1861,32 @@
         .form-btn.active { background: #1d4ed8; color: white; border-color: #3b82f6; font-weight: bold; }
 
         /* Manager & Inputs */
-        .manager-list-item { display: flex; align-items: center; padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 1px solid transparent; gap: 10px; }
-        .manager-list-item:hover { background: #1f2937; }
-        .manager-list-item.active { background: #1d4ed8; border-color: #3b82f6; }
+        .manager-list-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px; border-radius: 12px; cursor: pointer;
+            border: 1px solid transparent; background: #0f1520;
+            transition: background 0.15s, border-color 0.15s, transform 0.15s;
+        }
+        .manager-list-item:hover { background: #1f2937; border-color: #374151; transform: translateX(2px); }
+        .manager-list-item.active {
+            background: #1d4ed8; border-color: #60a5fa;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+        .manager-list-item.active .mgr-chip { filter: brightness(1.15); }
+        .manager-list-item img { transition: border-color 0.15s; }
+        .manager-list-item:hover img { border-color: #6b7280; }
+        .manager-list-item.active img { border-color: #bfdbfe; }
+
+        /* ป้ายสถานะข้อมูลในลิสต์ Manage */
+        .mgr-chip {
+            display: inline-flex; align-items: center;
+            font-size: 9px; font-weight: 700; line-height: 1;
+            padding: 3px 6px; border-radius: 6px; border: 1px solid;
+            white-space: nowrap;
+        }
+        .mgr-chip-red { background: rgba(127, 29, 29, 0.5); color: #fca5a5; border-color: rgba(220, 38, 38, 0.5); }
+        .mgr-chip-amber { background: rgba(120, 53, 15, 0.5); color: #fcd34d; border-color: rgba(217, 119, 6, 0.5); }
+        .mgr-chip-green { background: rgba(6, 78, 59, 0.5); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.45); }
         .input-group label { display: block; font-size: 14px; color: #9ca3af; margin-bottom: 4px; font-weight: bold; text-transform: uppercase; }
         .input-group input, .input-group select, .input-group textarea { width: 100%; background: #0d1117; border: 1px solid #374151; padding: 8px; border-radius: 6px; color: white; font-size: 14px; outline: none; }
         .input-group textarea { font-family: monospace; line-height: 1.4; resize: vertical; }
@@ -2819,7 +2842,7 @@
             <div onclick="switchView('hero-build')" class="menu-item" id="nav-hero-build">🔨 บิ้วตัวละคร</div>
             <div onclick="switchView('team-builder-3v3')" class="menu-item" id="nav-team-builder-3v3">⚔️ สร้างทีม 3v3</div>
             <div onclick="switchView('enemy-manager')" class="menu-item" id="nav-enemy-manager">🎯 รูปแบบศัตรู</div>
-            <!-- <div onclick="switchView('member-roster')" class="menu-item" id="nav-member-roster">👥 ข้อมูลลูกกิล</div> -->
+            <div onclick="switchView('member-roster')" class="menu-item" id="nav-member-roster">👥 ข้อมูลลูกกิล</div>
             <div onclick="switchView('castle-comp')" class="menu-item" id="nav-castle-comp">🏰 นับคอมพ์ปราสาท</div>
             <div onclick="switchView('battle-sim')" class="menu-item" id="nav-battle-sim">⚔️ จำลองการต่อสู้</div>
             <div onclick="switchView('gallery')" class="menu-item" id="nav-gallery">🖼️ แกลเลอรี</div>
@@ -3415,11 +3438,18 @@
                     <button onclick="addNewItemInit()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg">+ เพิ่มข้อมูลใหม่</button>
                 </div>
             </header>
-            <div class="flex h-full overflow-hidden">
-                <div class="w-96 border-r border-gray-800 bg-[#111827] overflow-y-auto no-scroll p-4" id="manager-list"></div>
-                <div class="flex-1 p-8 overflow-y-auto bg-[#0d1117]">
-                    <div id="manager-empty" class="text-center text-gray-500 mt-20 text-lg">เลือกรายการจากด้านซ้ายเพื่อแก้ไข</div>
-                    <div id="manager-form" class="hidden max-w-3xl mx-auto bg-[#161b22] p-8 rounded-2xl border border-gray-700"></div>
+            <div class="flex flex-1 min-h-0 overflow-hidden">
+                <div class="w-80 lg:w-96 border-r border-gray-800 bg-[#111827] flex flex-col flex-shrink-0">
+                    <div id="manager-toolbar" class="p-3 border-b border-gray-800 flex-shrink-0 bg-[#0f1520]"></div>
+                    <div class="flex-1 overflow-y-auto no-scroll p-3 space-y-1" id="manager-list"></div>
+                </div>
+                <div class="flex-1 p-6 lg:p-8 overflow-y-auto bg-[#0d1117]">
+                    <div id="manager-empty" class="flex flex-col items-center justify-center text-center text-gray-500 mt-16">
+                        <div class="text-6xl mb-4 opacity-25">📋</div>
+                        <div class="text-base font-bold text-gray-400">เลือกรายการจากด้านซ้ายเพื่อแก้ไข</div>
+                        <div class="text-xs text-gray-600 mt-1">หรือกด “+ เพิ่มข้อมูลใหม่” ที่มุมขวาบน</div>
+                    </div>
+                    <div id="manager-form" class="hidden max-w-5xl mx-auto bg-[#161b22] p-6 lg:p-8 rounded-2xl border border-gray-700 shadow-2xl"></div>
                 </div>
             </div>
         </div>
@@ -3934,7 +3964,7 @@
 
                     <div class="input-group mt-1">
                         <label class="text-green-400 text-xs font-bold uppercase">รหัสสมาชิก (ตั้งเองได้)</label>
-                        <input type="text" id="gm-access-code" oninput="updateMemberRosterLinkPreview()" class="w-full bg-[#0b0e14] border border-gray-600 rounded p-2 text-yellow-400 font-mono text-center outline-none text-sm mt-1" placeholder="เช่น 001, player01, สมชาย">
+                        <input type="text" id="gm-access-code" oninput="updateMemberRosterLinkPreview()" class="w-full bg-[#0b0e14] border border-gray-600 rounded p-2 text-yellow-400 font-mono text-center outline-none text-sm mt-1" placeholder="อย่างน้อย 6 ตัว เช่น somchai42, gw-player07">
                         <p class="text-[10px] text-gray-500 mt-1">สมาชิกใช้รหัสนี้กรอกในหน้าลิงก์สมาชิก (แยกจากลิงก์)</p>
                         <div class="flex gap-2 mt-2">
                             <button type="button" onclick="copyMemberPortalLink()" class="flex-1 bg-purple-700 hover:bg-purple-600 text-white py-2 rounded text-xs font-bold border border-purple-500">🔗 คัดลอกลิงก์ (หน้ากรอกรหัส)</button>
@@ -4590,6 +4620,16 @@
             const mem = g?.members?.[mIdx];
             if (!mem) throw new Error('Member not found');
 
+            // 🔐 เซฟจากพอร์ทัลลูกกิล → ยืนยันด้วยรหัสที่ผู้ใช้กรอกเอง (rosterAuthCode)
+            //    ไม่ใช่ accessCode ที่อ่านจาก guildsDB (แก้ในหน่วยความจำได้ = ยืนยันตัวเองผ่านเสมอ)
+            const isRosterSave = !!options.rosterSave;
+            const authCode = isRosterSave
+                ? normalizeMemberCode(rosterAuthCode)
+                : normalizeMemberCode(mem.accessCode || '');
+            if (isRosterSave && !authCode) {
+                throw new Error('ยังไม่ได้เข้าสู่ระบบลูกกิล — กรอกรหัสสมาชิกอีกครั้ง');
+            }
+
             const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -4597,9 +4637,9 @@
                     action: 'saveMemberInventory',
                     guild_id: String(g.id),
                     member_id: String(mem.id != null ? mem.id : ''),
-                    accessCode: normalizeMemberCode(mem.accessCode || ''),
+                    accessCode: authCode,
                     saveMode: options.saveMode === 'replace' ? 'replace' : 'merge',
-                    source: options.rosterSave ? 'roster' : (options.adminSave ? 'admin' : 'admin'),
+                    source: isRosterSave ? 'roster' : (options.adminSave ? 'admin' : 'admin'),
                     patch: patch
                 })
             });
@@ -4746,6 +4786,7 @@
                     { id: 'nav-hero-build', icon: '🔨', label: 'บิ้วตัวละคร', action: () => switchView('hero-build') },
                     { id: 'nav-team-builder-3v3', icon: '⚔️', label: 'สร้างทีม 3v3', action: () => switchView('team-builder-3v3') },
                     { id: 'nav-enemy-manager', icon: '🎯', label: 'รูปแบบศัตรู', action: () => switchView('enemy-manager') },
+                    { id: 'nav-member-roster', icon: '👥', label: 'ข้อมูลลูกกิล', action: () => switchView('member-roster') },
                     { id: 'nav-castle-comp', icon: '🏰', label: 'นับคอมพ์ปราสาท', action: () => switchView('castle-comp') },
                     { id: 'nav-gallery', icon: '🌍', label: 'แกลเลอรีชุมชน', action: () => switchView('gallery') }
                 ]
@@ -4826,7 +4867,7 @@
             { id: 'nav-hero-build', label: '🔨 บิ้วตัวละคร', default: false },
             { id: 'nav-team-builder-3v3', label: '⚔️ สร้างทีม 3v3', default: false },
             { id: 'nav-enemy-manager', label: '🎯 รูปแบบศัตรู', default: false },
-            // { id: 'nav-member-roster', label: '👥 ข้อมูลลูกกิล', default: true },  // ปิดเมนูแล้ว
+            { id: 'nav-member-roster', label: '👥 ข้อมูลลูกกิล', default: true },
             { id: 'nav-castle-comp', label: '🏰 นับคอมพ์ปราสาท', default: true },
             // ⚔️ จำลองการต่อสู้ — จงใจไม่ใส่ในลิสต์นี้ = ไม่ผ่านระบบสิทธิ์ แสดงให้ทุกคนเสมอ
             // (applyUserRole() ซ่อนเฉพาะเมนูที่อยู่ใน ALL_MENUS)
@@ -10163,6 +10204,141 @@
             sel.innerHTML = stats.map(s => `<option value="${s}">${(typeof STAT_DISPLAY !== 'undefined' && STAT_DISPLAY[s]) || s}</option>`).join('');
         }
 
+        /**
+         * คัดลอก Base Stats (6 ดาวเหลือง) → ช่อง Awakening ทั้งหมด
+         * ใช้กับตัวที่แพตช์นี้ยังไม่มีอเวค จะได้มีค่าตั้งต้นไว้ก่อน
+         */
+        function copyBaseStatsToAwaken() {
+            let copied = 0;
+            const changed = [];
+            STAT_KEYS.forEach(k => {
+                const src = document.getElementById('stat-' + k);
+                const dst = document.getElementById('astat-' + k);
+                if (!src || !dst) return;
+                if (dst.value !== src.value) changed.push(STAT_LABELS[k] || k);
+                dst.value = src.value;
+                copied++;
+            });
+            if (!copied) return alert('❌ ไม่พบช่องสเตตัส — เปิดแท็บ Stats ก่อน');
+            if (!changed.length) {
+                showToast('ค่าเหมือนกันอยู่แล้ว ไม่มีอะไรเปลี่ยน', 'info');
+                return;
+            }
+            showToast('⧉ คัดลอกแล้ว ' + changed.length + ' ค่า — อย่าลืมกดบันทึก', 'success');
+        }
+
+        // 🔍 ค้นหา/กรอง ในหน้า Manage — ค่าอยู่นอกฟังก์ชันเพื่อไม่ให้รีเซ็ตตอนวาดใหม่
+        let managerSearch = '';
+        let managerFilter = 'all';   // all | no-stats | no-skill | ready (เฉพาะหน้าฮีโร่)
+        let managerType = '';        // '' = ทุก Type · ที่เหลือคือค่าใน TYPE_OPTS
+
+        /** ฮีโร่ตัวนี้กรอกอะไรไปแล้วบ้าง — ใช้ติดป้ายและกรอง */
+        function managerHeroFlags(h) {
+            const st = (h && h.baseStats) || {};
+            const hasStats = ['hp', 'atk', 'def', 'spd'].some(k => (parseFloat(st[k]) || 0) > 0);
+            const hasSkill = !!(h && h.skillData && Object.keys(h.skillData).some(k => {
+                const c = h.skillData[k];
+                return c && ((Array.isArray(c.scales) && c.scales.length) || (Array.isArray(c.effects) && c.effects.length) || c.percent);
+            }));
+            return { hasStats, hasSkill };
+        }
+
+        /** พิมพ์ค้นหา — วาดใหม่เฉพาะลิสต์ ไม่แตะ toolbar ช่องค้นหาจึงไม่เสียโฟกัส */
+        function managerSetSearch(v) {
+            managerSearch = String(v || '').trim().toLowerCase();
+            renderManagerUI();
+        }
+
+        function managerSetFilter(f) {
+            managerFilter = f;
+            renderManagerUI();
+        }
+
+        function managerSetType(t) {
+            managerType = (managerType === t) ? '' : t;
+            renderManagerUI();
+        }
+
+        function managerClearFilters() {
+            managerSearch = '';
+            managerFilter = 'all';
+            managerType = '';
+            renderManagerUI();
+        }
+
+        function renderManagerToolbar(dbAll, shown) {
+            const bar = document.getElementById('manager-toolbar');
+            if (!bar) return;
+            const isHero = currentView === 'hero-manager';
+            const total = dbAll.length;
+
+            let chips = '';
+            if (isHero) {
+                let noStats = 0, noSkill = 0, ready = 0;
+                dbAll.forEach(h => {
+                    const f = managerHeroFlags(h);
+                    if (!f.hasStats) noStats++;
+                    if (!f.hasSkill) noSkill++;
+                    if (f.hasStats && f.hasSkill) ready++;
+                });
+                const chip = (key, label, count, cls) => `
+                    <button onclick="managerSetFilter('${key}')"
+                        class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition whitespace-nowrap ${managerFilter === key ? cls : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'}">
+                        ${label} <span class="opacity-70">${count}</span>
+                    </button>`;
+                chips = `<div class="flex flex-wrap gap-1.5 mt-2">
+                    ${chip('all', 'ทั้งหมด', total, 'bg-white text-black border-white')}
+                    ${chip('no-stats', '⚠️ ไม่มีสเตตัส', noStats, 'bg-red-600 text-white border-red-400')}
+                    ${chip('no-skill', '👊 ไม่มีสกิล', noSkill, 'bg-amber-600 text-white border-amber-400')}
+                    ${chip('ready', '✅ ครบ', ready, 'bg-emerald-600 text-white border-emerald-400')}
+                </div>`;
+
+                // 🧬 กรองตาม Type — โชว์เฉพาะ Type ที่มีตัวละครอยู่จริง
+                const typeCount = {};
+                dbAll.forEach(h => { const t = String(h.type || ''); if (t) typeCount[t] = (typeCount[t] || 0) + 1; });
+                const avail = TYPE_OPTS.filter(t => typeCount[t] > 0);
+                if (avail.length) {
+                    const st = (typeof GALLERY_TYPE_STYLE !== 'undefined') ? GALLERY_TYPE_STYLE : {};
+                    const tBtn = (t) => {
+                        const c = st[t] || {};
+                        const on = managerType === t;
+                        return `<button onclick="managerSetType('${String(t).replace(/'/g, "\\'")}')"
+                            class="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition whitespace-nowrap ${on ? (c.on || 'bg-blue-600 text-white border-blue-400') : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'}">
+                            <span class="w-1.5 h-1.5 rounded-full ${c.dot || 'bg-gray-500'}"></span>${t} <span class="opacity-70">${typeCount[t]}</span>
+                        </button>`;
+                    };
+                    chips += `<div class="flex flex-wrap gap-1.5 mt-1.5 pt-1.5 border-t border-gray-800">
+                        <span class="text-[10px] text-gray-600 font-bold uppercase self-center mr-0.5">Type</span>
+                        ${avail.map(tBtn).join('')}
+                    </div>`;
+                }
+            }
+
+            const filtered = managerSearch || (isHero && (managerFilter !== 'all' || managerType));
+            bar.innerHTML = `
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+                    <input id="manager-search" type="text" value="${String(managerSearch).replace(/"/g, '&quot;')}"
+                        oninput="managerSetSearch(this.value)" placeholder="ค้นหาชื่อ..."
+                        class="w-full bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-blue-500">
+                </div>
+                ${chips}
+                <div class="flex items-center gap-2 mt-2 text-[11px] text-gray-500">
+                    <span>แสดง <b class="text-gray-300">${shown}</b> / ${total} รายการ</span>
+                    ${filtered ? '<button onclick="managerClearFilters()" class="ml-auto text-gray-400 hover:text-red-400 underline">ล้างตัวกรอง</button>' : ''}
+                </div>`;
+
+            // คืนโฟกัสให้ช่องค้นหาหลังวาดใหม่ (กันพิมพ์แล้วหลุด)
+            if (managerSearch) {
+                const el = document.getElementById('manager-search');
+                if (el && document.activeElement !== el) {
+                    el.focus();
+                    const n = el.value.length;
+                    try { el.setSelectionRange(n, n); } catch (e) { }
+                }
+            }
+        }
+
         function renderManagerUI() {
             const list=document.getElementById('manager-list'), form=document.getElementById('manager-form'), empty=document.getElementById('manager-empty'); list.innerHTML='';
             const titleMap = { 'hero-manager':'Heroes', 'pet-manager':'Pets', 'item-manager':'Items', 'ring-manager':'Rings', 'accessory-manager':'เครื่องประดับ', 'equip-manager':'Equipment Sets' };
@@ -10183,6 +10359,33 @@
                     return (b.grade || 0) - (a.grade || 0) || a.name.localeCompare(b.name, 'th');
                 });
                 else db.sort((a, b) => (b.grade||0) - (a.grade||0) || a.name.localeCompare(b.name, 'th'));
+            }
+
+            // 🔍 ค้นหา + กรอง (เก็บลิสต์เต็มไว้นับยอด)
+            const dbAll = db.slice();
+            const q = managerSearch;
+            if (q) db = db.filter(i => String(i.name || '').toLowerCase().includes(q));
+            if (currentView === 'hero-manager' && managerType) {
+                db = db.filter(i => String(i.type || '') === managerType);
+            }
+            if (currentView === 'hero-manager' && managerFilter !== 'all') {
+                db = db.filter(i => {
+                    const f = managerHeroFlags(i);
+                    if (managerFilter === 'no-stats') return !f.hasStats;
+                    if (managerFilter === 'no-skill') return !f.hasSkill;
+                    if (managerFilter === 'ready') return f.hasStats && f.hasSkill;
+                    return true;
+                });
+            }
+            renderManagerToolbar(dbAll, db.length);
+
+            if (!db.length) {
+                list.innerHTML = `<div class="text-center text-gray-600 text-xs py-12">
+                    <div class="text-4xl mb-2 opacity-30">🔍</div>ไม่พบรายการที่ตรงกับตัวกรอง
+                </div>`;
+                if (!editingItemId) { form.classList.add('hidden'); empty.classList.remove('hidden'); }
+                else { form.classList.remove('hidden'); empty.classList.add('hidden'); }
+                return;
             }
 
             db.forEach(i => {
@@ -10216,7 +10419,22 @@
                     const label = i.type === 'front' ? 'FRONT' : 'BACK';
                     badgeHtml = `<span class="${BASE_BADGE_STYLE} bg-[#0d1117] ${color}">+${i.level} ${label}</span>`;
                 }
-                list.innerHTML+=`<div onclick="editManagerItem('${i.id}')" class="manager-list-item ${editingItemId==i.id?'active':''}"><img src="${i.img||'https://placehold.co/50'}" class="w-10 h-10 rounded bg-black object-cover border border-gray-700 shrink-0"><div class="overflow-hidden w-full"><div class="flex flex-wrap items-center">${badgeHtml}</div><div class="font-bold text-gray-200 text-sm truncate leading-tight">${i.name}</div></div></div>`
+                // ป้ายบอกว่ากรอกข้อมูลครบยัง (เฉพาะฮีโร่ — ใช้กับเครื่องจำลองการต่อสู้)
+                let flagHtml = '';
+                if (currentView === 'hero-manager') {
+                    const f = managerHeroFlags(i);
+                    if (!f.hasStats) flagHtml += '<span class="mgr-chip mgr-chip-red">⚠️ ไม่มีสเตตัส</span>';
+                    if (!f.hasSkill) flagHtml += '<span class="mgr-chip mgr-chip-amber">👊 ไม่มีสกิล</span>';
+                    if (f.hasStats && f.hasSkill) flagHtml += '<span class="mgr-chip mgr-chip-green">✅ ครบ</span>';
+                }
+                const meta = badgeHtml + flagHtml;
+                list.innerHTML += `<div onclick="editManagerItem('${i.id}')" class="manager-list-item ${editingItemId==i.id?'active':''}">
+                    <img src="${i.img||'https://placehold.co/50'}" class="w-12 h-12 rounded-lg bg-black object-cover border border-gray-700 shrink-0" loading="lazy">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold text-gray-100 text-sm truncate leading-snug">${i.name}</div>
+                        ${meta ? `<div class="flex flex-wrap items-center gap-1 mt-1">${meta}</div>` : ''}
+                    </div>
+                </div>`
             });
             if(!editingItemId){form.classList.add('hidden');empty.classList.remove('hidden');} else{form.classList.remove('hidden');empty.classList.add('hidden');}
         }
@@ -10420,8 +10638,14 @@
                             </div>
                         </div>
                         <div class="bg-[#111827] p-4 rounded border border-purple-700/40">
-                            <div class="text-xs font-bold text-purple-300 mb-1 uppercase">✨ Base Stats — Awakening (ปลุกพลัง)</div>
-                            <div class="text-[10px] text-gray-500 mb-2">เริ่มต้นอิงจาก Base Stats ปกติ — แก้เฉพาะค่าที่ต่างตอนปลุกพลัง <span class="text-gray-600">(ถ้าไม่ต่างเลย = ใช้ค่าปกติ)</span></div>
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                <div class="text-xs font-bold text-purple-300 uppercase">✨ Base Stats — Awakening (ปลุกพลัง)</div>
+                                <button type="button" onclick="copyBaseStatsToAwaken()" title="คัดลอกค่าจาก Base Stats (ที่ 6 ดาวเหลือง) มาทับทั้งหมด"
+                                    class="ml-auto bg-purple-700 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow border border-purple-500/40">
+                                    ⧉ คัดลอกจาก Base Stats
+                                </button>
+                            </div>
+                            <div class="text-[10px] text-gray-500 mb-2">ตัวที่แพตช์นี้ยังไม่มีอเวค — กดปุ่มคัดลอกเพื่อใช้ค่าปกติเป็นค่าตั้งต้นก่อน แล้วค่อยแก้ทีหลังเมื่อมีข้อมูลจริง</div>
                             <div class="grid grid-cols-3 gap-3">
                                 ${STAT_KEYS.map(k => `<div class="input-group"><label>${STAT_LABELS[k]}</label><input type="number" id="astat-${k}" value="${item.awakenStats?.[k] ?? item.baseStats?.[k] ?? 0}" class="text-right bg-[#0d1117]"></div>`).join('')}
                             </div>
@@ -17726,7 +17950,10 @@
             const accessCode = normalizeMemberCode(codeInput.value);
 
             if (!name) return alert("กรุณากรอกชื่อสมาชิก");
-            if (!accessCode) return alert("กรุณาตั้งรหัสสมาชิก (เช่น 001, player01)");
+            if (!accessCode) return alert("กรุณาตั้งรหัสสมาชิก");
+            if (accessCode.length < ROSTER_CODE_MIN_LEN) {
+                return alert("❌ รหัสสมาชิกต้องยาวอย่างน้อย " + ROSTER_CODE_MIN_LEN + " ตัวอักษร\n\nรหัสสั้นอย่าง 001 เดาได้ในไม่กี่ครั้ง ใครเดาได้จะเข้าดู/แก้ข้อมูลของลูกกิลคนนั้นได้");
+            }
 
             const dup = guildMembersDB.findIndex((m, i) =>
                 memberCodesMatch(m.accessCode, accessCode) && String(i) !== String(index)
@@ -20491,6 +20718,25 @@
             return found;
         }
 
+        /**
+         * ตัวที่ยังไม่ได้ตั้งค่าสกิลเลย — แจก "ตีปกติ" ให้ 1 ใบ ดาเมจ 100% ของ ATK
+         * จะได้จำลองได้ทุกตัว ไม่ต้องรอกรอกสกิลครบก่อน
+         * ตัวที่มีสกิลอยู่แล้วแต่ขาดช่อง n ก็ได้ตีปกติใบนี้ไปด้วย (ประตูสกิลบังคับให้ต้องตีปกติ)
+         */
+        function simEnsureSkills(list) {
+            const out = Array.isArray(list) ? list.slice() : [];
+            if (!out.some(sk => sk && sk.key === 'n')) {
+                out.push({
+                    key: 'n', label: 'Normal',
+                    scales: [{ scale: 'atk', percent: 100 }],
+                    effects: [],
+                    hits: 1, cooldown: 0, cdLeft: 0,
+                    _auto: true          // ระบบแจกให้ ไม่ได้มาจากที่กรอกไว้
+                });
+            }
+            return out;
+        }
+
         function simMakeUnit(hero, cfg) {
             const st = simHeroStats(hero, cfg);
             const sd = hero.skillData || {};
@@ -20518,7 +20764,7 @@
                 critRate: st.critRate || 0, critDmg: st.critDmg || cfg.critDmgDefault,
                 block: st.block || 0, dmgRed: st.dmgRed || 0,
                 acc: st.acc || 0, resist: st.resist || 0, weakness: st.weakness || 0,
-                skills: [mkSkill('s2', 'Skill 2'), mkSkill('s1', 'Skill 1'), mkSkill('n', 'Normal')].filter(Boolean),
+                skills: simEnsureSkills([mkSkill('s2', 'Skill 2'), mkSkill('s1', 'Skill 1'), mkSkill('n', 'Normal')].filter(Boolean)),
                 skillGate: 0,   // ⏳ >0 = ยังต้องตีปกติอีกกี่เทิร์นก่อนออกสกิลได้
                 statuses: [],   // { name, kind:'cc'|'dot'|'buff'|'debuff'|'shield', turns, val, stat }
                 shield: 0,
@@ -20796,7 +21042,8 @@
 
             const warn = noSkill.length ? `
                 <div class="bg-amber-900/20 border border-amber-700/50 rounded-xl p-3 mb-4 text-xs text-amber-300">
-                    ⚠️ ${noSkill.length} ตัวยังไม่ได้ตั้งค่าสกิล (${noSkill.map(h => ccEsc(h.name)).join(', ')}) — จำลองไม่ได้ ไปกรอกที่เมนู 🦸 ฮีโร่ ก่อน
+                    👊 ${noSkill.length} ตัวยังไม่ได้ตั้งค่าสกิล (${noSkill.map(h => ccEsc(h.name)).join(', ')}) — จำลองได้ แต่จะ<b>ตีปกติอย่างเดียว ดาเมจ 100% ของ ATK</b>
+                    <span class="block text-amber-400/70 mt-0.5">ผลที่ได้จะต่ำกว่าความจริง — กรอกสกิลที่เมนู 🦸 ฮีโร่ เพื่อให้แม่นขึ้น</span>
                 </div>` : '';
 
             const chips = picked.map(h => `
@@ -20980,12 +21227,150 @@
                         <span class="ml-auto text-xs text-gray-400">ชนะ <b class="text-emerald-400">${r.winA}</b> / แพ้ <b class="text-red-400">${r.winB}</b> / เสมอ ${r.draw} · เฉลี่ย ${r.avgTurns} เทิร์น</span>
                         <button onclick="simCloseLog()" class="text-gray-500 hover:text-white text-lg">✕</button>
                     </div>
-                    <div class="text-[11px] text-gray-500 mb-2">log ของรอบแรก (seed คงที่ — รันซ้ำได้ผลเดิม)</div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-[11px] text-gray-500">log ของรอบแรก (seed คงที่ — รันซ้ำได้ผลเดิม)</span>
+                        <button onclick="simOpenArena('${aId}','${bId}')" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-black transition shadow">🎬 ดูการต่อสู้แบบภาพ</button>
+                    </div>
+                    <div id="sim-arena" class="mb-3"></div>
                     ${simLogHTML(r.sample.log)}
                 </div>`;
         }
 
         // ---------- ตัวเลือกฮีโร่ ----------
+        // =========================================================
+        // 🎬 ARENA — ดูการต่อสู้เป็นภาพ 2 ฝั่ง เดินทีละเทิร์น
+        //    ใช้ frames ที่ engine บันทึกไว้ (opts.record) เล่นย้อน/เดินหน้าได้
+        // =========================================================
+        let simArena = null;   // { frames, i, timer }
+
+        function simOpenArena(aId, bId) {
+            simLoadCfg();
+            const a = heroesDB.find(h => String(h.id) === String(aId));
+            const b = heroesDB.find(h => String(h.id) === String(bId));
+            if (!a || !b) return;
+            // seed 500 = รอบแรกของ simRunTeamPair → ภาพตรงกับ log ที่โชว์อยู่
+            const res = simTeamBattle([a], [b], simCfg, 500, { record: true });
+            const box = document.getElementById('sim-arena');
+            if (!res.frames || !res.frames.length) {
+                if (box) box.innerHTML = '<div class="text-xs text-amber-400 p-3">จำลองไม่ได้ — ตรวจว่าตั้งค่าสกิลครบทั้งสองตัว</div>';
+                return;
+            }
+            simArenaStop();
+            simArena = { frames: res.frames, i: 0, timer: null };
+            simArenaRender();
+        }
+
+        function simArenaStop() {
+            if (simArena && simArena.timer) { clearInterval(simArena.timer); simArena.timer = null; }
+        }
+
+        function simArenaGo(delta) {
+            if (!simArena) return;
+            const n = simArena.frames.length;
+            simArena.i = Math.min(n - 1, Math.max(0, simArena.i + delta));
+            if (simArena.i >= n - 1) simArenaStop();
+            simArenaRender();
+        }
+
+        function simArenaSeek(v) {
+            if (!simArena) return;
+            simArena.i = Math.min(simArena.frames.length - 1, Math.max(0, parseInt(v) || 0));
+            simArenaRender();
+        }
+
+        function simArenaPlay() {
+            if (!simArena) return;
+            if (simArena.timer) { simArenaStop(); simArenaRender(); return; }
+            if (simArena.i >= simArena.frames.length - 1) simArena.i = 0;
+            simArena.timer = setInterval(function () {
+                if (!simArena) return;
+                if (simArena.i >= simArena.frames.length - 1) { simArenaStop(); simArenaRender(); return; }
+                simArena.i++;
+                simArenaRender();
+            }, 700);
+            simArenaRender();
+        }
+
+        function simArenaClose() {
+            simArenaStop();
+            simArena = null;
+            const box = document.getElementById('sim-arena');
+            if (box) box.innerHTML = '';
+        }
+
+        // การ์ดตัวละคร 1 ใบในสนาม
+        function simArenaUnitHTML(u, sideCls) {
+            const pct = u.maxHp > 0 ? Math.max(0, Math.min(100, (u.hp / u.maxHp) * 100)) : 0;
+            const dead = u.hp <= 0;
+            const barCls = pct > 50 ? 'bg-emerald-500' : pct > 20 ? 'bg-amber-500' : 'bg-red-500';
+            const chips = (u.st || []).map(function (x) {
+                const icon = x.k === 'cc' ? '❄️' : x.k === 'dot' ? '🔥' : x.k === 'buff' ? '⬆️' : x.k === 'debuff' ? '⬇️' : '✨';
+                const cls = x.k === 'cc' ? 'bg-blue-900/60 text-blue-200 border-blue-700'
+                    : x.k === 'dot' ? 'bg-orange-900/60 text-orange-200 border-orange-700'
+                        : x.k === 'buff' ? 'bg-emerald-900/60 text-emerald-200 border-emerald-700'
+                            : 'bg-red-900/60 text-red-200 border-red-700';
+                return '<span class="text-[9px] px-1.5 py-0.5 rounded border ' + cls + ' font-bold whitespace-nowrap">' + icon + ccEsc(x.n) + ' ' + x.t + '</span>';
+            }).join('');
+
+            return '<div class="flex items-center gap-2.5 ' + (dead ? 'opacity-40 grayscale' : '') + ' transition">'
+                + '<div class="relative flex-shrink-0">'
+                + '<img src="' + (u.img || '') + '" alt="' + ccEsc(u.name) + '" class="w-16 h-16 rounded-xl border-2 ' + sideCls + ' object-cover bg-black">'
+                + (dead ? '<div class="absolute inset-0 flex items-center justify-center text-2xl">☠️</div>' : '')
+                + (u.shield > 0 ? '<div class="absolute -top-1 -right-1 bg-cyan-600 text-white text-[9px] font-black px-1 rounded-full border border-cyan-300">🧊' + u.shield + '</div>' : '')
+                + '</div>'
+                + '<div class="flex-1 min-w-0">'
+                + '<div class="flex items-baseline gap-2">'
+                + '<span class="text-xs font-black text-white truncate">' + ccEsc(u.name) + '</span>'
+                + '<span class="text-[10px] text-gray-400 font-mono ml-auto flex-shrink-0">' + u.hp + '/' + u.maxHp + '</span>'
+                + '</div>'
+                + '<div class="h-2.5 rounded-full bg-[#0d1117] border border-gray-800 overflow-hidden mt-1">'
+                + '<div class="h-full ' + barCls + ' transition-all duration-300" style="width:' + pct + '%"></div>'
+                + '</div>'
+                + '<div class="flex flex-wrap gap-1 mt-1 min-h-[16px]">' + chips + '</div>'
+                + '</div></div>';
+        }
+
+        function simArenaRender() {
+            const box = document.getElementById('sim-arena');
+            if (!box || !simArena) return;
+            const f = simArena.frames[simArena.i];
+            const n = simArena.frames.length;
+            const playing = !!simArena.timer;
+            const btn = 'px-3 py-1.5 rounded-lg text-xs font-black transition border';
+            const btnOff = 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500 hover:text-white';
+
+            box.innerHTML = '<div class="bg-[#0b0e14] border-2 border-indigo-800/60 rounded-2xl p-4 shadow-2xl">'
+                + '<div class="flex items-center gap-2 mb-3">'
+                + '<span class="text-xs font-black text-indigo-300 uppercase tracking-wider">🎬 สนามประลอง</span>'
+                + '<span class="text-[11px] text-gray-500">เทิร์น ' + f.turn + ' · ก้าวที่ ' + (simArena.i + 1) + '/' + n + '</span>'
+                + '<button onclick="simArenaClose()" class="ml-auto text-gray-500 hover:text-white text-lg">✕</button>'
+                + '</div>'
+
+                + '<div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-start">'
+                + '<div class="space-y-2 bg-emerald-950/20 border border-emerald-900/50 rounded-xl p-3">'
+                + '<div class="text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-1">ฝ่ายเรา</div>'
+                + f.A.map(function (u) { return simArenaUnitHTML(u, 'border-emerald-600'); }).join('')
+                + '</div>'
+                + '<div class="hidden md:flex items-center justify-center text-gray-700 font-black text-xl px-1">VS</div>'
+                + '<div class="space-y-2 bg-red-950/20 border border-red-900/50 rounded-xl p-3">'
+                + '<div class="text-[10px] font-black text-red-400 uppercase tracking-wider mb-1">ศัตรู</div>'
+                + f.B.map(function (u) { return simArenaUnitHTML(u, 'border-red-600'); }).join('')
+                + '</div></div>'
+
+                + '<div class="mt-3 bg-[#0d1117] border border-gray-800 rounded-xl px-3 py-2 min-h-[42px] flex items-center">'
+                + '<span class="text-xs text-gray-200 font-mono leading-relaxed">' + ccEsc(f.text) + '</span>'
+                + '</div>'
+
+                + '<div class="flex flex-wrap items-center gap-2 mt-3">'
+                + '<button onclick="simArenaSeek(0)" class="' + btn + ' ' + btnOff + '" title="กลับไปเริ่มต้น">⏮</button>'
+                + '<button onclick="simArenaGo(-1)" class="' + btn + ' ' + btnOff + '" title="ถอยหลัง 1 ก้าว">◀</button>'
+                + '<button onclick="simArenaPlay()" class="' + btn + ' ' + (playing ? 'bg-amber-600 text-white border-amber-400' : 'bg-indigo-600 text-white border-indigo-400') + '">' + (playing ? '⏸ หยุด' : '▶ เล่น') + '</button>'
+                + '<button onclick="simArenaGo(1)" class="' + btn + ' ' + btnOff + '" title="ไปข้างหน้า 1 ก้าว">▶</button>'
+                + '<button onclick="simArenaSeek(' + (n - 1) + ')" class="' + btn + ' ' + btnOff + '" title="ข้ามไปตอนจบ">⏭</button>'
+                + '<input type="range" min="0" max="' + (n - 1) + '" value="' + simArena.i + '" oninput="simArenaSeek(this.value)" class="flex-1 min-w-[140px] accent-indigo-500">'
+                + '</div></div>';
+        }
+
         function simOpenHeroPicker() {
             simLoadCfg();
             let modal = document.getElementById('sim-hero-picker');
@@ -21038,7 +21423,7 @@
                     <div class="aspect-square rounded-lg border ${sel ? 'border-indigo-500' : 'border-gray-700'} group-hover:border-indigo-500 bg-black overflow-hidden relative">
                         <img src="${h.img || ''}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">
                         ${sel ? '<div class="absolute top-0.5 right-0.5 bg-indigo-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">✓</div>' : ''}
-                        ${hasSkill ? '' : '<div class="absolute bottom-0 inset-x-0 bg-amber-900/80 text-amber-200 text-[8px] text-center font-bold py-0.5">ไม่มีสกิล</div>'}
+                        ${hasSkill ? '' : '<div class="absolute bottom-0 inset-x-0 bg-amber-900/80 text-amber-200 text-[8px] text-center font-bold py-0.5" title="ยังไม่ได้ตั้งค่าสกิล — จะตีปกติ 100% ATK">👊 ตีปกติ</div>'}
                     </div>
                     <div class="text-[10px] text-gray-300 text-center truncate mt-1">${ccEsc(h.name)}</div>
                 </div>`;
@@ -21184,12 +21569,36 @@
             const A = heroesA.map(h => simMakeUnit(h, cfg)).filter(Boolean);
             const B = heroesB.map(h => simMakeUnit(h, cfg)).filter(Boolean);
             const log = [];
-            const bad = A.some(u => !u.skills.length) || B.some(u => !u.skills.length);
-            if (!A.length || !B.length || bad) {
-                return { winner: 'draw', turns: 0, hpA: 1, hpB: 1, log: ['⚠️ มีตัวที่ยังไม่ได้ตั้งค่าสกิล — จำลองไม่ได้'] };
+            if (!A.length || !B.length) {
+                return { winner: 'draw', turns: 0, hpA: 1, hpB: 1, log: ['⚠️ ยังไม่ได้เลือกตัวละครครบทั้งสองฝั่ง'], frames: [] };
             }
 
             const o = opts || {};
+
+            // 🎬 โหมดบันทึกภาพ (opts.record) — เก็บสถานะทุกตัวทุกครั้งที่มี log
+            //    ดักที่ log.push ทำให้ครอบคลุมทุกฟังก์ชันย่อยที่รับ log ไปใช้ โดยไม่ต้องแก้ทีละจุด
+            let turn = 0;
+            const record = !!o.record;
+            const frames = [];
+            const snapUnit = u => ({
+                id: u.id, name: u.name, img: u.img,
+                hp: Math.max(0, Math.round(u.hp)), maxHp: Math.round(u.maxHp),
+                shield: Math.round(u.shield || 0),
+                gate: u.skillGate || 0,
+                st: (u.statuses || []).map(x => ({ n: x.name, k: x.kind, t: x.turns }))
+            });
+            const snap = text => {
+                frames.push({ text: String(text), turn: turn, A: A.map(snapUnit), B: B.map(snapUnit) });
+            };
+            if (record) {
+                const _push = log.push.bind(log);
+                log.push = function () {
+                    const r = _push.apply(null, arguments);
+                    for (let i = 0; i < arguments.length; i++) snap(arguments[i]);
+                    return r;
+                };
+            }
+
             const reserve = {
                 A: simNormalizeReserve(o.reserveA, A.length),
                 B: simNormalizeReserve(o.reserveB, B.length)
@@ -21237,8 +21646,6 @@
             const turnCap = Math.min(parseInt(cfg.maxTurns) || 300, turnsByTime);
             const mmss = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
             log.push(`⏱️ เวลาจำกัด ${mmss(timeLimit)} · ${secPerTurn} วิ/เทิร์น → สูงสุด ${turnsByTime} เทิร์น`);
-
-            let turn = 0;
 
             // 🏃 คิวตีปกติรวมทั้งสนาม — เรียง SPD รายตัวข้ามทีม
             //    SPD เท่ากัน → ฝั่งที่ได้เปิดก่อน (ชนะ SPD รวม/เป่ายิงฉุบไปแล้ว) ได้ตีก่อน
@@ -21301,7 +21708,7 @@
             const usedSec = turn * secPerTurn;
             const endWhy = (turn >= turnCap) ? 'หมดเวลา' : 'ล้มทีมได้';
             log.push(`🏁 จบที่เทิร์น ${turn} (≈ ${mmss(usedSec)}) · ${endWhy} — ฝ่ายเรา ${Math.round(pA * 100)}% · ศัตรู ${Math.round(pB * 100)}%`);
-            return { winner, turns: turn, hpA: pA, hpB: pB, log };
+            return { winner, turns: turn, hpA: pA, hpB: pB, log, frames };
         }
 
         /** รันทีมเดิมหลายรอบ → % ชนะ */
@@ -21333,9 +21740,15 @@
 
         function cfHeroById(id) { return heroesDB.find(h => String(h.id) === String(id)) || null; }
 
-        // ฮีโร่ที่ตั้งค่าสกิลไว้แล้วเท่านั้นถึงจำลองได้
+        // ฮีโร่ที่จำลองได้ = ทุกตัวที่มีสเตตัส
+        // ตัวที่ยังไม่ได้กรอกสกิล ระบบแจก "ตีปกติ 100% ATK" ให้ (ดู simEnsureSkills)
         function cfPlayableHeroes() {
-            return heroesDB.filter(h => h && h.skillData && Object.keys(h.skillData).some(k => {
+            return heroesDB.filter(h => h && h.baseStats && (parseFloat(h.baseStats.atk) || parseFloat(h.baseStats.hp)));
+        }
+
+        // ตัวนี้กรอกสกิลไว้หรือยัง — ใช้ติดป้ายเตือนว่าผลจะต่ำกว่าความจริง
+        function cfHasSkillData(h) {
+            return !!(h && h.skillData && Object.keys(h.skillData).some(k => {
                 const c = h.skillData[k];
                 return c && ((Array.isArray(c.scales) && c.scales.length) || (Array.isArray(c.effects) && c.effects.length) || c.percent);
             }));
@@ -27433,6 +27846,13 @@
 
     const ROSTER_PORTAL_SESSION_KEY = 'guildWar_rosterPortalSession';
 
+    // 🔐 รหัสที่ผู้ใช้ "กรอกเองและผ่านการตรวจแล้ว" — ใช้เป็นตัวยืนยันตอนเซฟจากพอร์ทัลลูกกิล
+    //    ห้ามอ่าน accessCode จาก guildsDB มาใช้ยืนยัน เพราะแก้ในหน่วยความจำได้
+    let rosterAuthCode = '';
+
+    // 🔐 ความยาวรหัสสมาชิกขั้นต่ำ — รหัสสั้นเดาง่าย เพราะการตรวจเทียบไม่แคร์ตัวพิมพ์ใหญ่เล็ก
+    const ROSTER_CODE_MIN_LEN = 6;
+
     function normalizeMemberCode(code) {
         return String(code || '').trim();
     }
@@ -27474,7 +27894,9 @@
             clearRosterPortalSession();
             return false;
         }
+        rosterAuthCode = code;              // 🔐 รหัสที่เคยผ่านการตรวจแล้ว
         await openRosterEditorForTarget(foundTarget);
+        scrubOtherMemberAccessCodes(foundTarget);
         return true;
     }
 
@@ -28094,18 +28516,40 @@
             clearRosterPortalSession();
             return alert('❌ รหัสไม่ถูกต้อง — ตรวจสอบกับหัวหน้ากิลด์อีกครั้ง');
         }
+        rosterAuthCode = code;              // 🔐 จำรหัสที่ผู้ใช้กรอกจริง
         saveRosterPortalSession(code);
         showLoading('กำลังโหลดข้อมูลสมาชิก...');
         try {
             await openRosterEditorForTarget(foundTarget);
+            scrubOtherMemberAccessCodes(foundTarget);
         } finally {
             hideLoading();
         }
     }
 
+    /**
+     * 🔐 ลบ accessCode ของสมาชิก "คนอื่น" ออกจากหน่วยความจำหลังเข้าระบบสำเร็จ
+     * ลดความเสียหายเวลามีคนเปิด DevTools ดู guildsDB — เห็นได้แค่รหัสตัวเอง
+     * หมายเหตุ: เป็นการลดความเสี่ยง ไม่ใช่การแก้ที่ต้นเหตุ ข้อมูลยังวิ่งมาทาง network อยู่
+     *          ต้นเหตุจริงอยู่ที่ code.gs ต้องส่งมาแค่ข้อมูลของคนที่ล็อกอิน (ดู ROSTER-SECURITY.md)
+     */
+    function scrubOtherMemberAccessCodes(keepTarget) {
+        if (!isRosterPortalMode || !Array.isArray(guildsDB)) return;
+        let cleared = 0;
+        for (let g = 0; g < guildsDB.length; g++) {
+            const members = guildsDB[g].members || [];
+            for (let m = 0; m < members.length; m++) {
+                if (keepTarget && g === keepTarget.g && m === keepTarget.m) continue;
+                if (members[m] && members[m].accessCode) { members[m].accessCode = ''; cleared++; }
+            }
+        }
+        if (cleared) console.log('🔐 ล้างรหัสสมาชิกคนอื่นออกจากหน่วยความจำ ' + cleared + ' รายการ');
+    }
+
     function switchRosterMemberCode() {
         closeRosterMobileNav();
         clearRosterPortalSession();
+        rosterAuthCode = '';                // 🔐 ล้างตัวยืนยัน
         currentRosterTarget = null;
         rosterActiveTab = '';
         rosterSharedTeamsCache = null;
@@ -29043,15 +29487,17 @@
         const trimmedCode = normalizeMemberCode(codeInput.value);
         if (!trimmedName) return alert('กรุณากรอกชื่อในกิลด์');
         if (!trimmedCode) return alert('กรุณากรอกรหัสสมาชิก');
+        if (trimmedCode.length < ROSTER_CODE_MIN_LEN) {
+            return alert('รหัสสมาชิกต้องยาวอย่างน้อย ' + ROSTER_CODE_MIN_LEN + ' ตัวอักษร\n\nรหัสสั้นเดาง่าย ใครเดาได้จะเข้าดู/แก้ข้อมูลของคุณได้');
+        }
         const { g, m } = currentRosterTarget;
-        if (isRosterAccessCodeTaken(trimmedCode, g, m)) {
+        // ในพอร์ทัลลูกกิล รหัสคนอื่นถูกล้างออกจากหน่วยความจำแล้ว เช็คซ้ำฝั่งนี้ไม่ได้ — ให้ server เป็นคนตัดสิน
+        if (!isRosterPortalMode && isRosterAccessCodeTaken(trimmedCode, g, m)) {
             return alert('รหัสสมาชิกนี้ถูกใช้แล้ว — กรุณาใช้รหัสอื่น');
         }
         const mem = getCurrentRosterMember();
         const oldCode = mem ? normalizeMemberCode(mem.accessCode) : '';
         const patch = { name: trimmedName, accessCode: trimmedCode };
-        applyMemberInventoryPatch(g, m, patch);
-        setRosterMemberHeaderName(trimmedName);
         const saveFn = (typeof postMemberInventorySave === 'function')
             ? postMemberInventorySave
             : window.postMemberInventorySave;
@@ -29059,8 +29505,14 @@
             return alert('❌ ระบบบันทึกยังไม่พร้อม กรุณารีเฟรชหน้า');
         }
         try {
-            await saveFn(g, m, patch, true);
-            if (trimmedCode !== oldCode) saveRosterPortalSession(trimmedCode);
+            // ⚠️ ห้ามแก้ข้อมูลในเครื่องก่อนเซฟผ่าน — ไม่งั้น accessCode ใหม่จะกลายเป็นตัวยืนยันเสียเอง
+            await saveFn(g, m, patch, true, { rosterSave: isRosterPortalMode });
+            applyMemberInventoryPatch(g, m, patch);
+            setRosterMemberHeaderName(trimmedName);
+            if (trimmedCode !== oldCode) {
+                rosterAuthCode = trimmedCode;   // 🔐 เปลี่ยนรหัสสำเร็จ → ใช้รหัสใหม่ยืนยันต่อ
+                saveRosterPortalSession(trimmedCode);
+            }
             alert('✅ บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว' +
                 (trimmedCode !== oldCode ? '\n\nใช้รหัสใหม่เมื่อเข้าสู่ระบบครั้งถัดไป' : ''));
             renderPublicRosterProfile();
