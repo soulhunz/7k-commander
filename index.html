@@ -1774,25 +1774,109 @@
             .cc-sticky-head-card { top: -1.5rem; padding-top: 2.25rem; }
         }
 
-        /* 🏰 ตารางนับคอมพ์ตามปราสาท */
-        .cc-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
-        .cc-table th, .cc-table td { border-bottom: 1px solid #1f2937; border-right: 1px solid #1f2937; }
-        .cc-table thead th { position: sticky; top: 0; z-index: 6; background: #161b22; }
-        .cc-sticky-col { position: sticky; left: 0; z-index: 5; background: #111827; box-shadow: 4px 0 8px -4px rgba(0,0,0,0.8); width: 200px; min-width: 200px; max-width: 200px; }
-        .cc-table thead th.cc-sticky-col { z-index: 9; background: #161b22; }
+        /* 🏰 ตารางนับคอมพ์ตามปราสาท — โทน Excel: เส้นตารางครบทุกด้าน แถวสลับสี */
+        .cc-table {
+            border-collapse: separate; border-spacing: 0;
+            width: max-content; min-width: 100%;
+            font-variant-numeric: tabular-nums;
+        }
+        /* เส้นตารางบาง สม่ำเสมอ — ขอบซ้าย/บนของตารางมาจาก th:first-child / thead */
+        .cc-table th, .cc-table td {
+            border-bottom: 1px solid #263041;
+            border-right: 1px solid #263041;
+            padding: 0;
+        }
+        .cc-table tr > *:first-child { border-left: 1px solid #263041; }
+        .cc-table thead tr > * { border-top: 1px solid #263041; }
+
+        /* หัวตาราง (แถวบน) */
+        .cc-table thead th { position: sticky; top: 0; z-index: 6; background: #1b2433; }
+        .cc-table thead th.cc-sticky-col { z-index: 9; background: #1b2433; }
+
+        /* คอลัมน์ซ้ายสุด = หัวแถว */
+        .cc-sticky-col {
+            position: sticky; left: 0; z-index: 5;
+            background: #161d29;
+            box-shadow: 2px 0 6px -3px rgba(0,0,0,0.9);
+            width: 220px; min-width: 220px; max-width: 220px;
+        }
+        /* คอลัมน์ชื่อปราสาทตรึงถัดจากคอลัมน์เลขแถว */
+        .cc-sticky-col { left: 36px; }
+
+        /* แถวสลับสี + ไฮไลต์ทั้งแถวตอนชี้ (เหมือน Excel) */
+        .cc-table tbody tr:nth-child(even) td { background: #0e131c; }
+        .cc-table tbody tr:hover td { background: #182130; }
+        .cc-table tbody tr:hover .cc-sticky-col { background: #1d2637; }
+
+        /* เลขลำดับแถว/คอลัมน์แบบ Excel */
+        .cc-idx {
+            position: sticky; left: 0; z-index: 7;
+            font-size: 10px; font-weight: 700; color: #6b7280;
+            background: #131a25; text-align: center;
+            width: 36px; min-width: 36px; max-width: 36px;
+            user-select: none; padding: 0;
+        }
+        .cc-table thead th.cc-idx { background: #1b2433; z-index: 10; }
+        .cc-table tbody tr:hover .cc-idx { background: #1d2637; color: #d1d5db; }
+
+        /* ตัวอักษรคอลัมน์ (A B C ...) แถบบนสุดของหัวคอลัมน์ */
+        /* ป้ายชื่อคอมพ์บนหัวคอลัมน์ — ยาวเกินตัดด้วย ... (ชี้เมาส์เห็นเต็มจาก title) */
+        .cc-col-letter {
+            display: block; text-align: center;
+            font-size: 10px; font-weight: 700; color: #9ca3af;
+            background: #131a25; border-bottom: 1px solid #263041;
+            padding: 3px 8px; letter-spacing: 0.01em;
+            margin: -8px -8px 6px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .cc-pad { padding: 10px 12px; }
+
+        /* คอลัมน์ "รวม" — กว้างเท่าคอลัมน์ลำดับ และจัดกึ่งกลาง */
+        .cc-total-col {
+            width: 36px; min-width: 36px; max-width: 36px;
+            text-align: center; padding: 8px 2px;
+        }
+
+        /* ซ่อนแถบเลื่อนแต่ยังเลื่อนได้ (ล้อเมาส์ / trackpad / ปุ่มลูกศร) */
+        .cc-hide-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .cc-hide-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+        /* กล่องตาราง: เลื่อนแนวนอนได้อย่างเดียว ไม่ขึ้นสกรอลบาร์แนวตั้ง */
+        .cc-scroll-x { overflow-x: auto; overflow-y: hidden; }
+        .cc-scroll-x::-webkit-scrollbar { height: 10px; }
+        .cc-scroll-x::-webkit-scrollbar-track { background: #0d131c; }
+        .cc-scroll-x::-webkit-scrollbar-thumb { background: #334155; border-radius: 6px; }
+        .cc-scroll-x::-webkit-scrollbar-thumb:hover { background: #475569; }
+
         .cc-col-head { position: relative; }
-        .cc-col-w { width: 250px; min-width: 250px; max-width: 250px; }
+        /* คอลัมน์คอมพ์ = กว้างพอดีเนื้อหา (รูปฮีโร่) ไม่ฟิกเลข */
+        .cc-col-w { width: 1px; white-space: nowrap; }
         .cc-col-del { position: absolute; top: 2px; right: 4px; width: 18px; height: 18px; line-height: 1; border-radius: 6px; color: #4b5563; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.15s; }
         .cc-col-del:hover { color: #fff; background: #dc2626; }
         .cc-add-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 12px; border: 1px dashed #374151; border-radius: 10px; background: transparent; color: #6b7280; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.15s; white-space: nowrap; }
         .cc-add-btn:hover { border-color: #f59e0b; color: #fbbf24; background: rgba(245,158,11,0.08); }
-        .cc-hero-slot { width: 56px; height: 56px; border-radius: 10px; overflow: hidden; background: #0b0e14; border: 2px solid #374151; cursor: pointer; transition: 0.15s; flex-shrink: 0; }
-        .cc-hero-slot:hover { border-color: #f59e0b; transform: translateY(-2px); }
-        .cc-hero-slot.empty { border-style: dashed; display: flex; align-items: center; justify-content: center; color: #4b5563; font-size: 22px; font-weight: bold; }
-        .cc-hero-slot.sm { width: 40px; height: 40px; border-radius: 8px; font-size: 16px; }
-        .cc-count-input { width: 76px; text-align: center; background: #0d1117; border: 1px solid #374151; border-radius: 8px; padding: 8px 4px; color: #fff; font-weight: 800; font-size: 1rem; outline: none; transition: 0.15s; -moz-appearance: textfield; }
-        .cc-count-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,0.2); }
-        .cc-count-input.is-zero { color: #4b5563; font-weight: 500; }
+        /* รูปฮีโร่ในหัวตาราง — ดูอย่างเดียว แก้ที่เมนูรูปแบบศัตรู */
+        .cc-hero-slot { width: 48px; height: 48px; border-radius: 9px; overflow: hidden; background: #0b0e14; border: 2px solid #374151; flex-shrink: 0; cursor: default; }
+        .cc-hero-slot.awk { border-color: #a855f7; }
+        .cc-hero-slot.empty { border-style: dashed; display: flex; align-items: center; justify-content: center; color: #4b5563; font-size: 18px; font-weight: bold; }
+        .cc-hero-slot.sm { width: 33px; height: 33px; border-radius: 7px; font-size: 13px; }
+        /* ช่องกรอกเต็มเซลล์ ไม่มีขอบของตัวเอง — เส้นที่เห็นคือเส้นตาราง */
+        .cc-count-input {
+            width: 100%; height: 100%; min-height: 42px;
+            text-align: right; padding: 8px 12px;
+            background: transparent; border: 0; border-radius: 0;
+            color: #fff; font-weight: 700; font-size: 0.95rem;
+            font-variant-numeric: tabular-nums;
+            outline: none; transition: background 0.1s, box-shadow 0.1s;
+            -moz-appearance: textfield; appearance: textfield;
+        }
+        .cc-count-input:hover { background: rgba(245,158,11,0.05); }
+        .cc-count-input:focus {
+            background: #0b1220;
+            box-shadow: inset 0 0 0 2px #f59e0b;   /* กรอบเซลล์ที่เลือก แบบ Excel */
+        }
+        .cc-count-input.is-zero { color: #4b5563; font-weight: 400; }
+
         .cc-count-input::-webkit-outer-spin-button, .cc-count-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         /* ขนาดเท่ากับรูปฮีโร่ของคอมพ์ในการ์ดสรุป (w-16 h-16 rounded-xl border-2) */
         .cc-pick-thumb { position: relative; width: 64px; height: 64px; border-radius: 12px; overflow: hidden; border: 2px solid #374151; background: #000; cursor: pointer; transition: 0.15s; flex-shrink: 0; }
@@ -3314,7 +3398,7 @@
         </div>
 
         <!-- 🏰 ตารางนับคอมพ์ตามปราสาท -->
-        <div id="view-castle-comp" class="flex-col hidden h-full bg-[#0b0e14]">
+        <div id="view-castle-comp" class="flex-col hidden h-full bg-[#0b0e14] overflow-y-auto cc-hide-scroll">
             <header class="p-4 md:p-6 border-b border-gray-800 bg-[#111827] flex flex-wrap justify-between items-center gap-3 shadow-lg flex-shrink-0">
                 <div>
                     <h2 class="text-2xl md:text-3xl font-black text-amber-500 uppercase tracking-tighter flex items-center gap-3"><span>🏰</span> นับคอมพ์ปราสาท</h2>
@@ -3322,11 +3406,13 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button onclick="castleCompCreateTable()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-amber-900/30">🧱 สร้างตาราง</button>
+                    <button onclick="castleCompExportCsv()" class="bg-[#1f2937] hover:bg-emerald-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="ดาวน์โหลดเป็นไฟล์ CSV เอาไปเปิดใน Excel / ส่งให้เพื่อน">💾 ส่งออก CSV</button>
+                    <button onclick="castleCompPickImportFile()" class="bg-[#1f2937] hover:bg-blue-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="เลือกไฟล์ CSV ที่ส่งออกไว้ มาแทนที่ตารางปัจจุบัน">📥 นำเข้า CSV</button>
                     <button onclick="castleCompClearAll()" class="bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700">🗑️ ล้างตาราง</button>
                 </div>
             </header>
-            <div class="flex-1 min-h-0 overflow-hidden p-4 md:p-6 flex flex-col">
-                <div id="castle-comp-body" class="flex-1 min-h-0 overflow-y-auto custom-scroll"></div>
+            <div class="p-4 md:p-6">
+                <div id="castle-comp-body"></div>
             </div>
         </div>
 
@@ -8045,19 +8131,7 @@
                 return;
             }
 
-            // --- 🏰 0.1 ตารางนับคอมพ์ปราสาท ---
-            if (editContext.i === 'CASTLE-COMP') {
-                castleCompApplyHero(id);
-                closeSelector();
-                return;
-            }
-            if (editContext.i === 'CASTLE-COMP-PATTERN') {
-                castleCompAddFromPattern(id);
-                closeSelector();
-                return;
-            }
-
-            // --- 🟢 1. ระบบ ENEMY PATTERN (หน้าจัดการรูปแบบศัตรู) ---
+            // --- 🏰 0.1 ตารางนับคอมพ์ปราสาท ---            // --- 🟢 1. ระบบ ENEMY PATTERN (หน้าจัดการรูปแบบศัตรู) ---
             if (editContext.i === 'ENEMY-PATTERN') {
                 if (currentPatternIdx !== -1 && enemyPatternsDB[currentPatternIdx]) {
                     const data = enemyPatternsDB[currentPatternIdx];
@@ -8919,25 +8993,6 @@
                 return;
             }
 
-            // 0.1 กรณี: ตารางนับคอมพ์ปราสาท (เลือกฮีโร่ลงช่องในหัวคอลัมน์)
-            if (i === 'CASTLE-COMP') {
-                editContext = { i, p, type };
-                selectorActiveCategory = 'All';
-                // ซ่อนฮีโร่ที่อยู่ในชุดนี้แล้ว (ยกเว้นช่องที่กำลังแก้)
-                const _ccComp = (castleCompDB && castleCompEditTarget)
-                    ? castleCompDB.comps.find(c => c.id === castleCompEditTarget.compId) : null;
-                selectorExcludedIds = _ccComp
-                    ? _ccComp.heroes.filter((h, idx) => h && idx !== castleCompEditTarget.slot).map(String)
-                    : [];
-                document.getElementById('selector-title').innerText = `เลือกฮีโร่ตัวที่ ${(parseInt(p, 10) || 0) + 1} ของชุด`;
-                selectorCurrentData = [...heroesDB];
-                document.getElementById('selector-search').value = '';
-                if (typeof renderSelectorTabs === 'function') renderSelectorTabs();
-                document.getElementById('selectorModal').style.display = 'flex';
-                if (typeof filterSelector === 'function') filterSelector('');
-                return;
-            }
-
             // 0.2 กรณี: เลือกฮีโร่ที่จะจ่ายลงในช่องของตารางปราสาท (เลือกได้หลายตัว)
             if (i === 'CASTLE-CELL-HEROES') {
                 editContext = { i, p, type };
@@ -8953,32 +9008,6 @@
                 if (typeof renderSelectorTabs === 'function') renderSelectorTabs();
                 document.getElementById('selectorModal').style.display = 'flex';
                 if (typeof filterSelector === 'function') filterSelector('');
-                return;
-            }
-
-            // 0.3 กรณี: นำเข้ารูปแบบศัตรูมาเป็นคอมพ์ในตารางปราสาท
-            if (i === 'CASTLE-COMP-PATTERN') {
-                editContext = { i, p, type: 'pattern' };
-                selectorActiveCategory = 'All';
-                selectorExcludedIds = [];
-                document.getElementById('selector-title').innerText = 'เลือกรูปแบบศัตรูมาเป็นคอมพ์';
-                selectorCurrentData = [...enemyPatternsDB];
-                document.getElementById('selector-search').value = '';
-                document.getElementById('selectorModal').style.display = 'flex';
-                if (typeof renderPatternSelector === 'function') renderPatternSelector();
-                return;
-            }
-
-            // 0.4 กรณี: นำเข้าทีมศัตรูจากทีมบุก (ATK) ที่แชร์ มาเป็นคอมพ์
-            if (i === 'CASTLE-COMP-ATK') {
-                editContext = { i, p, type: 'pattern' };
-                selectorActiveCategory = 'All';
-                selectorExcludedIds = [];
-                document.getElementById('selector-title').innerText = 'เลือกทีมศัตรูจากทีมบุกที่แชร์';
-                selectorCurrentData = [];
-                document.getElementById('selector-search').value = '';
-                document.getElementById('selectorModal').style.display = 'flex';
-                renderCastleAtkSelector('');
                 return;
             }
 
@@ -9215,7 +9244,6 @@
 
             // 🎯 โหมดเลือกทีม (รูปแบบศัตรู / ทีมศัตรูจาก ATK ที่แชร์) ใช้การ์ดคนละแบบ — ส่งคำค้นให้ตัววาดของมันเอง
             if (editContext && editContext.type === 'pattern') {
-                if (editContext.i === 'CASTLE-COMP-ATK') { renderCastleAtkSelector(text); return; }
                 if (typeof renderPatternSelector === 'function') renderPatternSelector(text);
                 return;
             }
@@ -9255,8 +9283,8 @@
             };
             filteredItems.sort(sortFunc);
 
-            // ปุ่มถอดออก (แหวน + ช่องฮีโร่ในตารางนับคอมพ์ปราสาท)
-            if ((editContext.type === 'ring' || editContext.i === 'CASTLE-COMP') && selectorActiveCategory === 'All' && !text) {
+            // ปุ่มถอดออก (เฉพาะแหวน)
+            if (editContext.type === 'ring' && selectorActiveCategory === 'All' && !text) {
                 grid.innerHTML = `<div onclick="selectItem(null)" class="selector-card border-red-500/50 flex items-center justify-center"><span class="text-red-500 font-bold text-xl">✕</span></div>`; 
             }
 
@@ -11797,17 +11825,17 @@
         const CASTLE_COMP_SLOTS = 3; // เพิ่มเองเริ่มที่ 3 ช่อง
         const CASTLE_COMP_MAX = 5;   // นำเข้าจากรูปแบบศัตรูได้สูงสุด 5 ตัว
         const CASTLE_COMP_PICKS_V = 3; // เวอร์ชันโครงสร้าง picks: 3 = picks[compId][castleId] = [heroId,...]
-        let castleCompDB = null;     // { castles:[{id,name}], comps:[{id,heroes:[id|null x3]}], counts:{castleId:{compId:number}} }
-        let castleCompEditTarget = null; // { compId, slot } ระหว่างเปิด dialog เลือกฮีโร่
+        let castleCompDB = null;     // { castles:[{id,name}], comps:[{id,patternId,heroes,awk}], counts:{castleId:{compId:number}} }
         let castleCompExpandedIds = new Set(); // คอมพ์ที่กางดูตารางรายปราสาทอยู่ (กางพร้อมกันได้หลายใบ)
         let castleCompExpandedHeroes = new Set(); // ฮีโร่ที่กางดูว่าไปจ่ายที่ไหนบ้าง (กางพร้อมกันได้หลายตัว)
+        let castleCompExpandedCastles = new Set(); // ปราสาทที่กางดูรายละเอียดอยู่ (กางพร้อมกันได้หลายหลัง)
         let castleCompCellTarget = null;   // { castleId, compId } ระหว่างเลือกฮีโร่ลงช่อง
 
         const ccEsc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const ccUid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
         function castleCompDefaults() {
-            return { created: false, castles: [], comps: [], counts: {}, picks: {}, picksV: CASTLE_COMP_PICKS_V };
+            return { created: false, castles: [], comps: [], counts: {}, picks: {}, picksV: CASTLE_COMP_PICKS_V, heroQuota: 0 };
         }
 
         function castleCompLoad() {
@@ -11823,9 +11851,15 @@
                         comps: parsed.comps.filter(c => c && c.id).map(c => {
                             let heroes = Array.isArray(c.heroes) ? c.heroes.slice(0, CASTLE_COMP_MAX) : [];
                             if (!heroes.length) heroes = new Array(CASTLE_COMP_SLOTS).fill(null);
-                            return { id: String(c.id), heroes: heroes.map(h => (h == null ? null : String(h))) };
+                            return {
+                                id: String(c.id),
+                                patternId: c.patternId ? String(c.patternId) : '',
+                                heroes: heroes.map(h => (h == null ? null : String(h))),
+                                awk: Array.isArray(c.awk) ? c.awk.map(Boolean) : []
+                            };
                         }),
                         counts: (parsed.counts && typeof parsed.counts === 'object') ? parsed.counts : {},
+                        heroQuota: parseInt(parsed.heroQuota) || 0,
                         picks: {},
                         picksV: CASTLE_COMP_PICKS_V
                     };
@@ -11910,14 +11944,44 @@
             return out;
         }
 
+        /**
+         * อ่านช่องฮีโร่ของคอมพ์ → [{ id, awakened }]
+         * ถ้าผูกกับรูปแบบศัตรู (patternId) จะอ่าน "สด" จากใบนั้นเสมอ
+         * แก้ตัวละคร/ติ๊กปลุกพลังที่เมนูรูปแบบศัตรู ตารางนี้เปลี่ยนตามทันที
+         * ใบต้นทางถูกลบ → ใช้สำเนาที่เก็บไว้ตอนเพิ่ม (comp.heroes / comp.awk)
+         */
+        function castleCompSlots(comp) {
+            if (!comp) return [];
+            if (comp.patternId && typeof enemyPatternsDB !== 'undefined' && Array.isArray(enemyPatternsDB)) {
+                const pat = enemyPatternsDB.find(x => String(x.id) === String(comp.patternId));
+                if (pat) {
+                    const out = [];
+                    for (let i = 0; i < CASTLE_COMP_MAX; i++) {
+                        const sl = pat.slots ? pat.slots[i] : null;
+                        if (sl && sl.id) out.push({ id: String(sl.id), awakened: !!sl.awakened });
+                    }
+                    if (out.length) return out;
+                }
+            }
+            const awk = Array.isArray(comp.awk) ? comp.awk : [];
+            return (comp.heroes || []).filter(Boolean)
+                .map((id, i) => ({ id: String(id), awakened: !!awk[i] }));
+        }
+
+        /** ผูกกับรูปแบบศัตรูอยู่ไหม แต่ใบต้นทางหายไปแล้ว */
+        function castleCompPatternLost(comp) {
+            if (!comp || !comp.patternId) return false;
+            if (typeof enemyPatternsDB === 'undefined' || !Array.isArray(enemyPatternsDB)) return false;
+            return !enemyPatternsDB.some(x => String(x.id) === String(comp.patternId));
+        }
+
         // ชื่อชุด = ชื่อฮีโร่ต่อกันด้วย "+" (ช่องว่างแสดงเป็น "?")
         function castleCompName(comp) {
-            const names = comp.heroes.map(hid => {
-                if (!hid) return '?';
-                const h = heroesDB.find(x => String(x.id) === String(hid));
+            const names = castleCompSlots(comp).map(sl => {
+                const h = heroesDB.find(x => String(x.id) === String(sl.id));
                 return h ? h.name : '?';
             });
-            return names.join(' + ');
+            return names.join(' · ');
         }
 
         // ---------- Render ----------
@@ -11942,30 +12006,35 @@
 
             // --- หัวตาราง: 1 คอลัมน์ = 1 คอมพ์ (ฮีโร่ 3 ตัว) · ปุ่ม ✕ อยู่มุมขวาบนของหัวคอลัมน์ ---
             const headCells = comps.map(comp => {
-                // เกิน 3 ตัว (นำเข้าจากรูปแบบศัตรู) → ย่อรูปให้พอดีความกว้าง 250px
-                const sm = comp.heroes.length > 3 ? ' sm' : '';
-                const sep = comp.heroes.length > 3 ? '' : '<span class="text-gray-600 font-black text-sm">+</span>';
-                const slots = comp.heroes.map((hid, slot) => {
-                    const h = hid ? heroesDB.find(x => String(x.id) === String(hid)) : null;
+                const slotList = castleCompSlots(comp);
+                // เกิน 3 ตัว (นำเข้าจากรูปแบบศัตรู) → ย่อรูปให้พอดี
+                const sm = slotList.length > 3 ? ' sm' : '';
+                const lost = castleCompPatternLost(comp);
+                const slots = slotList.map(sl => {
+                    const h = heroesDB.find(x => String(x.id) === String(sl.id));
                     if (h) {
-                        return `<div class="cc-hero-slot${sm}" title="${ccEsc(h.name)} — กดเพื่อเปลี่ยน" onclick="castleCompPickHero('${comp.id}', ${slot})">
-                                    <img src="${h.img}" alt="${ccEsc(h.name)}" class="w-full h-full object-cover">
+                        // ✨ ติ๊กปลุกพลังในรูปแบบศัตรู + มีรูปตื่นรู้ → ใช้ img2 และขอบม่วง
+                        const awk = !!(sl.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                        const thumb = awk ? h.img2 : h.img;
+                        return `<div class="cc-hero-slot${sm}${awk ? ' awk' : ''}" title="${ccEsc(h.name)}${awk ? ' (ปลุกพลัง)' : ''} — แก้ไขได้ที่เมนู 🎯 รูปแบบศัตรู เท่านั้น">
+                                    <img src="${thumb}" alt="${ccEsc(h.name)}" class="w-full h-full object-cover">
                                 </div>`;
                     }
-                    return `<div class="cc-hero-slot${sm} empty" title="กดเพื่อเลือกฮีโร่" onclick="castleCompPickHero('${comp.id}', ${slot})">+</div>`;
-                }).join(sep);
+                    return `<div class="cc-hero-slot${sm} empty" title="ช่องว่าง — แก้ไขได้ที่เมนู 🎯 รูปแบบศัตรู เท่านั้น">·</div>`;
+                }).join('');
 
                 return `
-                    <th class="cc-col-head cc-col-w p-2 align-middle" title="${ccEsc(castleCompName(comp))}">
+                    <th class="cc-col-head cc-col-w align-middle" style="padding:8px" title="${ccEsc(castleCompName(comp))}${lost ? ' — รูปแบบศัตรูต้นทางถูกลบแล้ว' : ''}">
+                        <span class="cc-col-letter">${lost ? '⚠️ ' : ''}${ccEsc(castleCompName(comp))}</span>
                         <div class="cc-col-del" title="ลบคอมพ์นี้" onclick="castleCompRemoveColumn('${comp.id}')">✕</div>
-                        <div class="flex items-center justify-center gap-1.5">${slots}</div>
+                        <div class="flex items-center justify-center gap-1">${slots}</div>
                     </th>`;
             }).join('');
 
             // --- แถว: 1 แถว = 1 ปราสาท (ชื่อแก้ได้) ---
-            const bodyRows = castles.map(cs => {
+            const bodyRows = castles.map((cs, ri) => {
                 const cells = comps.map(comp => `
-                    <td class="cc-col-w p-2 text-center">
+                    <td class="cc-col-w">
                         <input type="number" min="0" step="1" inputmode="numeric"
                             value="${castleCompGetCount(cs.id, comp.id) || ''}" placeholder="0"
                             oninput="castleCompSetCount('${cs.id}', '${comp.id}', this.value, this)"
@@ -11973,8 +12042,9 @@
                     </td>`).join('');
 
                 return `
-                    <tr class="hover:bg-white/[0.02] transition">
-                        <th class="cc-sticky-col p-2 text-left">
+                    <tr>
+                        <td class="cc-idx">${ri + 1}</td>
+                        <th class="cc-sticky-col cc-pad text-left">
                             <div class="flex items-center gap-1">
                                 <span class="text-base">🏰</span>
                                 <input type="text" value="${ccEsc(cs.name)}" placeholder="ชื่อปราสาท..."
@@ -11986,48 +12056,49 @@
                         </th>
                         ${cells}
                         <td></td>
-                        <td class="p-3 text-center bg-[#0f131a]">
-                            <span id="cc-row-total-${cs.id}" class="text-amber-400 font-black text-lg">0</span>
+                        <td class="cc-total-col bg-[#121826]">
+                            <span id="cc-row-total-${cs.id}" class="text-amber-400 font-black text-sm">0</span>
                         </td>
                     </tr>`;
             }).join('');
 
             const footCells = comps.map(comp => `
-                <td class="cc-col-w p-3 text-center bg-[#0f131a]">
-                    <span id="cc-col-total-${comp.id}" class="text-gray-300 font-black">0</span>
+                <td class="cc-col-w bg-[#121826]" style="text-align:center;padding:8px 4px">
+                    <span id="cc-col-total-${comp.id}" class="text-gray-200 font-black">0</span>
                 </td>`).join('');
 
             box.innerHTML = `
-                <div class="w-full overflow-x-auto custom-scroll border border-gray-800 rounded-2xl bg-[#0b0e14] shadow-2xl">
+                <div id="cc-topbar"></div>
+                <div class="w-full cc-scroll-x border border-gray-700 rounded-xl bg-[#0b0e14] shadow-2xl">
                     <table class="cc-table text-sm">
                         <thead>
                             <tr>
-                                <th class="cc-sticky-col p-3 text-left text-xs font-black text-gray-500 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
+                                <th class="cc-idx"></th>
+                                <th class="cc-sticky-col cc-pad text-left text-xs font-black text-gray-400 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
                                 ${headCells}
-                                <th class="p-2 align-middle min-w-[440px]">
-                                    <div class="flex items-center gap-2">
-                                        <button type="button" class="cc-add-btn" onclick="castleCompPickPattern()" title="ดึงตัวละครจากเมนู 'รูปแบบศัตรู' มาเป็นคอมพ์">🎯 จากรูปแบบศัตรู</button>
-                                        <button type="button" class="cc-add-btn" onclick="castleCompPickAtk()" title="ดึงทีมศัตรูที่บันทึกไว้ในทีมบุก (ATK) ที่แชร์ มาเป็นคอมพ์">🤝 จากที่แชร์ ATK</button>
-                                        <button type="button" class="cc-add-btn" onclick="castleCompAddColumn()" title="สร้างคอมพ์เปล่า แล้วเลือกฮีโร่เอง 3 ตัว">＋ เพิ่มฮีโร่เอง</button>
-                                    </div>
+                                <th class="align-middle min-w-[150px]" style="padding:8px">
+                                    <button type="button" class="cc-add-btn" onclick="castleCompOpenAddDialog()"
+                                        title="เลือกจากรูปแบบศัตรู หรือทีมบุก (ATK) ที่แชร์">＋ เพิ่มคอมพ์</button>
                                 </th>
-                                <th class="p-3 text-xs font-black text-amber-500 uppercase tracking-wider min-w-[90px]">รวม</th>
+                                <th class="cc-total-col text-[10px] font-black text-amber-500 uppercase tracking-wider">รวม</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${bodyRows}
                             <tr>
-                                <th class="cc-sticky-col p-2">
+                                <td class="cc-idx">+</td>
+                                <th class="cc-sticky-col" style="padding:6px">
                                     <button type="button" class="cc-add-btn" onclick="castleCompAddRow()">＋ เพิ่มปราสาท</button>
                                 </th>
                                 <td colspan="${comps.length + 2}"></td>
                             </tr>
-                            <tr class="bg-[#0f131a]">
-                                <th class="cc-sticky-col p-3 text-left text-xs font-black text-gray-500 uppercase tracking-wider">รวมทุกปราสาท</th>
+                            <tr>
+                                <td class="cc-idx" style="background:#1b2433"></td>
+                                <th class="cc-sticky-col cc-pad text-left text-xs font-black text-amber-500/90 uppercase tracking-wider" style="background:#1b2433">รวมทุกปราสาท</th>
                                 ${footCells}
-                                <td></td>
-                                <td class="p-3 text-center bg-[#131922]">
-                                    <span id="cc-grand-total" class="text-amber-400 font-black text-xl">0</span>
+                                <td style="background:#121826"></td>
+                                <td class="cc-total-col" style="background:#182031">
+                                    <span id="cc-grand-total" class="text-amber-400 font-black text-sm">0</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -12065,7 +12136,43 @@
             const g = document.getElementById('cc-grand-total');
             if (g) g.textContent = grand;
 
+            castleCompRenderHeader(grand);
             castleCompRenderSummary(colTotals, grand);
+        }
+
+        /** 📊 แถบสรุปบนสุด — ตัวเลขรวมของทั้งสงคราม */
+        function castleCompRenderHeader(total) {
+            const box = document.getElementById('cc-topbar');
+            if (!box || !castleCompDB) return;
+            const { castles, comps } = castleCompDB;
+
+            // ช่องที่กรอกจำนวนแล้วแต่ยังไม่เลือกฮีโร่
+            let noPlan = 0;
+            comps.forEach(cp => castles.forEach(cs => {
+                if (castleCompGetCount(cs.id, cp.id) > 0 && !castleCompGetPicks(cp.id, cs.id).length) noPlan++;
+            }));
+
+            const stat = (label, val, cls) =>
+                `<div class="flex flex-col"><span class="text-[10px] text-gray-500 uppercase tracking-wider">${label}</span>
+                 <span class="font-black ${cls || 'text-gray-200'}">${val}</span></div>`;
+
+            const dup = castleCompDupGroups();
+
+            box.innerHTML = `
+                <div class="bg-[#111827] border border-gray-700 rounded-xl px-4 py-3 mb-4 flex flex-wrap items-center gap-5">
+                    ${stat('ปราสาท', castles.length)}
+                    ${stat('คอมพ์', comps.length)}
+                    ${stat('รวมทั้งหมด', total + ' หลัง', 'text-amber-400')}
+                    ${noPlan ? stat('ยังไม่เลือกฮีโร่', noPlan + ' ช่อง', 'text-red-400') : stat('วางแผนครบ', '✅', 'text-emerald-400')}
+                    ${dup.length
+                        ? `<button onclick="castleCompMergeDuplicates()" class="bg-purple-800/60 hover:bg-purple-700 text-purple-100 px-3 py-1.5 rounded-lg text-[11px] font-bold border border-purple-600 transition" title="ยุบคอลัมน์ที่ฮีโร่ชุดเดียวกันเข้าด้วยกัน">🔁 รวมคอมพ์ซ้ำ ${dup.length} ชุด</button>`
+                        : ''}
+                    <label class="flex items-center gap-2 text-[11px] text-gray-400 font-bold ml-auto" title="ฮีโร่ 1 ตัวใช้ได้กี่ครั้งต่อสงคราม — 0 = ไม่จำกัด">
+                        โควต้าฮีโร่/ตัว
+                        <input type="number" min="0" value="${castleCompDB.heroQuota || 0}" oninput="castleCompSetHeroQuota(this.value)"
+                            class="w-14 bg-[#0d1117] border border-gray-600 text-white px-2 py-1 rounded-lg text-center outline-none focus:border-amber-500">
+                    </label>
+                </div>`;
         }
 
         // ---------- สรุปใต้ตาราง: คอมพ์ละกี่หลัง · กดเพื่อกางดูว่าปราสาทไหนบ้าง ----------
@@ -12083,11 +12190,11 @@
                 const total = colTotals[comp.id] || 0;
                 const isOpen = castleCompExpandedIds.has(comp.id);
 
-                const thumbs = comp.heroes.map(hid => {
-                    const h = hid ? heroesDB.find(x => String(x.id) === String(hid)) : null;
-                    return h
-                        ? `<img src="${h.img}" alt="${ccEsc(h.name)}" title="${ccEsc(h.name)}" class="w-16 h-16 rounded-xl border-2 border-gray-700 object-cover bg-black">`
-                        : `<div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-700 bg-black/40"></div>`;
+                const thumbs = castleCompSlots(comp).map(sl => {
+                    const h = heroesDB.find(x => String(x.id) === String(sl.id));
+                    if (!h) return `<div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-700 bg-black/40"></div>`;
+                    const awk = !!(sl.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    return `<img src="${awk ? h.img2 : h.img}" alt="${ccEsc(h.name)}" title="${ccEsc(h.name)}${awk ? ' (ปลุกพลัง)' : ''}" class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} object-cover bg-black">`;
                 }).join('');
 
                 // รายละเอียดรายปราสาท (เฉพาะที่กรอกจำนวนแล้ว หรือที่เคยเลือกฮีโร่ไว้)
@@ -12173,8 +12280,10 @@
                     <span class="text-[11px] text-gray-500">${comps.length} คอมพ์ · รวม ${grand} หลัง · กดที่การ์ดเพื่อกางตารางแยกรายปราสาท แล้วเลือกฮีโร่ที่จะจ่ายในแต่ละปราสาท</span>
                 </div>
                 <div class="flex flex-col gap-2">${cards}</div>
+                <div id="cc-castle-sum" class="mt-6"></div>
                 <div id="cc-hero-cost" class="mt-6"></div>`;
 
+            castleCompRenderCastleSum();
             castleCompRenderHeroCost();
         }
 
@@ -12234,11 +12343,11 @@
                                 <span class="text-sm">🏰</span>
                                 <span class="text-xs text-gray-300 font-bold w-36 truncate" title="${ccEsc(s.castle.name || 'ปราสาทไม่มีชื่อ')}">${ccEsc(s.castle.name || 'ปราสาทไม่มีชื่อ')}</span>
                                 <div class="flex items-center gap-1 flex-shrink-0">
-                                    ${s.comp.heroes.map(chid => {
-                                        const ch = chid ? heroesDB.find(x => String(x.id) === String(chid)) : null;
-                                        return ch
-                                            ? `<img src="${ch.img}" title="${ccEsc(ch.name)}" class="w-11 h-11 rounded-lg border border-gray-700 object-cover bg-black">`
-                                            : `<div class="w-11 h-11 rounded-lg border border-dashed border-gray-700 bg-black/40"></div>`;
+                                    ${castleCompSlots(s.comp).map(sl => {
+                                        const ch = heroesDB.find(x => String(x.id) === String(sl.id));
+                                        if (!ch) return `<div class="w-11 h-11 rounded-lg border border-dashed border-gray-700 bg-black/40"></div>`;
+                                        const a = !!(sl.awakened && ch.img2 && ch.img2 !== DRIVE_IMG_PREFIX);
+                                        return `<img src="${a ? ch.img2 : ch.img}" title="${ccEsc(ch.name)}" class="w-11 h-11 rounded-lg border ${a ? 'border-purple-500' : 'border-gray-700'} object-cover bg-black">`;
                                     }).join('')}
                                 </div>
                                 <span class="flex-1"></span>
@@ -12246,8 +12355,10 @@
                             </div>`).join('')}
                     </div>`;
 
+                const q = castleCompDB.heroQuota || 0;
+                const isOver = q > 0 && u.times > q;
                 return `
-                    <div class="bg-[#161b22] border ${isOpen ? 'border-emerald-600/60' : 'border-gray-800'} rounded-2xl overflow-hidden transition shadow-lg">
+                    <div class="bg-[#161b22] border ${isOver ? 'border-red-600/70' : (isOpen ? 'border-emerald-600/60' : 'border-gray-800')} rounded-2xl overflow-hidden transition shadow-lg">
                         <div onclick="castleCompToggleHeroCost('${hid}')" class="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/[0.03] transition">
                             ${h ? `<img src="${h.img}" alt="${ccEsc(nm)}" class="w-16 h-16 rounded-xl border-2 border-gray-700 object-cover bg-black flex-shrink-0">`
                                 : `<div class="w-16 h-16 rounded-xl border-2 border-dashed border-gray-700 bg-black/40 flex-shrink-0"></div>`}
@@ -12256,8 +12367,137 @@
                                 <div class="text-[11px] text-gray-600">ใช้กับ ${u.comps.size} คอมพ์ · ${u.slots.length} ช่อง</div>
                             </div>
                             <div class="text-right flex-shrink-0">
-                                <span class="text-emerald-400 font-black text-xl leading-none">${u.times}</span>
+                                <span class="${isOver ? 'text-red-400' : 'text-emerald-400'} font-black text-xl leading-none">${u.times}</span>
                                 <span class="text-[10px] text-gray-500 font-bold ml-0.5">ครั้ง</span>
+                                ${isOver ? `<div class="text-[10px] text-red-400 font-bold whitespace-nowrap">⚠️ เกิน ${u.times - q}</div>` : ''}
+                            </div>
+                            <span class="text-gray-600 text-xs transition-transform ${isOpen ? 'rotate-90' : ''}">▶</span>
+                        </div>
+                        ${detail}
+                    </div>`;
+            }).join('');
+
+            const quota = castleCompDB.heroQuota || 0;
+            const over = quota > 0 ? entries.filter(e => e[1].times > quota) : [];
+
+            box.innerHTML = `
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <h3 class="text-sm font-black text-white uppercase tracking-wider">🧾 ฮีโร่ที่ต้องจ่าย</h3>
+                    <span class="text-[11px] text-gray-500">${entries.length} ตัว · รวม ${totalPay} ครั้ง · นับจาก “จำนวนหลัง” ของช่องที่เลือกฮีโร่ตัวนั้นไว้</span>
+                    ${quota > 0 ? `<span class="text-[11px] px-2 py-0.5 rounded-lg border ${over.length ? 'bg-red-900/40 text-red-300 border-red-700' : 'bg-emerald-900/30 text-emerald-300 border-emerald-700'}">
+                        โควต้า ${quota} ครั้ง/ตัว — ${over.length ? '⚠️ เกิน ' + over.length + ' ตัว' : '✅ ไม่มีใครเกิน'}
+                    </span>` : '<span class="text-[11px] text-gray-600">ตั้งโควต้าที่แถบบนสุดเพื่อให้เตือนเมื่อจ่ายเกิน</span>'}
+                </div>
+                <div class="flex flex-col gap-2">${rows}</div>`;
+        }
+
+        // ---------- สรุป "แยกรายปราสาท": ปราสาทหลังนี้ต้องตีคอมพ์อะไรบ้าง · ใช้ฮีโร่ตัวไหน ----------
+        function castleCompRenderCastleSum() {
+            const box = document.getElementById('cc-castle-sum');
+            if (!box) return;
+
+            const { castles, comps } = castleCompDB;
+            if (!castles.length || !comps.length) { box.innerHTML = ''; return; }
+
+            // รวบรวมต่อปราสาท: คอมพ์ที่ต้องตี · ฮีโร่ที่วางไว้ · ช่องที่ยังไม่วางฮีโร่
+            const info = castles.map(cs => {
+                const rows = comps
+                    .map(cp => ({ cp, n: castleCompGetCount(cs.id, cp.id), picks: castleCompGetPicks(cp.id, cs.id) }))
+                    .filter(r => r.n > 0 || r.picks.length > 0)
+                    .sort((a, b) => b.n - a.n);
+                const heroes = new Set();
+                let noPlan = 0;
+                rows.forEach(r => {
+                    r.picks.forEach(h => heroes.add(String(h)));
+                    if (r.n > 0 && !r.picks.length) noPlan++;
+                });
+                return { cs, rows, heroes, noPlan, total: rows.reduce((a, r) => a + r.n, 0) };
+            }).sort((a, b) => b.total - a.total);
+
+            const grand = info.reduce((a, x) => a + x.total, 0);
+
+            const cards = info.map(it => {
+                const isOpen = castleCompExpandedCastles.has(it.cs.id);
+                const nm = it.cs.name || 'ปราสาทไม่มีชื่อ';
+
+                // แถวคอมพ์ในปราสาทหลังนี้
+                const detail = !isOpen ? '' : `
+                    <div class="px-4 pb-4 pt-3 border-t border-gray-800/70">
+                        ${it.rows.length ? `
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-[10px] text-gray-600 font-black uppercase tracking-wider">
+                                    <th class="text-left pb-2">คอมพ์ที่ต้องตี</th>
+                                    <th class="text-left pb-2 w-24">สัดส่วน</th>
+                                    <th class="text-right pb-2 w-20">จำนวน</th>
+                                    <th class="text-left pb-2 pl-4">ฮีโร่ที่จะจ่ายให้คอมพ์นี้</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${it.rows.map(r => {
+                                    const pct = it.total ? Math.round((r.n / it.total) * 100) : 0;
+                                    const thumbs = castleCompSlots(r.cp).map(sl => {
+                                        const ch = heroesDB.find(x => String(x.id) === String(sl.id));
+                                        if (!ch) return `<div class="w-11 h-11 rounded-lg border border-dashed border-gray-700 bg-black/40"></div>`;
+                                        const a = !!(sl.awakened && ch.img2 && ch.img2 !== DRIVE_IMG_PREFIX);
+                                        return `<img src="${a ? ch.img2 : ch.img}" title="${ccEsc(ch.name)}${a ? ' (ปลุกพลัง)' : ''}" class="w-11 h-11 rounded-lg border ${a ? 'border-purple-500' : 'border-gray-700'} object-cover bg-black">`;
+                                    }).join('');
+                                    const pickThumbs = r.picks.map(hid => {
+                                        const ph = heroesDB.find(x => String(x.id) === String(hid));
+                                        const pn = ph ? ph.name : 'ฮีโร่ที่ถูกลบไปแล้ว';
+                                        return `<div class="cc-pick-thumb" title="${ccEsc(pn)} — กดเพื่อเอาออก" onclick="castleCompRemoveCellHero('${r.cp.id}', '${it.cs.id}', '${hid}')">
+                                                    ${ph ? `<img src="${ph.img}" alt="${ccEsc(pn)}" class="w-full h-full object-cover">` : '<div class="w-full h-full bg-gray-800"></div>'}
+                                                </div>`;
+                                    }).join('');
+                                    return `
+                                    <tr class="border-t border-gray-800/50 align-middle">
+                                        <td class="py-2 pr-3">
+                                            <div class="flex items-center gap-1 flex-shrink-0">${thumbs}</div>
+                                        </td>
+                                        <td class="py-2 pr-3">
+                                            <div class="h-2 rounded-full bg-[#0d1117] overflow-hidden min-w-[60px]">
+                                                <div class="h-full bg-sky-500/70 rounded-full" style="width:${pct}%"></div>
+                                            </div>
+                                        </td>
+                                        <td class="py-2 text-right">
+                                            <span class="text-xs font-black ${r.n > 0 ? 'text-sky-400' : 'text-gray-600'}">${r.n} หลัง</span>
+                                        </td>
+                                        <td class="py-2 pl-4 border-l border-gray-800/70">
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                ${pickThumbs}
+                                                <button type="button" class="cc-pick-add" title="เลือกฮีโร่ที่จะใช้กับคอมพ์นี้ที่ ${ccEsc(nm)}"
+                                                    onclick="castleCompPickCellHeroes('${r.cp.id}', '${it.cs.id}')">＋</button>
+                                            </div>
+                                        </td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                        ${it.heroes.size ? `
+                        <div class="mt-3 pt-3 border-t border-gray-800/70">
+                            <div class="text-[10px] text-gray-600 font-black uppercase tracking-wider mb-2">ฮีโร่ที่ใช้ในปราสาทนี้ทั้งหมด (${it.heroes.size} ตัว)</div>
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                ${[...it.heroes].map(hid => {
+                                    const ph = heroesDB.find(x => String(x.id) === String(hid));
+                                    if (!ph) return `<div class="w-11 h-11 rounded-lg border border-dashed border-gray-700 bg-black/40"></div>`;
+                                    return `<img src="${ph.img}" title="${ccEsc(ph.name)}" class="w-11 h-11 rounded-lg border border-gray-700 object-cover bg-black">`;
+                                }).join('')}
+                            </div>
+                        </div>` : ''}
+                        ` : '<div class="text-xs text-gray-600 italic py-2">ปราสาทหลังนี้ยังไม่ได้กรอกจำนวนคอมพ์ไหนเลย — กรอกในตารางด้านบนก่อน</div>'}
+                    </div>`;
+
+                return `
+                    <div class="bg-[#161b22] border ${it.noPlan ? 'border-red-600/50' : (isOpen ? 'border-sky-600/60' : 'border-gray-800')} rounded-2xl overflow-hidden transition shadow-lg">
+                        <div onclick="castleCompToggleCastleSum('${it.cs.id}')" class="flex items-center gap-3 p-3 cursor-pointer hover:bg-white/[0.03] transition group">
+                            <span class="text-2xl flex-shrink-0">🏰</span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm text-gray-300 group-hover:text-white font-bold truncate transition" title="${ccEsc(nm)}">${ccEsc(nm)}</div>
+                                <div class="text-[11px] text-gray-600">${it.rows.length} คอมพ์ · ฮีโร่ ${it.heroes.size} ตัว${it.noPlan ? ` · <span class="text-red-400 font-bold">ยังไม่เลือกฮีโร่ ${it.noPlan} คอมพ์</span>` : ''}</div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-sky-400 font-black text-xl leading-none">${it.total}</span>
+                                <span class="text-[10px] text-gray-500 font-bold ml-0.5">หลัง</span>
                             </div>
                             <span class="text-gray-600 text-xs transition-transform ${isOpen ? 'rotate-90' : ''}">▶</span>
                         </div>
@@ -12266,11 +12506,18 @@
             }).join('');
 
             box.innerHTML = `
-                <div class="flex items-center gap-3 mb-3">
-                    <h3 class="text-sm font-black text-white uppercase tracking-wider">🧾 ฮีโร่ที่ต้องจ่าย</h3>
-                    <span class="text-[11px] text-gray-500">${entries.length} ตัว · รวม ${totalPay} ครั้ง · นับจาก “จำนวนหลัง” ของช่องที่เลือกฮีโร่ตัวนั้นไว้</span>
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <h3 class="text-sm font-black text-white uppercase tracking-wider">🏰 สรุปแยกรายปราสาท</h3>
+                    <span class="text-[11px] text-gray-500">${castles.length} ปราสาท · รวม ${grand} หลัง · กดที่การ์ดเพื่อดูว่าปราสาทหลังนี้ต้องตีคอมพ์อะไร และจ่ายฮีโร่ตัวไหนบ้าง</span>
                 </div>
-                <div class="flex flex-col gap-2">${rows}</div>`;
+                <div class="flex flex-col gap-2">${cards}</div>`;
+        }
+
+        function castleCompToggleCastleSum(castleId) {
+            const key = String(castleId);
+            if (castleCompExpandedCastles.has(key)) castleCompExpandedCastles.delete(key);
+            else castleCompExpandedCastles.add(key);
+            castleCompRenderCastleSum();
         }
 
         function castleCompToggleHeroCost(heroId) {
@@ -12293,6 +12540,13 @@
             castleCompRecalcTotals();
         }
 
+        function castleCompSetHeroQuota(v) {
+            castleCompLoad();
+            castleCompDB.heroQuota = Math.max(0, parseInt(v, 10) || 0);
+            castleCompSave();
+            castleCompRecalcTotals();
+        }
+
         function castleCompRenameRow(castleId, name) {
             castleCompLoad();
             const cs = castleCompDB.castles.find(c => c.id === castleId);
@@ -12311,6 +12565,7 @@
             castleCompDB.created = true;
             castleCompExpandedIds.clear();
             castleCompExpandedHeroes.clear();
+            castleCompExpandedCastles.clear();
             castleCompSave();
             renderCastleComp();
         }
@@ -12329,6 +12584,7 @@
             if (!confirm(`ลบ "${cs.name || 'ปราสาทไม่มีชื่อ'}" พร้อมจำนวนทั้งแถว?`)) return;
             castleCompDB.castles = castleCompDB.castles.filter(c => c.id !== castleId);
             delete castleCompDB.counts[castleId];
+            castleCompExpandedCastles.delete(castleId);
             Object.keys(castleCompDB.picks).forEach(compId => {
                 delete castleCompDB.picks[compId][castleId];
                 if (!Object.keys(castleCompDB.picks[compId]).length) delete castleCompDB.picks[compId];
@@ -12337,44 +12593,7 @@
             renderCastleComp();
         }
 
-        function castleCompAddColumn() {
-            castleCompLoad();
-            castleCompDB.comps.push({ id: ccUid('CP'), heroes: new Array(CASTLE_COMP_SLOTS).fill(null) });
-            castleCompSave();
-            renderCastleComp();
-        }
-
-        // เพิ่มคอมพ์จากเมนู "รูปแบบศัตรู" — เปิด dialog เลือก pattern (ใช้การ์ดเดิมของระบบ)
-        function castleCompPickPattern() {
-            castleCompLoad();
-            if (typeof enemyPatternsDB === 'undefined' || !enemyPatternsDB.length) {
-                alert('ยังไม่มีข้อมูลในเมนู "🎯 รูปแบบศัตรู" — สร้างรูปแบบทีมศัตรูก่อนนะครับ');
-                return;
-            }
-            openSelector('CASTLE-COMP-PATTERN', null, 'pattern');
-        }
-
-        // เรียกจาก selectItem() เมื่อ editContext.i === 'CASTLE-COMP-PATTERN'
-        function castleCompAddFromPattern(patternId) {
-            castleCompLoad();
-            const p = enemyPatternsDB.find(x => String(x.id) === String(patternId));
-            if (!p) return;
-
-            const heroes = [];
-            for (let i = 0; i < CASTLE_COMP_MAX; i++) {
-                const s = p.slots ? p.slots[i] : null;
-                if (s && s.id) heroes.push(String(s.id));
-            }
-            if (!heroes.length) { alert('⛔ รูปแบบศัตรูนี้ยังไม่มีตัวละคร'); return; }
-
-            castleCompDB.comps.push({ id: ccUid('CP'), heroes });
-            castleCompSave();
-            renderCastleComp();
-        }
-
         // ---------- เพิ่มคอมพ์จากทีมศัตรูที่บันทึกไว้ในทีมบุก (ATK) ที่แชร์ ----------
-        let castleCompAtkList = []; // รายการที่กำลังโชว์ใน dialog (อ้างด้วย index)
-
         // รวบรวม enemyTeams จากทีมประเภท Attack ทั้งหมด แล้วยุบตัวที่ฮีโร่ชุดเดียวกัน
         function castleCompCollectAtkEnemies() {
             const src = (typeof teams3v3DB !== 'undefined' && Array.isArray(teams3v3DB)) ? teams3v3DB : [];
@@ -12385,17 +12604,17 @@
                 const list = Array.isArray(t.enemyTeams) ? t.enemyTeams : [];
                 list.forEach(et => {
                     if (!et) return;
-                    const heroes = [];
+                    const heroes = [], awk = [];
                     for (let i = 0; i < CASTLE_COMP_MAX; i++) {
                         const s = et.slots ? et.slots[i] : null;
-                        if (s && s.id) heroes.push(String(s.id));
+                        if (s && s.id) { heroes.push(String(s.id)); awk.push(!!s.awakened); }
                     }
                     if (!heroes.length) return;
 
                     const sig = heroes.slice().sort().join(',');
                     if (!bySig.has(sig)) {
                         bySig.set(sig, {
-                            heroes,
+                            heroes, awk,
                             name: et.name || '(ทีมศัตรูไม่มีชื่อ)',
                             formation: et.formation || '',
                             note: et.note || '',
@@ -12411,82 +12630,6 @@
             return [...bySig.values()].sort((a, b) => b.froms.length - a.froms.length);
         }
 
-        function castleCompPickAtk() {
-            castleCompLoad();
-            castleCompAtkList = castleCompCollectAtkEnemies();
-            if (!castleCompAtkList.length) {
-                alert('ยังไม่มีทีมศัตรูในทีมบุก (ATK) ที่แชร์ไว้\n\nไปที่เมนู "⚔️ สร้างทีม 3v3" → เปิดทีมประเภท Attack แล้วเพิ่มทีมศัตรูก่อนนะครับ');
-                return;
-            }
-            openSelector('CASTLE-COMP-ATK', null, 'pattern');
-        }
-
-        // วาดการ์ดใน dialog (ใช้ #selector-grid ร่วมกับตัวเลือกอื่น)
-        function renderCastleAtkSelector(searchText) {
-            const grid = document.getElementById('selector-grid');
-            if (!grid) return;
-            grid.className = 'grid grid-cols-1 gap-3 p-2 w-full';
-
-            const q = String(searchText || '').trim().toLowerCase();
-            const rows = castleCompAtkList
-                .map((e, idx) => ({ e, idx }))
-                .filter(({ e }) => {
-                    if (!q) return true;
-                    if (String(e.name).toLowerCase().includes(q)) return true;
-                    if (String(e.note).toLowerCase().includes(q)) return true;
-                    if (e.froms.some(f => String(f).toLowerCase().includes(q))) return true;
-                    return e.heroes.some(hid => {
-                        const h = heroesDB.find(x => String(x.id) === String(hid));
-                        return h && String(h.name || '').toLowerCase().includes(q);
-                    });
-                });
-
-            if (!rows.length) {
-                grid.innerHTML = `
-                    <div class="col-span-full flex flex-col items-center justify-center py-10 text-gray-500 opacity-50 h-[200px]">
-                        <span class="text-5xl mb-3">🔍</span>
-                        <span class="text-base font-bold">ไม่พบทีมศัตรูที่ตรงกับคำค้น</span>
-                        <span class="text-xs mt-1">ค้นได้จากชื่อทีมศัตรู · โน้ต · ชื่อตัวละคร · ชื่อทีมบุกที่แชร์</span>
-                    </div>`;
-                return;
-            }
-
-            grid.innerHTML = rows.map(({ e, idx }) => {
-                const icons = e.heroes.map((hid, i) => {
-                    const h = heroesDB.find(x => String(x.id) === String(hid));
-                    if (!h) return '';
-                    return `<div class="relative w-14 h-14 rounded-lg border-2 border-gray-600 bg-black shadow-md overflow-hidden shrink-0 group-hover:border-red-400 transition">
-                                <img src="${h.img}" class="w-full h-full object-cover">
-                                <div class="absolute bottom-0 right-0 bg-black/60 text-[8px] text-white px-1 font-bold">#${i + 1}</div>
-                            </div>`;
-                }).join('');
-
-                return `
-                    <div onclick="castleCompAddFromAtk(${idx})"
-                        class="relative w-full min-h-[110px] bg-[#161b22] border border-gray-700 hover:border-emerald-500 hover:bg-[#1f2937] rounded-xl flex items-center justify-between px-6 py-3 transition-all cursor-pointer shadow-lg group overflow-hidden">
-                        <div class="flex flex-col gap-1 z-10 flex-1 min-w-0 mr-4">
-                            <h4 class="text-xl font-black text-gray-200 group-hover:text-white truncate tracking-tight">${ccEsc(e.name)}</h4>
-                            <div class="flex items-center gap-3 flex-wrap">
-                                ${e.formation ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-900/30 text-red-300 border border-red-900/50 uppercase tracking-wider">${ccEsc(e.formation)}</span>` : ''}
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/30 text-emerald-300 border border-emerald-900/50">🤝 อยู่ใน ${e.froms.length} ทีมบุก</span>
-                                <span class="text-xs text-gray-500 truncate italic max-w-[280px]">${ccEsc(e.froms.join(' · '))}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1 bg-black/20 p-2 rounded-lg border border-white/5 z-10 shrink-0">${icons}</div>
-                    </div>`;
-            }).join('');
-        }
-
-        function castleCompAddFromAtk(idx) {
-            const e = castleCompAtkList[idx];
-            if (!e) return;
-            castleCompLoad();
-            castleCompDB.comps.push({ id: ccUid('CP'), heroes: e.heroes.slice(0, CASTLE_COMP_MAX) });
-            castleCompSave();
-            closeSelector();
-            renderCastleComp();
-        }
-
         function castleCompRemoveColumn(compId) {
             castleCompLoad();
             const comp = castleCompDB.comps.find(c => c.id === compId);
@@ -12500,40 +12643,548 @@
             renderCastleComp();
         }
 
+        /** หาคอมพ์ที่ฮีโร่ชุดเดียวกัน → [[comp,...], ...] เฉพาะกลุ่มที่มีมากกว่า 1 */
+        function castleCompDupGroups() {
+            castleCompLoad();
+            const by = {};
+            castleCompDB.comps.forEach(cp => {
+                const sig = ccCompSig(castleCompSlots(cp).map(x => x.id));
+                if (!sig) return;
+                (by[sig] = by[sig] || []).push(cp);
+            });
+            return Object.keys(by).map(k => by[k]).filter(g => g.length > 1);
+        }
+
+        /** รวมคอมพ์ซ้ำทั้งหมด — ยุบเข้าใบแรก บวกจำนวน/ที่ล้มแล้ว รวมฮีโร่ที่เลือกไว้ */
+        function castleCompMergeDuplicates() {
+            const groups = castleCompDupGroups();
+            if (!groups.length) return alert('ไม่มีคอมพ์ซ้ำ');
+
+            const n = groups.reduce((a, g) => a + g.length - 1, 0);
+            const names = groups.map(g => castleCompName(g[0])).join('\n· ');
+            if (!confirm('พบคอมพ์ซ้ำ ' + groups.length + ' ชุด (ยุบทิ้ง ' + n + ' คอลัมน์)\n\n· ' + names
+                + '\n\nจำนวนและฮีโร่ที่เลือกไว้จะถูกรวมเข้าใบแรก ยืนยันไหม?')) return;
+
+            groups.forEach(g => {
+                const keep = g[0];
+                g.slice(1).forEach(drop => {
+                    castleCompDB.castles.forEach(cs => {
+                        const addT = castleCompGetCount(cs.id, drop.id);
+                        if (addT) {
+                            if (!castleCompDB.counts[cs.id]) castleCompDB.counts[cs.id] = {};
+                            castleCompDB.counts[cs.id][keep.id] = castleCompGetCount(cs.id, keep.id) + addT;
+                        }
+                        // รวมฮีโร่ที่เลือกไว้ (ไม่ซ้ำ)
+                        const from = castleCompGetPicks(drop.id, cs.id);
+                        if (from.length) {
+                            const cur = castleCompGetPicks(keep.id, cs.id).slice();
+                            from.forEach(h => { if (cur.indexOf(String(h)) < 0) cur.push(String(h)); });
+                            castleCompSetPicks(keep.id, cs.id, cur);
+                        }
+                        // ล้างของใบที่ทิ้ง
+                        if (castleCompDB.counts[cs.id]) delete castleCompDB.counts[cs.id][drop.id];
+                    });
+                    delete castleCompDB.picks[drop.id];
+                    castleCompExpandedIds.delete(drop.id);
+                    castleCompDB.comps = castleCompDB.comps.filter(c => c.id !== drop.id);
+                });
+            });
+
+            castleCompSave();
+            renderCastleComp();
+            showToast('🔁 รวมคอมพ์ซ้ำแล้ว ' + n + ' คอลัมน์', 'success');
+        }
+
         function castleCompClearAll() {
             if (!confirm('ล้างตารางทั้งหมด (ปราสาท + คอมพ์ + จำนวน) ใช่ไหม?')) return;
             castleCompDB = castleCompDefaults(); // created = false → กลับไปหน้า "สร้างตาราง"
             castleCompExpandedIds.clear();
             castleCompExpandedHeroes.clear();
+            castleCompExpandedCastles.clear();
             castleCompSave();
             renderCastleComp();
         }
 
-        // ---------- เลือกฮีโร่ (ใช้ dialog คลังฮีโร่เดิม) ----------
-        function castleCompPickHero(compId, slot) {
-            castleCompLoad();
-            castleCompEditTarget = { compId, slot };
-            openSelector('CASTLE-COMP', slot, 'hero');
+        // =========================================================
+        // 💾 CSV — ส่งออก / นำเข้า เพื่อแชร์ตารางข้ามเครื่อง
+        //    เปิดใน Excel / Google Sheets อ่านและแก้ได้ แล้วนำเข้ากลับมาได้ครบ
+        //    รูปแบบ: แบ่งเป็นส่วน #CASTLES #COMPS #COUNTS #PICKS
+        // =========================================================
+        const CC_CSV_TAG = '#7K-CASTLE-COMP';
+        const CC_CSV_VER = 1;
+
+        /** ครอบด้วยเครื่องหมายคำพูดเมื่อมีอักขระที่ทำให้ CSV เพี้ยน */
+        function ccCsvCell(v) {
+            const t = String(v == null ? '' : v);
+            return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+        }
+        const ccCsvRow = arr => arr.map(ccCsvCell).join(',');
+
+        /** แยก CSV 1 บรรทัดเป็นช่อง — รองรับคำพูดซ้อนและคอมมาในข้อความ */
+        function ccCsvSplit(line) {
+            const out = [];
+            let cur = '', q = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (q) {
+                    if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+                    else if (c === '"') q = false;
+                    else cur += c;
+                } else if (c === '"') q = true;
+                else if (c === ',') { out.push(cur); cur = ''; }
+                else cur += c;
+            }
+            out.push(cur);
+            return out;
         }
 
-        // เรียกจาก selectItem() เมื่อ editContext.i === 'CASTLE-COMP'
-        function castleCompApplyHero(heroId) {
-            if (!castleCompEditTarget) return;
-            const { compId, slot } = castleCompEditTarget;
-            const comp = castleCompDB.comps.find(c => c.id === compId);
-            if (!comp) return;
+        function castleCompExportCsv() {
+            castleCompLoad();
+            const { castles, comps } = castleCompDB;
+            if (!castles.length && !comps.length) return alert('ยังไม่มีข้อมูลให้ส่งออก');
 
-            if (heroId) {
-                const dup = comp.heroes.some((h, i) => h && String(h) === String(heroId) && i !== slot);
-                if (dup) { alert('⛔ ฮีโร่ตัวนี้อยู่ในชุดนี้แล้ว'); return; }
-                comp.heroes[slot] = String(heroId);
-            } else {
-                comp.heroes[slot] = null;
+            const L = [];
+            L.push(ccCsvRow([CC_CSV_TAG, CC_CSV_VER, 'ส่งออกจากหน้า นับคอมพ์ปราสาท', 'quota=' + (castleCompDB.heroQuota || 0)]));
+            L.push('');
+
+            L.push('#CASTLES');
+            L.push(ccCsvRow(['no', 'name']));
+            castles.forEach((cs, i) => L.push(ccCsvRow([i + 1, cs.name || ''])));
+            L.push('');
+
+            L.push('#COMPS');
+            L.push(ccCsvRow(['no', 'name', 'heroIds', 'awakened', 'patternId']));
+            comps.forEach((cp, i) => {
+                const sl = castleCompSlots(cp);
+                L.push(ccCsvRow([
+                    i + 1,
+                    castleCompName(cp),
+                    sl.map(x => x.id).join('|'),
+                    sl.map(x => (x.awakened ? 1 : 0)).join('|'),
+                    cp.patternId || ''
+                ]));
+            });
+            L.push('');
+
+            // ตารางจำนวน — ส่วนนี้แก้ใน Excel ได้ตรงๆ
+            L.push('#COUNTS');
+            L.push(ccCsvRow(['ปราสาท \\ คอมพ์'].concat(comps.map((cp, i) => (i + 1) + '. ' + castleCompName(cp)))));
+            castles.forEach(cs => {
+                L.push(ccCsvRow([cs.name || ''].concat(comps.map(cp => castleCompGetCount(cs.id, cp.id) || 0))));
+            });
+            L.push('');
+
+            L.push('#PICKS');
+            L.push(ccCsvRow(['comp', 'castle', 'heroIds', 'heroNames']));
+            comps.forEach((cp, ci) => {
+                castles.forEach((cs, si) => {
+                    const ids = castleCompGetPicks(cp.id, cs.id);
+                    if (!ids.length) return;
+                    const names = ids.map(id => {
+                        const h = heroesDB.find(x => String(x.id) === String(id));
+                        return h ? h.name : id;
+                    });
+                    L.push(ccCsvRow([ci + 1, si + 1, ids.join('|'), names.join('|')]));
+                });
+            });
+
+            // BOM — กัน Excel อ่านภาษาไทยเป็นตัวประหลาด
+            const blob = new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'castle-comp.csv';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+            showToast('💾 ส่งออกแล้ว — castle-comp.csv', 'success');
+        }
+
+        function castleCompPickImportFile() {
+            let inp = document.getElementById('cc-csv-input');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'file';
+                inp.id = 'cc-csv-input';
+                inp.accept = '.csv,text/csv';
+                inp.style.display = 'none';
+                inp.onchange = function () {
+                    const f = this.files && this.files[0];
+                    this.value = '';           // เลือกไฟล์เดิมซ้ำได้
+                    if (f) castleCompImportCsv(f);
+                };
+                document.body.appendChild(inp);
+            }
+            inp.click();
+        }
+
+        function castleCompImportCsv(file) {
+            const rd = new FileReader();
+            rd.onload = function () {
+                try {
+                    ccApplyCsv(String(rd.result || ''));
+                } catch (e) {
+                    console.error(e);
+                    alert('❌ นำเข้าไม่สำเร็จ: ' + (e.message || e));
+                }
+            };
+            rd.onerror = function () { alert('❌ อ่านไฟล์ไม่ได้'); };
+            rd.readAsText(file, 'utf-8');
+        }
+
+        function ccApplyCsv(text) {
+            const raw = text.replace(/^﻿/, '').split(/\r?\n/);
+            if (!raw.length || raw[0].indexOf(CC_CSV_TAG) !== 0) {
+                throw new Error('ไม่ใช่ไฟล์ของหน้านับคอมพ์ปราสาท (บรรทัดแรกต้องขึ้นต้นด้วย ' + CC_CSV_TAG + ')');
             }
 
-            castleCompEditTarget = null;
+            // แยกเป็นส่วนตามหัวข้อ #XXX
+            const sec = {};
+            let cur = null;
+            raw.forEach(line => {
+                const t = line.trim();
+                if (!t) return;
+                if (t[0] === '#' && t.indexOf(CC_CSV_TAG) !== 0) { cur = t.toUpperCase(); sec[cur] = []; return; }
+                if (cur) sec[cur].push(line);
+            });
+
+            const castlesRaw = (sec['#CASTLES'] || []).slice(1).map(ccCsvSplit);
+            const compsRaw = (sec['#COMPS'] || []).slice(1).map(ccCsvSplit);
+            const countsRaw = (sec['#COUNTS'] || []).slice(1).map(ccCsvSplit);
+            const picksRaw = (sec['#PICKS'] || []).slice(1).map(ccCsvSplit);
+            const qm = String(raw[0] || '').match(/quota=(\d+)/);
+            const heroQuota = qm ? parseInt(qm[1], 10) : 0;
+
+            if (!castlesRaw.length || !compsRaw.length) throw new Error('ไฟล์ไม่มีส่วน #CASTLES หรือ #COMPS');
+
+            const castles = castlesRaw.filter(r => r[0]).map(r => ({ id: ccUid('CS'), name: r[1] || '' }));
+            const comps = compsRaw.filter(r => r[0]).map(r => {
+                const ids = String(r[2] || '').split('|').filter(Boolean);
+                const aw = String(r[3] || '').split('|').map(x => x === '1' || x === 'true');
+                return { id: ccUid('CP'), patternId: r[4] || '', heroes: ids, awk: ids.map((_, i) => !!aw[i]) };
+            }).filter(c => c.heroes.length);
+
+            if (!castles.length || !comps.length) throw new Error('ไม่พบปราสาทหรือคอมพ์ในไฟล์');
+
+            // #COUNTS อ่านตามลำดับแถว/คอลัมน์ (ช่องแรกของแต่ละแถวคือชื่อปราสาท ข้าม)
+            const counts = {};
+            countsRaw.forEach((row, ri) => {
+                const cs = castles[ri];
+                if (!cs) return;
+                comps.forEach((cp, cidx) => {
+                    const n = parseInt(row[cidx + 1], 10);
+                    if (Number.isFinite(n) && n > 0) {
+                        if (!counts[cs.id]) counts[cs.id] = {};
+                        counts[cs.id][cp.id] = n;
+                    }
+                });
+            });
+
+            const picks = {};
+            picksRaw.forEach(r => {
+                const cp = comps[parseInt(r[0], 10) - 1];
+                const cs = castles[parseInt(r[1], 10) - 1];
+                if (!cp || !cs) return;
+                const ids = String(r[2] || '').split('|').filter(Boolean);
+                if (!ids.length) return;
+                if (!picks[cp.id]) picks[cp.id] = {};
+                picks[cp.id][cs.id] = ids;
+            });
+
+            const msg = 'นำเข้า ' + castles.length + ' ปราสาท · ' + comps.length + ' คอมพ์'
+                + '\n\n⚠️ ข้อมูลในตารางตอนนี้จะถูกแทนที่ทั้งหมด ยืนยันไหม?';
+            if (!confirm(msg)) return;
+
+            castleCompDB = {
+                created: true,
+                castles: castles,
+                comps: comps,
+                counts: counts,
+                heroQuota: heroQuota,
+                picks: picks,
+                picksV: CASTLE_COMP_PICKS_V
+            };
+            castleCompExpandedIds.clear();
+            castleCompExpandedHeroes.clear();
+            castleCompExpandedCastles.clear();
             castleCompSave();
             renderCastleComp();
+            showToast('📥 นำเข้าเรียบร้อย — ' + castles.length + ' ปราสาท · ' + comps.length + ' คอมพ์', 'success');
+        }
+
+        // =========================================================
+        // ➕ DIALOG เพิ่มคอมพ์ — รวมทุกแหล่งไว้ที่เดียว
+        //    แหล่ง: รูปแบบศัตรู · ทีมบุก (ATK) ที่แชร์ — ทุกคอมพ์อิงของจริง ไม่มีสร้างเปล่า
+        //    มีตัวกรอง Type + เตือนคอมพ์ซ้ำ (ฮีโร่ชุดเดียวกัน)
+        // =========================================================
+        let ccAddTab = 'pattern';   // pattern | atk
+        let ccAddSearch = '';
+        let ccAddType = '';
+        let ccAddFocus = false;
+
+        /** ลายเซ็นคอมพ์ = id ฮีโร่เรียงแล้วต่อกัน — ใช้เทียบว่าซ้ำไหม (ไม่สนลำดับ) */
+        function ccCompSig(heroes) {
+            return (heroes || []).filter(Boolean).map(String).sort().join(',');
+        }
+
+        /** คอมพ์นี้มีในตารางแล้วหรือยัง → คืนชื่อคอมพ์ที่ซ้ำ หรือ null */
+        function ccDupInTable(heroes) {
+            const sig = ccCompSig(heroes);
+            if (!sig) return null;
+            castleCompLoad();
+            const hit = castleCompDB.comps.find(c => ccCompSig(c.heroes) === sig);
+            return hit ? castleCompName(hit) : null;
+        }
+
+        /** type ทั้งหมดที่มีในคอมพ์นี้ */
+        function ccHeroTypes(heroes) {
+            const s = new Set();
+            (heroes || []).forEach(id => {
+                const h = heroesDB.find(x => String(x.id) === String(id));
+                if (h && h.type) s.add(h.type);
+            });
+            return s;
+        }
+
+        function castleCompOpenAddDialog() {
+            castleCompLoad();
+            ccAddSearch = '';
+            ccAddType = '';
+            let modal = document.getElementById('cc-add-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'cc-add-modal';
+                modal.className = 'fixed inset-0 z-[540] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4';
+                document.body.appendChild(modal);
+            }
+            modal.style.display = 'flex';
+            ccAddRenderShell();
+        }
+
+        function castleCompCloseAddDialog() {
+            const m = document.getElementById('cc-add-modal');
+            if (m) m.style.display = 'none';
+        }
+
+        function ccAddSetTab(t) { ccAddTab = t; ccAddType = ''; ccAddRenderShell(); }
+        function ccAddSetType(t) { ccAddType = (ccAddType === t) ? '' : t; ccAddRenderList(); }
+        function ccAddSetSearch(v) { ccAddSearch = String(v || '').trim().toLowerCase(); ccAddFocus = true; ccAddRenderList(); }
+
+        function ccAddRenderShell() {
+            const modal = document.getElementById('cc-add-modal');
+            if (!modal) return;
+            const tab = (key, label) => `
+                <button onclick="ccAddSetTab('${key}')"
+                    class="px-4 py-2 rounded-lg text-xs font-black transition ${ccAddTab === key ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white'}">${label}</button>`;
+
+            modal.innerHTML = `
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[88vh]">
+                    <div class="p-4 border-b border-gray-800 flex items-center gap-3">
+                        <h3 class="text-white font-black">➕ เพิ่มคอมพ์</h3>
+                        <div class="bg-[#0d1117] p-1 rounded-xl flex gap-1 ml-2">
+                            ${tab('pattern', '🎯 รูปแบบศัตรู')}
+                            ${tab('atk', '🤝 จากที่แชร์ ATK')}
+                        </div>
+                        <button onclick="castleCompCloseAddDialog()" class="ml-auto text-gray-400 hover:text-white text-xl w-9 h-9 rounded-full hover:bg-white/10">✕</button>
+                    </div>
+                    <div id="cc-add-body" class="flex flex-col min-h-0 flex-1"></div>
+                </div>`;
+            ccAddRenderList();
+        }
+
+        /** รายการที่จะโชว์ตามแท็บ → [{ heroes, name, note, from }] */
+        function ccAddSource() {
+            if (ccAddTab === 'atk') {
+                return castleCompCollectAtkEnemies().map(e => ({
+                    heroes: e.heroes, awk: e.awk || [], name: e.name, note: e.froms.join(' · '),
+                    tag: '🤝 อยู่ใน ' + e.froms.length + ' ทีมบุก'
+                }));
+            }
+            const src = (typeof enemyPatternsDB !== 'undefined' && Array.isArray(enemyPatternsDB)) ? enemyPatternsDB : [];
+            return src.map(p => {
+                const heroes = [], awk = [];
+                for (let i = 0; i < CASTLE_COMP_MAX; i++) {
+                    const sl = p.slots ? p.slots[i] : null;
+                    if (sl && sl.id) { heroes.push(String(sl.id)); awk.push(!!sl.awakened); }
+                }
+                return { heroes, awk, patternId: p.id, name: p.name || '(ไม่มีชื่อ)', note: p.note || '', tag: p.formation || '' };
+            }).filter(x => x.heroes.length);
+        }
+
+        function ccAddRenderList() {
+            const box = document.getElementById('cc-add-body');
+            if (!box) return;
+
+            const all = ccAddSource();
+
+            // นับ type ที่มีจริง
+            const typeCount = {};
+            all.forEach(it => ccHeroTypes(it.heroes).forEach(t => { typeCount[t] = (typeCount[t] || 0) + 1; }));
+            const availTypes = TYPE_OPTS.filter(t => typeCount[t] > 0);
+
+            // กรอง
+            let list = all;
+            if (ccAddType) list = list.filter(it => ccHeroTypes(it.heroes).has(ccAddType));
+            if (ccAddSearch) {
+                const q = ccAddSearch;
+                list = list.filter(it => {
+                    if (String(it.name).toLowerCase().includes(q)) return true;
+                    if (String(it.note).toLowerCase().includes(q)) return true;
+                    return it.heroes.some(id => {
+                        const h = heroesDB.find(x => String(x.id) === String(id));
+                        return h && String(h.name || '').toLowerCase().includes(q);
+                    });
+                });
+            }
+
+            // หาซ้ำภายในแหล่งเดียวกัน (คนละใบแต่ฮีโร่ชุดเดียวกัน)
+            const sigCount = {};
+            all.forEach(it => { const s = ccCompSig(it.heroes); sigCount[s] = (sigCount[s] || 0) + 1; });
+
+            const typeBtns = availTypes.map(t => {
+                const st = (typeof GALLERY_TYPE_STYLE !== 'undefined' && GALLERY_TYPE_STYLE[t]) || {};
+                const on = ccAddType === t;
+                return `<button onclick="ccAddSetType('${String(t).replace(/'/g, "\\'")}')"
+                    class="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold border transition whitespace-nowrap ${on ? (st.on || 'bg-blue-600 text-white border-blue-400') : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'}">
+                    <span class="w-1.5 h-1.5 rounded-full ${st.dot || 'bg-gray-500'}"></span>${t} <span class="opacity-70">${typeCount[t]}</span>
+                </button>`;
+            }).join('');
+
+            const cards = list.map((it, i) => {
+                const dupName = ccDupInTable(it.heroes);
+                const dupSrc = sigCount[ccCompSig(it.heroes)] > 1;
+                const icons = it.heroes.map((id, k) => {
+                    const h = heroesDB.find(x => String(x.id) === String(id));
+                    if (!h) return '<div class="w-12 h-12 rounded-lg border-2 border-dashed border-gray-700 bg-black/40"></div>';
+                    // ✨ ติ๊กปลุกพลังมาจากรูปแบบศัตรู/ทีมบุก → ใช้รูปตื่นรู้ + ขอบม่วง (กติกาเดียวกับตาราง)
+                    const a = !!((it.awk || [])[k] && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    return `<img src="${a ? h.img2 : h.img}" title="${ccEsc(h.name)}${a ? ' (ปลุกพลัง)' : ''}" class="w-12 h-12 rounded-lg border-2 ${a ? 'border-purple-500' : 'border-gray-600'} object-cover bg-black">`;
+                }).join('');
+                const names = it.heroes.map(id => {
+                    const h = heroesDB.find(x => String(x.id) === String(id));
+                    return h ? h.name : '?';
+                }).join(' · ');
+
+                return `
+                    <div onclick="ccAddPick(${i})"
+                        class="w-full bg-[#0d1117] border ${dupName ? 'border-amber-700/70' : 'border-gray-700'} hover:border-amber-500 rounded-xl p-3 cursor-pointer transition flex items-center gap-3 group">
+                        <div class="flex items-center gap-1 flex-shrink-0">${icons}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-black text-gray-100 group-hover:text-white truncate">${ccEsc(it.name)}</div>
+                            <div class="text-[11px] text-gray-500 truncate">${ccEsc(names)}</div>
+                            <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                ${it.tag ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">${ccEsc(it.tag)}</span>` : ''}
+                                ${dupName ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-200 border border-amber-700">⚠️ มีในตารางแล้ว: ${ccEsc(dupName)}</span>` : ''}
+                                ${dupSrc ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-900/50 text-purple-200 border border-purple-700">🔁 มีใบซ้ำในรายการนี้</span>' : ''}
+                            </div>
+                        </div>
+                        <span class="text-gray-600 group-hover:text-amber-400 text-lg flex-shrink-0">＋</span>
+                    </div>`;
+            }).join('');
+
+            const dupTotal = all.filter(it => ccDupInTable(it.heroes)).length;
+
+            box.innerHTML = `
+                <div class="p-3 border-b border-gray-800 flex flex-col gap-2 flex-shrink-0">
+                    <div class="flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
+                            <input id="cc-add-search" type="text" value="${ccEsc(ccAddSearch)}" oninput="ccAddSetSearch(this.value)"
+                                placeholder="ค้นหาชื่อทีม / ชื่อตัวละคร..."
+                                class="w-full bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-amber-500">
+                        </div>
+                        ${ccAddTab === 'pattern' ? `<button onclick="ccAddNewPattern()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border border-emerald-500/40" title="สร้างรูปแบบศัตรูใบใหม่ แล้วกลับมาเลือก">➕ สร้างรูปแบบศัตรูใหม่</button>` : ''}
+                    </div>
+                    ${availTypes.length ? `<div class="flex flex-wrap gap-1.5 items-center">
+                        <span class="text-[10px] text-gray-600 font-bold uppercase mr-0.5">Type</span>${typeBtns}
+                    </div>` : ''}
+                    <div class="text-[11px] text-gray-500">
+                        แสดง <b class="text-gray-300">${list.length}</b> / ${all.length} รายการ
+                        ${dupTotal ? ` · <span class="text-amber-400">${dupTotal} ใบมีในตารางแล้ว</span>` : ''}
+                    </div>
+                </div>
+                <div class="p-3 overflow-y-auto custom-scroll flex flex-col gap-2 min-h-0">
+                    ${cards || `<div class="text-center text-gray-600 text-xs py-16">
+                        <div class="text-5xl mb-3 opacity-30">📭</div>
+                        ${all.length ? 'ไม่พบรายการที่ตรงกับตัวกรอง' : (ccAddTab === 'atk' ? 'ยังไม่มีทีมศัตรูในทีมบุกที่แชร์' : 'ยังไม่มีรูปแบบศัตรู — กดปุ่มสีเขียวเพื่อสร้าง')}
+                    </div>`}
+                </div>`;
+
+            if (ccAddFocus) {
+                const el = document.getElementById('cc-add-search');
+                if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) { } }
+                ccAddFocus = false;
+            }
+        }
+
+        /** กดเลือกใบที่ i จากรายการที่กรองอยู่ */
+        function ccAddPick(i) {
+            const all = ccAddSource();
+            let list = all;
+            if (ccAddType) list = list.filter(it => ccHeroTypes(it.heroes).has(ccAddType));
+            if (ccAddSearch) {
+                const q = ccAddSearch;
+                list = list.filter(it => {
+                    if (String(it.name).toLowerCase().includes(q)) return true;
+                    if (String(it.note).toLowerCase().includes(q)) return true;
+                    return it.heroes.some(id => {
+                        const h = heroesDB.find(x => String(x.id) === String(id));
+                        return h && String(h.name || '').toLowerCase().includes(q);
+                    });
+                });
+            }
+            const it = list[i];
+            if (!it) return;
+
+            const dupName = ccDupInTable(it.heroes);
+            if (dupName && !confirm('คอมพ์นี้มีในตารางแล้ว ("' + dupName + '")\n\nเพิ่มซ้ำอีกใบไหม?')) return;
+
+            castleCompLoad();
+            castleCompDB.comps.push({
+                id: ccUid('CP'),
+                patternId: it.patternId || '',            // ผูกกับรูปแบบศัตรู → แก้ที่ต้นทางแล้วตารางเปลี่ยนตาม
+                heroes: it.heroes.slice(0, CASTLE_COMP_MAX),
+                awk: (it.awk || []).slice(0, CASTLE_COMP_MAX)
+            });
+            castleCompSave();
+            castleCompCloseAddDialog();
+            renderCastleComp();
+        }
+
+        // ตั้งธงไว้ตอนสร้างรูปแบบศัตรูจากหน้านับคอมพ์ — ปิดหน้าแก้ไขแล้วจะเพิ่มเข้าตารางให้เลย
+        let ccPendingNewPattern = false;
+
+        /** สร้างรูปแบบศัตรูใบใหม่ — ใช้หน้าแก้ไขของเมนูรูปแบบศัตรู แล้วดึงกลับมาเป็นคอมพ์อัตโนมัติ */
+        function ccAddNewPattern() {
+            if (typeof createNewEnemyPattern !== 'function') {
+                alert('❌ ยังเปิดหน้าสร้างรูปแบบศัตรูไม่ได้ — ลองเข้าเมนู 🎯 รูปแบบศัตรู แทน');
+                return;
+            }
+            ccPendingNewPattern = true;
+            castleCompCloseAddDialog();
+            createNewEnemyPattern();
+        }
+
+        /** เรียกตอนปิดหน้าแก้ไขรูปแบบศัตรู — ถ้ามาจากหน้านับคอมพ์ ให้เพิ่มใบนั้นเข้าตาราง */
+        function ccAfterPatternSaved(pattern) {
+            if (!ccPendingNewPattern) return;
+            ccPendingNewPattern = false;
+            if (!pattern) return;
+
+            const heroes = [], awk = [];
+            for (let i = 0; i < CASTLE_COMP_MAX; i++) {
+                const sl = pattern.slots ? pattern.slots[i] : null;
+                if (sl && sl.id) { heroes.push(String(sl.id)); awk.push(!!sl.awakened); }
+            }
+            if (!heroes.length) return;   // ไม่ได้ใส่ตัวละคร = ไม่เพิ่ม
+
+            const dupName = ccDupInTable(heroes);
+            if (dupName && !confirm('คอมพ์นี้มีในตารางแล้ว ("' + dupName + '")\n\nเพิ่มซ้ำอีกใบไหม?')) return;
+
+            castleCompLoad();
+            castleCompDB.comps.push({ id: ccUid('CP'), patternId: pattern.id || '', heroes: heroes, awk: awk });
+            castleCompSave();
+            if (currentView === 'castle-comp') renderCastleComp();
         }
 
         // ---------- เลือกฮีโร่ที่จะ "จ่าย" ให้คอมพ์นี้ ในปราสาทนี้ ----------
@@ -24712,6 +25363,8 @@
             const modal = document.getElementById('enemyPatternModal');
             if (modal) modal.style.display = 'none';
             renderEnemyPatternGrid();
+            // 🏰 ถ้าเปิดมาจากหน้านับคอมพ์ ให้เอาใบที่เพิ่งสร้างไปเป็นคอมพ์เลย
+            if (typeof ccAfterPatternSaved === 'function') ccAfterPatternSaved(data);
         }
 
         function createNewEnemyPattern() {
