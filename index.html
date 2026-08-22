@@ -5020,6 +5020,12 @@
             'equip-manager': 'equip_sets'
         };
 
+        // 📁 หน้า Manager ที่ใช้ฟอร์มกลาง → โฟลเดอร์ Drive ที่จะเก็บรูป (ไม่มีในนี้ = รูปยังฝังเป็น base64 ในชีต)
+        // เพิ่มหน้าใหม่: ใส่ 'pet-manager': '<folderId>' ได้เลย ทั้งลิงก์คลังรูปและตัวอัปโหลดจะทำงานเอง
+        const MANAGER_DRIVE_FOLDER = {
+            'ring-manager': '1OdiSJQz8Our2k2WSGEburQTHB_TNrLdW'   // 💍 คลังรูปแหวน
+        };
+
         // --- สถาปะนะสถานะเริ่มต้น ---
         // --- แก้ไข: ลบ Lethal ออก และใส่ Weakness แทน ---
         const STAT_KEYS = ['hp', 'atk', 'def', 'spd', 'critRate', 'critDmg', 'block', 'dmgRed', 'acc', 'resist', 'weakness'];
@@ -5557,6 +5563,24 @@
             const t = String(ringType || '').trim();
             if (RING_TYPE_OPTS.includes(t)) return t;
             return RING_TYPE_OPTS[RING_TYPE_OPTS.length - 1];
+        }
+
+        /**
+         * เรียงแหวน: ทอง → ม่วง → เขียว → เทา (ตามลำดับใน RING_TYPE_OPTS)
+         * ประเภทเดียวกัน → เกรดสูงก่อน → ชื่อไทย
+         */
+        function compareRingsByType(a, b) {
+            const tA = RING_TYPE_OPTS.indexOf(normalizeRingType(a && a.ringType));
+            const tB = RING_TYPE_OPTS.indexOf(normalizeRingType(b && b.ringType));
+            if (tA !== tB) return tA - tB;
+            const gA = (a && a.grade) || 0, gB = (b && b.grade) || 0;
+            if (gA !== gB) return gB - gA;
+            return String((a && a.name) || '').localeCompare(String((b && b.name) || ''), 'th');
+        }
+
+        /** สำเนา ringsDB ที่เรียงตามประเภทแล้ว — ใช้กับทุก Dialog ที่ให้เลือกแหวน */
+        function ringsSortedByType() {
+            return (typeof ringsDB !== 'undefined' && Array.isArray(ringsDB) ? ringsDB.slice() : []).sort(compareRingsByType);
         }
 
         function getRingTypeBadgeHTML(ringType) {
@@ -8835,7 +8859,11 @@
                 g.variants.sort(function(a, b) { return (b.grade || 0) - (a.grade || 0); });
                 g.displayRing = g.variants.find(function(v) { return v.grade === 6; }) || g.variants[0];
                 return g;
-            }).sort(function(a, b) { return a.name.localeCompare(b.name, 'th'); });
+            }).sort(function(a, b) {
+                // เรียงกลุ่มตามประเภทแหวน: ทอง → ม่วง → เขียว → เทา (ดูจากตัวที่เอามาโชว์)
+                return compareRingsByType(a.displayRing, b.displayRing)
+                    || a.name.localeCompare(b.name, 'th');
+            });
         }
 
         function isRingSelectorGroupByNameMode() {
@@ -9042,12 +9070,12 @@
                     selectorActiveCategory = 'All';
                     selectorExcludedIds = [];
                     document.getElementById('selector-title').innerText = 'เลือกแหวน #' + ((parseInt(selectorRingIdx, 10) || 0) + 1);
-                    selectorCurrentData = [...ringsDB];
+                    selectorCurrentData = ringsSortedByType();
                 }
                 else if (type === 'ringStack') {
                     selectorActiveCategory = 'All';
                     document.getElementById('selector-title').innerText = 'เลือกแหวนซ้อน';
-                    selectorCurrentData = [...ringsDB];
+                    selectorCurrentData = ringsSortedByType();
                     const team = teams3v3DB[current3v3TeamIdx];
                     const slotIdx = parseInt(p, 10);
                     const ringIdx = parseInt(selectorRingIdx, 10) || 0;
@@ -9144,7 +9172,7 @@
                     document.getElementById('selector-title').innerText = 'เลือกสัตว์เลี้ยง';
                 } else if (type === 'ring') {
                     selectorExcludedIds = [];
-                    selectorCurrentData = [...ringsDB];
+                    selectorCurrentData = ringsSortedByType();
                     document.getElementById('selector-title').innerText = 'เลือกแหวน';
                 }
                 document.getElementById('selector-search').value = '';
@@ -9162,7 +9190,7 @@
                 selectorExcludedIds = baseRingData && baseRingData.name
                     ? getRingIdsWithSameName(baseRingData.name)
                     : (baseRing && baseRing.id ? [String(baseRing.id)] : []);
-                selectorCurrentData = [...ringsDB];
+                selectorCurrentData = ringsSortedByType();
                 document.getElementById('selector-title').innerText = 'เลือกแหวนที่ซ้อน';
                 document.getElementById('selector-search').value = '';
                 if (typeof renderSelectorTabs === 'function') renderSelectorTabs();
@@ -9192,7 +9220,7 @@
             
             if(type==='hero') selectorCurrentData = [...heroesDB]; 
             else if(type==='pet') selectorCurrentData = [...petsDB]; 
-            else selectorCurrentData = [...ringsDB];
+            else selectorCurrentData = ringsSortedByType();
             
             if(typeof renderSelectorTabs === 'function') renderSelectorTabs();
             document.getElementById('selectorModal').style.display = 'flex'; 
@@ -9275,7 +9303,7 @@
 
             // Sorting
             const sortFunc = (a, b) => {
-                if (editContext.type === 'ring' || editContext.type === 'ringStack') return (b.grade||0) - (a.grade||0);
+                if (editContext.type === 'ring' || editContext.type === 'ringStack') return compareRingsByType(a, b); // ทอง → ม่วง → เขียว → เทา
                 let rA = -1, rB = -1;
                 if(editContext.type === 'hero') { rA = RARITY_OPTS.indexOf(a.rarity); rB = RARITY_OPTS.indexOf(b.rarity); } 
                 else if(editContext.type === 'pet') { rA = PET_RARITY_OPTS.indexOf(a.rarity); rB = PET_RARITY_OPTS.indexOf(b.rarity); }
@@ -9743,7 +9771,7 @@
             
             const ringSec = document.getElementById('ctx-rings-section'); const starSec = document.getElementById('ctx-stars-section');
             if(p === 'pet') { ringSec.style.display = 'none'; starSec.style.display = 'none'; } 
-            else { ringSec.style.display = 'block'; starSec.style.display = 'block'; const rl=document.getElementById('ring-options'); rl.innerHTML=`<div class="ring-option" onclick="setRing(null)"><span>No Ring</span></div>`; ringsDB.forEach(r=>{rl.innerHTML+=`<div class="ring-option" onclick="setRing('${r.id}')"><img src="${r.img}" class="grade-${r.grade}" style="border:2px solid"><div><div class="text-xs text-gray-200">${r.name}</div></div></div>`}); }
+            else { ringSec.style.display = 'block'; starSec.style.display = 'block'; const rl=document.getElementById('ring-options'); rl.innerHTML=`<div class="ring-option" onclick="setRing(null)"><span>No Ring</span></div>`; ringsSortedByType().forEach(r=>{rl.innerHTML+=`<div class="ring-option" onclick="setRing('${r.id}')"><img src="${r.img}" class="grade-${r.grade}" style="border:2px solid"><div><div class="text-xs text-gray-200">${r.name}</div></div></div>`}); }
         }
         
         // ✨ อัพเกรด/ยกเลิก Awakening ของตัวละครที่ครอบครอง (ลูกกิลด์)
@@ -10351,6 +10379,15 @@
                         class="w-full bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-blue-500">
                 </div>
                 ${chips}
+                ${(function () {
+                    if (!MANAGER_DRIVE_FOLDER[currentView]) return '';
+                    const n = dbAll.filter(x => x && typeof x.img === 'string' && x.img.indexOf('data:image') === 0).length;
+                    if (!n) return '';
+                    return `<button onclick="migrateManagerImagesToDrive()" title="รูปที่ยังฝังเป็น base64 อยู่ในชีต — กดเพื่อย้ายขึ้น Google Drive แล้วเก็บแค่ลิงก์"
+                        class="w-full mt-2 bg-amber-700/40 hover:bg-amber-600/60 text-amber-100 px-3 py-2 rounded-xl text-[11px] font-bold border border-amber-600/60 transition text-left">
+                        📤 ย้ายรูปเก่าขึ้น Drive <span class="opacity-80">(${n} รายการ)</span>
+                    </button>`;
+                })()}
                 <div class="flex items-center gap-2 mt-2 text-[11px] text-gray-500">
                     <span>แสดง <b class="text-gray-300">${shown}</b> / ${total} รายการ</span>
                     ${filtered ? '<button onclick="managerClearFilters()" class="ml-auto text-gray-400 hover:text-red-400 underline">ล้างตัวกรอง</button>' : ''}
@@ -10380,12 +10417,7 @@
             }else{
                 if (currentView === 'hero-manager') db.sort((a, b) => { let rA = RARITY_OPTS.indexOf(a.rarity); let rB = RARITY_OPTS.indexOf(b.rarity); if (rA === -1) rA = 999; if (rB === -1) rB = 999; if (rA !== rB) return rA - rB; return a.name.localeCompare(b.name, 'th'); });
                 else if (currentView === 'pet-manager') db.sort((a, b) => { let rA = PET_RARITY_OPTS.indexOf(a.rarity); let rB = PET_RARITY_OPTS.indexOf(b.rarity); if (rA === -1) rA = 999; if (rB === -1) rB = 999; if (rA !== rB) return rA - rB; return a.name.localeCompare(b.name, 'th'); });
-                else if (currentView === 'ring-manager') db.sort((a, b) => {
-                    let tA = RING_TYPE_OPTS.indexOf(normalizeRingType(a.ringType));
-                    let tB = RING_TYPE_OPTS.indexOf(normalizeRingType(b.ringType));
-                    if (tA !== tB) return tA - tB;
-                    return (b.grade || 0) - (a.grade || 0) || a.name.localeCompare(b.name, 'th');
-                });
+                else if (currentView === 'ring-manager') db.sort(compareRingsByType);
                 else db.sort((a, b) => (b.grade||0) - (a.grade||0) || a.name.localeCompare(b.name, 'th'));
             }
 
@@ -10541,10 +10573,18 @@
                             <label class="text-gray-500">ลิ้งค์รูปภาพ (Image URL)</label>
                             <input type="text" id="m-img" value="${item.img}" onchange="document.getElementById('m-prev').src=this.value" class="font-mono text-xs text-yellow-500">
                         </div>
-                        <label class="block">
-                            <input type="file" accept="image/*" onchange="previewImgFromFile(this,'m-prev','m-img')" class="hidden">
-                            <span class="block text-center text-[10px] bg-blue-600/30 hover:bg-blue-600/60 text-blue-200 px-3 py-1.5 rounded border border-blue-500/50 cursor-pointer transition w-fit">📁 อัพโหลดไฟล์</span>
-                        </label>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <label class="block">
+                                <input type="file" accept="image/*" onchange="previewImgFromFile(this,'m-prev','m-img')" class="hidden">
+                                <span class="block text-center text-[10px] bg-blue-600/30 hover:bg-blue-600/60 text-blue-200 px-3 py-1.5 rounded border border-blue-500/50 cursor-pointer transition w-fit">📁 อัพโหลดไฟล์</span>
+                            </label>
+                            ${MANAGER_DRIVE_FOLDER[currentView] ? `
+                            <a href="https://drive.google.com/drive/folders/${MANAGER_DRIVE_FOLDER[currentView]}" target="_blank" rel="noopener"
+                               class="text-[10px] text-blue-400 hover:underline inline-flex items-center gap-1">📁 เปิดคลังรูปใน Google Drive</a>` : ''}
+                        </div>
+                        ${MANAGER_DRIVE_FOLDER[currentView]
+                            ? '<p class="text-[10px] text-gray-500">อัพโหลดไฟล์แล้วกดบันทึก → ระบบส่งรูปขึ้นโฟลเดอร์ Drive ให้เอง แล้วเก็บแค่ลิงก์ (ไม่ยัด base64 ลงชีต)</p>'
+                            : '<p class="text-[10px] text-amber-500/80">⚠️ หน้านี้ยังไม่ได้ตั้งโฟลเดอร์ Drive — ไฟล์ที่อัพโหลดจะถูกฝังเป็น base64 ลงชีต ไฟล์ใหญ่อาจบันทึกไม่ผ่าน</p>'}
                     </div>
                 </div>`;
             }
@@ -10960,6 +11000,57 @@
             } catch (e) { console.error('deleteOneItem error:', e); updateSyncStatus('offline'); return false; }
         }
 
+        /**
+         * 📤 ย้ายรูปที่ยังฝังเป็น base64 ในชีต → Google Drive ทีเดียวทั้งหน้า
+         * ใช้ได้เฉพาะหน้าที่ตั้งโฟลเดอร์ไว้ใน MANAGER_DRIVE_FOLDER
+         * ทำทีละรายการ: อัปขึ้น Drive → บันทึกแถวนั้น (ล้มกลางทางของที่ผ่านแล้วไม่หาย)
+         */
+        async function migrateManagerImagesToDrive() {
+            const folderId = MANAGER_DRIVE_FOLDER[currentView];
+            if (!folderId) { alert('หน้านี้ยังไม่ได้ตั้งโฟลเดอร์ Drive'); return; }
+            if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) { alert('ยังไม่ได้เชื่อมกับ server — เปิดผ่านเว็บแอปก่อน'); return; }
+
+            const cat = VIEW_SAVE_SCOPE[currentView];
+            if (!cat) { alert('หน้านี้ยังไม่รองรับการบันทึกทีละรายการ'); return; }
+
+            const db = getManagerDbForView(currentView) || [];
+            const targets = db.filter(x => x && typeof x.img === 'string' && x.img.indexOf('data:image') === 0);
+            if (!targets.length) { alert('ไม่มีรูปที่ต้องย้าย — ทุกรายการเป็นลิงก์อยู่แล้ว'); return; }
+
+            if (!confirm('ย้ายรูป ' + targets.length + ' รายการขึ้น Google Drive?\n\n'
+                + '· อัปโหลดขึ้นโฟลเดอร์ที่ตั้งไว้ แล้วเก็บแค่ลิงก์ในชีต\n'
+                + '· รายการที่อัปไม่สำเร็จจะคงรูปเดิมไว้ ไม่หาย\n'
+                + '· ใช้เวลาสักครู่ อย่าปิดหน้านี้')) return;
+
+            const tag = currentView.replace('-manager', '');
+            let ok = 0;
+            const failed = [];
+
+            for (let i = 0; i < targets.length; i++) {
+                const it = targets[i];
+                showLoading('📤 กำลังย้ายรูป ' + (i + 1) + '/' + targets.length + ' — ' + (it.name || it.id));
+                const before = it.img;
+                try {
+                    await uploadPendingManagerImageToDrive(it, folderId, tag, true);
+                } catch (e) { console.error('migrate upload error:', it.id, e); }
+
+                if (it.img === before) { failed.push((it.name || it.id) + ' — อัปโหลดไม่สำเร็จ'); continue; }
+
+                const saved = await saveOneItemToCloud(cat, it);
+                if (saved) { delete it._isNew; ok++; }
+                else { it.img = before; failed.push((it.name || it.id) + ' — บันทึกไม่ผ่าน'); } // คืนค่าเดิม ไม่ให้ลิงก์ค้างในเครื่องแต่ชีตยังเป็น base64
+            }
+
+            hideLoading();
+            logAudit('MIGRATE_IMG', currentView, 'ย้ายรูปขึ้น Drive สำเร็จ ' + ok + ' / ล้มเหลว ' + failed.length);
+            renderManagerUI();
+
+            alert(failed.length
+                ? '📤 ย้ายสำเร็จ ' + ok + ' รายการ · ไม่สำเร็จ ' + failed.length + ' รายการ\n\n' + failed.slice(0, 10).join('\n')
+                    + (failed.length > 10 ? '\n… และอีก ' + (failed.length - 10) : '')
+                : '✅ ย้ายรูปขึ้น Drive ครบทั้ง ' + ok + ' รายการ');
+        }
+
         async function saveItem() {
             let db = getManagerDbForView(currentView);
             let item = db.find(x => x.id == editingItemId);
@@ -11177,6 +11268,11 @@
             // 🛡️ อัปโหลดรูปอุปกรณ์ (base64) ขึ้น Drive ก่อนบันทึก
             if (currentView === 'equip-manager') {
                 await uploadPendingEquipImagesToDrive(item);
+            }
+            // 💍 หน้าที่ใช้ฟอร์มกลาง (แหวน ฯลฯ) ที่ตั้งโฟลเดอร์ Drive ไว้
+            const _drvFolder = MANAGER_DRIVE_FOLDER[currentView];
+            if (_drvFolder) {
+                await uploadPendingManagerImageToDrive(item, _drvFolder, currentView.replace('-manager', ''));
             }
 
             // [ช่วงท้ายฟังก์ชัน] — 🟢 บันทึก "ทีละแถว" (upsert) — server เขียนแค่แถวเดียว ไม่ล้างทั้งชีต = เร็วสุด
@@ -17521,6 +17617,41 @@
             hideLoading();
         }
     }
+
+    // 💍 อัปโหลดรูปของหน้า Manager ที่ใช้ฟอร์มกลาง (แหวน ฯลฯ) → โฟลเดอร์ที่ตั้งไว้ใน MANAGER_DRIVE_FOLDER
+    async function uploadPendingManagerImageToDrive(item, folderId, tag, quiet) {
+        if (!item || !folderId) return;
+        if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) return; // ออฟไลน์: เก็บ base64 ไว้ก่อน
+        const keys = ['img'];
+        const pending = keys.filter(k => typeof item[k] === 'string' && item[k].indexOf('data:image') === 0);
+        if (!pending.length) return;
+
+        const nm = String(item.name || tag || 'img').trim().replace(/[^\w฀-๿-]+/g, '_').slice(0, 40);
+        if (!quiet) showLoading('📤 กำลังอัปโหลดรูป ' + pending.length + ' รูปขึ้น Drive...'); // quiet = ตัวเรียกคุมข้อความเอง (ย้ายทีละหลายรูป)
+        try {
+            await Promise.all(pending.map(async (k) => {
+                const fileName = (tag || 'img') + '_' + nm + '_' + k + '_' + item.id;
+                // action เฉพาะหน้านั้นก่อน (ring → uploadRingImage) → ถ้า server ยังไม่มี ค่อยไล่ตัวถัดไป (ทุกตัวรับ folderId)
+                const own = tag ? 'upload' + tag.charAt(0).toUpperCase() + tag.slice(1) + 'Image' : '';
+                const actions = own ? [own, 'uploadEquipImage', 'uploadSkillImage'] : ['uploadEquipImage', 'uploadSkillImage'];
+                for (const action of actions) {
+                    try {
+                        const res = await fetch(SCRIPT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({ action: action, fileName: fileName, fileData: item[k], folderId: folderId })
+                        });
+                        const result = await res.json();
+                        if (result.status === 'success' && result.url) { item[k] = result.url; break; }
+                    } catch (e) { console.error('manager img upload fail:', action, k, e); }
+                }
+                // ถ้าไม่สำเร็จทั้งคู่ → คง base64 ไว้ (ไม่ทำรูปหาย)
+            }));
+        } finally {
+            if (!quiet) hideLoading();
+        }
+    }
+    window.uploadPendingManagerImageToDrive = uploadPendingManagerImageToDrive;
 
     // 🦸 อัปโหลดรูปฮีโร่ (Normal=img / Awakening=img2) ที่เป็น base64 → โฟลเดอร์ฮีโร่ แล้วแทนด้วยลิงก์ ตอนกดบันทึก
     const HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M';
@@ -29194,10 +29325,7 @@
         if (!rA && !rB) return 0;
         if (!rA) return 1;
         if (!rB) return -1;
-        const tA = RING_TYPE_OPTS.indexOf(normalizeRingType(rA.ringType));
-        const tB = RING_TYPE_OPTS.indexOf(normalizeRingType(rB.ringType));
-        if (tA !== tB) return tA - tB;
-        return (rB.grade || 0) - (rA.grade || 0) || String(rA.name || '').localeCompare(String(rB.name || ''), 'th');
+        return compareRingsByType(rA, rB);
     }
 
     function normalizeRosterPetEntry(entry) {

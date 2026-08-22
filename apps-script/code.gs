@@ -6,7 +6,8 @@ var VIDEO_FOLDER_ID = '1jTnrjTdNLtw9E58TB_sQ5ShELr-6uPrY'; // โฟลเดอ
 var SKILL_FOLDER_ID = '12S_ycyylGP6T3oQVLtwkoRJwUNVmM-33'; // โฟลเดอร์เก็บไอคอน/รูปสกิลของตัวละคร
 var EQUIP_FOLDER_ID = '14Ci7SczLyh1rg071_jMIP03j0DjSu5Ki'; // โฟลเดอร์เก็บรูปอุปกรณ์ (เซ็ตอุปกรณ์)
 var HERO_IMAGE_FOLDER_ID = '1dg4tEQHjhnRd41hqxI2S8oLh-Fv0uR2M'; // โฟลเดอร์เก็บรูปฮีโร่ (Normal/Awakening)
-var SERVER_VERSION = "6.0.8"; // Updated Version
+var RING_FOLDER_ID = '1OdiSJQz8Our2k2WSGEburQTHB_TNrLdW'; // โฟลเดอร์เก็บรูปแหวน
+var SERVER_VERSION = "6.1.1"; // Updated Version
 
 // 1. ส่วนเปิดหน้าเว็บ
 function doGet(e) {
@@ -684,6 +685,14 @@ function doPost(e) {
          return out({ status: 'success', url: himg });
        }
        return out({ status: 'error', message: 'อัปโหลดรูปฮีโร่ไม่สำเร็จ' });
+    }
+    else if (action === 'uploadRingImage') {
+       var rFolder = request.folderId || RING_FOLDER_ID;
+       var rimg = uploadImageToFolder(request.fileData, request.fileName, rFolder);
+       if (rimg) {
+         return out({ status: 'success', url: rimg });
+       }
+       return out({ status: 'error', message: 'อัปโหลดรูปแหวนไม่สำเร็จ' });
     }
 
     // =========================================================
