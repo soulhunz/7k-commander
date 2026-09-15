@@ -34,3 +34,6 @@ npm-debug.log*
 
 # ไฟล์สำรองเก่า มี URL/ค่าตั้งเวอร์ชันเก่าฝังอยู่
 index-backup.html
+
+# โค้ดฝั่งเซิร์ฟเวอร์ (Apps Script) — เก็บไว้ในเครื่อง ไม่ขึ้น git
+apps-script/
