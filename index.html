@@ -7,6 +7,10 @@
     <meta name="referrer" content="no-referrer"> 
     
     <title>7K Seven Deadly Sins</title>
+
+    <!-- 🔗 Apps Script เติม URL ของ Web App ให้ตอนเสิร์ฟหน้า — ไม่ต้องฝัง URL ไว้ในไฟล์ (ไม่ขึ้น git)
+         ถ้าเปิดไฟล์นี้ตรงๆ ค่าจะเป็นข้อความ template ดิบ โค้ดจะเช็ครูปแบบแล้วข้ามให้เอง -->
+    <script>window.__WEB_APP_URL__ = "<?= webAppUrl ?>";</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -4484,12 +4488,80 @@
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
             // ตรวจสอบว่า URL นี้ตรงกับที่ Deploy ล่าสุดหรือไม่
-            // 🔐 เว้นว่างไว้เสมอ — URL เก็บในเครื่องผู้ใช้ (localStorage) ไม่ฝังลงโค้ด/ไม่ขึ้น git
-            WEB_APP_URL: "",
+            // 🔐 ไม่ฝัง URL ในโค้ด — เอาจากที่ Apps Script เติมให้ตอนเสิร์ฟหน้า
+            //    เปิดผ่าน Apps Script = ได้เอง · เปิดไฟล์ตรงๆ = ตกไปใช้ค่าที่เคยตั้งไว้ใน localStorage
+            WEB_APP_URL: (function () {
+                const injected = (typeof window !== 'undefined' && window.__WEB_APP_URL__) ? String(window.__WEB_APP_URL__) : '';
+                return /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(injected) ? injected : '';
+            })(),
             VERSION: "1.1.9" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
         let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
+
+        /** 🔐 token หมดอายุ / ถูกเตะออก → ล้าง session แล้วกลับไปหน้า login */
+        let _sessionExpiredShown = false;
+        function handleSessionExpired(msg) {
+            if (_sessionExpiredShown) return;
+            _sessionExpiredShown = true;
+            try { localStorage.removeItem('7k_user_session'); } catch (e) {}
+            CURRENT_USER = null;
+            hideLoading();
+            alert('🔐 เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่' + (msg ? ('\n\n' + msg) : ''));
+            location.reload();
+        }
+
+        /**
+         * 📡 ยิงข้อมูลไป Apps Script แบบทน ๆ
+         *    • timeout กันค้าง (ค่าเริ่ม 45 วิ)
+         *    • ลองซ้ำอัตโนมัติเมื่อเน็ตสะดุด / server ตอบ 5xx / ตอบไม่ใช่ JSON
+         *    • คืน error ที่บอกสาเหตุจริง ไม่ใช่ "เชื่อมต่อล้มเหลว" ลอย ๆ
+         *  Apps Script ล่มเป็นพัก ๆ อยู่แล้ว (redirect/โควตา/ตื่นช้า) — ลองใหม่ 1-2 ครั้งมักผ่าน
+         */
+        async function postJson(body, opts) {
+            const o = opts || {};
+            const tries = Math.max(1, o.retries == null ? 3 : o.retries);
+            const timeout = o.timeout || 45000;
+            if (!SCRIPT_URL) throw new Error('ยังไม่ได้ตั้งค่า URL ของเซิร์ฟเวอร์');
+            let lastErr = null;
+
+            for (let i = 0; i < tries; i++) {
+                const ctrl = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), timeout);
+                try {
+                    const res = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        redirect: 'follow',
+                        signal: ctrl.signal,
+                        body: JSON.stringify(withAuth(body))
+                    });
+                    if (!res.ok) throw new Error('เซิร์ฟเวอร์ตอบ HTTP ' + res.status);
+                    const text = await res.text();
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseErr) {
+                        // Apps Script คืนหน้า HTML ตอนสคริปต์พัง/โควตาหมด/ยังไม่ได้ให้สิทธิ์
+                        throw new Error('เซิร์ฟเวอร์ตอบกลับผิดรูปแบบ — ' + String(text).replace(/<[^>]*>/g, ' ').trim().slice(0, 120));
+                    }
+                    // ⏳ มีคนกำลังบันทึกอยู่ (ติดคิวล็อก) → รอแล้วลองใหม่เอง
+                    if (data && data.code === 'busy' && i < tries - 1) {
+                        throw new Error(data.message || 'เซิร์ฟเวอร์กำลังทำงานอื่นอยู่');
+                    }
+                    return data;
+                } catch (e) {
+                    lastErr = (e && e.name === 'AbortError')
+                        ? new Error('หมดเวลารอ ' + Math.round(timeout / 1000) + ' วินาที')
+                        : e;
+                    console.warn('postJson ครั้งที่ ' + (i + 1) + '/' + tries + ' ไม่ผ่าน:', lastErr.message);
+                    if (i < tries - 1) await new Promise(r => setTimeout(r, 800 * Math.pow(2, i)));
+                } finally {
+                    clearTimeout(timer);
+                }
+            }
+            throw lastErr || new Error('เชื่อมต่อไม่สำเร็จ');
+        }
 
         /** 📁 เปิดโฟลเดอร์คลังรูปใน Drive — ขอลิงก์จาก server (ไม่เก็บ ID ไว้ในโค้ด) */
         async function openManagerDriveFolder(folderKey) {
@@ -5513,17 +5585,12 @@
                 // 3. ส่งข้อมูลไปตรวจสอบที่ Server (Google Apps Script)
                 // ต้องใช้ mode: 'no-cors' ไม่ได้ เพราะเราต้องการอ่าน response กลับมาว่าผ่านหรือไม่
                 // Server ต้องตั้งค่า deploy เป็น "Anyone" (ทุกคน) เพื่อเลี่ยงปัญหา CORS
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { "Content-Type": "text/plain;charset=utf-8" }, // ใช้ text/plain เลี่ยง Preflight
-                    body: JSON.stringify({
-                        action: 'login', // บอก Server ว่าจะ Login
-                        username: userIn,
-                        password: passIn
-                    })
-                });
-
-                const result = await response.json();
+                // postJson: ลองซ้ำให้เองถ้าเน็ตสะดุด + แยกได้ว่า "ต่อไม่ติด" กับ "รหัสผิด" คนละเรื่อง
+                const result = await postJson({
+                    action: 'login', // บอก Server ว่าจะ Login
+                    username: userIn,
+                    password: passIn
+                }, { timeout: 30000 });
 
                 if (result.status === 'success') {
                     // ✅ Login ผ่าน: Server จะส่งข้อมูล User (ไม่มี Password) กลับมาใน result.user
@@ -6267,13 +6334,11 @@
             if (showOverlay) showLoading("กำลังเชื่อมต่อข้อมูล...");
             updateSyncStatus('loading');
 
-            // ส่ง POST ไปยัง Server (Code.gs)
-            return fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(withAuth({ action: action }))
-            })
-            .then(res => res.json())
+            // ส่ง POST ไปยัง Server (Code.gs) — postJson จะลองซ้ำให้เองถ้าเน็ตสะดุด
+            return postJson({ action: action })
             .then(data => {
+                if (data && data.code === 'forbidden') { handleSessionExpired(data.message); return {}; }
+                if (data && data.status === 'error') throw new Error(data.message || 'เซิร์ฟเวอร์ปฏิเสธคำขอ');
                 updateSyncStatus('online');
                 
                 // กรณี: Login ผ่านแล้ว -> โหลดข้อมูลจริงทั้งหมด (Heroes, Pets, Teams...)
@@ -6296,7 +6361,7 @@
                 updateSyncStatus('offline');
                 if (showOverlay) {
                     hideLoading();
-                    if (action !== 'getPublicConfig') alert("การเชื่อมต่อล้มเหลว");
+                    if (action !== 'getPublicConfig') alert("❌ โหลดข้อมูลไม่สำเร็จ\n\n" + (err.message || err) + "\n\nลองกดรีเฟรชอีกครั้ง");
                 }
             });
         }
@@ -6311,12 +6376,10 @@
             let clientVersions = {};
             try { clientVersions = JSON.parse(localStorage.getItem('7k_data_versions_v1')) || {}; } catch (e) {}
 
-            return fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(withAuth({ action: 'getUpdates', versions: clientVersions }))
-            })
-            .then(res => res.json())
+            return postJson({ action: 'getUpdates', versions: clientVersions })
             .then(data => {
+                if (data && data.code === 'forbidden') { handleSessionExpired(data.message); return {}; }
+                if (data && data.status === 'error') throw new Error(data.message || 'เซิร์ฟเวอร์ปฏิเสธคำขอ');
                 updateSyncStatus('online');
                 console.log('⚡ Incremental sync — categories changed:', Object.keys(data.changed || {}));
                 processLoadedData(Object.assign({}, data.changed, { versions: data.versions, timestamp: data.timestamp }));
@@ -6329,7 +6392,7 @@
                 updateSyncStatus('offline');
                 if (showOverlay) {
                     hideLoading();
-                    alert("การเชื่อมต่อล้มเหลว");
+                    alert("❌ ตรวจข้อมูลอัปเดตไม่สำเร็จ\n\n" + (err.message || err) + "\n\nลองกดรีเฟรชอีกครั้ง");
                 }
             });
         }
@@ -23907,6 +23970,31 @@
         // ⚡ Static-category cache (heroes/pets/rings/equip_sets/accessories/skillLib) —
         //    persisted so repeat visitors don't force the backend to re-read sheets that haven't changed
         const GALLERY_CACHE_KEY = '7k_gallery_static_cache_v1';
+
+        /**
+         * 📦 รวม masterData ที่ server ส่งมา (เฉพาะหมวดที่เปลี่ยน) เข้ากับ cache ในเครื่อง
+         *    แล้วเติมตัวแปร DB ในหน่วยความจำจาก cache เสมอ
+         *    ใช้ได้ทั้งหน้าแกลเลอรีและหน้าแชร์ลิงก์ — คนไม่ได้ login ก็โหลดครั้งเดียวจบ
+         */
+        function mergePublicMasterData(masterData, serverVersions) {
+            const cache = loadGalleryStaticCache();
+            const m = masterData || {};
+            GALLERY_CACHE_CATS.forEach(cat => {
+                if (m[cat] !== undefined) {
+                    cache.data[cat] = m[cat];
+                    if (serverVersions && serverVersions[cat] !== undefined) cache.versions[cat] = serverVersions[cat];
+                }
+            });
+            saveGalleryStaticCache(cache);
+
+            heroesDB = cache.data.heroes || [];
+            petsDB = cache.data.pets || [];
+            ringsDB = cache.data.rings || [];
+            equipSetsDB = cache.data.equip_sets || [];
+            accessoriesDB = cache.data.accessories || [];
+            skillLibDB = cache.data.skillLib || [];
+            return cache;
+        }
         const GALLERY_CACHE_CATS = ['heroes', 'pets', 'rings', 'equip_sets', 'accessories', 'skillLib'];
         function loadGalleryStaticCache() {
             try {
@@ -23945,8 +24033,9 @@
                 console.log("⚡ Using Cached Gallery Data");
                 // 🟢 ถ้า heroesDB ว่าง ให้โหลดก่อนแสดงผล
                 if (!heroesDB || heroesDB.length === 0) {
-                    console.log("🔄 Loading heroesDB for Gallery...");
-                    await fetchCloudData('getAllData', false);
+                    // 📦 เอาจาก cache ในเครื่องก่อน — ไม่ต้องดึงข้อมูลทั้งระบบมาใหม่
+                    mergePublicMasterData(null, null);
+                    if (!heroesDB.length) return loadSharedGallery(true);   // cache ว่างจริง → โหลดใหม่จาก server
                 }
                 renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 return; // จบฟังก์ชัน ไม่ต้องเรียก Server
@@ -23967,16 +24056,12 @@
                 const isAdmin = CURRENT_USER?.role === 'admin';
                 const galleryCache = loadGalleryStaticCache();
 
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'getAllSharedTeams',
-                        userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
-                        isAdmin: isAdmin,     // 🟢 ส่งสถานะ admin
-                        versions: galleryCache.versions // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
-                    })
-                });
-                const res = await response.json();
+                const res = await postJson({
+                    action: 'getAllSharedTeams',
+                    userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
+                    isAdmin: isAdmin,     // 🟢 ส่งสถานะ admin
+                    versions: galleryCache.versions // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
+                }, { timeout: 60000 });
 
                 // 🟢 DEBUG: ดูข้อมูลที่ได้จาก Server
                 console.log('🔍 Server response teams:', res.teams?.length);
@@ -23985,20 +24070,7 @@
                 if (res.status === 'success') {
                     // ⚡ อัปเดต cache เฉพาะ category ที่ server ส่งมา (เปลี่ยนแล้ว) แล้ว hydrate DB จาก cache เสมอ
                     // (กัน tab/session ใหม่ที่ DB ในหน่วยความจำว่าง แต่ category นั้นไม่เปลี่ยนเลยไม่ถูกส่งมาซ้ำ)
-                    const m = res.masterData || {};
-                    GALLERY_CACHE_CATS.forEach(cat => {
-                        if (m[cat] !== undefined) {
-                            galleryCache.data[cat] = m[cat];
-                            if (res.versions && res.versions[cat] !== undefined) galleryCache.versions[cat] = res.versions[cat];
-                        }
-                    });
-                    heroesDB = galleryCache.data.heroes || [];
-                    petsDB = galleryCache.data.pets || [];
-                    ringsDB = galleryCache.data.rings || [];
-                    equipSetsDB = galleryCache.data.equip_sets || [];
-                    accessoriesDB = galleryCache.data.accessories || [];
-                    skillLibDB = galleryCache.data.skillLib || [];
-                    saveGalleryStaticCache(galleryCache);
+                    mergePublicMasterData(res.masterData, res.versions);
 
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
                     galleryCacheDB = res.teams;
@@ -24010,7 +24082,7 @@
 
             } catch (e) {
                 console.error(e);
-                alert("Connection Error: " + e.message);
+                alert("❌ โหลดแกลเลอรีไม่สำเร็จ\n\n" + (e.message || e) + "\n\nลองกดรีเฟรชอีกครั้ง");
             } finally {
                 if (overlay) {
                     overlay.classList.remove('active');
@@ -24732,27 +24804,15 @@
             document.getElementById('main-content').classList.remove('hidden');
 
             try {
-                // เช็ค Master Data
-                if (heroesDB.length === 0) {
-                    await fetchCloudData('getAllData', false);
-                }
-
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'getSharedTeam', teamId: id })
-                });
-                const res = await response.json();
+                // 📦 ไม่ต้องโหลด getAllData ทั้งก้อนแล้ว — getSharedTeam ส่งข้อมูลกลางที่ต้องใช้มาให้
+                // ⚡ ส่งเวอร์ชันข้อมูลกลางที่เครื่องนี้มีอยู่ → server ส่งกลับเฉพาะหมวดที่เปลี่ยน
+                const _shareCache = loadGalleryStaticCache();
+                const res = await postJson({ action: 'getSharedTeam', teamId: id, versions: _shareCache.versions });
 
                 if (res.status === 'success') {
-                    if (res.masterData) {
-                        // อัปเดต Master Data เผื่อมีอะไรใหม่
-                        const m = res.masterData;
-                        if(m.heroes) heroesDB = m.heroes;
-                        if(m.rings) ringsDB = m.rings;
-                        if(m.equip_sets) equipSetsDB = m.equip_sets;
-                        if(m.accessories) accessoriesDB = m.accessories;
-                        if(Array.isArray(m.skillLib)) skillLibDB = m.skillLib;
-                    }
+                    // 📦 เก็บข้อมูลกลางลง localStorage แล้วเติม DB จาก cache
+                    //    เปิดลิงก์ครั้งหน้า server จะไม่ส่งข้อมูลพวกนี้มาอีก จนกว่าจะมีการแก้ฮีโร่/แหวน/อุปกรณ์
+                    mergePublicMasterData(res.masterData, res.versions);
                     
                     // 🟢 กรอง Counter Teams ตาม Guild ถ้ามี masterData.teams
                     let allCounterTeams = [res.team];
@@ -24786,7 +24846,7 @@
                 }
             } catch (e) {
                 console.error(e);
-                alert("Connection Error");
+                alert("❌ เปิดลิงก์ทีมไม่สำเร็จ\n\n" + (e.message || e) + "\n\nลองกดรีเฟรชอีกครั้ง");
             } finally {
                 hideLoading();
             }
