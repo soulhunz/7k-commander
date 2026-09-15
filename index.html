@@ -4484,11 +4484,66 @@
         // --- 1. CONFIG & STATE ---
         const SYSTEM_CONFIG = {
             // ตรวจสอบว่า URL นี้ตรงกับที่ Deploy ล่าสุดหรือไม่
-            WEB_APP_URL: "***REMOVED-WEBAPP-URL***", 
+            // 🔐 เว้นว่างไว้เสมอ — URL เก็บในเครื่องผู้ใช้ (localStorage) ไม่ฝังลงโค้ด/ไม่ขึ้น git
+            WEB_APP_URL: "",
             VERSION: "1.1.9" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
         let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
+
+        /** 📁 เปิดโฟลเดอร์คลังรูปใน Drive — ขอลิงก์จาก server (ไม่เก็บ ID ไว้ในโค้ด) */
+        async function openManagerDriveFolder(folderKey) {
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(withAuth({ action: 'getDriveFolderLink', folderKey: folderKey }))
+                });
+                const data = await res.json();
+                if (data && data.status === 'success' && data.url) window.open(data.url, '_blank', 'noopener');
+                else alert('❌ ' + ((data && data.message) || 'เปิดคลังรูปไม่ได้'));
+            } catch (e) {
+                alert('❌ เชื่อมต่อไม่ได้: ' + e.message);
+            }
+        }
+
+        /** ⚙️ ตั้ง/เปลี่ยน URL ของ Web App (เก็บในเครื่องเท่านั้น) */
+        function setScriptUrl(url) {
+            const clean = String(url || '').trim();
+            if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(clean)) {
+                alert('❌ ลิงก์ไม่ถูกต้อง — ต้องเป็นลิงก์ Web App ของ Apps Script ที่ลงท้ายด้วย /exec');
+                return false;
+            }
+            localStorage.setItem('7k_script_url', clean);
+            SCRIPT_URL = clean;
+            USE_CLOUD = true;
+            return true;
+        }
+
+        /** ถามหา URL ตอนเปิดเว็บครั้งแรก (ยังไม่เคยตั้ง) */
+        function ensureScriptUrl() {
+            if (SCRIPT_URL) return true;
+            const url = prompt(
+                '⚙️ ตั้งค่าครั้งแรก\n\n' +
+                'วางลิงก์ Web App ของ Google Apps Script\n' +
+                '(Apps Script → Deploy → Web app → คัดลอก URL ที่ลงท้าย /exec)\n\n' +
+                'เก็บไว้ในเครื่องนี้เท่านั้น ไม่ส่งไปไหน'
+            );
+            if (!url) return false;
+            if (!setScriptUrl(url)) return false;
+            location.reload();
+            return true;
+        }
+
+        /**
+         * 🔐 token ประจำ session — ได้มาตอน login สำเร็จ (server เก็บสิทธิ์จริงไว้ฝั่งมัน)
+         *    แนบไปกับทุกคำสั่งที่ server ตรวจสิทธิ์ — หมดอายุ 6 ชม. แล้วต้อง login ใหม่
+         *    ใช้แบบ: body: JSON.stringify(withAuth({ action: 'purge3v3Team', id: x }))
+         */
+        function withAuth(body) {
+            const t = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) ? CURRENT_USER.token : '';
+            return t ? Object.assign({}, body || {}, { _token: t }) : (body || {});
+        }
         let USE_CLOUD = !!SCRIPT_URL;
 
         let surveyConfig = []; // เก็บโครงสร้างคำถาม [{id, question, type}]
@@ -5022,8 +5077,9 @@
 
         // 📁 หน้า Manager ที่ใช้ฟอร์มกลาง → โฟลเดอร์ Drive ที่จะเก็บรูป (ไม่มีในนี้ = รูปยังฝังเป็น base64 ในชีต)
         // เพิ่มหน้าใหม่: ใส่ 'pet-manager': '<folderId>' ได้เลย ทั้งลิงก์คลังรูปและตัวอัปโหลดจะทำงานเอง
+        // 🔐 เก็บแค่ "ชื่อกลุ่มโฟลเดอร์" — ID จริงอยู่ฝั่ง server (Script Properties)
         const MANAGER_DRIVE_FOLDER = {
-            'ring-manager': '***REMOVED-FOLDER-ID***'   // 💍 คลังรูปแหวน
+            'ring-manager': 'ring'   // 💍 คลังรูปแหวน
         };
 
         // --- สถาปะนะสถานะเริ่มต้น ---
@@ -5503,7 +5559,8 @@
                     name: user.name,
                     role: user.role,
                     permissions: user.permissions || [],
-                    guild_name: user.guild_name || 'all' // 🟢 เพิ่ม: บันทึก guild_name
+                    guild_name: user.guild_name || 'all', // 🟢 เพิ่ม: บันทึก guild_name
+                    token: user.token || ''               // 🔐 token จาก server — ใช้ยืนยันสิทธิ์ทุกคำสั่ง (อายุ 6 ชม.)
                 };
                 localStorage.setItem('7k_user_session', JSON.stringify(userData));
                 CURRENT_USER = userData;
@@ -5663,6 +5720,15 @@
         
         window.onload = async function() {
             console.log("🚀 System Starting...");
+
+            // ⚙️ ยังไม่เคยตั้ง URL ของ Web App → ถามก่อน (เก็บในเครื่องนี้เท่านั้น)
+            if (!SCRIPT_URL && !ensureScriptUrl()) {
+                document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#e5e7eb;background:#0d1117;min-height:100vh">'
+                    + '<h2>⚙️ ยังไม่ได้ตั้งค่าเซิร์ฟเวอร์</h2>'
+                    + '<p style="color:#9ca3af">รีเฟรชหน้านี้แล้ววางลิงก์ Web App ของ Apps Script (ลงท้าย /exec)</p>'
+                    + '<button onclick="location.reload()" style="margin-top:12px;padding:10px 18px;border-radius:10px;border:0;background:#4f46e5;color:#fff;font-weight:700;cursor:pointer">รีเฟรช</button></div>';
+                return;
+            }
 
             // 1. อ่าน URL Parameters
             const urlParams = new URLSearchParams(window.location.search);
@@ -6204,7 +6270,7 @@
             // ส่ง POST ไปยัง Server (Code.gs)
             return fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: action })
+                body: JSON.stringify(withAuth({ action: action }))
             })
             .then(res => res.json())
             .then(data => {
@@ -6247,7 +6313,7 @@
 
             return fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'getUpdates', versions: clientVersions })
+                body: JSON.stringify(withAuth({ action: 'getUpdates', versions: clientVersions }))
             })
             .then(res => res.json())
             .then(data => {
@@ -6312,7 +6378,7 @@
             try {
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'getUpdates', versions: patchedVersions })
+                    body: JSON.stringify(withAuth({ action: 'getUpdates', versions: patchedVersions }))
                 });
                 const data = await res.json();
                 if (data && data.changed) {
@@ -6386,13 +6452,12 @@
                     if (want('guilds')) syncGuildMembersToGuilds();
 
                     // เมตา (ส่งทุกครั้ง)
-                    payload = {
+                    payload = withAuth({
                         timestamp: Date.now(),
                         _mergeMode: 'server',          // 🟢 ให้ server merge teams_3v3/enemyPatterns
-                        _skipMemberInventorySync: true,
-                        _userGuild: userGuild,
-                        _userRole: CURRENT_USER?.role || 'user'
-                    };
+                        _skipMemberInventorySync: true
+                        // 🔐 สิทธิ์/กิลด์ server อ่านจาก token เอง — ส่งมาจาก client ไม่มีผลแล้ว
+                    });
 
                     // หมวดข้อมูล — ใส่เฉพาะที่อยู่ใน scope (teams_3v3 ไม่ส่งใน auto-save)
                     const FIELDS = {
@@ -10579,8 +10644,8 @@
                                 <span class="block text-center text-[10px] bg-blue-600/30 hover:bg-blue-600/60 text-blue-200 px-3 py-1.5 rounded border border-blue-500/50 cursor-pointer transition w-fit">📁 อัพโหลดไฟล์</span>
                             </label>
                             ${MANAGER_DRIVE_FOLDER[currentView] ? `
-                            <a href="https://drive.google.com/drive/folders/${MANAGER_DRIVE_FOLDER[currentView]}" target="_blank" rel="noopener"
-                               class="text-[10px] text-blue-400 hover:underline inline-flex items-center gap-1">📁 เปิดคลังรูปใน Google Drive</a>` : ''}
+                            <button type="button" onclick="openManagerDriveFolder('${MANAGER_DRIVE_FOLDER[currentView]}')"
+                               class="text-[10px] text-blue-400 hover:underline inline-flex items-center gap-1">📁 เปิดคลังรูปใน Google Drive</button>` : ''}
                         </div>
                         ${MANAGER_DRIVE_FOLDER[currentView]
                             ? '<p class="text-[10px] text-gray-500">อัพโหลดไฟล์แล้วกดบันทึก → ระบบส่งรูปขึ้นโฟลเดอร์ Drive ให้เอง แล้วเก็บแค่ลิงก์ (ไม่ยัด base64 ลงชีต)</p>'
@@ -10816,7 +10881,7 @@
                 <!-- รูปอุปกรณ์ หน้า/หลัง -->
                 <div class="col-span-2 mt-2 bg-[#0d1117] border border-gray-700 rounded p-4 relative">
                     <span class="absolute -top-2 left-3 bg-[#161b22] px-1 text-[10px] text-gray-400 font-bold uppercase">รูปอุปกรณ์</span>
-                    <a href="https://drive.google.com/drive/folders/***REMOVED-FOLDER-ID***" target="_blank" class="text-[10px] text-blue-400 hover:underline mb-3 inline-flex items-center gap-1">📁 เปิดคลังรูปอุปกรณ์ (Google Drive)</a>
+                    <button type="button" onclick="openManagerDriveFolder('equip')" class="text-[10px] text-blue-400 hover:underline mb-3 inline-flex items-center gap-1">📁 เปิดคลังรูปอุปกรณ์ (Google Drive)</button>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-gray-300 text-[11px] font-bold mb-2">⚔️ ออฟหลัก หน้า <span class="text-gray-500 font-normal">(อาวุธ)</span></label>
@@ -10945,7 +11010,7 @@
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'saveOneItem', category: category, item: clean })
+                    body: JSON.stringify(withAuth({ action: 'saveOneItem', category: category, item: clean }))
                 });
                 const result = await res.json().catch(function(){ return { status: 'unknown' }; });
                 const ok = result.status === 'success';
@@ -10991,7 +11056,7 @@
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'deleteOneItem', category: category, id: id })
+                    body: JSON.stringify(withAuth({ action: 'deleteOneItem', category: category, id: id }))
                 });
                 const result = await res.json().catch(function(){ return { status: 'unknown' }; });
                 const ok = result.status === 'success';
@@ -14957,7 +15022,7 @@
             showLoading('🧠 กำลังอัปเดต Snapshot AI...');
             try {
                 const res = await fetch(SCRIPT_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action:'saveCounterSnapshot', snapshot:json, _userRole: CURRENT_USER?.role || 'user' }) });
+                    body: JSON.stringify(withAuth({ action:'saveCounterSnapshot', snapshot:json })) });
                 const j = await res.json().catch(()=>({}));
                 ok = j && j.status === 'success';
             } catch(e){}
@@ -15255,7 +15320,7 @@
         skillLibDB = skillLibDB.filter(x=>String(x.id)!==String(id));
         try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
         renderSkillLibrary();
-        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){ try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'deleteOneItem', category:'skill_lib', id:id }) }); } catch(e){} }
+        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){ try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'deleteOneItem', category:'skill_lib', id:id })) }); } catch(e){} }
     }
 
     // 🔄 เดาหมวดใหม่ทุกรายการจากชื่อ+คำอธิบาย (ใช้ตอน import มาแล้วหมวดยังเป็น "อื่นๆ")
@@ -15269,7 +15334,7 @@
         renderSkillLibrary();
         if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){
             showLoading('🔄 กำลังบันทึกหมวดใหม่...');
-            try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'saveManySkillLib', items: skillLibDB }) }); } catch(e){}
+            try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'saveManySkillLib', items: skillLibDB })) }); } catch(e){}
             hideLoading();
         }
         alert('🔄 จัดหมวดใหม่ ' + changed + ' รายการแล้ว — ตรวจ/แก้รายตัวได้');
@@ -15372,7 +15437,7 @@
         slCloseBulk(); renderSkillLibrary();
         if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){
             showLoading('📥 กำลังนำเข้าคลังสกิล...');
-            try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'saveManySkillLib', items: skillLibDB }) }); } catch(e){}
+            try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'saveManySkillLib', items: skillLibDB })) }); } catch(e){}
             hideLoading();
         }
         alert('✅ นำเข้า '+items.length+' รายการแล้ว — แก้หมวด/ตั้งค่าเพิ่มได้ในแต่ละการ์ด');
@@ -16427,7 +16492,7 @@
         fetch(SCRIPT_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'getAllData' })
+            body: JSON.stringify(withAuth({ action: 'getAllData' }))
         })
         .then(res => res.json())
         .then(data => {
@@ -17264,10 +17329,10 @@
             if (imagesToDelete.length > 0) {
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: JSON.stringify({
+                    body: JSON.stringify(withAuth({
                         action: 'deleteImages', // บอก Server ว่าให้ลบรูป
                         urls: imagesToDelete
-                    })
+                    }))
                 });
                 console.log("🗑️ Deleted images:", imagesToDelete.length);
             }
@@ -17568,7 +17633,7 @@
                     const res = await fetch(SCRIPT_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({ action: 'uploadSkillImage', fileName: fileName, fileData: item.skillData[k].img })
+                        body: JSON.stringify(withAuth({ action: 'uploadSkillImage', fileName: fileName, fileData: item.skillData[k].img }))
                     });
                     const result = await res.json();
                     if (result.status === 'success' && result.url) {
@@ -17586,7 +17651,7 @@
     window.uploadPendingSkillIconsToDrive = uploadPendingSkillIconsToDrive;
 
     // 🛡️ อัปโหลดรูปอุปกรณ์ (base64) ขึ้น Google Drive → โฟลเดอร์อุปกรณ์ แล้วแทนด้วยลิงก์ ตอนกดบันทึก
-    const EQUIP_DRIVE_FOLDER_ID = '***REMOVED-FOLDER-ID***';
+    const EQUIP_DRIVE_FOLDER_KEY = 'equip';   // 🔐 ชื่อกลุ่ม — ID จริงอยู่ฝั่ง server
     async function uploadPendingEquipImagesToDrive(item) {
         if (!item) return;
         if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) return; // ออฟไลน์: เก็บ base64 ไว้ก่อน
@@ -17605,7 +17670,7 @@
                         const res = await fetch(SCRIPT_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: action, fileName: fileName, fileData: item[k], folderId: EQUIP_DRIVE_FOLDER_ID })
+                            body: JSON.stringify(withAuth({ action: action, fileName: fileName, fileData: item[k], folderKey: EQUIP_DRIVE_FOLDER_KEY }))
                         });
                         const result = await res.json();
                         if (result.status === 'success' && result.url) { item[k] = result.url; break; }
@@ -17619,8 +17684,8 @@
     }
 
     // 💍 อัปโหลดรูปของหน้า Manager ที่ใช้ฟอร์มกลาง (แหวน ฯลฯ) → โฟลเดอร์ที่ตั้งไว้ใน MANAGER_DRIVE_FOLDER
-    async function uploadPendingManagerImageToDrive(item, folderId, tag, quiet) {
-        if (!item || !folderId) return;
+    async function uploadPendingManagerImageToDrive(item, folderKey, tag, quiet) {
+        if (!item || !folderKey) return;
         if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) return; // ออฟไลน์: เก็บ base64 ไว้ก่อน
         const keys = ['img'];
         const pending = keys.filter(k => typeof item[k] === 'string' && item[k].indexOf('data:image') === 0);
@@ -17639,7 +17704,7 @@
                         const res = await fetch(SCRIPT_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: action, fileName: fileName, fileData: item[k], folderId: folderId })
+                            body: JSON.stringify(withAuth({ action: action, fileName: fileName, fileData: item[k], folderKey: folderKey }))
                         });
                         const result = await res.json();
                         if (result.status === 'success' && result.url) { item[k] = result.url; break; }
@@ -17654,7 +17719,7 @@
     window.uploadPendingManagerImageToDrive = uploadPendingManagerImageToDrive;
 
     // 🦸 อัปโหลดรูปฮีโร่ (Normal=img / Awakening=img2) ที่เป็น base64 → โฟลเดอร์ฮีโร่ แล้วแทนด้วยลิงก์ ตอนกดบันทึก
-    const HERO_IMAGE_FOLDER_ID = '***REMOVED-FOLDER-ID***';
+    const HERO_IMAGE_FOLDER_KEY = 'hero';     // 🔐 ชื่อกลุ่ม — ID จริงอยู่ฝั่ง server
     async function uploadPendingHeroImagesToDrive(item) {
         if (!item) return;
         if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) return; // ออฟไลน์: เก็บ base64 ไว้ก่อน
@@ -17673,7 +17738,7 @@
                         const res = await fetch(SCRIPT_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: action, fileName: fileName, fileData: item[k], folderId: HERO_IMAGE_FOLDER_ID })
+                            body: JSON.stringify(withAuth({ action: action, fileName: fileName, fileData: item[k], folderKey: HERO_IMAGE_FOLDER_KEY }))
                         });
                         const result = await res.json();
                         if (result.status === 'success' && result.url) { item[k] = result.url; break; }
@@ -19428,11 +19493,11 @@
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
+                    body: JSON.stringify(withAuth({
                         action: 'uploadVideo',
                         fileName: file.name,
                         fileData: base64
-                    })
+                    }))
                 });
                 const result = await response.json();
 
@@ -19470,7 +19535,7 @@
             fetch(SCRIPT_URL, {
                 method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'deleteImages', urls: urls })
+                body: JSON.stringify(withAuth({ action: 'deleteImages', urls: urls }))
             }).catch(function(e) { console.warn('ลบวิดีโอเก่าไม่สำเร็จ:', e); });
         }
 
@@ -19706,7 +19771,7 @@
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'getDeleted3v3Teams' })
+                    body: JSON.stringify(withAuth({ action: 'getDeleted3v3Teams' }))
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
@@ -19812,7 +19877,7 @@
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'restore3v3Team', id: teamId })
+                    body: JSON.stringify(withAuth({ action: 'restore3v3Team', id: teamId }))
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
@@ -19849,7 +19914,7 @@
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'purge3v3Team', id: teamId })
+                    body: JSON.stringify(withAuth({ action: 'purge3v3Team', id: teamId }))
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 const data = await res.json();
@@ -19897,14 +19962,12 @@
                 const saveRes = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
+                    body: JSON.stringify(withAuth({
                         action: 'saveMany3v3Teams',
                         teams_3v3: teamsForServer,
                         deletedIds: deletedIds,
-                        timestamp: new Date().toISOString(),
-                        _userGuild: userGuild,
-                        _userRole: CURRENT_USER?.role || 'user'
-                    })
+                        timestamp: new Date().toISOString()
+                    }))
                 });
                 
                 if (!saveRes.ok) throw new Error('เซิร์ฟเวอร์ตอบกลับ HTTP ' + saveRes.status);
@@ -25788,12 +25851,10 @@
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
+                    body: JSON.stringify(withAuth({
                         action: 'saveManyEnemyPatterns', // 🟢 upsert รายแถว (ไม่ clear ทั้งชีต)
-                        enemyPatterns: enemyPatternsDB, // 🟢 ส่งเฉพาะข้อมูลกิลนี้ (กรองแล้ว)
-                        _userGuild: userGuild,
-                        _userRole: CURRENT_USER?.role || 'user'
-                    })
+                        enemyPatterns: enemyPatternsDB  // 🟢 ส่งเฉพาะข้อมูลกิลนี้ (กรองแล้ว)
+                    }))
                 });
                 
                 // 🟢 no-cors mode ทำให้อ่าน response ไม่ได้ ให้ reload ข้อมูลใหม่แทน
@@ -25822,7 +25883,7 @@
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'deleteOneEnemyPattern', id: id })
+                    body: JSON.stringify(withAuth({ action: 'deleteOneEnemyPattern', id: id }))
                 });
                 console.log('🗑️ Deleted enemy pattern row on server:', id);
             } catch (e) {
@@ -25837,7 +25898,7 @@
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'getAllData' })
+                    body: JSON.stringify(withAuth({ action: 'getAllData' }))
                 });
 
                 const data = await response.json();
@@ -28912,7 +28973,7 @@
     async function tryRestoreRosterPortalSession() {
         const code = loadRosterPortalSessionCode();
         if (!code) return false;
-        const foundTarget = findMemberByAccessCode(code);
+        const foundTarget = await findMemberByAccessCodeRemote(code);
         if (!foundTarget) {
             clearRosterPortalSession();
             return false;
@@ -29121,6 +29182,36 @@
         const code = normalizeMemberCode(mem?.accessCode);
         if (!code) return alert('สมาชิกคนนี้ยังไม่มีรหัส — กด Edit แล้วบันทึก');
         copyTextToClipboard(code, `✅ คัดลอกรหัสของ ${mem.name} แล้ว`);
+    }
+
+    /**
+     * 🔐 ตรวจรหัสสมาชิกกับ server (ไม่เทียบรหัสในเครื่องอีกแล้ว)
+     *    server คืนว่าเป็นใคร → แปลงเป็น index ใน guildsDB เพื่อเปิดหน้าแก้ไข
+     *    คืน null ถ้ารหัสผิด
+     */
+    async function findMemberByAccessCodeRemote(code) {
+        const clean = normalizeMemberCode(code);
+        if (!clean || !SCRIPT_URL) return null;
+        try {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'verifyMemberCode', accessCode: clean })
+            });
+            const data = await res.json();
+            if (!data || data.status !== 'success') return null;
+            for (let g = 0; g < guildsDB.length; g++) {
+                if (String(guildsDB[g].id) !== String(data.guild_id)) continue;
+                const members = guildsDB[g].members || [];
+                for (let m = 0; m < members.length; m++) {
+                    if (String(members[m].id) === String(data.member_id)) return { g, m };
+                }
+            }
+            return null;   // server รู้จักรหัส แต่หาแถวในเครื่องไม่เจอ (ข้อมูลยังไม่ sync)
+        } catch (e) {
+            console.error('verifyMemberCode:', e);
+            return null;
+        }
     }
 
     function findMemberByAccessCode(code) {
@@ -29531,7 +29622,9 @@
         const code = normalizeMemberCode(document.getElementById('roster-code-input')?.value);
         if (!code) return alert('กรุณากรอกรหัสสมาชิก');
 
-        const foundTarget = findMemberByAccessCode(code);
+        showLoading('กำลังตรวจรหัส...');
+        const foundTarget = await findMemberByAccessCodeRemote(code);
+        hideLoading();
         if (!foundTarget) {
             clearRosterPortalSession();
             return alert('❌ รหัสไม่ถูกต้อง — ตรวจสอบกับหัวหน้ากิลด์อีกครั้ง');

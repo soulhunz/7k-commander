@@ -1,0 +1,36 @@
+# ---- ความลับ / ค่าเฉพาะเครื่อง ----
+.env
+.env.*
+*.local
+secrets.json
+config.local.js
+.claude/settings.local.json
+.clasp.json
+.claspignore
+
+# ---- ข้อมูลผู้ใช้ / ข้อมูลจริงที่ export ออกมา ----
+counter-snapshot.json
+*-export.json
+*-backup.json
+*.csv
+*.xlsx
+dump/
+data/
+
+# ---- ของระบบ / editor ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.idea/
+
+# ---- build / dependency ----
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+
+# ไฟล์สำรองเก่า มี URL/ค่าตั้งเวอร์ชันเก่าฝังอยู่
+index-backup.html
