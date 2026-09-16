@@ -6428,19 +6428,39 @@
             heroes: () => heroesDB, pets: () => petsDB, rings: () => ringsDB,
             equip_sets: () => equipSetsDB, accessories: () => accessoriesDB
         };
+        /** 📝 จำหมวดที่ "ว่างจริง" — server ส่งมาแล้วแต่ไม่มีข้อมูลในนั้น
+         *  ถ้าไม่จำ หมวดที่ยังไม่มีข้อมูลเลย จะทำให้ยิง getUpdates ซ้ำทุกครั้งที่เปิดแอป — เสียเวลาฟรีรอบละ ~3 วิ
+         *  พอ server ขยับเวอร์ชัน (มีคนเพิ่มข้อมูล) ค่าที่จำไว้จะไม่ตรง → กลับไปเช็คใหม่เอง */
+        function loadVerifiedEmptyCats() {
+            try { return JSON.parse(localStorage.getItem('7k_empty_cats_v1')) || {}; } catch (e) { return {}; }
+        }
+        function markVerifiedEmptyCats(cats, versions) {
+            if (!cats || !cats.length) return;
+            const m = loadVerifiedEmptyCats();
+            cats.forEach(function (c) { m[c] = (versions && versions[c]) || 0; });
+            try { localStorage.setItem('7k_empty_cats_v1', JSON.stringify(m)); } catch (e) {}
+        }
+
+        /** 🛩 เช็คความครบถ้วนของ store — หลัง login/sync ทุกครั้ง
+         *  หมวดไหนว่างและยังไม่เคยยืนยันว่าว่างจริง → ขอ server ส่งมาใหม่เฉพาะหมวดนั้น
+         *  ยังว่างหลัง server ตอบกลับ = ว่างจริง จำไว้จะได้ไม่ถามซ้ำรอบหน้า */
         async function ensureDataCompleteness() {
             if (!USE_CLOUD) return;
-            const missing = Object.keys(CORE_DATA_CATEGORIES).filter(cat => {
-                const arr = CORE_DATA_CATEGORIES[cat]();
-                return !Array.isArray(arr) || arr.length === 0;
-            });
-            if (!missing.length) return;
-            console.log('🩹 Data completeness check — missing categories, re-fetching:', missing);
 
             let clientVersions = {};
             try { clientVersions = JSON.parse(localStorage.getItem('7k_data_versions_v1')) || {}; } catch (e) {}
+            const emptyMap = loadVerifiedEmptyCats();
+
+            const missing = Object.keys(CORE_DATA_CATEGORIES).filter(function (cat) {
+                const arr = CORE_DATA_CATEGORIES[cat]();
+                if (Array.isArray(arr) && arr.length > 0) return false;
+                return emptyMap[cat] === undefined || emptyMap[cat] !== (clientVersions[cat] || 0);
+            });
+            if (!missing.length) return;
+            console.log('🛩 Data completeness check - missing categories, re-fetching:', missing);
+
             const patchedVersions = Object.assign({}, clientVersions);
-            missing.forEach(cat => { delete patchedVersions[cat]; }); // ลืมเวอร์ชันเดิม บังคับให้ server ส่งหมวดนี้กลับมา
+            missing.forEach(function (cat) { delete patchedVersions[cat]; });
 
             try {
                 const res = await fetch(SCRIPT_URL, {
@@ -6452,6 +6472,11 @@
                     processLoadedData(Object.assign({}, data.changed, { versions: data.versions, timestamp: data.timestamp }));
                     console.log('✅ Backfilled missing categories:', Object.keys(data.changed));
                 }
+                const stillEmpty = missing.filter(function (cat) {
+                    const arr = CORE_DATA_CATEGORIES[cat]();
+                    return !Array.isArray(arr) || arr.length === 0;
+                });
+                markVerifiedEmptyCats(stillEmpty, (data && data.versions) || {});
             } catch (e) {
                 console.error('ensureDataCompleteness failed:', e);
             }
