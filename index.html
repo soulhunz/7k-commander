@@ -21195,6 +21195,14 @@
             }
         }
 
+        /** 🔗 ฐานลิงก์ที่แชร์ให้คนนอก — ต้องเป็น /exec ของ Apps Script เสมอ
+         *  เปิดหน้านี้จาก GitHub Pages หรือไฟล์ในเครื่อง แล้วก๊อปลิงก์ไปให้คนอื่น จะใช้ไม่ได้
+         *  เพราะหน้าที่ไม่ได้เสิร์ฟจาก Apps Script จะไม่มี URL เซิร์ฟเวอร์ติดมาด้วย —
+         *  คนที่เพิ่งเปิดครั้งแรกเลยไม่รู้ว่าจะไปดึงข้อมูลจากไหน */
+        function publicShareBaseUrl() {
+            return SCRIPT_URL || window.location.href.split('?')[0];
+        }
+
         function openPublicGallery() {
             // 1. คีย์ของวันนี้ — คนรับลิงก์เปิดได้ถึง 3 วัน
             const dailyKey = getDailyKey();
@@ -21204,7 +21212,7 @@
             const encodedGuild = btoa(encodeURIComponent(userGuild));
 
             // 3. สร้าง URL มีทั้ง Key และ Guild
-            const baseUrl = window.location.href.split('?')[0];
+            const baseUrl = publicShareBaseUrl();
             const url = `${baseUrl}?k=${dailyKey}&g=${encodedGuild}`;
 
             // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
@@ -29195,7 +29203,7 @@
     }
 
     function buildMemberRosterUrl() {
-        const baseUrl = window.location.href.split('?')[0];
+        const baseUrl = publicShareBaseUrl();
         let url = `${baseUrl}?mode=roster`;
         // 🟢 ผูกลิงก์กับกิลด์ที่เลือกอยู่ (g= = ชื่อกิลด์ที่เข้ารหัส base64) → portal ล็อกกิลด์ให้ลูกกิลอัตโนมัติ
         const g = activeGuildForLink();
