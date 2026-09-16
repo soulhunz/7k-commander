@@ -5813,7 +5813,9 @@
 
                 showLoading("กำลังโหลดข้อมูลกิลด์...");
                 try {
-                    await fetchCloudData('getAllData', false);
+                    // 🔒 เลิกใช้ getAllData — อันนั้นต้อง login และให้ข้อมูลทั้งระบบ
+                    //    พอร์ทัลนี้ขอแค่ ข้อมูลกลาง + รายชื่อกิลด์ (ไม่มีสมาชิก/รหัส)
+                    await fetchRosterBootstrap();
                 } catch (e) {
                     console.error('Roster load failed:', e);
                 } finally {
@@ -5847,15 +5849,13 @@
                 return;
             }
 
-            // 2. สร้าง Key ประจำวันนี้
-            const todayKey = getDailyKey();
 
             // -----------------------------------------------------------
             // 🌍 CASE 1: PUBLIC ACCESS (คนทั่วไป ดู Gallery)
-            // เช็คว่า Key ใน URL ตรงกับ Key ของวันนี้หรือไม่
+            // คีย์ใน URL ใช้ได้ 3 วันนับจากวันที่สร้างลิงก์ (ดู GALLERY_KEY_VALID_DAYS)
             // -----------------------------------------------------------
-            if (encodedKey === todayKey) {
-                console.log("🌍 Public Mode Detected (Valid Daily Key)");
+            if (isGalleryKeyValid(encodedKey)) {
+                console.log("🌍 Public Mode Detected (Valid Gallery Key)");
                 
                 isPublicView = true;
                 document.getElementById('login-screen').style.display = 'none';
@@ -6395,6 +6395,31 @@
                     alert("❌ ตรวจข้อมูลอัปเดตไม่สำเร็จ\n\n" + (err.message || err) + "\n\nลองกดรีเฟรชอีกครั้ง");
                 }
             });
+        }
+
+        /**
+         * 🏰 พอร์ทัลลูกกิล (?mode=roster) — โหลดเท่าที่จำเป็น
+         *    ได้: ข้อมูลกลาง (ฮีโร่/สัตว์/แหวน/อุปกรณ์) + รายชื่อกิลด์
+         *    ไม่ได้: สมาชิกคนอื่น รหัสสมาชิก ทีม ประวัติสงคราม
+         *    ข้อมูลของตัวเองดึงทีหลังด้วย getMemberInventory (ยืนยันด้วยรหัสสมาชิก)
+         */
+        async function fetchRosterBootstrap() {
+            if (!SCRIPT_URL) throw new Error('ยังไม่ได้ตั้งค่า URL ของเซิร์ฟเวอร์');
+            const cache = loadGalleryStaticCache();
+            const res = await postJson({ action: 'getRosterBootstrap', versions: cache.versions });
+            if (!res || res.status !== 'success') {
+                throw new Error((res && res.message) || 'โหลดข้อมูลกิลด์ไม่สำเร็จ');
+            }
+            mergePublicMasterData(res.masterData, res.versions);
+            if (Array.isArray(res.guilds) && res.guilds.length) {
+                guildsDB = res.guilds.map(function (g) {
+                    return { id: String(g.id), name: g.name || '', type: g.type || 'sub', members: [] };
+                });
+                if (activeGuildIndex >= guildsDB.length) activeGuildIndex = 0;
+                guildMembersDB = guildsDB[activeGuildIndex] ? guildsDB[activeGuildIndex].members : [];
+            }
+            updateSyncStatus('online');
+            return res;
         }
 
         // มี cache ในเครื่องพร้อมเวอร์ชันแล้วหรือยัง (ถ้ามี ใช้ getUpdates แทน getAllData เต็ม)
@@ -21212,7 +21237,7 @@
         }
 
         function openPublicGallery() {
-            // 1. เรียกใช้ฟังก์ชันสร้าง Key รายวัน (YYYY-MM-DD)
+            // 1. คีย์ของวันนี้ — คนรับลิงก์เปิดได้ถึง 3 วัน
             const dailyKey = getDailyKey();
 
             // 🟢 2. เข้ารหัส Guild ของผู้ใช้ (ถ้ามี)
@@ -21225,7 +21250,7 @@
 
             // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
             navigator.clipboard.writeText(url).then(() => {
-                alert(`✅ คัดลอกลิงก์รายวันเรียบร้อย!\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
+                alert(`✅ คัดลอกลิงก์เรียบร้อย! (ใช้ได้ ${GALLERY_KEY_VALID_DAYS} วัน)\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
 
                 // 5. เปิดหน้าเว็บในแท็บใหม่
                 window.open(url, '_blank');
@@ -26866,10 +26891,29 @@
         }
     }
 
+    // 🔑 อายุลิงก์แกลเลอรี (วัน) — ลิงก์ที่สร้างวันนี้ ใช้ได้ถึงอีก 2 วันถัดไป (รวม 3 วัน)
+    const GALLERY_KEY_VALID_DAYS = 3;
+
+    /** คีย์ของวันที่ย้อนหลัง offset วัน (0 = วันนี้, 1 = เมื่อวาน) */
+    function getGalleryKeyForDayOffset(offset) {
+        const d = new Date();
+        d.setDate(d.getDate() - (parseInt(offset, 10) || 0));
+        // en-CA → YYYY-MM-DD เสมอ ไม่เพี้ยนตามเครื่อง
+        return btoa(`7k_gallery_${d.toLocaleDateString('en-CA')}`);
+    }
+
+    /** คีย์สำหรับ "สร้างลิงก์ใหม่" = คีย์ของวันนี้ */
     function getDailyKey() {
-        // ใช้ en-CA เพื่อให้ได้ format YYYY-MM-DD เสมอ ไม่เพี้ยนตามเครื่อง
-        const dateStr = new Date().toLocaleDateString('en-CA'); 
-        return btoa(`7k_gallery_${dateStr}`);
+        return getGalleryKeyForDayOffset(0);
+    }
+
+    /** ตรวจคีย์จาก URL — ผ่านถ้าตรงกับคีย์ของวันไหนก็ได้ในช่วง GALLERY_KEY_VALID_DAYS วันล่าสุด */
+    function isGalleryKeyValid(key) {
+        if (!key) return false;
+        for (let i = 0; i < GALLERY_KEY_VALID_DAYS; i++) {
+            if (key === getGalleryKeyForDayOffset(i)) return true;
+        }
+        return false;
     }
 
     // (แถม) ฟังก์ชันสร้าง Admin Key (คุณกำหนดรหัสลับตรงนี้)
@@ -29260,6 +29304,8 @@
             });
             const data = await res.json();
             if (!data || data.status !== 'success') return null;
+
+            // หาแถวที่มีอยู่ก่อน (แอดมินที่โหลด getAllData มาครบแล้ว)
             for (let g = 0; g < guildsDB.length; g++) {
                 if (String(guildsDB[g].id) !== String(data.guild_id)) continue;
                 const members = guildsDB[g].members || [];
@@ -29267,7 +29313,30 @@
                     if (String(members[m].id) === String(data.member_id)) return { g, m };
                 }
             }
-            return null;   // server รู้จักรหัส แต่หาแถวในเครื่องไม่เจอ (ข้อมูลยังไม่ sync)
+
+            // 🔒 พอร์ทัลลูกกิล: ไม่มีรายชื่อสมาชิกในเครื่อง (ตั้งใจ — จะได้ไม่เห็นของคนอื่น)
+            //    server ยืนยันรหัสแล้ว → สร้างแถว "ตัวเอง" ขึ้นมาแทน
+            //    ข้อมูลจริง (ฮีโร่/แหวน/สัตว์) ตามมาด้วย getMemberInventory
+            let gIdx = guildsDB.findIndex(function (x) { return String(x.id) === String(data.guild_id); });
+            if (gIdx === -1) {
+                guildsDB.push({
+                    id: String(data.guild_id),
+                    name: data.guild_name || String(data.guild_id),
+                    type: guildsDB.length === 0 ? 'main' : 'sub',
+                    members: []
+                });
+                gIdx = guildsDB.length - 1;
+            }
+            if (!Array.isArray(guildsDB[gIdx].members)) guildsDB[gIdx].members = [];
+            guildsDB[gIdx].members.push(normalizeMemberRecord({
+                id: String(data.member_id),
+                name: data.name || '',
+                accessCode: clean,
+                hero_list: [], pet_list: [], ring_list: [], teams: []
+            }));
+            activeGuildIndex = gIdx;
+            guildMembersDB = guildsDB[gIdx].members;
+            return { g: gIdx, m: guildsDB[gIdx].members.length - 1 };
         } catch (e) {
             console.error('verifyMemberCode:', e);
             return null;
@@ -31409,7 +31478,10 @@
 
     </script>
 
-    <!-- ===== Vue 3 layer (ไฟล์แยก) — ย้ายทีละหน้า ของเดิมยังทำงานคู่กัน ===== -->
-    <?!= include('vue-app') ?>
+    <!-- Vue 3 layer: ยังไม่ใช้ — ใช้ HTML/JS เดิมทั้งหมด
+         จะเปิดเมื่อไหร่: สร้างไฟล์ HTML ชื่อ vue-app ใน Apps Script
+         แล้วใส่กลับ scriptlet include('vue-app') ตรงนี้
+         (ถ้าเรียก include โดยที่ไม่มีไฟล์ → doGet พังทั้งหน้า)
+         โค้ดที่รออยู่ที่ renderPublicRosterHeroes() — ไม่มี window.VueApp ก็ fallback เอง -->
 </body>
 </html>
