@@ -5949,6 +5949,8 @@
             }
         };
 
+        let appInitialized = false;
+
         function initApp() {
             console.log("🚀 initApp() called, CURRENT_USER:", CURRENT_USER);
             // อัปเดตชื่อ User
@@ -5970,6 +5972,11 @@
             // ------------------------------------------
 
             // เหลือไว้แค่การสลับหน้าจอ
+            // เปิดแอปไปแล้ว — รอบหลัง (sync เบื้องหลังเสร็จ) แค่รีเฟรชหน้าที่เปิดอยู่
+            //    ห้ามเด้งกลับหน้าแรก — กำลังทำงานค้างอยู่
+            if (appInitialized) { updateCurrentViewUI(); return; }
+            appInitialized = true;
+
             const urlParams = appUrlParams();
             if (urlParams.get('mode') === 'apply') {
                 switchView('application-form');
@@ -6413,10 +6420,18 @@
         // จุดตัดสินใจเดียว: มี cache แล้ว -> โหลดเฉพาะที่เปลี่ยน / ยังไม่มี -> โหลดทั้งหมด
         async function loadAppData(showOverlay = true) {
             if (hasLocalDataCache()) {
-                await fetchCloudDataIncremental(showOverlay);
-            } else {
-                await fetchCloudData('getAllData', showOverlay);
+                // มีข้อมูลในเครื่องแล้ว → เปิดให้ใช้งานทันที ไม่ต้องรอ server
+                //    Apps Script ตอบช้า ~3 วิต่อคำขอ แม้ไม่มีอะไรเปลี่ยน — รอทุกครั้งคือเสียเวลาเปล่า
+                //    ข้อมูลใหม่มาเมื่อไหร่ processLoadedData จะวาดหน้าทับให้เอง
+                if (!isRosterPortalMode) initApp();
+                hideLoading();   // คนเรียกอาจเปิด overlay ค้างไว้ (เช่น doLogin) — สั่งปิดก่อนคืนควบคุม
+                fetchCloudDataIncremental(false)
+                    .then(function () { return ensureDataCompleteness(); })
+                    .catch(function (e) { console.warn('background sync failed:', e); });
+                return;
             }
+            // ยังไม่มี cache (เข้าครั้งแรก) → ต้องรอโหลดให้ครบก่อน
+            await fetchCloudData('getAllData', showOverlay);
             await ensureDataCompleteness();
         }
 
