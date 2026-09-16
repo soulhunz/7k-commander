@@ -4504,9 +4504,13 @@
         function handleSessionExpired(msg) {
             if (_sessionExpiredShown) return;
             _sessionExpiredShown = true;
+            // ยังไม่เคย login → ไม่ต้องเตือน/รีโหลด (กัน reload วนไม่จบ)
+            var hadSession = false;
+            try { hadSession = !!localStorage.getItem('7k_user_session'); } catch (e) {}
             try { localStorage.removeItem('7k_user_session'); } catch (e) {}
             CURRENT_USER = null;
             hideLoading();
+            if (!hadSession) return;
             alert('🔐 เซสชันหมดอายุ — กรุณาเข้าสู่ระบบใหม่' + (msg ? ('\n\n' + msg) : ''));
             location.reload();
         }
@@ -5773,8 +5777,9 @@
         }
         hydrateMainDataCache();
 
-        if (USE_CLOUD && !isRosterPortalMode) startCloudSync(true);
-        else {
+        // 🔐 ยังไม่ login = ยังไม่ดึงข้อมูล — initLogin() จะโหลดให้เองหลังยืนยันตัวตนผ่าน
+        //    (เดิมยิง getAllData ทันทีตอนโหลดหน้า คนที่ยังไม่ login เลยโดน server ปฏิเสธ → alert + reload วนไม่จบ)
+        if (!USE_CLOUD) {
             // Mock Data
             heroesDB = [{id:'h1',name:'Example Hero',img:'https://api.dicebear.com/7.x/avataaars/svg?seed=Rudy', rarity:'ตำนาน', type:'ป้องกัน', affiliation:'เจ็ดอัศวิน', skills:{n:'Normal',p:'Passive',s1:'<span class="text-orange">Fire Attack</span>',s2:'Ice Attack'}}];
             petsDB = [{id:'p1',name:'Pookie',img:'https://api.dicebear.com/7.x/bottts/svg?seed=Pookie', rarity:'ตำนาน', type:['บัพโจมตี'], skill:'Increases ATK by 20%'}];
@@ -5880,94 +5885,16 @@
             } 
 
             // -----------------------------------------------------------
-            // 🔐 CASE 2: ADMIN ACCESS (คุณเอง เข้าหน้า Login)
-            // -----------------------------------------------------------
-            else if (accessKey === ADMIN_ACCESS_KEY) {
-                console.log("🔐 Admin Path Detected");
-                isPublicView = false;
-                
-                // อนุญาตให้เห็นหน้า Login
-                if (typeof initLogin === 'function') initLogin();
-            }
-
-            // -----------------------------------------------------------
-            // ⛔ CASE 3: ACCESS DENIED (เข้า index.html เฉยๆ หรือ Key ผิด)
+            // 🔐 CASE 2: ทางเข้าปกติ — ไม่ตรงเงื่อนไขข้างบน = ไปหน้า login เสมอ
+            //    เดิมต้องมี ?access= ไม่งั้นเจอหน้า 403 — เอาออกแล้ว
+            //    คีย์นั้นฝังอยู่ในหน้าเว็บ ใครเปิด view-source ก็เห็น กันอะไรไม่ได้จริง
+            //    ด่านจริงคือ username/password ฝั่ง server + token อายุ 30 วัน
+            //    ลิงก์เก่าที่มี ?access= ยังใช้ได้ — ตกมาสาขานี้เหมือนกัน
             // -----------------------------------------------------------
             else {
-                console.warn("⛔ Access Denied");
-
-                // 🟢 1. ซ่อน UI หลัก (แทนการลบทิ้ง เพื่อเก็บ Loading ไว้)
-                const uiElements = ['login-screen', 'main-content', 'app-sidebar'];
-                uiElements.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) el.style.display = 'none';
-                });
-
-                // 🟢 2. สร้างหน้าจอแดง 403 ขึ้นมา "ทับ"
-                const forbiddenScreen = document.createElement('div');
-                forbiddenScreen.id = "forbidden-overlay";
-                // set z-index: 50 เพื่อให้ทับเนื้อหา แต่ต้องน้อยกว่า loading (ปกติ loading z-index 100+)
-                forbiddenScreen.style.cssText = `
-                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                    background-color: #0b0e14; color: #ef4444;
-                    display: flex; flex-direction: column; align-items: center; justify-content: center;
-                    font-family: sans-serif; user-select: none; z-index: 50;
-                `;
-                
-                forbiddenScreen.innerHTML = `
-                    <h1 onclick="emergencyUnlock()" style="font-size:3rem; margin-bottom:10px; cursor:pointer;" title="System Locked">
-                        403 FORBIDDEN
-                    </h1>
-                    <p style="color:#9ca3af;">Access Denied / Invalid Key</p>
-                    <div style="margin-top:20px; font-size:0.8rem; color:#4b5563;">
-                        System protected.
-                    </div>
-                `;
-                
-                document.body.appendChild(forbiddenScreen);
-
-                // 🟢 3. ฟังก์ชันกู้ภัย (Emergency Unlock)
-                let clickCount = 0;
-                
-                window.emergencyUnlock = async function() {
-                    clickCount++;
-                    if (clickCount >= 5) {
-                        const pass = prompt("🛡️ EMERGENCY ADMIN LOGIN:");
-                        if (!pass) { clickCount = 0; return; }
-
-                        // เรียก showLoading ได้แล้ว เพราะ element ยังอยู่
-                        showLoading("Verifying..."); 
-                        
-                        try {
-                            const res = await fetch(SCRIPT_URL, {
-                                method: 'POST',
-                                headers: { "Content-Type": "text/plain;charset=utf-8" }, 
-                                redirect: "follow",
-                                body: JSON.stringify({ 
-                                    action: 'verifyAdmin', 
-                                    secret: pass 
-                                })
-                            });
-                            const data = await res.json();
-                            
-                            if (data.status === 'success') {
-                                // ลบหน้าแดงออก
-                                document.getElementById('forbidden-overlay').remove();
-                                alert("✅ Access Granted!");
-                                // พาไปหน้า Login
-                                window.location.href = window.location.pathname + '?access=' + ADMIN_ACCESS_KEY;
-                            } else {
-                                alert("❌ Wrong Secret Key!");
-                            }
-                        } catch (e) {
-                            console.error(e);
-                            alert("Connection Error");
-                        } finally {
-                            hideLoading();
-                            clickCount = 0;
-                        }
-                    }
-                };
+                console.log("🔐 Login Path");
+                isPublicView = false;
+                if (typeof initLogin === 'function') initLogin();
             }
         };
 
@@ -6327,7 +6254,8 @@
 
 
 
-        function startCloudSync(isInitial = false) { fetchCloudData(isInitial); if(syncInterval) clearInterval(syncInterval); }
+        // ⚠️ เรียกหลังยืนยันตัวตนผ่านเท่านั้น — getAllData ต้อง login ก่อน
+        function startCloudSync(showOverlay = true) { fetchCloudData('getAllData', showOverlay); if(syncInterval) clearInterval(syncInterval); }
         function fetchCloudData(action = 'getAllData', showOverlay = true) {
             if (!USE_CLOUD) return Promise.resolve({});
 
