@@ -11,6 +11,10 @@
     <!-- 🔗 Apps Script เติม URL ของ Web App ให้ตอนเสิร์ฟหน้า — ไม่ต้องฝัง URL ไว้ในไฟล์ (ไม่ขึ้น git)
          ถ้าเปิดไฟล์นี้ตรงๆ ค่าจะเป็นข้อความ template ดิบ โค้ดจะเช็ครูปแบบแล้วข้ามให้เอง -->
     <script>window.__WEB_APP_URL__ = "<?= webAppUrl ?>";</script>
+
+    <!-- 🔗 Apps Script เสิร์ฟหน้านี้ใน iframe — query ที่ต่อท้าย /exec (?k= ?g= ?mode=) ไม่ติดมาด้วย
+         doGet จึงส่งมาให้เป็น base64 — เปิดไฟล์ตรงๆ ค่านี้เป็น template ดิบ appUrlParams() จะข้ามให้เอง -->
+    <script>window.__URL_QUERY_B64__ = "<?= urlQuery ?>";</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -4500,6 +4504,22 @@
             VERSION: "1.1.9" 
         };
         // --- Logic การดึง URL (ใช้ค่าจาก Config ก่อน ถ้าไม่มีค่อยไปเอาจาก localStorage) ---
+        /** 🔎 อ่าน query ของหน้า — ใช้แทน window.location.search ทุกที่
+         *  เปิดผ่าน Apps Script: หน้าเว็บอยู่ใน iframe ของ googleusercontent
+         *  window.location จึงไม่มี ?k= ?g= ?mode= ที่ต่อท้าย /exec — doGet ส่งมาให้ทาง __URL_QUERY_B64__ แทน
+         *  ค่าใน URL จริงมาก่อนเสมอ (กดสลับหน้าในแอปจะเขียน window.location ทับ) */
+        function appUrlParams() {
+            const p = new URLSearchParams(window.location.search);
+            try {
+                const raw = (typeof window !== 'undefined' && window.__URL_QUERY_B64__) ? String(window.__URL_QUERY_B64__) : '';
+                if (raw && /^[A-Za-z0-9+/=]+$/.test(raw)) {
+                    const qs = decodeURIComponent(escape(atob(raw)));
+                    new URLSearchParams(qs).forEach(function (v, k) { if (!p.has(k)) p.set(k, v); });
+                }
+            } catch (e) {}
+            return p;
+        }
+
         let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
 
         /** 🔐 token หมดอายุ / ถูกเตะออก → ล้าง session แล้วกลับไปหน้า login */
@@ -4659,7 +4679,7 @@
 
         let isPublicView = false;
         let isRosterPortalMode = (() => {
-            try { return new URLSearchParams(window.location.search).get('mode') === 'roster'; }
+            try { return appUrlParams().get('mode') === 'roster'; }
             catch (e) { return false; }
         })();
 
@@ -5546,7 +5566,7 @@
             });
 
             // A. เช็คโหมดสมัครสมาชิก (?mode=apply)
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             const mode = urlParams.get('mode');
 
             // 🌐 โหมด public AI Counter (?mode=counter) — read-only ไม่ต้อง login
@@ -5827,7 +5847,7 @@
             }
 
             // 1. อ่าน URL Parameters
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             // ⚙️ ไม่ได้เปิดผ่าน Apps Script (เช่น GitHub Pages) → URL มาจาก localStorage
             //    โชว์ปุ่มแก้ URL ไว้ เผื่อวางลิงก์ผิดตั้งแต่แรก
             if (!SYSTEM_CONFIG.WEB_APP_URL) {
@@ -5898,7 +5918,7 @@
                 document.getElementById('main-content').classList.remove('hidden');
 
                 // Logic กลับหน้าหลักเมื่อ Refresh - เก็บทั้ง k และ g
-                const urlParams = new URLSearchParams(window.location.search);
+                const urlParams = appUrlParams();
                 const encodedGuild = urlParams.get('g');
                 const cleanUrl = window.location.pathname + '?k=' + encodedKey + (encodedGuild ? '&g=' + encodedGuild : '');
 
@@ -5950,7 +5970,7 @@
             // ------------------------------------------
 
             // เหลือไว้แค่การสลับหน้าจอ
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             if (urlParams.get('mode') === 'apply') {
                 switchView('application-form');
             } else if (urlParams.get('mode') === 'roster' || isRosterPortalMode) {
@@ -24013,7 +24033,7 @@
             console.log("🔍 Full URL:", window.location.href);
             console.log("🔍 Search params:", window.location.search);
 
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
             const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
 
@@ -24097,7 +24117,7 @@
         function memberRefreshGallery(){ try { if (typeof switchGalleryTab === 'function') switchGalleryTab(currentGalleryTab); } catch(e){} }
         // ชื่อกิลจาก ?g= ในลิงก์ (base64 ของชื่อกิล)
         function mlUrlGuildName(){
-            try { const g = new URLSearchParams(window.location.search).get('g'); return g ? decodeURIComponent(atob(g)) : ''; } catch(e){ return ''; }
+            try { const g = appUrlParams().get('g'); return g ? decodeURIComponent(atob(g)) : ''; } catch(e){ return ''; }
         }
         // 🔁 กู้ session ลูกกิลจาก localStorage (login ค้างไว้)
         function restoreMemberSession(){
@@ -24276,7 +24296,7 @@
 
             // 🟢 ตรวจสอบสถานะ Admin และ Public Mode
             const isAdmin = CURRENT_USER?.role === 'admin';
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             // 🌍 Public Mode: มี key (k) หรือ guild (g) ใน URL แต่ไม่มี mode=gallery (หรือมีก็ได้)
             const isPublicMode = !!urlParams.get('k') || !!urlParams.get('g') || urlParams.get('mode') === 'gallery';
             const hasUrlGuild = !!urlGuild;
@@ -24674,7 +24694,7 @@
                 console.log("⚡ Instant Load from Cache!");
                 
                 // 🟢 ดึง Guild จาก URL สำหรับกรอง Counter Teams
-                const urlParams = new URLSearchParams(window.location.search);
+                const urlParams = appUrlParams();
                 const encodedGuild = urlParams.get('g');
                 const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
                 const urlGuildLower = urlGuild ? urlGuild.toLowerCase() : null;
@@ -24734,7 +24754,7 @@
                 loadSharedTeamView(event.state.id, true);
             } else {
                 // ถ้า Back กลับมาหน้าแรกหรือหน้า Gallery
-                const urlParams = new URLSearchParams(window.location.search);
+                const urlParams = appUrlParams();
                 if(urlParams.get('mode') === 'gallery') loadSharedGallery();
                 else location.reload();
             }
@@ -24744,7 +24764,7 @@
         async function loadSharedTeamView(id, showBackButton = false) {
     
             // 🟢 ดึง Guild จาก URL สำหรับกรอง Counter Teams
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
             const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
             const urlGuildLower = urlGuild ? urlGuild.toLowerCase() : null;
@@ -24870,7 +24890,7 @@
 
         // ฟังก์ชันช่วยอัปเดต URL (แยกออกมาใช้ร่วมกัน)
         function updateUrl(id) {
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             const currentKey = urlParams.get('k');
             const encodedGuild = urlParams.get('g'); // 🟢 ดึง g ด้วย
             let newUrl = `?teamId=${id}`;
@@ -25025,7 +25045,7 @@
                 if (!allCounterTeams || allCounterTeams.length === 0) return '';
 
                 // 🟢 กรองตาม Guild อีกครั้งเพื่อความแน่ใจ
-                const urlParams = new URLSearchParams(window.location.search);
+                const urlParams = appUrlParams();
                 const encodedGuild = urlParams.get('g');
                 const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)).toLowerCase() : null;
 
@@ -26265,7 +26285,7 @@
         // เรียกวาดหน้าจอใหม่โดยใช้ข้อมูลเดิมจาก Cache
         if (galleryCacheDB) {
             // 🟢 ดึง guild จาก URL (ถ้ามี) เพื่อส่งต่อให้ renderGalleryUI
-            const urlParams = new URLSearchParams(window.location.search);
+            const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
             const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
 
@@ -26281,7 +26301,7 @@
     // วาดหน้า Gallery ใหม่โดยดึง guild จาก URL เอง (ใช้ร่วมกันหลังกดกรอง)
     function rerenderGallery() {
         if (!galleryCacheDB) return;
-        const encodedGuild = new URLSearchParams(window.location.search).get('g');
+        const encodedGuild = appUrlParams().get('g');
         const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
         renderGalleryUI(galleryCacheDB, urlGuild);
     }
