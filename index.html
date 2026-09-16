@@ -2883,6 +2883,9 @@
             </form>
 
             <div id="login-msg" class="text-red-400 text-xs mt-4 min-h-[20px]"></div>
+            <div id="login-server-cfg" class="mt-3 hidden">
+                <button type="button" onclick="changeScriptUrl()" class="text-[10px] text-gray-500 hover:text-blue-400 underline">⚙️ ตั้งค่าเซิร์ฟเวอร์ (Web App URL)</button>
+            </div>
         </div>
         <div class="text-gray-600 text-[10px] mt-4">Authorized Access Only</div>
     </div>
@@ -4555,9 +4558,15 @@
                     }
                     return data;
                 } catch (e) {
-                    lastErr = (e && e.name === 'AbortError')
-                        ? new Error('หมดเวลารอ ' + Math.round(timeout / 1000) + ' วินาที')
-                        : e;
+                    if (e && e.name === 'AbortError') {
+                        lastErr = new Error('หมดเวลารอ ' + Math.round(timeout / 1000) + ' วินาที');
+                    } else if (e instanceof TypeError) {
+                        // fetch โยน TypeError = ต่อไม่ถึง server เลย (ลิงก์ผิด / เน็ตหลุด / โดนบล็อก)
+                        //    ลิงก์ผิด → Google ตอบ 404 ที่ไม่มี CORS header → browser บล็อก → Failed to fetch
+                        lastErr = new Error('ต่อเซิร์ฟเวอร์ไม่ได้ — ลิงก์ Web App อาจผิด กดปุ่ม ⚙️ ตั้งค่าเซิร์ฟเวอร์ ใต้ฟอร์มเพื่อแก้');
+                    } else {
+                        lastErr = e;
+                    }
                     console.warn('postJson ครั้งที่ ' + (i + 1) + '/' + tries + ' ไม่ผ่าน:', lastErr.message);
                     if (i < tries - 1) await new Promise(r => setTimeout(r, 800 * Math.pow(2, i)));
                 } finally {
@@ -4609,6 +4618,21 @@
             if (!setScriptUrl(url)) return false;
             location.reload();
             return true;
+        }
+
+        /** ⚙️ เปลี่ยน URL เซิร์ฟเวอร์ตอนไหนก็ได้
+         *  ใส่ผิดต้องแก้ได้ — ไม่ใช่ติดตายจนต้องไปล้าง localStorage เอง */
+        function changeScriptUrl() {
+            const cur = localStorage.getItem('7k_script_url') || '';
+            const url = prompt('⚙️ วางลิงก์ Web App ของ Apps Script (ลงท้าย /exec) — เว้นว่างแล้วกด OK = ล้างค่าเดิม', cur);
+            if (url === null) return;
+            const clean = String(url).trim();
+            if (!clean) {
+                localStorage.removeItem('7k_script_url');
+                location.reload();
+                return;
+            }
+            if (setScriptUrl(clean)) location.reload();
         }
 
         /**
@@ -5804,6 +5828,13 @@
 
             // 1. อ่าน URL Parameters
             const urlParams = new URLSearchParams(window.location.search);
+            // ⚙️ ไม่ได้เปิดผ่าน Apps Script (เช่น GitHub Pages) → URL มาจาก localStorage
+            //    โชว์ปุ่มแก้ URL ไว้ เผื่อวางลิงก์ผิดตั้งแต่แรก
+            if (!SYSTEM_CONFIG.WEB_APP_URL) {
+                const cfgBtn = document.getElementById('login-server-cfg');
+                if (cfgBtn) cfgBtn.classList.remove('hidden');
+            }
+
             const encodedKey = urlParams.get('k');       // สำหรับคนทั่วไป
             const accessKey = urlParams.get('access');   // สำหรับ Admin (เข้าหน้า Login)
             const sharedId = urlParams.get('teamId');    // สำหรับแชร์ทีม
