@@ -4666,6 +4666,27 @@
         }
         let USE_CLOUD = !!SCRIPT_URL;
 
+        /** 🌍 หน้าแชร์สาธารณะอยู่บน GitHub Pages — เสิร์ฟ 0.4 วิ เทียบกับ /exec 2.8 วิ
+         *  แต่หน้าที่ไม่ได้มาจาก Apps Script ไม่รู้ URL เซิร์ฟเวอร์ ลิงก์เลยพามาให้ใน s= */
+        const PUBLIC_PAGES_URL = 'https:\/\/soulhunz.github.io/7k-commander/';
+
+        /** รับ s= จากลิงก์แชร์ — เข้มไว้ก่อน:
+         *    • ต้องอยู่ในโหมดแกลเลอรี (มี k=) เท่านั้น
+         *    • ต้องเป็นลิงก์ script.google.com/macros/s/.../exec เท่านั้น
+         *    • เครื่องนี้ต้องยังไม่เคยตั้งค่าเซิร์ฟเวอร์ (ของที่ตั้งเองชนะเสมอ)
+         *  เก็บในหน่วยความจำอย่างเดียว ไม่เขียน localStorage — ลิงก์แปลกปลอมจะไม่ค้างในเครื่อง */
+        (function adoptServerUrlFromShareLink() {
+            if (SCRIPT_URL) return;
+            try {
+                const p = appUrlParams();
+                if (!p.get('k') || !p.get('s')) return;
+                const url = decodeURIComponent(escape(atob(p.get('s'))));
+                if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) return;
+                SCRIPT_URL = url;
+                USE_CLOUD = true;
+            } catch (e) {}
+        })();
+
         let surveyConfig = []; // เก็บโครงสร้างคำถาม [{id, question, type}]
         let applicationsDB = []; // เก็บใบสมัครที่ส่งมา
 
@@ -5920,7 +5941,11 @@
                 // Logic กลับหน้าหลักเมื่อ Refresh - เก็บทั้ง k และ g
                 const urlParams = appUrlParams();
                 const encodedGuild = urlParams.get('g');
-                const cleanUrl = window.location.pathname + '?k=' + encodedKey + (encodedGuild ? '&g=' + encodedGuild : '');
+                // เก็บ s= ไว้ด้วย — บน GitHub Pages นี่คือที่เดียวที่บอกว่าเซิร์ฟเวอร์อยู่ไหน
+                const srvParam = urlParams.get('s');
+                const cleanUrl = window.location.pathname + '?k=' + encodedKey
+                    + (encodedGuild ? '&g=' + encodedGuild : '')
+                    + (srvParam ? '&s=' + encodeURIComponent(srvParam) : '');
 
                 try {
                     window.history.replaceState({}, '', cleanUrl);
@@ -21270,8 +21295,12 @@
             const encodedGuild = btoa(encodeURIComponent(userGuild));
 
             // 3. สร้าง URL มีทั้ง Key และ Guild
-            const baseUrl = publicShareBaseUrl();
-            const url = `${baseUrl}?k=${dailyKey}&g=${encodedGuild}`;
+            //    ชี้ GitHub Pages ถ้ารู้ URL เซิร์ฟเวอร์ (หน้าเสิร์ฟเร็วกว่า Apps Script ~7 เท่า)
+            //    แล้วแนบ URL นั้นมาใน s= เพราะหน้าบน Pages ไม่มีทางรู้เอง
+            const useP = !!(PUBLIC_PAGES_URL && SCRIPT_URL);
+            const baseUrl = useP ? PUBLIC_PAGES_URL : publicShareBaseUrl();
+            const srv = useP ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
+            const url = `${baseUrl}?k=${dailyKey}&g=${encodedGuild}${srv}`;
 
             // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
             navigator.clipboard.writeText(url).then(() => {
@@ -23783,7 +23812,7 @@
         const HB_CUR_VER = 1;
         const HB_TIERS = ['green','blue','gold'];
         function hbChecksum(str){ let h = 5381; for (let i=0;i<str.length;i++){ h = ((h<<5)+h + str.charCodeAt(i)) >>> 0; } return h.toString(36); }
-        function hbB64urlEncode(bin){ return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+        function hbB64urlEncode(bin){ return btoa(bin).replace(/\+/g,'-').replace(/[/]/g,'_').replace(/=+$/,''); }
         function hbB64urlDecode(b64){ b64 = String(b64).replace(/-/g,'+').replace(/_/g,'/'); while (b64.length % 4) b64 += '='; return atob(b64); }
         // state เต็ม → object ย่อ (คีย์สั้น + ตัด default ทิ้ง)
         function hbToCompact(obj){
