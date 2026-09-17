@@ -11106,8 +11106,6 @@
             });
         }
 
-
-
         // 🟢 บันทึก item เดียวขึ้น Cloud (upsert ทีละแถว) — เร็วกว่าการส่งทั้งหมดมาก
         async function saveOneItemToCloud(category, item) {
             if (!USE_CLOUD) return false;
@@ -24058,6 +24056,26 @@
         function saveGalleryStaticCache(cache) {
             try { localStorage.setItem(GALLERY_CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
         }
+        /** ทีมที่แชร์ที่เก็บไว้ในเครื่อง — ใช้วาดหน้าก่อน แล้วค่อยเช็คของใหม่เบื้องหลัง */
+        function loadCachedSharedTeams() {
+            const c = loadGalleryStaticCache();
+            return Array.isArray(c.teams) ? c.teams : null;
+        }
+        /** เวอร์ชันที่ส่งไปให้ server — อ้างเวอร์ชันทีมได้ก็ต่อเมื่อมีทีมเก็บไว้จริง
+         *  ไม่งั้น server จะตอบ teams: null แล้วเราไม่มีอะไรวาด (หน้าโล่ง) */
+        function galleryVersionsForRequest() {
+            const c = loadGalleryStaticCache();
+            const v = Object.assign({}, c.versions);
+            if (!Array.isArray(c.teams) || !c.teams.length) delete v.teams_3v3;
+            return v;
+        }
+        function saveCachedSharedTeams(teams, serverVersions) {
+            if (!Array.isArray(teams)) return;
+            const c = loadGalleryStaticCache();
+            c.teams = teams;
+            if (serverVersions && serverVersions.teams_3v3 !== undefined) c.versions.teams_3v3 = serverVersions.teams_3v3;
+            saveGalleryStaticCache(c);
+        }
 
         // 1. โหลดหน้ารายการทีม + Master Data (All in One)
         async function loadSharedGallery(forceRefresh = false) {
@@ -24093,6 +24111,21 @@
                 return; // จบฟังก์ชัน ไม่ต้องเรียก Server
             }
 
+            // 📦 เปิดหน้าใหม่/รีเฟรช: หน่วยความจำว่าง แต่ในเครื่องยังมีของเก่าอยู่
+            //    Apps Script ตอบ ~5 วิต่อคำขอ — วาดของเก่าให้ดูก่อน แล้วค่อยเช็คของใหม่เบื้องหลัง
+            if (!forceRefresh) {
+                const cachedTeams = loadCachedSharedTeams();
+                if (cachedTeams && cachedTeams.length) {
+                    mergePublicMasterData(null, null);
+                    if (heroesDB.length) {
+                        galleryCacheDB = cachedTeams;
+                        renderGalleryUI(galleryCacheDB, urlGuild);
+                        syncSharedGalleryInBackground(urlGuild);
+                        return;
+                    }
+                }
+            }
+
             // ถ้าไม่มี Cache หรือกด Refresh ค่อยโหลดใหม่
             const overlay = document.getElementById('loading-overlay');
             const text = document.getElementById('loading-text');
@@ -24106,13 +24139,12 @@
                 // 🟢 ดึง guild_name และ role ของ User (หรือใช้จาก URL ถ้าเป็น Public)
                 const userGuild = urlGuild || CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
                 const isAdmin = CURRENT_USER?.role === 'admin';
-                const galleryCache = loadGalleryStaticCache();
 
                 const res = await postJson({
                     action: 'getAllSharedTeams',
                     userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
                     isAdmin: isAdmin,     // 🟢 ส่งสถานะ admin
-                    versions: galleryCache.versions // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
+                    versions: galleryVersionsForRequest() // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
                 }, { timeout: 60000 });
 
                 // 🟢 DEBUG: ดูข้อมูลที่ได้จาก Server
@@ -24120,13 +24152,16 @@
                 console.log('🔍 First team from server:', res.teams?.[0]);
 
                 if (res.status === 'success') {
+                    // ⚡ teams = null คือเวอร์ชันเดิม ไม่มีอะไรเปลี่ยน → ใช้ของที่เก็บไว้
+                    if (res.teams === null || res.teams === undefined) res.teams = loadCachedSharedTeams() || [];
                     // ⚡ อัปเดต cache เฉพาะ category ที่ server ส่งมา (เปลี่ยนแล้ว) แล้ว hydrate DB จาก cache เสมอ
                     // (กัน tab/session ใหม่ที่ DB ในหน่วยความจำว่าง แต่ category นั้นไม่เปลี่ยนเลยไม่ถูกส่งมาซ้ำ)
                     mergePublicMasterData(res.masterData, res.versions);
 
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
                     galleryCacheDB = res.teams;
-                    
+                    saveCachedSharedTeams(res.teams, res.versions);
+
                     renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
                 } else {
                     document.getElementById('main-content').innerHTML = `<div class="text-white text-center mt-20">❌ Error: ${res.message}</div>`;
@@ -24140,6 +24175,32 @@
                     overlay.classList.remove('active');
                     setTimeout(() => overlay.style.display = 'none', 300);
                 }
+            }
+        }
+
+        /** เช็คของใหม่เบื้องหลังหลังวาดหน้าจาก cache แล้ว — ไม่มี overlay ไม่ขัดจังหวะคนดู
+         *  ได้ของใหม่ค่อยวาดทับ · พลาดก็เงียบ (ของเก่ายังใช้ได้) */
+        async function syncSharedGalleryInBackground(urlGuild) {
+            try {
+                const userGuild = urlGuild || CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+                const res = await postJson({
+                    action: 'getAllSharedTeams',
+                    userGuild: userGuild,
+                    isAdmin: CURRENT_USER?.role === 'admin',
+                    versions: galleryVersionsForRequest()
+                }, { timeout: 60000 });
+                if (!res || res.status !== 'success') return;
+
+                mergePublicMasterData(res.masterData, res.versions);
+
+                const teamsChanged = Array.isArray(res.teams);
+                if (teamsChanged) galleryCacheDB = res.teams;
+                saveCachedSharedTeams(galleryCacheDB, res.versions);
+
+                const masterChanged = res.masterData && Object.keys(res.masterData).length > 0;
+                if (teamsChanged || masterChanged) renderGalleryUI(galleryCacheDB, urlGuild);
+            } catch (e) {
+                console.warn('background gallery sync failed:', e);
             }
         }
 
