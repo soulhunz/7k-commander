@@ -86,7 +86,7 @@ function configStatus() {
   }).join(', ');
 }
 
-var SERVER_VERSION = "7.0.7"; // Updated Version
+var SERVER_VERSION = "7.0.8"; // Updated Version
 
 // =========================================================
 // 🔐 SESSION TOKEN — ตั๋วเซ็นลายเซ็น HMAC-SHA256 (ไม่เก็บ state ฝั่ง server)

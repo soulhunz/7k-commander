@@ -11216,10 +11216,14 @@
         }
 
         // 🟢 บันทึก item เดียวขึ้น Cloud (upsert ทีละแถว) — เร็วกว่าการส่งทั้งหมดมาก
+        /** ❌ เหตุผลที่ server ปฏิเสธครั้งล่าสุด — เอาไปโชว์ในข้อความเตือน ไม่ให้เดาเอง */
+        let lastCloudError = '';
+
         async function saveOneItemToCloud(category, item) {
-            if (!USE_CLOUD) return false;
+            if (!USE_CLOUD) { lastCloudError = 'โหมดออฟไลน์ (ยังไม่ได้ตั้งค่า URL ของเซิร์ฟเวอร์)'; return false; }
             const clean = Object.assign({}, item);
             delete clean._isNew; // ไม่เก็บ flag ฝั่ง client ลง sheet
+            lastCloudError = '';
             try {
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
@@ -11228,9 +11232,19 @@
                 });
                 const result = await res.json().catch(function(){ return { status: 'unknown' }; });
                 const ok = result.status === 'success';
+                if (!ok) {
+                    // server บอกเหตุผลมาแล้ว (ไม่มีสิทธิ์ / ยังไม่ได้ตั้งค่า / ชีตล็อก) — เก็บไว้โชว์
+                    lastCloudError = result.message || result.code || ('ตอบกลับไม่สำเร็จ (' + (result.status || '?') + ')');
+                    console.error('saveOneItem failed:', result);
+                }
                 updateSyncStatus(ok ? 'online' : 'offline');
                 return ok;
-            } catch (e) { console.error('saveOneItem error:', e); updateSyncStatus('offline'); return false; }
+            } catch (e) {
+                console.error('saveOneItem error:', e);
+                lastCloudError = 'ต่อเซิร์ฟเวอร์ไม่ได้: ' + (e && e.message ? e.message : e);
+                updateSyncStatus('offline');
+                return false;
+            }
         }
 
         // 🛠️ ซ่อมข้อมูลโบนัสเซตทั้งหมด: วนเติม statKey/kind/valueType ให้ทุกออฟ แล้วบันทึกขึ้น server รวดเดียว
@@ -11568,7 +11582,10 @@
             }
             hideLoading(); // Stop
 
-            alert(ok ? 'บันทึกเรียบร้อย' : '❌ บันทึกไม่สำเร็จ กรุณาลองใหม่');
+            // บอกเหตุผลจริงจาก server ด้วย — ส่วนใหญ่คือยังไม่ได้ล็อกอินแอดมิน / token หมดอายุ
+            const _why = lastCloudError ? ('\n\n' + lastCloudError) : ' กรุณาลองใหม่';
+            const _hint = '\n\n(ถ้าขึ้นว่าไม่มีสิทธิ์ / ต้องเข้าสู่ระบบ — ออกจากระบบแล้วล็อกอินแอดมินใหม่)';
+            alert(ok ? 'บันทึกเรียบร้อย' : '❌ บันทึกไม่สำเร็จ' + _why + _hint);
             renderManagerUI();
         }
         async function deleteItem() {
