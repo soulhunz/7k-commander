@@ -86,7 +86,7 @@ function configStatus() {
   }).join(', ');
 }
 
-var SERVER_VERSION = "7.0.8"; // Updated Version
+var SERVER_VERSION = "7.0.9"; // Updated Version
 
 // =========================================================
 // 🔐 SESSION TOKEN — ตั๋วเซ็นลายเซ็น HMAC-SHA256 (ไม่เก็บ state ฝั่ง server)
@@ -1211,6 +1211,10 @@ function doPost(e) {
 
        return out({ status: 'success', message: 'Saved successfully' + (isServerMerge ? ' (Server Merge)' : '') });
     }
+
+    // 🚧 ไม่ตรงกับ action ไหนเลย — ต้องตอบ JSON กลับไปเสมอ
+    //    เดิมหลุดท้ายฟังก์ชันแล้วคืน undefined → client ได้ body ว่าง แปลง JSON ไม่ได้ เลยขึ้นแค่ 'unknown'
+    return out({ status: 'error', code: 'unknown_action', message: 'ไม่รู้จักคำสั่ง: ' + action + ' (โค้ดที่ deploy อยู่อาจเก่ากว่าแอป)' });
 
   } catch (err) { 
     return out({ status: 'error', message: err.toString() }); 

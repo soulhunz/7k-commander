@@ -11230,9 +11230,22 @@
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(withAuth({ action: 'saveOneItem', category: category, item: clean }))
                 });
-                const result = await res.json().catch(function(){ return { status: 'unknown' }; });
+                // อ่านเป็นข้อความก่อน — ถ้า server ตอบไม่ใช่ JSON (หน้า error ของ Google / body ว่าง)
+                //    จะได้เอาของจริงมาโชว์ ไม่ใช่บอกแค่ 'unknown' ให้เดากันเอง
+                const raw = await res.text();
+                let result;
+                try {
+                    result = JSON.parse(raw);
+                } catch (parseErr) {
+                    result = { status: 'unknown' };
+                    const peek = String(raw || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+                    lastCloudError = 'server ตอบกลับไม่ใช่ JSON (HTTP ' + res.status + ')'
+                        + (peek ? (' — ' + peek)
+                                : ' — body ว่างเปล่า: เวอร์ชันที่ deploy อยู่ไม่รู้จักคำสั่ง saveOneItem (doPost หลุดท้ายฟังก์ชัน) → ต้อง Deploy เวอร์ชันใหม่');
+                    console.error('saveOneItem: non-JSON response', res.status, raw);
+                }
                 const ok = result.status === 'success';
-                if (!ok) {
+                if (!ok && !lastCloudError) {
                     // server บอกเหตุผลมาแล้ว (ไม่มีสิทธิ์ / ยังไม่ได้ตั้งค่า / ชีตล็อก) — เก็บไว้โชว์
                     lastCloudError = result.message || result.code || ('ตอบกลับไม่สำเร็จ (' + (result.status || '?') + ')');
                     console.error('saveOneItem failed:', result);
