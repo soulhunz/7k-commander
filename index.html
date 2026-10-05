@@ -15,6 +15,25 @@
     <!-- 🔗 Apps Script เสิร์ฟหน้านี้ใน iframe — query ที่ต่อท้าย /exec (?k= ?g= ?mode=) ไม่ติดมาด้วย
          doGet จึงส่งมาให้เป็น base64 — เปิดไฟล์ตรงๆ ค่านี้เป็น template ดิบ appUrlParams() จะข้ามให้เอง -->
     <script>window.__URL_QUERY_B64__ = "<?= urlQuery ?>";</script>
+    <script>
+        /* 🧰 เบราว์เซอร์ที่ปิด storage (บล็อกคุกกี้ทั้งหมด / WebView ในบางแอปที่ปิด DOM storage)
+           แตะ localStorage แล้ว throw หรือได้ null → สคริปต์หลักพังทั้งไฟล์ เปิดลิงก์แชร์ไม่ได้
+           → แทนด้วย storage ในหน่วยความจำ (ใช้งานได้ปกติ แค่ปิดแท็บแล้วไม่จำ)
+           เช็คแค่ "อ่านได้" — storage เต็ม (เขียนไม่ได้) ยังใช้ของจริง ไม่งั้นข้อมูลเดิมในเครื่องจะหาย */
+        (function () {
+            try { if (window.localStorage && typeof window.localStorage.getItem('__probe') !== 'undefined') return; } catch (e) {}
+            var m = {};
+            var mem = {
+                getItem: function (k) { return Object.prototype.hasOwnProperty.call(m, k) ? m[k] : null; },
+                setItem: function (k, v) { m[k] = String(v); },
+                removeItem: function (k) { delete m[k]; },
+                clear: function () { m = {}; },
+                key: function (i) { return Object.keys(m)[i] || null; },
+                get length() { return Object.keys(m).length; }
+            };
+            try { Object.defineProperty(window, 'localStorage', { configurable: true, get: function () { return mem; } }); } catch (e) {}
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
@@ -4520,7 +4539,34 @@
             return p;
         }
 
-        let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || '';
+        /** 🔎 ถอดชื่อกิลด์จาก g= (base64 ของ encodeURIComponent(ชื่อ)) — คืน null ถ้าอ่านไม่ได้
+         *  • ลิงก์รุ่นเก่าไม่ได้ encode → '+' ใน base64 กลายเป็นช่องว่าง → แปลงกลับก่อน
+         *  • ลิงก์โดนตัด/เพี้ยน → ไม่ throw (เดิม throw แล้วหน้าค้างโหลดตลอดไป) */
+        /** 🔗 พารามิเตอร์ลิงก์แชร์ที่ต้องพกไปทุกหน้า (k= คีย์ · g= กิลด์ · s= URL server) → '&k=..&g=..&s=..' */
+        function galleryShareQuery() {
+            const p = appUrlParams();
+            let q = '';
+            ['k', 'g', 's'].forEach(function (n) {
+                let v = p.get(n);
+                if (!v) return;
+                if (n === 'g') v = v.replace(/ /g, '+'); // ลิงก์เก่าไม่ encode → '+' กลายเป็นช่องว่าง
+                q += '&' + n + '=' + encodeURIComponent(v);
+            });
+            return q;
+        }
+        function decodeGuildParam(raw) {
+            if (!raw) return null;
+            try { return decodeURIComponent(atob(String(raw).replace(/ /g, '+'))) || null; }
+            catch (e) { return null; }
+        }
+
+        /** 🌐 URL server ตัวจริง — ฝังไว้ให้หน้าบน GitHub Pages รู้เองเสมอ ไม่ต้องพึ่ง s= ในลิงก์ / ค่าในเครื่อง
+         *  (ไม่ใช่ความลับ — อยู่ในทุกลิงก์แชร์อยู่แล้ว · ด่านจริงคือ login + token ฝั่ง server)
+         *  ⚠️ อัปเดตโค้ด Apps Script ให้ "แก้ deployment เดิม" (Manage deployments → ✏️ → New version)
+         *     ห้ามกด New deployment — URL จะเปลี่ยน ต้องมาแก้ค่านี้ + ลิงก์เก่าที่ชี้ /exec เดิมจะพัง */
+        const DEFAULT_WEB_APP_URL = 'https:\/\/script.google.com/macros/s/AKfycbyAXTDaexR8f3sVqYHkS2v6i_sclyyPaL98SodH8dy_Khj9uVFp0N4mtm2_9-umPeGNvA/exec';
+
+        let SCRIPT_URL = SYSTEM_CONFIG.WEB_APP_URL || localStorage.getItem('7k_script_url') || DEFAULT_WEB_APP_URL;
 
         /** 🔐 token หมดอายุ / ถูกเตะออก → ล้าง session แล้วกลับไปหน้า login */
         let _sessionExpiredShown = false;
@@ -4661,7 +4707,8 @@
          *    ใช้แบบ: body: JSON.stringify(withAuth({ action: 'purge3v3Team', id: x }))
          */
         function withAuth(body) {
-            const t = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) ? CURRENT_USER.token : '';
+            if (typeof SHARE_LINK_SERVER !== 'undefined' && SHARE_LINK_SERVER) return body || {}; // server มาจากลิงก์แชร์ → ไม่ส่ง token
+            const t =(typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) ? CURRENT_USER.token : '';
             return t ? Object.assign({}, body || {}, { _token: t }) : (body || {});
         }
         let USE_CLOUD = !!SCRIPT_URL;
@@ -4670,18 +4717,24 @@
          *  แต่หน้าที่ไม่ได้มาจาก Apps Script ไม่รู้ URL เซิร์ฟเวอร์ ลิงก์เลยพามาให้ใน s= */
         const PUBLIC_PAGES_URL = 'https:\/\/soulhunz.github.io/7k-commander/';
 
-        /** รับ s= จากลิงก์แชร์ — เข้มไว้ก่อน:
-         *    • ต้องอยู่ในโหมดแกลเลอรี (มี k=) เท่านั้น
-         *    • ต้องเป็นลิงก์ script.google.com/macros/s/.../exec เท่านั้น
-         *    • เครื่องนี้ต้องยังไม่เคยตั้งค่าเซิร์ฟเวอร์ (ของที่ตั้งเองชนะเสมอ)
-         *  เก็บในหน่วยความจำอย่างเดียว ไม่เขียน localStorage — ลิงก์แปลกปลอมจะไม่ค้างในเครื่อง */
+        /** 🔗 เลือก server ให้ลิงก์สาธารณะ (แกลเลอรี k= / ฟอร์มสมัคร mode=apply)
+         *    • มี DEFAULT_WEB_APP_URL → ใช้ตัวนี้เสมอ ไม่สน s= / ค่าในเครื่อง
+         *      (ลิงก์เก่าไม่มี s= · s= ชี้ deploy เก่า · เครื่องจำ URL เก่า — เข้าได้หมด)
+         *    • ไม่มี → รับ s= จากลิงก์ (ต้องเป็น script.google.com/macros/s/.../exec)
+         *      ถ้าทับ URL ที่เครื่องตั้งไว้ → "ไม่ส่ง token" ไปด้วย (กันลิงก์แปลกปลอมขโมย session)
+         *  เก็บในหน่วยความจำอย่างเดียว ไม่เขียน localStorage */
+        var SHARE_LINK_SERVER = false; // var (ไม่ใช่ let) — withAuth ประกาศไว้ก่อนบรรทัดนี้
         (function adoptServerUrlFromShareLink() {
-            if (SCRIPT_URL) return;
+            if (SYSTEM_CONFIG.WEB_APP_URL) return; // เปิดผ่าน Apps Script = รู้ URL ตัวเองแน่นอนแล้ว
             try {
                 const p = appUrlParams();
-                if (!p.get('k') || !p.get('s')) return;
+                if (!(p.get('k') || p.get('mode') === 'apply')) return;
+                if (DEFAULT_WEB_APP_URL) { SCRIPT_URL = DEFAULT_WEB_APP_URL; USE_CLOUD = true; return; }
+                if (!p.get('s')) return;
                 const url = decodeURIComponent(escape(atob(p.get('s'))));
                 if (!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) return;
+                if (url === SCRIPT_URL) return;
+                if (SCRIPT_URL) SHARE_LINK_SERVER = true; // ทับ URL ที่เครื่องตั้งไว้ → ห้ามแนบ token
                 SCRIPT_URL = url;
                 USE_CLOUD = true;
             } catch (e) {}
@@ -5220,7 +5273,8 @@
         // เพิ่มหน้าใหม่: ใส่ 'pet-manager': '<folderId>' ได้เลย ทั้งลิงก์คลังรูปและตัวอัปโหลดจะทำงานเอง
         // 🔐 เก็บแค่ "ชื่อกลุ่มโฟลเดอร์" — ID จริงอยู่ฝั่ง server (Script Properties)
         const MANAGER_DRIVE_FOLDER = {
-            'ring-manager': 'ring'   // 💍 คลังรูปแหวน
+            'ring-manager': 'ring',  // 💍 คลังรูปแหวน
+            'pet-manager': 'pet'     // 🐾 คลังรูปสัตว์เลี้ยง
         };
 
         // --- สถาปะนะสถานะเริ่มต้น ---
@@ -5940,6 +5994,17 @@
         window.onload = async function() {
             console.log("🚀 System Starting...");
 
+            // 🔗 ลิงก์แชร์ (k= / mode=apply) แต่ไม่รู้ URL server = ลิงก์ไม่ครบ (โดนตัดท้าย / ลิงก์รุ่นเก่าไม่มี s=)
+            //    คนทั่วไปไม่มีทางรู้ URL server — อย่าถาม ให้บอกว่าต้องขอลิงก์ใหม่
+            if (!SCRIPT_URL) {
+                const _p = appUrlParams();
+                if (_p.get('k') || _p.get('mode') === 'apply') {
+                    document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#e5e7eb;background:#0d1117;min-height:100vh">'
+                        + '<h2>🔗 ลิงก์ไม่ครบ</h2>'
+                        + '<p style="color:#9ca3af">ลิงก์นี้ไม่มีข้อมูลเซิร์ฟเวอร์ (อาจก๊อปมาไม่ครบ หรือเป็นลิงก์รุ่นเก่า)<br>ขอลิงก์ใหม่จากคนที่ส่งให้ แล้วก๊อปให้ครบทั้งบรรทัด</p></div>';
+                    return;
+                }
+            }
             // ⚙️ ยังไม่เคยตั้ง URL ของ Web App → ถามก่อน (เก็บในเครื่องนี้เท่านั้น)
             if (!SCRIPT_URL && !ensureScriptUrl()) {
                 document.body.innerHTML = '<div style="padding:40px;font-family:sans-serif;color:#e5e7eb;background:#0d1117;min-height:100vh">'
@@ -6020,24 +6085,22 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-content').classList.remove('hidden');
 
-                // Logic กลับหน้าหลักเมื่อ Refresh - เก็บทั้ง k และ g
-                const urlParams = appUrlParams();
-                const encodedGuild = urlParams.get('g');
-                // เก็บ s= ไว้ด้วย — บน GitHub Pages นี่คือที่เดียวที่บอกว่าเซิร์ฟเวอร์อยู่ไหน
-                const srvParam = urlParams.get('s');
-                const cleanUrl = window.location.pathname + '?k=' + encodedKey
-                    + (encodedGuild ? '&g=' + encodedGuild : '')
-                    + (srvParam ? '&s=' + encodeURIComponent(srvParam) : '');
+                // Logic กลับหน้าหลักเมื่อ Refresh - เก็บ k, g และ s= (บน GitHub Pages s= คือที่เดียวที่บอกว่าเซิร์ฟเวอร์อยู่ไหน)
+                const cleanUrl = window.location.pathname + '?' + galleryShareQuery().slice(1);
+
+                try { window.history.replaceState({}, '', cleanUrl); }
+                catch (e) { console.warn("History API ถูกบล็อกในโหมด file:\/\/\/"); }
 
                 try {
-                    window.history.replaceState({}, '', cleanUrl);
-
                     console.log("📂 Loading Gallery...");
                     showLoading("Loading Community...");
                     await loadSharedGallery();
-                    hideLoading();
                 } catch (e) {
-                    console.warn("History API ถูกบล็อกในโหมด file:\/\/\/");
+                    // เดิม error ตรงนี้ถูกกลืนเป็น "History API" → หน้าค้างโหลดตลอดไป
+                    console.error('loadSharedGallery failed:', e);
+                    alert('❌ เปิดแกลเลอรีไม่สำเร็จ\n\n' + (e && e.message ? e.message : e) + '\n\nลองรีเฟรช หรือขอลิงก์ใหม่');
+                } finally {
+                    hideLoading();
                 }
                 
             } 
@@ -6053,6 +6116,10 @@
                 console.log("🔐 Login Path");
                 isPublicView = false;
                 if (typeof initLogin === 'function') initLogin();
+                // มี k= แต่ไม่ผ่าน = ลิงก์แกลเลอรีหมดอายุ — บอกตรงๆ ไม่ให้งงว่าทำไมเจอหน้า login
+                if (encodedKey) {
+                    setTimeout(() => alert('🔗 ลิงก์แกลเลอรีนี้ไม่ถูกต้อง (อาจก๊อปมาไม่ครบ)\n\nขอลิงก์ใหม่จากคนที่ส่งให้'), 300);
+                }
             }
         };
 
@@ -10659,8 +10726,7 @@
                 </div>
                 ${chips}
                 ${(function () {
-                    if (!MANAGER_DRIVE_FOLDER[currentView]) return '';
-                    const n = dbAll.filter(x => x && typeof x.img === 'string' && x.img.indexOf('data:image') === 0).length;
+                    const n = dbAll.filter(x => managerBase64Count(currentView, x) > 0).length;
                     if (!n) return '';
                     return `<button onclick="migrateManagerImagesToDrive()" title="รูปที่ยังฝังเป็น base64 อยู่ในชีต — กดเพื่อย้ายขึ้น Google Drive แล้วเก็บแค่ลิงก์"
                         class="w-full mt-2 bg-amber-700/40 hover:bg-amber-600/60 text-amber-100 px-3 py-2 rounded-xl text-[11px] font-bold border border-amber-600/60 transition text-left">
@@ -11292,7 +11358,8 @@
 
         // 🟢 ลบ item เดียวออกจาก Cloud (ลบทีละแถว)
         async function deleteOneItemFromCloud(category, id) {
-            if (!USE_CLOUD) return false;
+            if (!USE_CLOUD) { lastCloudError = 'โหมดออฟไลน์ (ยังไม่ได้ตั้งค่า URL ของเซิร์ฟเวอร์)'; return false; }
+            lastCloudError = '';
             try {
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
@@ -11301,9 +11368,15 @@
                 });
                 const result = await res.json().catch(function(){ return { status: 'unknown' }; });
                 const ok = result.status === 'success';
+                if (!ok) lastCloudError = result.message || result.code || ('ตอบกลับไม่สำเร็จ (' + (result.status || '?') + ')');
                 updateSyncStatus(ok ? 'online' : 'offline');
                 return ok;
-            } catch (e) { console.error('deleteOneItem error:', e); updateSyncStatus('offline'); return false; }
+            } catch (e) {
+                console.error('deleteOneItem error:', e);
+                lastCloudError = 'ต่อเซิร์ฟเวอร์ไม่ได้: ' + (e && e.message ? e.message : e);
+                updateSyncStatus('offline');
+                return false;
+            }
         }
 
         /**
@@ -11311,16 +11384,30 @@
          * ใช้ได้เฉพาะหน้าที่ตั้งโฟลเดอร์ไว้ใน MANAGER_DRIVE_FOLDER
          * ทำทีละรายการ: อัปขึ้น Drive → บันทึกแถวนั้น (ล้มกลางทางของที่ผ่านแล้วไม่หาย)
          */
+        /** จำนวนรูปที่ยังฝังเป็น base64 ในรายการนี้ — ฮีโร่ดูทุกช่องรูป (ปกติ/ปลุกพลัง/เครื่องประดับ/ไอคอนสกิล)
+         *  หน้าอื่นที่ตั้งโฟลเดอร์ไว้ดูแค่ img · หน้าที่ไม่รองรับคืน 0 */
+        function managerBase64Count(view, x) {
+            if (!x) return 0;
+            const isB64 = v => typeof v === 'string' && v.indexOf('data:image') === 0;
+            if (view === 'hero-manager') {
+                let n = ['img', 'img2', 'accImg'].filter(k => isB64(x[k])).length;
+                if (x.skillData) ['n', 'p', 's1', 's2', 'aw'].forEach(k => { if (x.skillData[k] && isB64(x.skillData[k].img)) n++; });
+                return n;
+            }
+            return MANAGER_DRIVE_FOLDER[view] && isB64(x.img) ? 1 : 0;
+        }
+
         async function migrateManagerImagesToDrive() {
+            const isHero = currentView === 'hero-manager';
             const folderId = MANAGER_DRIVE_FOLDER[currentView];
-            if (!folderId) { alert('หน้านี้ยังไม่ได้ตั้งโฟลเดอร์ Drive'); return; }
+            if (!folderId && !isHero) { alert('หน้านี้ยังไม่ได้ตั้งโฟลเดอร์ Drive'); return; }
             if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) { alert('ยังไม่ได้เชื่อมกับ server — เปิดผ่านเว็บแอปก่อน'); return; }
 
             const cat = VIEW_SAVE_SCOPE[currentView];
             if (!cat) { alert('หน้านี้ยังไม่รองรับการบันทึกทีละรายการ'); return; }
 
             const db = getManagerDbForView(currentView) || [];
-            const targets = db.filter(x => x && typeof x.img === 'string' && x.img.indexOf('data:image') === 0);
+            const targets = db.filter(x => managerBase64Count(currentView, x) > 0);
             if (!targets.length) { alert('ไม่มีรูปที่ต้องย้าย — ทุกรายการเป็นลิงก์อยู่แล้ว'); return; }
 
             if (!confirm('ย้ายรูป ' + targets.length + ' รายการขึ้น Google Drive?\n\n'
@@ -11335,16 +11422,32 @@
             for (let i = 0; i < targets.length; i++) {
                 const it = targets[i];
                 showLoading('📤 กำลังย้ายรูป ' + (i + 1) + '/' + targets.length + ' — ' + (it.name || it.id));
-                const before = it.img;
+                const snapshot = JSON.stringify(it);
+                const pendingBefore = managerBase64Count(currentView, it);
                 try {
-                    await uploadPendingManagerImageToDrive(it, folderId, tag, true);
+                    if (isHero) {
+                        await uploadPendingHeroImagesToDrive(it);   // img / img2 / accImg → โฟลเดอร์ฮีโร่
+                        await uploadPendingSkillIconsToDrive(it);   // ไอคอนสกิล → โฟลเดอร์สกิล
+                    } else {
+                        await uploadPendingManagerImageToDrive(it, folderId, tag, true);
+                    }
                 } catch (e) { console.error('migrate upload error:', it.id, e); }
+                showLoading('📤 กำลังบันทึก ' + (i + 1) + '/' + targets.length + ' — ' + (it.name || it.id)); // ตัวอัปโหลดฮีโร่ปิด overlay เอง
 
-                if (it.img === before) { failed.push((it.name || it.id) + ' — อัปโหลดไม่สำเร็จ'); continue; }
+                const pendingAfter = managerBase64Count(currentView, it);
+                if (pendingAfter === pendingBefore) { failed.push((it.name || it.id) + ' — อัปโหลดไม่สำเร็จ'); continue; }
 
                 const saved = await saveOneItemToCloud(cat, it);
-                if (saved) { delete it._isNew; ok++; }
-                else { it.img = before; failed.push((it.name || it.id) + ' — บันทึกไม่ผ่าน'); } // คืนค่าเดิม ไม่ให้ลิงก์ค้างในเครื่องแต่ชีตยังเป็น base64
+                if (saved) {
+                    delete it._isNew; ok++;
+                    if (pendingAfter) failed.push((it.name || it.id) + ' — ย้ายได้บางรูป เหลือ ' + pendingAfter + ' รูป (กดย้ายอีกครั้งได้)');
+                } else {
+                    // คืนค่าเดิม ไม่ให้ลิงก์ค้างในเครื่องแต่ชีตยังเป็น base64
+                    const orig = JSON.parse(snapshot);
+                    Object.keys(it).forEach(k => { if (!(k in orig)) delete it[k]; });
+                    Object.assign(it, orig);
+                    failed.push((it.name || it.id) + ' — บันทึกไม่ผ่าน' + (lastCloudError ? ' (' + lastCloudError + ')' : ''));
+                }
             }
 
             hideLoading();
@@ -11611,7 +11714,7 @@
 
             const wasDraft = !!(db[idx] && db[idx]._isNew); // ยังไม่เคย sync ขึ้น Cloud
 
-            db.splice(idx, 1); // ลบในเครื่อง (in-place → กระทบ array จริง)
+            const removed = db.splice(idx, 1)[0]; // ลบในเครื่อง (in-place → กระทบ array จริง)
             editingItemId = null;
             renderManagerUI();
 
@@ -11622,9 +11725,16 @@
             // 🟢 ลบ "ทีละแถว" (server ลบเฉพาะแถวนั้น ไม่ล้างทั้งชีต)
             const _cat = VIEW_SAVE_SCOPE[currentView];
             showLoading("กำลังลบข้อมูล...");
-            if (_cat) { await deleteOneItemFromCloud(_cat, delId); }
-            else { await pushData(false); }
+            let ok;
+            if (_cat) { ok = await deleteOneItemFromCloud(_cat, delId); }
+            else { ok = await pushData(false); }
             hideLoading();
+            if (!ok) {
+                // ❌ server ยังมีแถวนี้อยู่ → คืนรายการกลับ ไม่ให้หน้าจอหลอกว่าลบแล้ว
+                db.splice(Math.min(idx, db.length), 0, removed);
+                renderManagerUI();
+                alert('❌ ลบไม่สำเร็จ — รายการยังอยู่บน server' + (lastCloudError ? ('\n\n' + lastCloudError) : ' กรุณาลองใหม่'));
+            }
         }
         async function addNewItemInit() { 
             let id = Date.now().toString(); 
@@ -15558,32 +15668,68 @@
         if (idx>=0) skillLibDB[idx] = clean; else skillLibDB.push(clean);
         try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
         slCloseEdit(); renderSkillLibrary();
-        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){ try { await saveOneItemToCloud('skill_lib', clean); } catch(e){} }
+        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){
+            const ok = await saveOneItemToCloud('skill_lib', clean);
+            if (!ok) alert('❌ บันทึก "' + clean.name + '" ขึ้น server ไม่สำเร็จ (เก็บไว้ในเครื่องแล้ว)' + (lastCloudError ? ('\n\n' + lastCloudError) : ''));
+        }
     }
     async function slDelete(id){
         const s = skillLibDB.find(x=>String(x.id)===String(id)); if(!s) return;
         if (!confirm('ลบ "'+(s.name||'รายการนี้')+'" ?')) return;
+        const before = skillLibDB;
         skillLibDB = skillLibDB.filter(x=>String(x.id)!==String(id));
         try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
         renderSkillLibrary();
-        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){ try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'deleteOneItem', category:'skill_lib', id:id })) }); } catch(e){} }
+        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){
+            const ok = await deleteOneItemFromCloud('skill_lib', id);
+            if (!ok) {
+                // server ยังมีอยู่ → คืนกลับ ไม่ให้หน้าจอหลอกว่าลบแล้ว
+                skillLibDB = before;
+                try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
+                renderSkillLibrary();
+                alert('❌ ลบไม่สำเร็จ — รายการยังอยู่บน server' + (lastCloudError ? ('\n\n' + lastCloudError) : ''));
+            }
+        }
+    }
+
+    /** ☁️ บันทึกหลายรายการขึ้น server — แบ่งส่งทีละก้อน (กันเกินเวลา Apps Script) แล้วคืนจำนวนที่สำเร็จ/ล้มเหลว */
+    async function slCloudSaveMany(items){
+        const CHUNK = 40;
+        let ok = 0, fail = 0;
+        lastCloudError = '';
+        for (let i = 0; i < items.length; i += CHUNK) {
+            const part = items.slice(i, i + CHUNK).map(x => { const c = Object.assign({}, x); delete c._isNew; return c; });
+            showLoading('☁️ กำลังบันทึกคลังสกิล ' + Math.min(i + CHUNK, items.length) + '/' + items.length + '...');
+            try {
+                const res = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'saveManySkillLib', items: part })) });
+                const r = await res.json().catch(() => ({ status: 'unknown' }));
+                if (r.status === 'success') { const n = Number(r.saved) || 0; ok += n; fail += part.length - n; }
+                else { fail += part.length; lastCloudError = r.message || r.code || ('ตอบกลับไม่สำเร็จ (' + (r.status || '?') + ')'); }
+            } catch(e) { fail += part.length; lastCloudError = 'ต่อเซิร์ฟเวอร์ไม่ได้: ' + (e && e.message ? e.message : e); }
+        }
+        hideLoading();
+        updateSyncStatus(fail ? 'offline' : 'online');
+        return { ok, fail };
+    }
+    function slCloudReport(prefix, r){
+        if (!r) return prefix;
+        if (!r.fail) return prefix + ' (บันทึกขึ้น server ' + r.ok + ' รายการ)';
+        return prefix + '\n\n❌ บันทึกขึ้น server ไม่สำเร็จ ' + r.fail + ' รายการ (สำเร็จ ' + r.ok + ')' + (lastCloudError ? ('\n' + lastCloudError) : '') + '\nข้อมูลยังอยู่ในเครื่อง ลองกดใหม่ได้';
     }
 
     // 🔄 เดาหมวดใหม่ทุกรายการจากชื่อ+คำอธิบาย (ใช้ตอน import มาแล้วหมวดยังเป็น "อื่นๆ")
     async function slReclassifyAll(){
         const all = Array.isArray(skillLibDB) ? skillLibDB : [];
         if (!all.length){ alert('ยังไม่มีรายการ'); return; }
-        let changed = 0;
-        all.forEach(s => { if (!s) return; const g = slGuessCat((s.name||'') + ' ' + (s.rawText||'')); if (g !== s.category){ s.category = g; changed++; } });
+        const changedItems = [];
+        all.forEach(s => { if (!s) return; const g = slGuessCat((s.name||'') + ' ' + (s.rawText||'')); if (g !== s.category){ s.category = g; changedItems.push(s); } });
+        const changed = changedItems.length;
         if (!changed){ alert('หมวดตรงอยู่แล้วทุกอัน 👍'); return; }
         try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
         renderSkillLibrary();
-        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){
-            showLoading('🔄 กำลังบันทึกหมวดใหม่...');
-            try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'saveManySkillLib', items: skillLibDB })) }); } catch(e){}
-            hideLoading();
-        }
-        alert('🔄 จัดหมวดใหม่ ' + changed + ' รายการแล้ว — ตรวจ/แก้รายตัวได้');
+        let r = null;
+        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD) r = await slCloudSaveMany(changedItems); // ส่งเฉพาะที่เปลี่ยน
+        alert(slCloudReport('🔄 จัดหมวดใหม่ ' + changed + ' รายการแล้ว — ตรวจ/แก้รายตัวได้', r));
     }
 
     // 📄 Export ทั้งคลังเป็นข้อความ list (ก๊อปไปให้ AI ตรวจ)
@@ -15678,15 +15824,13 @@
         if (!confirm('นำเข้า '+items.length+' รายการเข้าคลัง?')) return;
         // กันชื่อซ้ำกับของเดิม: ถ้าชื่อตรงให้ทับ (อัปเดต) ไม่งั้นเพิ่มใหม่
         const byName = {}; skillLibDB.forEach(s=>{ if(s&&s.name) byName[s.name.trim()] = s; });
-        items.forEach(it=>{ const ex = byName[it.name.trim()]; if (ex){ ex.rawText = it.rawText || ex.rawText; ex.category = ex.category||it.category; } else { skillLibDB.push(it); byName[it.name.trim()]=it; } });
+        const touched = new Set();
+        items.forEach(it=>{ const ex = byName[it.name.trim()]; if (ex){ ex.rawText = it.rawText || ex.rawText; ex.category = ex.category||it.category; touched.add(ex); } else { skillLibDB.push(it); byName[it.name.trim()]=it; touched.add(it); } });
         try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
         slCloseBulk(); renderSkillLibrary();
-        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD){
-            showLoading('📥 กำลังนำเข้าคลังสกิล...');
-            try { await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'saveManySkillLib', items: skillLibDB })) }); } catch(e){}
-            hideLoading();
-        }
-        alert('✅ นำเข้า '+items.length+' รายการแล้ว — แก้หมวด/ตั้งค่าเพิ่มได้ในแต่ละการ์ด');
+        let r = null;
+        if (typeof USE_CLOUD!=='undefined' && USE_CLOUD) r = await slCloudSaveMany(Array.from(touched)); // ส่งเฉพาะที่นำเข้า/อัปเดต
+        alert(slCloudReport('✅ นำเข้า '+items.length+' รายการแล้ว — แก้หมวด/ตั้งค่าเพิ่มได้ในแต่ละการ์ด', r));
     }
 
     // แทนที่ฟังก์ชัน renderPreparation เดิม
@@ -16833,6 +16977,9 @@
             skillLibDB = data.skillLib;
             try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
         }
+        if (Array.isArray(data.statGlossary) && typeof window.applyServerStatGlossary === 'function') {
+            window.applyServerStatGlossary(data.statGlossary);
+        }
         // 🟢 เก็บข้อมูลดิบทั้งหมดไว้ในตัวแปร allEnemyPatternsDB (ไม่กรอง)
         if (data.enemyPatterns && Array.isArray(data.enemyPatterns) && data.enemyPatterns.length > 0) {
             console.log("Loaded Enemy Patterns from Database");
@@ -17600,8 +17747,12 @@
     // --- PUBLIC SIDE: APPLICATION FORM ---
 
     function copyApplicationLink() {
-        // สร้างลิงก์โดยใส่ ?mode=apply ต่อท้าย URL ปัจจุบัน
-        const url = window.location.href.split('?')[0] + "?mode=apply";
+        // ❌ เดิมใช้ URL หน้าปัจจุบัน — เปิดผ่าน Apps Script จะได้ URL iframe ของ googleusercontent (คนอื่นเปิดไม่ได้)
+        //    เปิดผ่าน GitHub Pages คนรับลิงก์ไม่รู้ URL เซิร์ฟเวอร์ → ฟอร์มว่าง
+        //    ✅ ชี้ GitHub Pages + แนบ URL เซิร์ฟเวอร์ใน s= (แบบเดียวกับลิงก์แกลเลอรี)
+        const url = (PUBLIC_PAGES_URL && SCRIPT_URL)
+            ? PUBLIC_PAGES_URL + '?mode=apply&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL))))
+            : publicShareBaseUrl() + '?mode=apply';
         navigator.clipboard.writeText(url).then(() => {
             alert("คัดลอกลิงก์รับสมัครแล้ว!\n\n" + url);
         });
@@ -17969,7 +18120,7 @@
     async function uploadPendingHeroImagesToDrive(item) {
         if (!item) return;
         if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) return; // ออฟไลน์: เก็บ base64 ไว้ก่อน
-        const keys = ['img', 'img2']; // รูปปกติ + รูปปลุกพลัง
+        const keys = ['img', 'img2', 'accImg']; // รูปปกติ + รูปปลุกพลัง + รูปเครื่องประดับ
         const pending = keys.filter(k => typeof item[k] === 'string' && item[k].indexOf('data:image') === 0);
         if (!pending.length) return;
 
@@ -21416,11 +21567,11 @@
             const useP = !!(PUBLIC_PAGES_URL && SCRIPT_URL);
             const baseUrl = useP ? PUBLIC_PAGES_URL : publicShareBaseUrl();
             const srv = useP ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
-            const url = `${baseUrl}?k=${dailyKey}&g=${encodedGuild}${srv}`;
+            const url = `${baseUrl}?k=${dailyKey}&g=${encodeURIComponent(encodedGuild)}${srv}`;
 
             // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
             navigator.clipboard.writeText(url).then(() => {
-                alert(`✅ คัดลอกลิงก์เรียบร้อย! (ใช้ได้ ${GALLERY_KEY_VALID_DAYS} วัน)\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
+                alert(`✅ คัดลอกลิงก์เรียบร้อย! (ใช้ได้ตลอด ไม่หมดอายุ)\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
 
                 // 5. เปิดหน้าเว็บในแท็บใหม่
                 window.open(url, '_blank');
@@ -24603,7 +24754,36 @@
         let statGlossaryDB = {};
         function loadStatGlossary(){ try { statGlossaryDB = JSON.parse(localStorage.getItem('7k_stat_glossary')) || {}; } catch(e){ statGlossaryDB = {}; } }
         function saveStatGlossary(){ try { localStorage.setItem('7k_stat_glossary', JSON.stringify(statGlossaryDB)); } catch(e){} }
-        function setStatDesc(name, desc){ statGlossaryDB[name] = desc; saveStatGlossary(); }
+        // ☁️ บันทึกขึ้น server ทีละสเตตัส (หน่วงไว้ — พิมพ์จบค่อยส่ง ไม่ยิงทุกตัวอักษร)
+        const _statGlossaryTimers = {};
+        function queueStatGlossaryCloud(name){
+            if (typeof USE_CLOUD === 'undefined' || !USE_CLOUD) return;
+            clearTimeout(_statGlossaryTimers[name]);
+            _statGlossaryTimers[name] = setTimeout(async () => {
+                delete _statGlossaryTimers[name];
+                const ok = await saveOneItemToCloud('stat_glossary', { id: name, desc: statGlossaryDB[name] || '' });
+                if (!ok) showToast('❌ บันทึกคำอธิบาย "' + name + '" ขึ้น server ไม่สำเร็จ' + (lastCloudError ? ' — ' + lastCloudError : ''), 'error');
+            }, 1200);
+        }
+        function setStatDesc(name, desc){ statGlossaryDB[name] = desc; saveStatGlossary(); queueStatGlossaryCloud(name); }
+        /** รับข้อมูลจาก server (server เป็นหลัก) — ของที่มีแค่ในเครื่อง (ก่อนมีระบบ sync) ส่งขึ้นให้ครั้งเดียว */
+        window.applyServerStatGlossary = function(list){
+            loadStatGlossary();
+            const local = statGlossaryDB;
+            const merged = {};
+            list.forEach(r => { if (r && r.id) merged[r.id] = r.desc || ''; });
+            // กำลังรอส่ง (เพิ่งพิมพ์) → ใช้ค่าในเครื่อง ไม่ให้ค่าเก่าจาก server ทับ
+            Object.keys(_statGlossaryTimers).forEach(k => { if (k in local) merged[k] = local[k]; });
+            const localOnly = Object.keys(local).filter(k => !(k in merged));
+            localOnly.forEach(k => { merged[k] = local[k] || ''; });
+            statGlossaryDB = merged;
+            saveStatGlossary();
+            localOnly.forEach(queueStatGlossaryCloud);
+            // ไม่วาดใหม่ตอนกำลังพิมพ์อยู่ (กันเคอร์เซอร์หลุด)
+            const body = document.getElementById('stat-glossary-body');
+            const typing = body && document.activeElement && body.contains(document.activeElement);
+            if (!typing && typeof currentView !== 'undefined' && currentView === 'stat-glossary') renderStatGlossary();
+        };
         // รวมรายชื่อสเตตัส/ความสามารถทั้งหมดในระบบ (ไม่ซ้ำ)
         function statGlossaryNames(){
             const names = [], seen = new Set();
@@ -24619,7 +24799,7 @@
             if (!n || !n.trim()) return;
             const name = n.trim();
             loadStatGlossary();
-            if (!(name in statGlossaryDB)) statGlossaryDB[name] = '';
+            if (!(name in statGlossaryDB)) { statGlossaryDB[name] = ''; queueStatGlossaryCloud(name); }
             saveStatGlossary();
             renderStatGlossary();
         }
@@ -25160,7 +25340,7 @@
 
             const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
-            const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+            const urlGuild = decodeGuildParam(encodedGuild);
 
             console.log("🔍 encodedGuild:", encodedGuild);
             console.log("🔍 urlGuild:", urlGuild);
@@ -25212,7 +25392,7 @@
                     userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
                     isAdmin: isAdmin,     // 🟢 ส่งสถานะ admin
                     versions: galleryVersionsForRequest() // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
-                }, { timeout: 60000 });
+                }, { timeout: 60000, retries: 4 }); // 🔁 Google ตอบ 404 ชั่วคราวตอน server เย็น — ลองซ้ำเพิ่ม
 
                 // 🟢 DEBUG: ดูข้อมูลที่ได้จาก Server
                 console.log('🔍 Server response teams:', res.teams?.length);
@@ -25255,7 +25435,7 @@
                     userGuild: userGuild,
                     isAdmin: CURRENT_USER?.role === 'admin',
                     versions: galleryVersionsForRequest()
-                }, { timeout: 60000 });
+                }, { timeout: 60000, retries: 4 }); // 🔁 Google ตอบ 404 ชั่วคราวตอน server เย็น — ลองซ้ำเพิ่ม
                 if (!res || res.status !== 'success') return;
 
                 mergePublicMasterData(res.masterData, res.versions);
@@ -25285,7 +25465,7 @@
         function memberRefreshGallery(){ try { if (typeof switchGalleryTab === 'function') switchGalleryTab(currentGalleryTab); } catch(e){} }
         // ชื่อกิลจาก ?g= ในลิงก์ (base64 ของชื่อกิล)
         function mlUrlGuildName(){
-            try { const g = appUrlParams().get('g'); return g ? decodeURIComponent(atob(g)) : ''; } catch(e){ return ''; }
+            try { const g = appUrlParams().get('g'); return decodeGuildParam(g) || ''; } catch(e){ return ''; }
         }
         // 🔁 กู้ session ลูกกิลจาก localStorage (login ค้างไว้)
         function restoreMemberSession(){
@@ -25864,7 +26044,7 @@
                 // 🟢 ดึง Guild จาก URL สำหรับกรอง Counter Teams
                 const urlParams = appUrlParams();
                 const encodedGuild = urlParams.get('g');
-                const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+                const urlGuild = decodeGuildParam(encodedGuild);
                 const urlGuildLower = urlGuild ? urlGuild.toLowerCase() : null;
                 
                 // 🟢 หาทีมทั้งหมดที่ Counter เป้าหมายเดียวกัน (ถ้าเป็น Attack mode)
@@ -25934,7 +26114,7 @@
             // 🟢 ดึง Guild จาก URL สำหรับกรอง Counter Teams
             const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
-            const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+            const urlGuild = decodeGuildParam(encodedGuild);
             const urlGuildLower = urlGuild ? urlGuild.toLowerCase() : null;
             console.log('🎯 loadSharedTeamView - urlGuild:', urlGuild);
     
@@ -25987,7 +26167,7 @@
                 // 📦 ไม่ต้องโหลด getAllData ทั้งก้อนแล้ว — getSharedTeam ส่งข้อมูลกลางที่ต้องใช้มาให้
                 // ⚡ ส่งเวอร์ชันข้อมูลกลางที่เครื่องนี้มีอยู่ → server ส่งกลับเฉพาะหมวดที่เปลี่ยน
                 const _shareCache = loadGalleryStaticCache();
-                const res = await postJson({ action: 'getSharedTeam', teamId: id, versions: _shareCache.versions });
+                const res = await postJson({ action: 'getSharedTeam', teamId: id, versions: _shareCache.versions }, { timeout: 60000, retries: 4 });
 
                 if (res.status === 'success') {
                     // 📦 เก็บข้อมูลกลางลง localStorage แล้วเติม DB จาก cache
@@ -26016,7 +26196,7 @@
                 } else {
                     alert("ไม่พบข้อมูลทีม หรือลิงก์อาจหมดอายุ");
                     try {
-                        window.history.pushState({}, '', '?mode=gallery');
+                        window.history.pushState({}, '', '?mode=gallery' + galleryShareQuery());
 
                         await loadSharedGallery();
                     } catch (e) {
@@ -26058,12 +26238,9 @@
 
         // ฟังก์ชันช่วยอัปเดต URL (แยกออกมาใช้ร่วมกัน)
         function updateUrl(id) {
-            const urlParams = appUrlParams();
-            const currentKey = urlParams.get('k');
-            const encodedGuild = urlParams.get('g'); // 🟢 ดึง g ด้วย
-            let newUrl = `?teamId=${id}`;
-            if (currentKey) newUrl += `&k=${currentKey}`;
-            if (encodedGuild) newUrl += `&g=${encodedGuild}`; // 🟢 เก็บ g ไว้
+            // 🔗 เก็บ k/g/s ไว้ครบ — คนชอบก๊อปลิงก์จากแถบที่อยู่หน้านี้ไปส่งต่อ
+            //    เดิมทิ้ง s= → คนที่ไม่เคยตั้ง URL server เปิดลิงก์ที่ส่งต่อไม่ได้
+            const newUrl = `?teamId=${encodeURIComponent(id)}` + galleryShareQuery();
 
             try {
                 window.history.pushState({ page: 'detail', id: id }, '', newUrl);
@@ -26215,7 +26392,7 @@
                 // 🟢 กรองตาม Guild อีกครั้งเพื่อความแน่ใจ
                 const urlParams = appUrlParams();
                 const encodedGuild = urlParams.get('g');
-                const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)).toLowerCase() : null;
+                const urlGuild = ((decodeGuildParam(encodedGuild) || '').toLowerCase() || null);
 
                 console.log("allCounterTeams",allCounterTeams)
                 
@@ -27455,7 +27632,7 @@
             // 🟢 ดึง guild จาก URL (ถ้ามี) เพื่อส่งต่อให้ renderGalleryUI
             const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
-            const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+            const urlGuild = decodeGuildParam(encodedGuild);
 
             console.log("urlGuild",urlGuild)
 
@@ -27470,7 +27647,7 @@
     function rerenderGallery() {
         if (!galleryCacheDB) return;
         const encodedGuild = appUrlParams().get('g');
-        const urlGuild = encodedGuild ? decodeURIComponent(atob(encodedGuild)) : null;
+        const urlGuild = decodeGuildParam(encodedGuild);
         renderGalleryUI(galleryCacheDB, urlGuild);
     }
 
@@ -28058,13 +28235,13 @@
         return getGalleryKeyForDayOffset(0);
     }
 
-    /** ตรวจคีย์จาก URL — ผ่านถ้าตรงกับคีย์ของวันไหนก็ได้ในช่วง GALLERY_KEY_VALID_DAYS วันล่าสุด */
+    /** ตรวจคีย์จาก URL — ลิงก์แกลเลอรีไม่มีวันหมดอายุแล้ว
+     *  คีย์เป็นแค่วันที่ที่ base64 ใครก็สร้างได้ กันอะไรไม่ได้จริง — มีแต่ทำให้ลิงก์ที่ส่งไปแล้วตาย
+     *  ผ่านถ้าเป็นคีย์รูปแบบแกลเลอรี (7k_gallery_...) ของวันไหนก็ได้ */
     function isGalleryKeyValid(key) {
         if (!key) return false;
-        for (let i = 0; i < GALLERY_KEY_VALID_DAYS; i++) {
-            if (key === getGalleryKeyForDayOffset(i)) return true;
-        }
-        return false;
+        try { return atob(String(key).replace(/ /g, '+')).indexOf('7k_gallery_') === 0; }
+        catch (e) { return false; }
     }
 
     // (แถม) ฟังก์ชันสร้าง Admin Key (คุณกำหนดรหัสลับตรงนี้)
@@ -30392,7 +30569,7 @@
         // 🟢 ผูกลิงก์กับกิลด์ที่เลือกอยู่ (g= = ชื่อกิลด์ที่เข้ารหัส base64) → portal ล็อกกิลด์ให้ลูกกิลอัตโนมัติ
         const g = activeGuildForLink();
         if (g && g.name) {
-            try { url += `&g=${btoa(encodeURIComponent(g.name))}`; } catch (e) {}
+            try { url += `&g=${encodeURIComponent(btoa(encodeURIComponent(g.name)))}`; } catch (e) {}
         }
         return url;
     }
