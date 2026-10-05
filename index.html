@@ -17028,6 +17028,7 @@
             console.log("Loaded 3v3 Teams from Database");
             allTeams3v3DB = data.teams_3v3;
             teams3v3DB = [...data.teams_3v3]; // 🟢 สร้าง copy ใหม่ ไม่ใช่ reference เดียวกัน!
+            if (typeof remember3v3Saved === 'function') remember3v3Saved(data.teams_3v3, true); // ⚡ ฐานเทียบ "อะไรเปลี่ยน" ตอน Save All
             // บันทึกลง LocalStorage ทับไปเลยเพื่อให้ข้อมูลตรงกัน
             localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB));
             if (typeof clear3v3Dirty === 'function') clear3v3Dirty();
@@ -19669,6 +19670,25 @@
             });
         }
 
+        // ⚡ จำ "หน้าตาทีมบน server" ไว้เทียบตอน Save All → ส่งเฉพาะทีมที่เปลี่ยนจริง
+        //    เดิมส่งทุกทีมทุกครั้ง (แอดมิน = ทุกกิลด์) server ต้องเขียนใหม่ทีละแถวทั้งหมด → ช้ามาก
+        //    ยังไม่เคยรู้หน้าตาบน server (null) → ส่งทั้งหมดเหมือนเดิม (ปลอดภัยไว้ก่อน)
+        var saved3v3Sigs = null; // var — processLoadedData อาจเรียกก่อนถึงบรรทัดนี้
+        function team3v3Sig(t) {
+            // เฉพาะช่องที่ลงชีต (ไม่รวม lastModified — เปลี่ยนทุกครั้งที่แตะ แม้ไม่ได้แก้)
+            return JSON.stringify([t.name || 'Team', t.teamType || 'Attack', t.formation || 'Basic', t.skillQueue || [],
+                !!t.isShared, t.enemyTeams || [], t.pets || [null, null, null], t.slots || [], t.note || '',
+                t.guild_name || 'all', t.video || null, t.skillQueueAlts || [], !!t.notifyEnabled, t.owner || null]);
+        }
+        function remember3v3Saved(teams, replace) {
+            if (replace || !saved3v3Sigs) saved3v3Sigs = new Map();
+            (teams || []).forEach(t => { if (t && t.id != null) saved3v3Sigs.set(String(t.id), team3v3Sig(t)); });
+        }
+        function changed3v3Teams(teams) {
+            if (!saved3v3Sigs) return teams;
+            return teams.filter(t => saved3v3Sigs.get(String(t.id)) !== team3v3Sig(t));
+        }
+
         // (ลบ process3v3SaveQueue / save3v3Queue ที่ไม่ถูกเรียกแล้ว — การบันทึก 3v3 ใช้ saveAll3v3Teams)
 
         function mark3v3Dirty() {
@@ -20350,9 +20370,19 @@
                 //    (ถ้าลบ local ไปแล้วแต่ server พลาด ข้อมูลจะไม่ตรงกับชีต)
 
                 const mergedForSave = mergeTeams3v3(allTeams3v3DB, teams3v3DB);
-                const teamsForServer = getTeams3v3ForServer(mergedForSave).filter(t => !t.deleted);
+                const allForServer = getTeams3v3ForServer(mergedForSave).filter(t => !t.deleted);
+                const teamsForServer = changed3v3Teams(allForServer); // ⚡ ส่งเฉพาะที่เปลี่ยน
 
-                console.log('📤 Upserting teams to Google Sheets:', teamsForServer.length, 'teams (local total:', mergedForSave.length, ', deleting:', deletedIds.length, ')');
+                console.log('📤 Upserting teams to Google Sheets:', teamsForServer.length, '/', allForServer.length, 'teams changed (deleting:', deletedIds.length, ')');
+                if (!teamsForServer.length && !deletedIds.length) {
+                    // ไม่มีอะไรต่างจาก server — ไม่ต้องรอ server
+                    allTeams3v3DB = mergedForSave;
+                    syncTeams3v3DBFromAll();
+                    try { localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB)); } catch (e) {}
+                    clear3v3Dirty();
+                    showToast('✅ บันทึกแล้ว (ไม่มีอะไรเปลี่ยน)', 'success');
+                    return;
+                }
 
                 // 🟢 บันทึกแบบ upsert รายแถว (ไม่ clear ทั้งชีต) + ลบเฉพาะแถวที่ mark ไว้ — ไม่แตะข้อมูลกิลด์อื่น
                 //    อ่าน response จริง (ไม่ใช้ no-cors) → รู้ว่าบันทึกสำเร็จจริงไหม
@@ -20374,6 +20404,7 @@
                 }
 
                 // ✅ server ยืนยันแล้ว ค่อยแก้ข้อมูลในเครื่อง
+                remember3v3Saved(teamsForServer, false); // ตอนนี้ server มีหน้าตานี้แล้ว
                 let removedInfo = { removedCount: 0, removedNames: [] };
                 if (pending.length > 0) {
                     removedInfo = applyPending3v3Deletions();
