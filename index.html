@@ -2917,7 +2917,7 @@
         <div class="px-6 pt-6 border-gray-800 flex justify-between items-start">
             <div>
                 <h1 class="text-2xl font-bold text-yellow-500 italic tracking-wider">7K COMMANDER</h1>
-                <p class="text-xs text-gray-500 mt-1">Seven Deadly Sins</p>
+                <p id="display-guild" class="text-xs text-gray-500 mt-1">&nbsp;</p>
                 <div class="py-2 text-xs text-gray-500">
                     User: <span id="display-username" class="text-blue-400 font-bold">...</span>
                 </div>
@@ -6126,12 +6126,28 @@
 
         let appInitialized = false;
 
+        /** ชื่อกิลด์ของ user ที่ login — บัญชีเก็บเป็นชื่อหรือรหัสกิลด์ก็ได้ (หาชื่อจริงจากรายชื่อกิลด์)
+         *  'all' / ไม่มีกิลด์ = ดูแลทุกกิลด์ */
+        function currentUserGuildLabel() {
+            const raw = String((CURRENT_USER && (CURRENT_USER.guild_name || CURRENT_USER.guildId || CURRENT_USER.guild_id)) || '').trim();
+            if (!raw || raw.toLowerCase() === 'all') return 'ทุกกิลด์';
+            // จับคู่แบบไม่สนตัวพิมพ์/ช่องว่าง — ชีต Users เขียน "SevenDeadlySins" / "onyx" ได้ แต่แสดงชื่อเต็มของกิลด์
+            const norm = s => String(s == null ? '' : s).toLowerCase().replace(/\s+/g, '');
+            const key = norm(raw);
+            const g = (typeof guildsDB !== 'undefined' && Array.isArray(guildsDB))
+                ? guildsDB.find(x => x && (norm(x.id) === key || norm(x.name) === key)) : null;
+            return (g && g.name) ? g.name : raw;
+        }
+
         function initApp() {
             console.log("🚀 initApp() called, CURRENT_USER:", CURRENT_USER);
             // อัปเดตชื่อ User
             if (CURRENT_USER) {
                 const nameEl = document.getElementById('display-username');
                 if (nameEl) nameEl.innerText = `${CURRENT_USER.name} (${CURRENT_USER.role})`;
+                // 🛡️ ใต้โลโก้ = กิลด์ของ user (เดิมเขียนตายตัว "Seven Deadly Sins")
+                const guildEl = document.getElementById('display-guild');
+                if (guildEl) guildEl.innerText = currentUserGuildLabel();
                 if (typeof applyUserRole === 'function') {
                     console.log("📋 Calling applyUserRole()...");
                     applyUserRole();
