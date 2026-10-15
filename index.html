@@ -21916,14 +21916,18 @@
         function hbSave(){ try { localStorage.setItem('7k_hero_build', JSON.stringify(heroBuildState)); } catch(e){} }
 
         // สเตตัสฮีโร่ตามระดับดาว: base = 6 ดาวเหลือง + บลูสตาร์ (growthConfig) + เรดสตาร์ + พาสซีฟสกิล (สูตรเดียวกับหน้า detail)
+        /** base stat บริสุทธิ์ของฮีโร่ (ไม่มีดาว/พาสซีฟ/อุปกรณ์) — ตอนปลุกพลังใช้ค่า Awakening ถ้ากรอกไว้ */
+        function hbPureBase(hero, awakened) {
+            const aws = hero && hero.awakenStats;
+            const useAw = !!awakened && aws && Object.keys(aws).some(k => parseFloat(aws[k]));
+            return useAw ? aws : ((hero && hero.baseStats) ? hero.baseStats : {});
+        }
+
         function hbHeroStats(hero, blue, red, opts){
             const out = {};
-            // opts = { awakened, skillUpP } — ไม่ส่งมา = ใช้ค่าจากหน้าบิ้วที่เปิดอยู่ (พฤติกรรมเดิม)
+            // opts = { awakened, skillUpP, noPassive } — ไม่ส่งมา = ใช้ค่าจากหน้าบิ้วที่เปิดอยู่ (พฤติกรรมเดิม)
             const o = opts || { awakened: heroBuildState.awakened, skillUpP: !!(heroBuildState.skillUp && heroBuildState.skillUp.p) };
-            // ตอนปลุกพลัง: ใช้ base stat ของ Awakening ถ้ามีค่ากรอกไว้, ไม่งั้นใช้ค่าปกติ
-            const aws = hero && hero.awakenStats;
-            const useAw = !!o.awakened && aws && Object.keys(aws).some(k => parseFloat(aws[k]));
-            const base = useAw ? aws : ((hero && hero.baseStats) ? hero.baseStats : {});
+            const base = hbPureBase(hero, o.awakened);
             const gc = (hero && hero.growthConfig) ? hero.growthConfig : {};
             const percentStats = ['critRate','critDmg','block','dmgRed','acc','resist','weakness'];
             const redMul = 1 + (parseInt(red)||0) * ((parseFloat(gc.redStarPerLevel) || 2) / 100);
@@ -21947,7 +21951,7 @@
             const blueLvl = parseInt(blue)||0;
             const pUp = !!o.skillUpP;
             const pe = hero && hero.skillData && hero.skillData.p && hero.skillData.p.effects;
-            if (Array.isArray(pe)) {
+            if (Array.isArray(pe) && !o.noPassive) {
                 pe.forEach(eff => {
                     if (!eff || eff.type !== 'stat') return;
                     let v = eff.val || 0; // ยังไม่อัพ = ค่าพื้นฐานเท่านั้น
@@ -24501,7 +24505,18 @@
             const b = build || heroBuildState;
             const hero = heroesDB.find(h => String(h.id) === String(b.heroId)) || null;
             const statOpts = { awakened: !!b.awakened, skillUpP: !!(b.skillUp && b.skillUp.p) };
-            const base = hero ? hbHeroStats(hero, b.blueStars||0, b.redStars||0, statOpts) : {};
+            // 📐 แยกส่วนกันชัดๆ — ทุกโบนัสคิดจาก "base บริสุทธิ์" แล้วค่อยบวกกัน ไม่คูณทับกัน
+            //    เดิม: (base + ดาว + พาสซีฟ) × (1 + %อุปกรณ์) → โบนัสดาวโดน % อุปกรณ์คูณซ้ำ ค่าพองเกินจริง
+            //    ตอนนี้: base + ดาว(C) + พาสซีฟ + base×%อุปกรณ์ + flat
+            const base = hero ? hbPureBase(hero, statOpts.awakened) : {};
+            const withStars = hero ? hbHeroStats(hero, b.blueStars||0, b.redStars||0, Object.assign({ noPassive: true }, statOpts)) : {};
+            const withAll = hero ? hbHeroStats(hero, b.blueStars||0, b.redStars||0, statOpts) : {};
+            const growth = {}, passive = {};
+            STAT_KEYS.forEach(k => {
+                const p = parseFloat(base[k]) || 0, s = parseFloat(withStars[k]) || 0, a = parseFloat(withAll[k]) || 0;
+                growth[k] = s - p;    // ดาวแดง + ดาวฟ้า (C)
+                passive[k] = a - s;   // พาสซีฟสกิลที่เป็นสเตตัส
+            });
             const acc = {};
             const add = (k,v) => { if(!k || !v) return; acc[k] = (acc[k]||0) + v; };
             const set = b.setId ? equipSetsDB.find(x => String(x.id) === String(b.setId)) : null;
@@ -24544,11 +24559,13 @@
                 else { if (!extraMap[rs.key]) extraMap[rs.key] = { stat: rs.label, value: 0, valueType: 'percent' }; extraMap[rs.key].value += v; }
             });
             const extra = Object.keys(extraMap).map(k => extraMap[k]);
-            const num = k => parseFloat(base[k]) || 0;
+            // num = base + ดาว + พาสซีฟ (ค่าที่ไม่ขึ้นกับอุปกรณ์) · pure = base บริสุทธิ์ (ฐานของ % อุปกรณ์)
+            const num = k => (parseFloat(base[k]) || 0) + (growth[k] || 0) + (passive[k] || 0);
+            const pure = k => parseFloat(base[k]) || 0;
             const totals = {
-                atk: Math.round(num('atk')*(1+(acc.atkPct||0)/100) + (acc.atkFlat||0)),
-                def: Math.round(num('def')*(1+(acc.defPct||0)/100) + (acc.defFlat||0)),
-                hp:  Math.round(num('hp')*(1+(acc.hpPct||0)/100) + (acc.hpFlat||0)),
+                atk: Math.round(num('atk') + pure('atk')*(acc.atkPct||0)/100 + (acc.atkFlat||0)),
+                def: Math.round(num('def') + pure('def')*(acc.defPct||0)/100 + (acc.defFlat||0)),
+                hp:  Math.round(num('hp')  + pure('hp')*(acc.hpPct||0)/100  + (acc.hpFlat||0)),
                 spd: num('spd') + (acc.spd||0),
                 critRate: num('critRate') + (acc.critRate||0),
                 critDmg: num('critDmg') + (acc.critDmg||0),
@@ -24558,7 +24575,7 @@
                 resist: num('resist') + (acc.resist||0),
                 dmgRed: num('dmgRed') + (acc.dmgRed||0)
             };
-            return { hero, base, totals, effects, extra, set };
+            return { hero, base, growth, passive, totals, effects, extra, set };
         }
 
         // การ์ดอุปกรณ์ 1 ชิ้น (idx 0,1 = หน้า, 2,3 = หลัง)
@@ -24626,12 +24643,16 @@
 
             const statRows = BUILD_SHOW.map(o => {
                 const k = o[0], label = o[1], pct = o[2];
-                const b = Math.round((parseFloat(c.base[k])||0)*10)/10;
-                const t = Math.round((c.totals[k]||0)*10)/10;
+                const r1 = v => Math.round((parseFloat(v)||0)*10)/10;
+                const b = r1(c.base[k]);                    // base บริสุทธิ์
+                const g = r1(c.growth && c.growth[k]);      // ดาวแดง+ดาวฟ้า (C)
+                const ps = r1(c.passive && c.passive[k]);   // พาสซีฟสกิล
+                const t = r1(c.totals[k]);
                 const up = t > b, suf = pct ? '%' : '';
+                const part = (v, cls, tag, tip) => v ? ` <span class="text-[11px] ${cls}" title="${tip}">+${tag}${v}${suf}</span>` : '';
                 return `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-black/20 border border-gray-800">
                     <span class="text-xs text-gray-400">${label}</span>
-                    <span class="text-sm font-mono"><span class="text-gray-500">${b}${suf}</span> <span class="text-gray-600">→</span> <span class="font-bold ${up?'text-emerald-400':'text-white'}">${t}${suf}</span></span>
+                    <span class="text-sm font-mono"><span class="text-gray-500" title="Base stat ของฮีโร่">${b}${suf}</span>${part(g, 'text-sky-400', 'C', 'โบนัสดาว (ดาวแดง + ดาวฟ้า) — คิดจาก base')}${part(ps, 'text-purple-400', 'P', 'พาสซีฟสกิล — คิดจาก base')} <span class="text-gray-600">→</span> <span class="font-bold ${up?'text-emerald-400':'text-white'}">${t}${suf}</span></span>
                 </div>`;
             }).join('');
 
@@ -25440,6 +25461,7 @@
                         galleryCacheDB = cachedTeams;
                         renderGalleryUI(galleryCacheDB, urlGuild);
                         syncSharedGalleryInBackground(urlGuild);
+                        startGalleryPolling(urlGuild);
                         return;
                     }
                 }
@@ -25482,10 +25504,23 @@
                     mergePublicMasterData(res.masterData, res.versions);
 
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
+                    const hadTeams = Array.isArray(galleryCacheDB) && galleryCacheDB.length > 0;
+                    const diff = hadTeams ? diffGalleryTeams(galleryCacheDB, res.teams, urlGuild) : { added: 0, updated: 0 };
                     galleryCacheDB = res.teams;
                     saveCachedSharedTeams(res.teams, res.versions);
 
+                    // 🔄 ป้ายสถานะ: กด Refresh แล้วมีของใหม่ = บอกว่ามีกี่ทีม · ไม่มี = เวลาที่เช็คล่าสุด
+                    if (diff.added || diff.updated) {
+                        const parts = [];
+                        if (diff.added) parts.push('ทีมใหม่ ' + diff.added);
+                        if (diff.updated) parts.push('อัปเดต ' + diff.updated);
+                        gallerySync = { state: 'updated', at: Date.now(), msg: parts.join(' · ') };
+                        setTimeout(() => { if (gallerySync.state === 'updated') setGallerySync('idle'); }, 10000);
+                    } else {
+                        gallerySync = { state: 'idle', at: Date.now(), msg: '' };
+                    }
                     renderGalleryUI(galleryCacheDB, urlGuild); // 🟢 ส่ง urlGuild ไปด้วย
+                    startGalleryPolling(urlGuild);
                 } else {
                     document.getElementById('main-content').innerHTML = `<div class="text-white text-center mt-20">❌ Error: ${res.message}</div>`;
                 }
@@ -25501,9 +25536,54 @@
             }
         }
 
-        /** เช็คของใหม่เบื้องหลังหลังวาดหน้าจาก cache แล้ว — ไม่มี overlay ไม่ขัดจังหวะคนดู
-         *  ได้ของใหม่ค่อยวาดทับ · พลาดก็เงียบ (ของเก่ายังใช้ได้) */
+        // =========================================================
+        // 🔄 สถานะ "เช็คทีมใหม่" ของแกลเลอรี — ป้ายข้างปุ่ม Refresh + แจ้งเตือนเมื่อมีทีมใหม่/ถูกแก้
+        //    เช็คซ้ำเองทุก GALLERY_POLL_MS ตอนเปิดหน้าค้างไว้ (เดิมเช็คครั้งเดียวตอนเปิด แบบเงียบ)
+        // =========================================================
+        const GALLERY_POLL_MS = 90000;
+        let gallerySync = { state: 'idle', at: 0, msg: '' }; // idle | checking | updated | error
+        let galleryBgSyncing = false;
+        let galleryPollTimer = null;
+
+        function gallerySyncBadgeHTML() {
+            const s = gallerySync;
+            const hhmm = s.at ? new Date(s.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            const base = 'px-3 py-2 rounded-xl text-[11px] font-bold border flex items-center gap-1.5 whitespace-nowrap';
+            if (s.state === 'checking') return `<span class="${base} bg-blue-900/30 text-blue-300 border-blue-700/50"><span class="inline-block animate-spin">🔄</span> กำลังเช็คทีมใหม่…</span>`;
+            if (s.state === 'updated') return `<span class="${base} bg-emerald-900/40 text-emerald-300 border-emerald-600/60 animate-pulse">✨ ${s.msg}</span>`;
+            if (s.state === 'error') return `<span class="${base} bg-amber-900/30 text-amber-300 border-amber-700/50" title="${s.msg.replace(/"/g, '&quot;')}">⚠️ เช็คไม่ได้ — จะลองใหม่เอง</span>`;
+            return hhmm ? `<span class="${base} bg-[#0d1117] text-gray-500 border-gray-800">✓ ล่าสุด ${hhmm}</span>` : '';
+        }
+        function setGallerySync(state, msg) {
+            gallerySync = { state: state, at: (state === 'checking') ? gallerySync.at : Date.now(), msg: msg || '' };
+            const el = document.getElementById('gallery-sync-status');
+            if (el) el.innerHTML = gallerySyncBadgeHTML();
+        }
+
+        /** ทีมที่คนดูลิงก์นี้เห็น (กรองกิลด์เหมือน renderGalleryUI) */
+        function galleryTeamsForGuild(teams, urlGuild) {
+            const g = String(urlGuild || '').toLowerCase();
+            if (!g || g === 'all') return teams || [];
+            return (teams || []).filter(t => { const tg = String(t.guild_name || t.guildId || 'all').toLowerCase(); return tg === g || tg === 'all'; });
+        }
+        /** เทียบทีมก่อน/หลัง → { added, updated } (นับเฉพาะที่คนดูลิงก์นี้เห็น) */
+        function diffGalleryTeams(oldTeams, newTeams, urlGuild) {
+            const sig = t => JSON.stringify([t.name, t.data, t.guild_name]);
+            const before = new Map(galleryTeamsForGuild(oldTeams, urlGuild).map(t => [String(t.id), sig(t)]));
+            let added = 0, updated = 0;
+            galleryTeamsForGuild(newTeams, urlGuild).forEach(t => {
+                const old = before.get(String(t.id));
+                if (old === undefined) added++; else if (old !== sig(t)) updated++;
+            });
+            return { added, updated };
+        }
+
+        /** เช็คของใหม่เบื้องหลัง — มีป้ายบอกสถานะ ไม่มี overlay ไม่ขัดจังหวะคนดู
+         *  ได้ของใหม่: วาดทับเฉพาะตอนอยู่หน้ารวม (กำลังดูรายละเอียดทีม = ไม่ดึงกลับ แค่แจ้ง) · พลาดก็แค่บอก ของเก่ายังใช้ได้ */
         async function syncSharedGalleryInBackground(urlGuild) {
+            if (galleryBgSyncing) return;
+            galleryBgSyncing = true;
+            setGallerySync('checking');
             try {
                 const userGuild = urlGuild || CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
                 const res = await postJson({
@@ -25512,19 +25592,54 @@
                     isAdmin: CURRENT_USER?.role === 'admin',
                     versions: galleryVersionsForRequest()
                 }, { timeout: 60000, retries: 4 }); // 🔁 Google ตอบ 404 ชั่วคราวตอน server เย็น — ลองซ้ำเพิ่ม
-                if (!res || res.status !== 'success') return;
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
 
                 mergePublicMasterData(res.masterData, res.versions);
 
                 const teamsChanged = Array.isArray(res.teams);
+                const diff = teamsChanged ? diffGalleryTeams(galleryCacheDB, res.teams, urlGuild) : { added: 0, updated: 0 };
                 if (teamsChanged) galleryCacheDB = res.teams;
                 saveCachedSharedTeams(galleryCacheDB, res.versions);
 
                 const masterChanged = res.masterData && Object.keys(res.masterData).length > 0;
-                if (teamsChanged || masterChanged) renderGalleryUI(galleryCacheDB, urlGuild);
+                const onList = !!document.getElementById('gallery-sync-status'); // อยู่หน้ารวม (ไม่ใช่หน้ารายละเอียดทีม)
+                if ((teamsChanged || masterChanged) && onList) {
+                    // วาดใหม่แต่คงตำแหน่งเลื่อนไว้ — ไม่ให้หน้ากระโดดกลับบนสุดระหว่างดู
+                    //    (กล่องที่เลื่อนจริงต่างกันตามขนาดจอ — จำทั้งกรอบนอกและกล่องใน)
+                    const scrollers = () => [document.scrollingElement, document.getElementById('main-content')].concat(Array.from(document.querySelectorAll('#main-content .custom-scroll')));
+                    const tops = scrollers().map(el => el ? el.scrollTop : 0);
+                    renderGalleryUI(galleryCacheDB, urlGuild);
+                    scrollers().forEach((el, i) => { if (el && tops[i]) el.scrollTop = tops[i]; });
+                }
+
+                if (diff.added || diff.updated) {
+                    const parts = [];
+                    if (diff.added) parts.push('ทีมใหม่ ' + diff.added);
+                    if (diff.updated) parts.push('อัปเดต ' + diff.updated);
+                    setGallerySync('updated', parts.join(' · '));
+                    showToast('✨ แกลเลอรีมีการอัปเดต: ' + parts.join(' · ') + (onList ? '' : ' — กลับไปหน้ารวมเพื่อดู'), 'success');
+                    setTimeout(() => { if (gallerySync.state === 'updated') setGallerySync('idle'); }, 10000);
+                } else {
+                    setGallerySync('idle');
+                }
             } catch (e) {
                 console.warn('background gallery sync failed:', e);
+                setGallerySync('error', e && e.message ? e.message : String(e));
+            } finally {
+                galleryBgSyncing = false;
             }
+        }
+
+        /** เช็คซ้ำเองตอนเปิดหน้าค้างไว้ — ข้ามตอนแท็บซ่อน · กลับมาที่แท็บแล้วนานเกินรอบ = เช็คทันที */
+        function startGalleryPolling(urlGuild) {
+            if (galleryPollTimer) return;
+            const due = () => Date.now() - (gallerySync.at || 0) >= GALLERY_POLL_MS - 1000;
+            galleryPollTimer = setInterval(() => {
+                if (document.visibilityState === 'visible' && due()) syncSharedGalleryInBackground(urlGuild);
+            }, GALLERY_POLL_MS);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && due()) syncSharedGalleryInBackground(urlGuild);
+            });
         }
 
         // =========================================================
@@ -26081,7 +26196,8 @@
                                 <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Community <span class="text-blue-500">Gallery</span></h1>
                                 ${isAdmin ? '<span class="bg-purple-600/30 text-purple-300 border border-purple-500/50 px-3 py-1 rounded-full text-xs font-bold uppercase">👑 Admin View</span>' : ''}
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex flex-wrap items-center justify-center gap-2">
+                                <span id="gallery-sync-status">${gallerySyncBadgeHTML()}</span>
                                 ${memberLoginBtnHTML()}
                                 <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">↻ Refresh</button>
                             </div>
