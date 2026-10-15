@@ -4634,6 +4634,7 @@
                         lastErr = e;
                     }
                     console.warn('postJson ครั้งที่ ' + (i + 1) + '/' + tries + ' ไม่ผ่าน:', lastErr.message);
+                    if (i < tries - 1 && typeof o.onRetry === 'function') { try { o.onRetry(i + 1, tries, lastErr); } catch (cbErr) {} }
                     if (i < tries - 1) await new Promise(r => setTimeout(r, 800 * Math.pow(2, i)));
                 } finally {
                     clearTimeout(timer);
@@ -17026,12 +17027,18 @@
         // 🟢 เก็บข้อมูลดิบทั้งหมดไว้ในตัวแปร allTeams3v3DB (ไม่กรอง)
         if (data.teams_3v3 && Array.isArray(data.teams_3v3) && data.teams_3v3.length > 0) {
             console.log("Loaded 3v3 Teams from Database");
-            allTeams3v3DB = data.teams_3v3;
-            teams3v3DB = [...data.teams_3v3]; // 🟢 สร้าง copy ใหม่ ไม่ใช่ reference เดียวกัน!
-            if (typeof remember3v3Saved === 'function') remember3v3Saved(data.teams_3v3, true); // ⚡ ฐานเทียบ "อะไรเปลี่ยน" ตอน Save All
-            // บันทึกลง LocalStorage ทับไปเลยเพื่อให้ข้อมูลตรงกัน
-            localStorage.setItem('7k_teams_3v3', JSON.stringify(allTeams3v3DB));
-            if (typeof clear3v3Dirty === 'function') clear3v3Dirty();
+            // ⚠️ มีงานค้าง (แก้แล้วยังไม่ Save All) → อย่าทับ — เดิมทับทั้งก้อน + ล้างสถานะ "ยังไม่บันทึก" เงียบๆ
+            const keepLocalWork = typeof has3v3UnsavedWork === 'function' && has3v3UnsavedWork();
+            const currentId = (current3v3TeamIdx >= 0 && teams3v3DB[current3v3TeamIdx]) ? String(teams3v3DB[current3v3TeamIdx].id) : null;
+            const incoming = keepLocalWork ? merge3v3ServerKeepingLocalWork(data.teams_3v3) : data.teams_3v3; // ต้องคำนวณก่อน remember (ใช้ฐานเทียบเดิม)
+            allTeams3v3DB = incoming;
+            teams3v3DB = [...incoming]; // 🟢 สร้าง copy ใหม่ ไม่ใช่ reference เดียวกัน!
+            if (currentId !== null) current3v3TeamIdx = teams3v3DB.findIndex(t => String(t.id) === currentId); // ลำดับอาจเปลี่ยน — ชี้ทีมเดิมตาม id
+            if (typeof remember3v3Saved === 'function') remember3v3Saved(data.teams_3v3, true); // ⚡ ฐานเทียบ = ของจริงบน server
+            // LocalStorage เก็บเฉพาะของที่อยู่บน server แล้ว (งานค้างยังไม่นับว่าบันทึก)
+            localStorage.setItem('7k_teams_3v3', JSON.stringify(data.teams_3v3));
+            if (!keepLocalWork && typeof clear3v3Dirty === 'function') clear3v3Dirty();
+            else if (typeof update3v3SaveButtonUI === 'function') update3v3SaveButtonUI();
         }
 
         // 🟢 กรองข้อมูลตาม Guild ของ User หลังโหลดข้อมูลเสร็จ (แค่สำหรับแสดงผล)
@@ -19691,11 +19698,15 @@
 
         // (ลบ process3v3SaveQueue / save3v3Queue ที่ไม่ถูกเรียกแล้ว — การบันทึก 3v3 ใช้ saveAll3v3Teams)
 
+        // id ทีมที่แก้ในรอบนี้ (ยังไม่ Save All) — ใช้กันข้อมูลจาก server ทับงานที่ค้าง
+        var dirty3v3Ids = new Set(); // var — processLoadedData อาจเรียกก่อนถึงบรรทัดนี้
+
         function mark3v3Dirty() {
             is3v3Dirty = true;
             const timestamp = Date.now();
             if (current3v3TeamIdx >= 0 && teams3v3DB[current3v3TeamIdx]) {
                 teams3v3DB[current3v3TeamIdx].lastModified = timestamp;
+                dirty3v3Ids.add(String(teams3v3DB[current3v3TeamIdx].id));
             }
             allTeams3v3DB = mergeTeams3v3(allTeams3v3DB, teams3v3DB);
             update3v3SaveButtonUI();
@@ -19703,8 +19714,38 @@
 
         function clear3v3Dirty() {
             is3v3Dirty = false;
+            dirty3v3Ids.clear();
             update3v3SaveButtonUI();
         }
+
+        /** มีงาน 3v3 ค้างที่ยังไม่ Save All ไหม (แก้ไว้ หรือ ติ๊กลบไว้) */
+        function has3v3UnsavedWork() {
+            return is3v3Dirty || (typeof countPending3v3Deletions === 'function' && countPending3v3Deletions() > 0);
+        }
+
+        /** รับทีมจาก server โดยไม่ทับงานที่ค้าง
+         *  เก็บของในเครื่องไว้: ทีมที่แก้รอบนี้ · ทีมที่ยังไม่มีบน server (สร้างใหม่) · ทีมที่ติ๊กลบไว้ · ทีมที่ต่างจากที่ server เคยมี
+         *  ทีมอื่นรับของใหม่จาก server (คนอื่นแก้มา) */
+        function merge3v3ServerKeepingLocalWork(serverTeams) {
+            const local = mergeTeams3v3(allTeams3v3DB, teams3v3DB);
+            const serverIds = new Set(serverTeams.map(t => String(t.id)));
+            const locallyChanged = saved3v3Sigs ? new Set(changed3v3Teams(local).map(t => String(t.id))) : new Set();
+            const keep = new Map();
+            local.forEach(t => {
+                const id = String(t.id);
+                if (dirty3v3Ids.has(id) || !serverIds.has(id) || t.deleted === true || locallyChanged.has(id)) keep.set(id, t);
+            });
+            const out = serverTeams.map(t => keep.get(String(t.id)) || t);
+            keep.forEach((t, id) => { if (!serverIds.has(id)) out.push(t); });
+            return out;
+        }
+
+        // 🚪 ปิดแท็บ/รีเฟรช ตอนยังไม่ Save All → งาน 3v3 อยู่ในหน่วยความจำอย่างเดียว จะหายทั้งหมด → ให้เบราว์เซอร์ถามก่อน
+        window.addEventListener('beforeunload', function (e) {
+            if (!has3v3UnsavedWork()) return;
+            e.preventDefault();
+            e.returnValue = ''; // เบราว์เซอร์จะโชว์ข้อความเตือนมาตรฐานของตัวเอง
+        });
 
         function update3v3SaveButtonUI() {
             const needsSave = is3v3Dirty || countPending3v3Deletions() > 0;
@@ -25423,7 +25464,11 @@
                     userGuild: userGuild, // 🟢 ส่ง guild ของผู้ใช้ (จาก URL หรือ CURRENT_USER)
                     isAdmin: isAdmin,     // 🟢 ส่งสถานะ admin
                     versions: galleryVersionsForRequest() // ⚡ เวอร์ชันที่ cache ไว้ ให้ server ส่งเฉพาะ category ที่เปลี่ยน
-                }, { timeout: 60000, retries: 4 }); // 🔁 Google ตอบ 404 ชั่วคราวตอน server เย็น — ลองซ้ำเพิ่ม
+                }, {
+                    timeout: 60000, retries: 4, // 🔁 Google ตอบ 404 ชั่วคราวตอน server เย็น — ลองซ้ำเพิ่ม
+                    // บอกคนดูว่ายังทำงานอยู่ — เงียบนานๆ คนจะปิดหนีทั้งที่อีกนิดก็เข้าได้
+                    onRetry: (n, total) => { if (text) text.innerText = '⏳ เซิร์ฟเวอร์กำลังตื่น ลองใหม่ครั้งที่ ' + (n + 1) + '/' + total + ' — รอสักครู่ อย่าเพิ่งปิด'; }
+                });
 
                 // 🟢 DEBUG: ดูข้อมูลที่ได้จาก Server
                 console.log('🔍 Server response teams:', res.teams?.length);
