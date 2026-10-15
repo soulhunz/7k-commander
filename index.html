@@ -24644,15 +24644,12 @@
             const statRows = BUILD_SHOW.map(o => {
                 const k = o[0], label = o[1], pct = o[2];
                 const r1 = v => Math.round((parseFloat(v)||0)*10)/10;
-                const b = r1(c.base[k]);                    // base บริสุทธิ์
-                const g = r1(c.growth && c.growth[k]);      // ดาวแดง+ดาวฟ้า (C)
-                const ps = r1(c.passive && c.passive[k]);   // พาสซีฟสกิล
-                const t = r1(c.totals[k]);
+                const b = r1(c.base[k]);    // ซ้าย = base ของฮีโร่อย่างเดียว
+                const t = r1(c.totals[k]);  // ขวา = รวมทุกอย่าง (ดาว + พาสซีฟ + อุปกรณ์)
                 const up = t > b, suf = pct ? '%' : '';
-                const part = (v, cls, tag, tip) => v ? ` <span class="text-[11px] ${cls}" title="${tip}">+${tag}${v}${suf}</span>` : '';
                 return `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-black/20 border border-gray-800">
                     <span class="text-xs text-gray-400">${label}</span>
-                    <span class="text-sm font-mono"><span class="text-gray-500" title="Base stat ของฮีโร่">${b}${suf}</span>${part(g, 'text-sky-400', 'C', 'โบนัสดาว (ดาวแดง + ดาวฟ้า) — คิดจาก base')}${part(ps, 'text-purple-400', 'P', 'พาสซีฟสกิล — คิดจาก base')} <span class="text-gray-600">→</span> <span class="font-bold ${up?'text-emerald-400':'text-white'}">${t}${suf}</span></span>
+                    <span class="text-sm font-mono"><span class="text-gray-500">${b}${suf}</span> <span class="text-gray-600">→</span> <span class="font-bold ${up?'text-emerald-400':'text-white'}">${t}${suf}</span></span>
                 </div>`;
             }).join('');
 
