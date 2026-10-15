@@ -24716,18 +24716,21 @@
             if (hero) {
                 const blue = heroBuildState.blueStars||0, red = heroBuildState.redStars||0, awk = !!heroBuildState.awakened;
                 const hasAw = !!(hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX);
-                const blueStarsHTML = [1,2,3,4,5,6].map(n => `<span onclick="hbSetBlue(${n})" class="cursor-pointer text-lg leading-none ${n<=blue?'text-sky-400':'text-gray-700'} hover:text-sky-300 transition">★</span>`).join('');
-                const redStarsHTML = [1,2,3,4,5,6].map(n => `<span onclick="hbSetRedAbs(${n})" class="cursor-pointer text-lg leading-none ${n<=red?'text-red-500':'text-gray-700'} hover:text-red-400 transition">★</span>`).join('');
+                // 🎚️ slider ระดับ C เดียว (0–12): C1–C6 = ดาวฟ้า · C7–C12 = ดาวฟ้าครบ 6 + ดาวแดง
+                const cLv = hbCLevel(blue, red);
+                // ตัวเลขใต้ slider — วางตรงจุดหยุดของปุ่ม (ปุ่มกว้าง ~16px: เผื่อ 8px สองข้าง)
+                const tick = n => `<span class="absolute -translate-x-1/2 ${n<=6?'text-sky-500/80':'text-red-500/80'}" style="left:calc(8px + (100% - 16px) * ${n} / 12)">${n}</span>`;
                 starPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4">
-                    <div class="text-sm font-black text-yellow-400 mb-2">⭐ ระดับดาว <span class="text-[10px] text-gray-500 font-normal">(เริ่มที่ 6 ดาวเหลือง = base)</span></div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-gray-400">ดาวฟ้า <span class="text-gray-600">(C1–C6)</span></span>
-                        <div class="flex items-center gap-0.5">${blueStarsHTML}<button onclick="hbSetBlue(0)" class="ml-1.5 text-[10px] text-gray-500 hover:text-white">ล้าง</button></div>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="text-sm font-black text-yellow-400 whitespace-nowrap">⭐ ระดับดาว</div>
+                        <span id="hb-c-label" class="text-sm font-black text-right">${hbCLabelHTML(cLv)}</span>
                     </div>
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-xs text-gray-400">ดาวแดง <span class="text-gray-600">(C7–C12)</span></span>
-                        <div class="flex items-center gap-0.5">${redStarsHTML}<button onclick="hbSetRedAbs(0)" class="ml-1.5 text-[10px] text-gray-500 hover:text-white">ล้าง</button></div>
-                    </div>
+                    <div class="text-[10px] text-gray-500 mb-2">0 = 6 ดาวเหลือง (base) · ฟ้า C1–6 · แดง C7–12</div>
+                    <div id="hb-c-stars" class="flex items-center justify-center gap-0.5 mb-1">${hbCStarsHTML(cLv)}</div>
+                    <input id="hb-c-range" type="range" min="0" max="12" step="1" value="${cLv}"
+                        oninput="hbCPreview(this.value)" onchange="hbSetCLevel(this.value)"
+                        class="w-full cursor-pointer" style="accent-color:${cLv>6?'#ef4444':'#38bdf8'}">
+                    <div class="relative h-4 text-[9px] font-bold mb-3">${[0,1,2,3,4,5,6,7,8,9,10,11,12].map(tick).join('')}</div>
                     <button onclick="hbToggleAwaken()" ${hasAw?'':'disabled'} style="height:35px" class="w-full flex items-center justify-center rounded-lg text-xs font-bold transition ${!hasAw?'bg-gray-800 text-gray-600 cursor-not-allowed':(awk?'bg-purple-600 text-white':'bg-purple-900/30 text-purple-300 border border-purple-700 hover:bg-purple-800/40')}">${!hasAw?'✨ ตัวนี้ไม่มีปลุกพลัง':(awk?'✨ ปลุกพลังแล้ว (กดเพื่อปลด)':'✨ ปลุกพลัง')}</button>
                 </div>`;
             }
@@ -24799,6 +24802,33 @@
 
         function hbSelectHero(id){ heroBuildState.heroId = id || null; if (!id) heroBuildState.awakened = false; hbSave(); renderHeroBuild(); }
         function hbSelectSet(id){ heroBuildState.setId = id || ''; hbSave(); renderHeroBuild(); }
+        // 🎚️ ระดับ C (0–12) ↔ ดาวฟ้า/ดาวแดง — C7+ ต้องมีดาวฟ้าครบ 6 เสมอ
+        function hbCLevel(blue, red){ red = parseInt(red)||0; blue = parseInt(blue)||0; return red > 0 ? Math.min(12, 6 + red) : Math.min(6, blue); }
+        function hbCLabelHTML(c){
+            c = parseInt(c)||0;
+            if (!c) return '<span class="text-gray-400">Base</span>';
+            return `<span class="text-[10px] text-gray-500 font-normal">${c<=6 ? 'ฟ้า '+c : 'ฟ้า 6 + แดง '+(c-6)}</span> <span class="${c>6?'text-red-400':'text-sky-400'}">C${c}</span>`;
+        }
+        function hbCStarsHTML(c){
+            c = parseInt(c)||0;
+            return [1,2,3,4,5,6,7,8,9,10,11,12].map(n => `<span class="text-base leading-none ${n<=c ? (n<=6?'text-sky-400':'text-red-500') : 'text-gray-700'}">★</span>`).join('');
+        }
+        /** ระหว่างลาก — อัปเดตแค่ป้าย/ดาว (ไม่วาดทั้งหน้า ไม่งั้น slider หลุดมือ) */
+        function hbCPreview(v){
+            const c = parseInt(v)||0;
+            const l = document.getElementById('hb-c-label'); if (l) l.innerHTML = hbCLabelHTML(c);
+            const s = document.getElementById('hb-c-stars'); if (s) s.innerHTML = hbCStarsHTML(c);
+            const r = document.getElementById('hb-c-range'); if (r) r.style.accentColor = c > 6 ? '#ef4444' : '#38bdf8';
+        }
+        /** ปล่อย slider — บันทึกแล้วคำนวณสเตตัสใหม่ */
+        function hbSetCLevel(v){
+            let c = parseInt(v)||0; if (c < 0) c = 0; if (c > 12) c = 12;
+            heroBuildState.blueStars = Math.min(c, 6);
+            heroBuildState.redStars = Math.max(0, c - 6);
+            const hadFocus = document.activeElement && document.activeElement.id === 'hb-c-range';
+            hbSave(); renderHeroBuild();
+            if (hadFocus) { const r = document.getElementById('hb-c-range'); if (r) r.focus(); } // กดลูกศรต่อได้หลังวาดใหม่
+        }
         function hbSetBlue(n){ n = parseInt(n)||0; if(n<0)n=0; if(n>6)n=6; heroBuildState.blueStars = n; hbSave(); renderHeroBuild(); }
         function hbSetRed(delta){ let r = (parseInt(heroBuildState.redStars)||0) + delta; if(r<0)r=0; if(r>6)r=6; heroBuildState.redStars = r; hbSave(); renderHeroBuild(); }
         function hbSetRedAbs(n){ n = parseInt(n)||0; if(n<0)n=0; if(n>6)n=6; heroBuildState.redStars = n; hbSave(); renderHeroBuild(); }
