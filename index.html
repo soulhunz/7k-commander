@@ -2864,6 +2864,11 @@
         [class*="text-xs"] {
             font-size: 14px !important;
         }
+        /* 👀 หน้าบิ้วแบบดูอย่างเดียว (หน้าสาธารณะ) — หน้าตาเดียวกับหน้าสร้าง แต่กด/กรอกไม่ได้ */
+        .hb-ro select, .hb-ro input, .hb-ro button, .hb-ro [onclick] { pointer-events: none; cursor: default; }
+        .hb-ro select { appearance: none; -webkit-appearance: none; }
+        .hb-ro button:disabled { opacity: 1; }
+        .hb-ro .hb-edit-only { display: none !important; }
     </style>
 </head>
 <body class="flex" onclick="rosterGlobalPointerDismiss(event)">
@@ -3376,10 +3381,13 @@
                             <input id="hb-share-name" type="text" placeholder="ตั้งชื่อบิ้ว เช่น สายดาเมจ DPS" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-emerald-500">
                         </div>
                         <p id="hb-share-hint" class="text-xs text-gray-400"></p>
+                        <div id="hb-share-editing" class="hidden text-xs rounded-lg border border-amber-600/50 bg-amber-900/20 text-amber-200 px-3 py-2"></div>
                         <textarea id="hb-share-code" rows="4" class="w-full bg-[#0d1117] border border-gray-600 text-gray-200 p-2 rounded text-xs font-mono outline-none focus:border-blue-500 break-all" placeholder="วางโค้ดบิ้วที่นี่..."></textarea>
                         <div class="flex gap-2 justify-end flex-wrap">
                             <button id="hb-share-copy" onclick="hbCopyShareCode()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold">📋 คัดลอกโค้ด</button>
                             <button id="hb-share-copylink" onclick="hbCopyShareLink()" class="bg-teal-700 hover:bg-teal-600 text-white px-4 py-2 rounded-lg text-xs font-bold">🔗 คัดลอกลิงก์</button>
+                            <button id="hb-share-delete" onclick="hbDeletePublished()" class="hidden bg-[#1f2937] hover:bg-red-600 text-red-300 hover:text-white border border-red-800/60 px-4 py-2 rounded-lg text-xs font-bold">🗑️ ลบบิ้วนี้</button>
+                            <button id="hb-share-update" onclick="hbPublishBuild(true)" class="hidden bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-bold">💾 บันทึกทับบิ้วเดิม</button>
                             <button id="hb-share-publish" onclick="hbPublishBuild()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-xs font-bold">🌍 เผยแพร่บิ้ว</button>
                             <button id="hb-share-load" onclick="hbApplyShareCode()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold">📥 โหลดบิ้วนี้</button>
                         </div>
@@ -4745,7 +4753,7 @@
             if (SYSTEM_CONFIG.WEB_APP_URL) return; // เปิดผ่าน Apps Script = รู้ URL ตัวเองแน่นอนแล้ว
             try {
                 const p = appUrlParams();
-                if (!(p.get('k') || p.get('mode') === 'apply' || p.get('mode') === 'castle-view')) return;
+                if (!(p.get('k') || p.get('mode') === 'apply' || p.get('mode') === 'castle-view' || p.get('mode') === 'builds-view')) return;
                 if (DEFAULT_WEB_APP_URL) { SCRIPT_URL = DEFAULT_WEB_APP_URL; USE_CLOUD = true; return; }
                 if (!p.get('s')) return;
                 const url = decodeURIComponent(escape(atob(p.get('s'))));
@@ -6013,6 +6021,8 @@
 
             // 🏰 หน้าดูตารางนับคอมพ์จาก CSV — ไม่ต้อง login / ไม่ต้องมี server (มี = ได้รูปฮีโร่)
             if (appUrlParams().get('mode') === 'castle-view') { ccViewerBoot(); return; }
+            // 🔨 หน้าดูบิ้วตัวละครที่เผยแพร่ — ไม่ต้อง login
+            if (appUrlParams().get('mode') === 'builds-view') { hbvBoot(); return; }
 
             // 🔗 ลิงก์แชร์ (k= / mode=apply) แต่ไม่รู้ URL server = ลิงก์ไม่ครบ (โดนตัดท้าย / ลิงก์รุ่นเก่าไม่มี s=)
             //    คนทั่วไปไม่มีทางรู้ URL server — อย่าถาม ให้บอกว่าต้องขอลิงก์ใหม่
@@ -10935,6 +10945,16 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="mt-3">
+                            <label class="text-[10px] text-pink-400 font-bold block mb-1.5">💎 ค่าหลักของรัก (ที่ +0 — ดูจากสมุดภาพ) · ใส่ได้หลายค่า ว่าง = ไม่มี</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${[['atk','⚔️ ATK'],['hp','❤️ HP'],['def','🛡️ DEF']].map(([k, lb]) => `<label class="flex items-center gap-1.5 bg-[#0d1117] border border-gray-600 rounded px-2 py-1">
+                                    <span class="text-[10px] text-gray-400 whitespace-nowrap">${lb}</span>
+                                    <input type="number" min="0" step="1" id="m-relic-${k}" value="${(item.relicStats && item.relicStats[k]) || ''}" placeholder="0" class="w-full min-w-0 bg-transparent text-right text-xs text-white outline-none">
+                                </label>`).join('')}
+                            </div>
+                            <div class="text-[10px] text-gray-500 mt-1">หน้าบิ้วคิดตามระดับตีบวก: ค่า +0 × (1 + 0.25 × ระดับ) — เช่น ซอรัน ATK 52 → +15 = 247</div>
+                        </div>
                     </div>
                 </div>`;
             } else {
@@ -11528,6 +11548,9 @@
             } else if(currentView==='hero-manager') {
                 item.img2 = normalizeDriveImg(document.getElementById('m-img2')?.value || '');
                 item.accImg = normalizeDriveImg(document.getElementById('m-acc-img')?.value || ''); // 💎 เครื่องประดับเฉพาะตัว
+                // 💎 ค่าหลักของรัก (+0) — เก็บเฉพาะค่าที่กรอก
+                item.relicStats = {};
+                ['atk', 'hp', 'def'].forEach(k => { const v = parseFloat(document.getElementById('m-relic-' + k)?.value); if (v > 0) item.relicStats[k] = v; });
                 item.rarity = document.getElementById('m-rarity').value;
                 item.type = document.getElementById('m-type').value;
                 item.attackType = document.getElementById('m-atk-type')?.value || '';
@@ -13680,10 +13703,10 @@
         function publicHubNavHTML(active) {
             if (!isPublicView) return '';
             const btn = (key, icon, label) => `<button onclick="switchPublicHub('${key}')" class="flex-1 min-w-0 sm:flex-none px-2 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap overflow-hidden ${active === key
-                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
-                : 'text-gray-400 hover:text-white hover:bg-white/5'}">${icon} ${label}</button>`;
+                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
+                : 'text-gray-400 hover:text-white hover:bg-white/5'}"><span class="hidden sm:inline">${icon}</span>${label}</button>`;
             return `<div class="flex w-full sm:w-auto sm:self-start gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">
-                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}
+                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}
                 </div>`;
         }
         /** ชื่อกิลด์ของลิงก์ (มุมขวาบน) — หน้าสาธารณะเท่านั้น */
@@ -13695,7 +13718,16 @@
 
         function switchPublicHub(target) {
             const q = galleryShareQuery(); // k / g / s เดิม
-            if (target === 'castle') {
+            const hbv = document.getElementById('hb-viewer');
+            if (hbv) hbv.style.display = 'none';
+            if (target === 'builds') {
+                try { window.history.replaceState({}, '', window.location.pathname + '?mode=builds-view' + q); } catch (e) {}
+                ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                if (typeof ccViewerCloseHeroPicker === 'function') ccViewerCloseHeroPicker();
+                ccViewDetailOpen = false;
+                if (hbv) { hbv.style.display = ''; hbvRender(); if (Date.now() - (hbvSync.at || 0) >= GALLERY_POLL_MS - 1000) hbvSyncData(); }
+                else hbvBoot();
+            } else if (target === 'castle') {
                 try { window.history.replaceState({}, '', window.location.pathname + '?mode=castle-view' + q); } catch (e) {}
                 const main = document.getElementById('main-content');
                 if (main) main.style.display = 'none';
@@ -13722,6 +13754,265 @@
                 if (galleryCacheDB && galleryCacheDB.length && Date.now() - (gallerySync.at || 0) >= GALLERY_POLL_MS - 1000) syncSharedGalleryInBackground(decodeGuildParam(appUrlParams().get('g'))); // ไม่ได้ดูนาน → เช็คเลย
             }
             window.scrollTo(0, 0);
+        }
+
+        // =========================================================
+        // 🔨 หน้าสาธารณะ: บิ้วตัวละครที่เผยแพร่ (?mode=builds-view) — ดูอย่างเดียว ไม่ต้อง login
+        //    ข้อมูลมากับ getAllSharedTeams (masterData.hero_builds · มีเวอร์ชัน = ไม่เปลี่ยนไม่ส่งซ้ำ)
+        //    กดการ์ด → หน้าต่างรายละเอียด: ระดับดาว · สเตตัส base → รวม · เซต · ออฟหลัก/รอง · ของรัก
+        // =========================================================
+        let hbvSearch = '', hbvOpenId = null, hbvSync = { state: 'idle', at: 0 }, hbvBusy = false, hbvPollTimer = null;
+
+        function hbvBoot() {
+            isPublicView = true;
+            ['login-screen', 'main-sidebar', 'main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+            hideLoading();
+            let box = document.getElementById('hb-viewer');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'hb-viewer';
+                box.className = 'fixed inset-0 z-[100] overflow-y-auto bg-[#0b0e14] text-gray-200';
+                document.body.appendChild(box);
+            }
+            box.style.display = '';
+            mergePublicMasterData(null, null); // ของที่เครื่องนี้เคยโหลดไว้ — โชว์ก่อนเลย
+            hbvRender();
+            hbvSyncData();
+            if (!hbvPollTimer) {
+                const due = () => Date.now() - (hbvSync.at || 0) >= GALLERY_POLL_MS - 1000;
+                const on = () => { const b = document.getElementById('hb-viewer'); return b && b.style.display !== 'none'; };
+                hbvPollTimer = setInterval(() => { if (document.visibilityState === 'visible' && on() && due()) hbvSyncData(); }, GALLERY_POLL_MS);
+            }
+        }
+
+        async function hbvSyncData() {
+            if (hbvBusy || !SCRIPT_URL) return;
+            hbvBusy = true;
+            hbvSync = { state: 'checking', at: hbvSync.at };
+            hbvSetBadge();
+            const sig = () => JSON.stringify((publicBuildsDB || []).map(b => [b.id, b.ts || 0]));
+            const before = sig();
+            try {
+                const g = decodeGuildParam(appUrlParams().get('g')) || 'all';
+                const res = await postJson({ action: 'getAllSharedTeams', userGuild: g, isAdmin: false, versions: galleryVersionsForRequest() }, { timeout: 60000, retries: 4 });
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
+                mergePublicMasterData(res.masterData, res.versions);
+                if (Array.isArray(res.teams)) saveCachedSharedTeams(res.teams, res.versions); // แกลเลอรีได้ของใหม่ไปด้วย
+                const changed = before !== sig();
+                const updated = changed && !!hbvSync.at; // โหลดครั้งแรกไม่นับว่า "มีของใหม่"
+                hbvSync = { state: updated ? 'updated' : 'idle', at: Date.now() };
+                if (updated) {
+                    showToast('✨ มีบิ้วตัวละครใหม่/อัปเดต', 'success');
+                    setTimeout(() => { if (hbvSync.state === 'updated') { hbvSync.state = 'idle'; hbvSetBadge(); } }, 10000);
+                }
+            } catch (e) {
+                console.warn('builds-view sync failed:', e);
+                hbvSync = { state: 'error', at: Date.now() };
+            } finally {
+                hbvBusy = false;
+                const box = document.getElementById('hb-viewer');
+                if (box && box.style.display !== 'none') hbvRender(); else hbvSetBadge();
+            }
+        }
+
+        function hbvBadgeHTML() {
+            const s = hbvSync, base = 'px-3 py-2 rounded-xl text-[11px] font-bold border flex items-center gap-1.5 whitespace-nowrap';
+            const hhmm = s.at ? new Date(s.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            if (s.state === 'checking') return `<span class="${base} bg-blue-900/30 text-blue-300 border-blue-700/50"><span class="inline-block animate-spin">🔄</span> กำลังเช็คบิ้วใหม่…</span>`;
+            if (s.state === 'updated') return `<span class="${base} bg-emerald-900/40 text-emerald-300 border-emerald-600/60 animate-pulse">✨ มีบิ้วใหม่</span>`;
+            if (s.state === 'error') return `<span class="${base} bg-amber-900/30 text-amber-300 border-amber-700/50">⚠️ เช็คไม่ได้ — จะลองใหม่เอง</span>`;
+            return hhmm ? `<span class="${base} bg-[#0d1117] text-gray-500 border-gray-800">✓ ล่าสุด ${hhmm}</span>` : '';
+        }
+        function hbvSetBadge() { const el = document.getElementById('hbv-sync-status'); if (el) el.innerHTML = hbvBadgeHTML(); }
+
+        function hbvHero(b) { const hid = b.heroId || (b.data && b.data.heroId); return heroesDB.find(x => String(x.id) === String(hid)) || null; }
+        /** ป้าย C สั้นๆ บนการ์ด */
+        function hbvCTag(d) {
+            const c = hbCLevel(d.blueStars, d.redStars);
+            return c ? `<span class="font-black ${c > 6 ? 'text-red-400' : 'text-sky-400'}">C${c}</span>` : '<span class="text-[10px] text-gray-500 font-bold">Base</span>';
+        }
+
+        function hbvRender() {
+            const box = document.getElementById('hb-viewer');
+            if (!box) return;
+            const q = hbvSearch.trim().toLowerCase();
+            const all = (Array.isArray(publicBuildsDB) ? publicBuildsDB.slice() : []).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+            const list = q ? all.filter(b => { const hr = hbvHero(b); return [b.name, b.owner, hr && hr.name].some(s => String(s || '').toLowerCase().includes(q)); }) : all;
+            const cards = list.map((b, i) => {
+                const hero = hbvHero(b), d = b.data || {};
+                const set = d.setId ? equipSetsDB.find(s => String(s.id) === String(d.setId)) : null;
+                const awk = !!d.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX;
+                const img = hero ? (awk ? hero.img2 : hero.img) : '';
+                return `<button type="button" onclick="hbvOpen(${all.indexOf(b)})" class="text-left bg-[#161b22] border border-gray-800 hover:border-emerald-500/70 rounded-2xl p-4 transition hover:-translate-y-0.5 shadow-lg flex flex-col gap-2 group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            ${img ? `<img src="${img}" class="w-full h-full object-cover">` : '<span class="text-2xl opacity-30">🦸</span>'}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-black text-white truncate group-hover:text-emerald-300">${ccEsc(b.name || 'บิ้วไม่มีชื่อ')}</div>
+                            <div class="text-[11px] text-gray-400 truncate">${hero ? ccEsc(hero.name) : '— ไม่พบตัวละคร —'}</div>
+                            <div class="text-[10px] text-gray-600 truncate">โดย ${ccEsc(b.owner || 'ไม่ระบุ')}</div>
+                        </div>
+                        <span class="text-sm flex-shrink-0">${hbvCTag(d)}</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        ${set ? `<span class="px-1.5 py-0.5 rounded-md bg-cyan-900/20 border border-cyan-800/40 text-cyan-300">🛡️ ${ccEsc(set.name)}</span>` : ''}
+                        ${awk ? '<span class="px-1.5 py-0.5 rounded-md bg-purple-900/30 border border-purple-700/50 text-purple-300">✨ ปลุกพลัง</span>' : ''}
+                    </div>
+                </button>`;
+            }).join('');
+            const emptyMsg = q ? 'ไม่พบบิ้วที่ตรงคำค้น' : (hbvSync.state === 'checking' && !all.length ? 'กำลังโหลดบิ้ว…' : 'ยังไม่มีบิ้วที่เผยแพร่');
+            box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">
+                <div class="flex flex-col md:flex-row items-start justify-between gap-4 mb-5">
+                    <div class="flex flex-col gap-3">
+                        <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Hero <span class="text-emerald-400">Builds</span></h1>
+                        ${publicHubNavHTML('builds')}
+                    </div>
+                    <div class="flex flex-wrap items-center md:justify-end gap-3">
+                        ${publicHubGuildHTML()}
+                        <span id="hbv-sync-status">${hbvBadgeHTML()}</span>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <span class="text-xs text-gray-500">${list.length}${q ? ' / ' + all.length : ''} บิ้ว</span>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔤</span>
+                        <input id="hbv-search" type="text" value="${ccEsc(hbvSearch)}" oninput="hbvOnSearch(this.value)" placeholder="ค้นหาชื่อบิ้ว / ตัวละคร / คนสร้าง..."
+                            class="w-72 max-w-[80vw] bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                ${list.length ? `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">${cards}</div>`
+                    : `<div class="text-center text-gray-600 py-24"><div class="text-6xl mb-4 opacity-30">🔨</div><div class="text-sm">${emptyMsg}</div></div>`}
+            </div>${hbvOpenId !== null ? hbvDetailHTML(all[hbvOpenId]) : ''}`;
+        }
+
+        function hbvOnSearch(v) {
+            hbvSearch = v;
+            hbvRender();
+            const inp = document.getElementById('hbv-search');
+            if (inp) { inp.focus(); inp.setSelectionRange(v.length, v.length); }
+        }
+        /** i = ลำดับในรายการทั้งหมด (เรียงใหม่สุดก่อน) — ไม่ส่ง id ใน onclick กันอักขระแปลก */
+        function hbvOpen(i) { hbvOpenId = i; hbvRender(); }
+        function hbvClose() { hbvOpenId = null; hbvRender(); }
+
+        /** หน้าต่างรายละเอียดบิ้ว (อ่านอย่างเดียว) — คำนวณด้วย hbComputeFrom ตัวเดียวกับหน้าบิ้ว */
+        function hbvDetailHTML(b) {
+            if (!b || !b.data) return '';
+            const d = hbNormalizeBuildData(b.data);
+            const c = hbComputeFrom(d);
+            const hero = c.hero;
+            const awk = !!d.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX;
+            return `<div class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center p-3 overflow-y-auto" onclick="if(event.target===this)hbvClose()">
+                <div class="bg-[#0b0f17] border border-gray-700 rounded-2xl w-full max-w-7xl shadow-2xl my-4">
+                    <div class="flex items-center gap-3 p-4 border-b border-gray-800">
+                        <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0">${hero ? `<img src="${awk ? hero.img2 : hero.img}" class="w-full h-full object-cover">` : ''}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-lg font-black text-white truncate">${ccEsc(b.name || 'บิ้วไม่มีชื่อ')}</div>
+                            <div class="text-xs text-gray-400 truncate">${hero ? ccEsc(hero.name) : '— ไม่พบตัวละคร —'} · โดย ${ccEsc(b.owner || 'ไม่ระบุ')}</div>
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-sm">
+                                <span class="flex text-[15px] leading-none">${[1,2,3,4,5,6].map(n => { const cl = hbCLevel(d.blueStars, d.redStars); return `<span class="${n <= cl - 6 ? 'text-red-500' : n <= cl ? 'text-sky-400' : 'text-yellow-400'}">★</span>`; }).join('')}</span>
+                                ${(() => { const cl = hbCLevel(d.blueStars, d.redStars); return cl ? `<span class="font-black ${cl > 6 ? 'text-red-400' : 'text-sky-400'}">C${cl}</span>` : '<span class="font-black text-yellow-400">C0</span>'; })()}
+                                ${awk ? '<span class="text-[11px] text-purple-300 font-bold">✨ ปลุกพลัง</span>' : ''}
+                                ${hero && hero.attackType ? `<span class="text-[11px] font-bold ${hero.attackType === 'magic' ? 'text-purple-300' : 'text-orange-300'}">${hero.attackType === 'magic' ? '🔮 โจมตีเวท' : '⚔️ โจมตีกายภาพ'}</span>` : ''}
+                            </div>
+                        </div>
+                        <button type="button" onclick="hbvClose()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
+                    </div>
+                    <div class="p-3 md:p-4">${hbvBodyHTML(d)}</div>
+                </div>
+            </div>`;
+        }
+
+        /** เนื้อหาบิ้ว (ดูอย่างเดียว) 3 คอลัมน์: ซ้าย = รูปตัวละคร + ดาว + สเตตัส · กลาง = ของรัก · ขวา = เซต + อุปกรณ์ 4 ชิ้น */
+        function hbvBodyHTML(d) {
+            const c = hbComputeFrom(d), hero = c.hero;
+            const awk = !!d.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX;
+            const card = (inner, cls) => `<div class="bg-[#111827] border ${cls || 'border-gray-700'} rounded-2xl p-4">${inner}</div>`;
+            const r1 = v => Math.round((parseFloat(v) || 0) * 10) / 10;
+
+            // ── ซ้าย: สเตตัส (รูป/ดาวอยู่ที่หัวหน้าต่างแล้ว) ──
+            const statRows = BUILD_SHOW.map(o => {
+                const k = o[0], suf = o[2] ? '%' : '', bb = r1(c.base[k]), t = r1(c.totals[k]);
+                return `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-black/20 border border-gray-800">
+                    <span class="text-xs text-gray-400">${o[1]}</span>
+                    <span class="text-sm font-mono"><span class="text-gray-500">${bb}${suf}</span> <span class="text-gray-600">→</span> <span class="font-bold ${t > bb ? 'text-emerald-400' : 'text-white'}">${t}${suf}</span></span></div>`;
+            }).join('') + (c.extra || []).map(e => `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-cyan-900/10 border border-cyan-800/30">
+                    <span class="text-xs text-cyan-200/80">${ccEsc(e.stat)}</span><span class="text-sm font-mono font-bold text-emerald-400">+${e.value}%</span></div>`).join('');
+            const statsCard = card(`<div class="text-sm font-black text-blue-400 mb-3">📊 สเตตัสสุทธิ <span class="text-[10px] text-gray-500 font-normal">(base → รวม)</span></div><div class="space-y-1.5">${statRows}</div>`);
+
+            // ── กลาง: ของรัก ──
+            const lv = hbRelicLv(d), rm = hbRelicMain(hero, lv), lab = { atk: 'ATK', hp: 'HP', def: 'DEF' };
+            const accImg = hero && hero.accImg && hero.accImg !== DRIVE_IMG_PREFIX ? hero.accImg : '';
+            const relicRows = (lv < 0 ? [] : (d.relic || [])).map(r => {
+                const rs = r && r.stat ? hbRelicStat(r.stat) : null;
+                if (!rs) return `<div class="text-xs text-gray-600 px-3 py-2 rounded-lg bg-black/20 border border-gray-800">— ไม่ได้เลือก —</div>`;
+                const ti = HB_RELIC_TIER_IDX[r.tier], tier = HB_RELIC_TIERS[ti];
+                return `<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-black/20 border border-gray-800">
+                    <span class="text-xs text-gray-200 truncate">${ccEsc(rs.label)}</span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded ${tier ? tier.active : ''}">+${rs.vals[ti] || 0}%</span></div>`;
+            }).join('');
+            const relicCard = card(`
+                <div class="flex gap-3 mb-3">
+                    <div class="w-20 h-20 rounded-xl border-2 border-pink-700/50 bg-black overflow-hidden flex items-center justify-center flex-shrink-0">
+                        ${accImg ? `<img src="${accImg}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : '<span class="text-3xl opacity-40">💎</span>'}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-black text-pink-300">💎 ของรัก</div>
+                        ${lv < 0 ? '<div class="text-xs text-gray-500 mt-1">ไม่ได้ใส่ของรัก</div>'
+                            : `<div class="text-xs text-gray-400 mt-1"><span class="font-bold text-pink-200">+${lv}</span>${Object.keys(rm).length ? ' · <span class="font-mono text-emerald-300">' + Object.keys(rm).map(k => lab[k] + ' +' + rm[k]).join(' · ') + '</span>' : ''}</div>`}
+                    </div>
+                </div>
+                <div class="space-y-1.5">${relicRows}</div>`, 'border-pink-800/40');
+            const pot = hbCleanPotential(d.potential);
+            const potRows = HB_POT_KEYS.map(([k, label, icon]) => `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-black/20 border border-gray-800">
+                    <span class="text-xs text-gray-400">${icon} ${label}</span>
+                    <span class="text-xs font-mono ${pot[k] ? 'text-emerald-300 font-bold' : 'text-gray-600'}">${pot[k] ? '+' + HB_POTENTIAL[k][pot[k]] + ' <span class="text-gray-500 font-normal">(ขั้น ' + pot[k] + ')</span>' : '—'}</span></div>`).join('');
+            const extrasCard = card(`
+                <div class="text-sm font-black text-indigo-300 mb-2">⚡ ศักยภาพ</div>
+                <div class="space-y-1.5">${potRows}</div>
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs font-bold ${d.ring ? 'bg-amber-600/20 border-amber-500/60 text-amber-200' : 'bg-black/20 border-gray-800 text-gray-500'}">
+                    <span>💍 ${d.ring ? 'ใส่แหวน' : 'ไม่ใส่แหวน'}</span>
+                    ${d.ring ? `<span class="font-mono text-[11px] text-emerald-300">ATK +${HB_RING_STATS.atk} · DEF +${HB_RING_STATS.def} · HP +${HB_RING_STATS.hp}</span>` : ''}
+                </div>`);
+            // ── ขวา: เซต + อุปกรณ์ ──
+            const s4 = c.set && c.set.setBonus && Array.isArray(c.set.setBonus.s4) ? c.set.setBonus.s4 : [];
+            const setCard = card(c.set ? `<div class="flex gap-3">
+                    <div class="w-20 h-20 rounded-xl border-2 border-cyan-500 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        ${c.set.img ? `<img src="${c.set.img}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : '<span class="text-3xl opacity-30">🛡️</span>'}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-black text-cyan-300">🛡️ ${ccEsc(c.set.name)} <span class="text-[10px] text-gray-500 font-normal">เซต 4 ชิ้น</span></div>
+                        ${s4.length ? s4.map(bn => `<div class="text-xs text-gray-300 mt-0.5">• ${ccEsc(bn.stat)}${bn.kind === 'effect' ? ' <span class="text-amber-400">(เอฟเฟกต์)</span>' : ' <span class="text-emerald-400 font-bold">+' + bn.value + '%</span>'}</div>`).join('') : '<div class="text-xs text-gray-600 italic mt-1">ไม่มีโบนัสเซต</div>'}
+                    </div></div>` : '<div class="text-xs text-gray-500 italic">ยังไม่ได้เลือกเซตอุปกรณ์</div>', 'border-cyan-700/40');
+            const subLabel = k => { const o = BUILD_SUBS.find(x => x[0] === k); return o ? o[1] : k; };
+            const mainLabel = (idx, k) => { const o = (idx < 2 ? BUILD_FRONT_MAIN : BUILD_BACK_MAIN).find(x => x[0] === k); return o ? o[1] : k; };
+            const ms = c.set && c.set.mainStats ? c.set.mainStats : {};
+            const pieces = (d.pieces || []).map((p, idx) => {
+                const front = idx < 2, img = hbPieceImg(idx, c);
+                const flat = front ? (ms.atk ? ['พลังโจมตี +' + ms.atk] : []) : [ms.def ? 'พลังป้องกัน +' + ms.def : '', ms.hp ? 'HP +' + ms.hp : ''].filter(Boolean);
+                const subs = (p.subs || []).filter(s => s.key).map(s => {
+                    const up = parseInt(s.up) || 0;
+                    return `<div class="flex justify-between gap-2 text-[11px]"><span class="text-gray-300 truncate">${ccEsc(subLabel(s.key))}${up ? ' <span class="text-blue-400 font-bold">+' + up + '</span>' : ''}</span><span class="text-emerald-300 font-mono flex-shrink-0">+${(BUILD_SUB_DEF[s.key] || 0) * (1 + up)}${buildIsPct(s.key) ? '%' : ''}</span></div>`;
+                }).join('');
+                return `<div class="bg-[#111827] border ${front ? 'border-orange-600/40' : 'border-sky-600/40'} rounded-2xl p-3">
+                    <div class="flex gap-2.5 mb-2">
+                        <div class="w-14 h-14 rounded-lg bg-black overflow-hidden flex-shrink-0 flex items-center justify-center border ${front ? 'border-orange-600/40' : 'border-sky-600/40'}">${img ? `<img src="${img}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : `<span class="opacity-30">${front ? '⚔️' : '🛡️'}</span>`}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-[10px] ${front ? 'text-orange-300' : 'text-sky-300'} font-bold">${front ? 'ชิ้นหน้า #' + (idx + 1) : 'ชิ้นหลัง #' + (idx - 1)}</div>
+                            ${flat.map(t => `<div class="text-[10px] text-gray-400">${t}</div>`).join('')}
+                            ${p.mainKey ? `<div class="text-xs font-bold text-yellow-200 truncate">${ccEsc(mainLabel(idx, p.mainKey))} +${hbMainVal(idx, p.mainKey)}${buildIsPct(p.mainKey) ? '%' : ''}</div>` : '<div class="text-xs text-gray-600">— ไม่มีออฟหลัก —</div>'}
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-800 pt-2 space-y-0.5">${subs || '<div class="text-[11px] text-gray-600">— ไม่มีออฟรอง —</div>'}</div>
+                </div>`;
+            }).join('');
+
+            return `<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}</div>
+                <div class="lg:col-span-4 flex flex-col gap-4">${relicCard}${extrasCard}</div>
+                <div class="lg:col-span-5 flex flex-col gap-4">${setCard}<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${pieces}</div></div>
+            </div>`;
         }
 
         /** ทิ้งไฟล์ที่เปิดเอง กลับไปใช้ตารางล่าสุดของกิลด์ */
@@ -22971,7 +23262,24 @@
         ];
 
         function hbBlankPiece(){ return { mainKey:'', subs:[{key:'',up:0},{key:'',up:0},{key:'',up:0},{key:'',up:0}] }; }
-        function hbDefaultBuild(){ return { heroId:null, setId:'', blueStars:0, redStars:0, awakened:false, skillUp:{}, relic:hbBlankRelic(), pieces:[hbBlankPiece(),hbBlankPiece(),hbBlankPiece(),hbBlankPiece()] }; }
+        // 💍 แหวน — ค่าที่วัดจากในเกม (แหวนทอง +15: ATK/DEF/HP ตอนใส่ − ตอนถอด) · ได้ข้อมูลแหวนจริงค่อยแก้ตรงนี้ที่เดียว
+        const HB_RING_STATS = { atk: 171, def: 66, hp: 383 };
+        // 💎 ค่าหลักของรักตามระดับตีบวก = ค่า +0 × (1 + 0.25 × ระดับ) — ตรงกับซอรัน (+0 52 → +15 247)
+        const HB_RELIC_LV_RATE = 0.25;
+        function hbRelicLv(b){ const v = parseInt(b && b.relicLv, 10); return Number.isFinite(v) && v >= -1 && v <= 15 ? v : 15; }
+        /** ค่าหลักของรักที่ได้จริง { atk, hp, def } (ปัดเป็นจำนวนเต็มแบบในเกม) */
+        function hbRelicMain(hero, lv){
+            const rs = (hero && hero.relicStats) || {}, out = {};
+            if (lv < 0) return out;
+            ['atk', 'hp', 'def'].forEach(k => { const v = parseFloat(rs[k]) || 0; if (v > 0) out[k] = Math.round(v * (1 + HB_RELIC_LV_RATE * lv)); });
+            return out;
+        }
+        // ⚡ อัปศักยภาพ 3 ขั้น (flat) — index = ขั้น 0..3 · ยืนยันกับซอรันในเกม: ATK/DEF ตรงเป๊ะเมื่อบวกขั้น 3
+        const HB_POTENTIAL = { atk: [0, 100, 220, 370], hp: [0, 320, 680, 1130], def: [0, 70, 150, 250] };
+        const HB_POT_KEYS = [['atk', 'ATK', '⚔️'], ['hp', 'HP', '❤️'], ['def', 'DEF', '🛡️']];
+        function hbBlankPotential(){ return { atk: 0, hp: 0, def: 0 }; }
+        function hbCleanPotential(p){ const o = hbBlankPotential(); if (p && typeof p === 'object') HB_POT_KEYS.forEach(([k]) => { const v = parseInt(p[k], 10); o[k] = v >= 0 && v <= 3 ? v : 0; }); return o; }
+        function hbDefaultBuild(){ return { heroId:null, setId:'', blueStars:0, redStars:0, awakened:false, ring:false, potential:hbBlankPotential(), relicLv:15, skillUp:{}, relic:hbBlankRelic(), pieces:[hbBlankPiece(),hbBlankPiece(),hbBlankPiece(),hbBlankPiece()] }; }
         let heroBuildState = hbLoad();
         let heroBuildMode = 'list'; // 'list' = รายการบิ้วที่เผยแพร่ | 'editor' = หน้าบิ้ว
         let heroBuildsDB = (() => { try { return JSON.parse(localStorage.getItem('7k_hero_builds')) || []; } catch(e){ return []; } })();
@@ -25624,7 +25932,7 @@
                 });
             }
             // 💎 ของรัก / อุปกรณ์เฉพาะ (4 ความสามารถ) → ตรงสเตตัสบวกเข้า, ใหม่ต่อท้าย
-            (b.relic || []).forEach(r => {
+            (hbRelicLv(b) < 0 ? [] : (b.relic || [])).forEach(r => {
                 if (!r || !r.stat) return;
                 const rs = hbRelicStat(r.stat);
                 const ti = HB_RELIC_TIER_IDX[r.tier];
@@ -25634,6 +25942,14 @@
                 if (rs.gear) add(rs.gear, v);
                 else { if (!extraMap[rs.key]) extraMap[rs.key] = { stat: rs.label, value: 0, valueType: 'percent' }; extraMap[rs.key].value += v; }
             });
+            // 💍 แหวน (ติ๊กใส่) → flat ATK/DEF/HP
+            if (b.ring) { add('atkFlat', HB_RING_STATS.atk); add('defFlat', HB_RING_STATS.def); add('hpFlat', HB_RING_STATS.hp); }
+            // 💎 ค่าหลักของรัก (flat) ตามระดับตีบวก
+            const rm = hbRelicMain(hero, hbRelicLv(b));
+            add('atkFlat', rm.atk || 0); add('hpFlat', rm.hp || 0); add('defFlat', rm.def || 0);
+            // ⚡ ศักยภาพ (ขั้น 0–3) → flat ATK/HP/DEF
+            const pot = hbCleanPotential(b.potential);
+            add('atkFlat', HB_POTENTIAL.atk[pot.atk]); add('hpFlat', HB_POTENTIAL.hp[pot.hp]); add('defFlat', HB_POTENTIAL.def[pot.def]);
             const extra = Object.keys(extraMap).map(k => extraMap[k]);
             // num = base + ดาว + พาสซีฟ (ค่าที่ไม่ขึ้นกับอุปกรณ์) · pure = base บริสุทธิ์ (ฐานของ % อุปกรณ์)
             const num = k => (parseFloat(base[k]) || 0) + (growth[k] || 0) + (passive[k] || 0);
@@ -25690,9 +26006,9 @@
                     <select onchange="hbSetSub(${idx},${si},this.value)" class="flex-1 min-w-0 bg-[#161b22] border border-gray-600 text-white p-1 rounded text-[11px] outline-none">${subOpts}</select>
                     <span class="w-12 text-right text-[11px] font-mono ${s.key?'text-emerald-300':'text-gray-600'} flex-shrink-0">${s.key?('+'+val+suf):'-'}</span>
                     <div class="flex items-center gap-0.5 flex-shrink-0">
-                        <button onclick="hbSubUp(${idx},${si},-1)" ${canMinus?'':'disabled'} class="w-5 h-5 rounded bg-gray-700 hover:bg-gray-600 text-white text-xs leading-none disabled:opacity-30">−</button>
+                        <button onclick="hbSubUp(${idx},${si},-1)" ${canMinus?'':'disabled'} class="hb-edit-only w-5 h-5 rounded bg-gray-700 hover:bg-gray-600 text-white text-xs leading-none disabled:opacity-30">−</button>
                         <span class="w-4 text-center text-[10px] text-gray-400">${parseInt(s.up)||0}</span>
-                        <button onclick="hbSubUp(${idx},${si},1)" ${canPlus?'':'disabled'} class="w-5 h-5 rounded bg-blue-700 hover:bg-blue-600 text-white text-xs leading-none disabled:opacity-30">+</button>
+                        <button onclick="hbSubUp(${idx},${si},1)" ${canPlus?'':'disabled'} class="hb-edit-only w-5 h-5 rounded bg-blue-700 hover:bg-blue-600 text-white text-xs leading-none disabled:opacity-30">+</button>
                     </div>
                 </div>`;
             }).join('');
@@ -25713,8 +26029,13 @@
         function renderHeroBuild(){
             const body = document.getElementById('hero-build-body');
             if (!body) return;
+            body.innerHTML = hbBuildPageHTML(heroBuildState, false);
+        }
+        /** หน้าบิ้วทั้งหน้า · ro = ดูอย่างเดียว (หน้าสาธารณะใช้ตัวเดียวกัน หน้าตาจะได้เหมือนกัน) */
+        function hbBuildPageHTML(st, ro){
+            const heroBuildState = st; // เงา global — ทุกจุดข้างล่างอ่านจากบิ้วที่ส่งมา
             const esc = (n) => String(n == null ? '' : n).replace(/</g, '&lt;').replace(/"/g, '&quot;');
-            const c = hbCompute();
+            const c = hbComputeFrom(heroBuildState);
             const hero = c.hero;
 
             const statRows = BUILD_SHOW.map(o => {
@@ -25777,8 +26098,8 @@
                 }).join('');
                 skillsPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4">
                     <div class="flex items-center justify-between mb-3">
-                        <div class="text-sm font-black text-purple-300">⚡ สกิล <span class="text-[10px] text-gray-500 font-normal">(กดรูป = อัพ · ชี้ค้าง = ดูคำอธิบาย)</span></div>
-                        <button onclick="hbOpenSkillDetail()" class="text-[10px] text-blue-400 hover:underline">ดูรายละเอียด</button>
+                        <div class="text-sm font-black text-purple-300">⚡ สกิล <span class="hb-edit-only text-[10px] text-gray-500 font-normal">(กดรูป = อัพ · ชี้ค้าง = ดูคำอธิบาย)</span></div>
+                        <button onclick="hbOpenSkillDetail()" class="hb-edit-only text-[10px] text-blue-400 hover:underline">ดูรายละเอียด</button>
                     </div>
                     <div class="grid grid-cols-5 gap-2">${cells}</div>
                 </div>`;
@@ -25804,9 +26125,23 @@
                         oninput="hbCPreview(this.value)" onchange="hbSetCLevel(this.value)"
                         class="w-full cursor-pointer" style="accent-color:${cLv>6?'#ef4444':'#38bdf8'}">
                     <div class="relative h-4 text-[9px] font-bold mb-3">${[0,1,2,3,4,5,6,7,8,9,10,11,12].map(tick).join('')}</div>
-                    <button onclick="hbToggleAwaken()" ${hasAw?'':'disabled'} style="height:35px" class="w-full flex items-center justify-center rounded-lg text-xs font-bold transition ${!hasAw?'bg-gray-800 text-gray-600 cursor-not-allowed':(awk?'bg-purple-600 text-white':'bg-purple-900/30 text-purple-300 border border-purple-700 hover:bg-purple-800/40')}">${!hasAw?'✨ ตัวนี้ไม่มีปลุกพลัง':(awk?'✨ ปลุกพลังแล้ว (กดเพื่อปลด)':'✨ ปลุกพลัง')}</button>
+                    <button onclick="hbToggleAwaken()" ${hasAw?'':'disabled'} style="height:35px" class="w-full flex items-center justify-center rounded-lg text-xs font-bold transition ${!hasAw?'bg-gray-800 text-gray-600 cursor-not-allowed':(awk?'bg-purple-600 text-white':'bg-purple-900/30 text-purple-300 border border-purple-700 hover:bg-purple-800/40')}">${!hasAw?'✨ ตัวนี้ไม่มีปลุกพลัง':(awk?(ro?'✨ ปลุกพลังแล้ว':'✨ ปลุกพลังแล้ว (กดเพื่อปลด)'):'✨ ปลุกพลัง')}</button>
+                    ${hbPotentialHTML(heroBuildState)}
                 </div>`;
             }
+
+            // 🛡️ เซตอุปกรณ์ + โบนัสเซต — อยู่ในแผงของรัก (ขนาดพอดีกับแผงดาว/สกิลฝั่งซ้าย)
+            const setSectionHTML = `<div class="flex gap-3">
+                    <div class="flex flex-col items-center gap-1.5 flex-shrink-0">
+                        <div onclick="hbOpenSetPicker()" class="w-20 h-20 rounded-xl border-2 ${c.set?'border-cyan-500':'border-gray-700 border-dashed'} bg-black overflow-hidden cursor-pointer hover:border-cyan-400 transition flex items-center justify-center shadow-lg">
+                            ${c.set && c.set.img ? `<img src="${c.set.img}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : '<span class="text-3xl opacity-30">🛡️</span>'}
+                        </div>
+                        <button onclick="hbOpenSetPicker()" class="text-xs font-bold ${c.set?'text-white':'text-gray-500'} hover:text-cyan-300 max-w-[5.5rem] truncate transition">${c.set ? esc(c.set.name) : '+ เลือกเซต'}</button>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        ${c.set ? setBonusInner : '<div class="text-xs text-gray-500 italic flex items-center h-full min-h-[5rem]">ยังไม่ได้เลือกเซต — โบนัสเซตจะแสดงตรงนี้</div>'}
+                    </div>
+                </div>`;
 
             // 💎 ของรัก / อุปกรณ์เฉพาะ (4 ความสามารถ)
             let relicPanel = '';
@@ -25826,19 +26161,28 @@
                     </div>`;
                 }).join('');
                 const accImg = (hero.accImg && hero.accImg !== DRIVE_IMG_PREFIX) ? hero.accImg : '';
-                relicPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4 h-full w-full">
+                relicPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4 h-full w-full flex flex-col">
                     <div class="flex gap-3 mb-3">
                         <div class="w-20 h-20 rounded-xl border-2 border-pink-700/50 bg-black overflow-hidden flex items-center justify-center flex-shrink-0">
                             ${accImg ? `<img src="${accImg}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : '<span class="text-3xl opacity-40">💎</span>'}
                         </div>
-                        <div class="text-sm font-black text-pink-300">ของรัก / อุปกรณ์เฉพาะ</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-black text-pink-300">ของรัก / อุปกรณ์เฉพาะ</div>
+                            ${hbRelicHeadHTML(hero, heroBuildState)}
+                        </div>
                     </div>
                     <div class="space-y-2">${rows}</div>
+                    <button type="button" onclick="hbToggleRing()" aria-pressed="${!!heroBuildState.ring}"
+                        class="mt-3 w-full flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-2 rounded-xl border text-xs font-bold transition ${heroBuildState.ring ? 'bg-amber-600/20 border-amber-500/60 text-amber-200' : 'bg-[#161b22] border-gray-600 text-gray-400 hover:text-white hover:border-gray-400'}">
+                        <span class="flex items-center gap-2 whitespace-nowrap"><span class="w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center text-[10px] ${heroBuildState.ring ? 'bg-amber-500 border-amber-400 text-black' : 'border-gray-500'}">${heroBuildState.ring ? '✓' : ''}</span>💍 ใส่แหวน</span>
+                        <span class="font-mono text-[11px] whitespace-nowrap ${heroBuildState.ring ? 'text-emerald-300' : 'text-gray-600'}">ATK +${HB_RING_STATS.atk} · DEF +${HB_RING_STATS.def} · HP +${HB_RING_STATS.hp}</span>
+                    </button>
+                    <div class="mt-4 pt-4 border-t border-gray-800">${setSectionHTML}</div>
                 </div>`;
             }
 
-            body.innerHTML = `
-            <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-5">
+            return `
+            <div class="${ro ? 'hb-ro ' : ''}max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <!-- คอลัมน์ซ้าย: ตัวละคร + สเตตัส -->
                 <div class="lg:col-span-1 flex flex-col gap-4">
                     <div class="bg-[#111827] border border-gray-700 rounded-2xl p-4 flex gap-3">
@@ -25857,17 +26201,7 @@
                 <!-- คอลัมน์ขวา: (ดาว+สกิล | ของรัก) + เซต + อุปกรณ์ -->
                 <div class="lg:col-span-2 flex flex-col gap-4">
                     ${hero ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="flex flex-col gap-4">${starPanel}${skillsPanel}</div><div class="flex">${relicPanel}</div></div>` : ''}
-                    <div class="bg-[#111827] border border-cyan-700/40 rounded-2xl p-4 flex flex-col sm:flex-row gap-4">
-                        <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                            <div onclick="hbOpenSetPicker()" class="w-24 h-24 rounded-2xl border-2 ${c.set?'border-cyan-500':'border-gray-700 border-dashed'} bg-black overflow-hidden cursor-pointer hover:border-cyan-400 transition flex items-center justify-center shadow-lg">
-                                ${c.set && c.set.img ? `<img src="${c.set.img}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : '<span class="text-4xl opacity-30">🛡️</span>'}
-                            </div>
-                            <button onclick="hbOpenSetPicker()" class="text-sm font-bold ${c.set?'text-white':'text-gray-500'} hover:text-cyan-300 max-w-[6.5rem] truncate transition">${c.set ? esc(c.set.name) : '+ เลือกเซต'}</button>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            ${c.set ? setBonusInner : '<div class="text-xs text-gray-500 italic flex items-center h-full min-h-[5rem]">ยังไม่ได้เลือกเซต — โบนัสเซตจะแสดงตรงนี้</div>'}
-                        </div>
-                    </div>
+                    ${hero ? '' : `<div class="bg-[#111827] border border-cyan-700/40 rounded-2xl p-4">${setSectionHTML}</div>`}
                     ${hero ? `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">${pieceCards}</div>` : `<div class="text-center text-gray-600 py-16 bg-[#111827] border border-gray-700 rounded-2xl"><div class="text-5xl mb-3 opacity-40">🦸</div><div class="text-sm">เลือกตัวละครเพื่อเริ่มบิ้ว</div></div>`}
                 </div>
             </div>`;
@@ -25905,6 +26239,44 @@
         function hbSetBlue(n){ n = parseInt(n)||0; if(n<0)n=0; if(n>6)n=6; heroBuildState.blueStars = n; hbSave(); renderHeroBuild(); }
         function hbSetRed(delta){ let r = (parseInt(heroBuildState.redStars)||0) + delta; if(r<0)r=0; if(r>6)r=6; heroBuildState.redStars = r; hbSave(); renderHeroBuild(); }
         function hbSetRedAbs(n){ n = parseInt(n)||0; if(n<0)n=0; if(n>6)n=6; heroBuildState.redStars = n; hbSave(); renderHeroBuild(); }
+        /** ⚡ แผงศักยภาพ — ATK / HP / DEF เลือกขั้น 0–3 (ปุ่มแสดงค่าที่ได้) */
+        function hbPotentialHTML(st){
+            const pot = hbCleanPotential((st || heroBuildState).potential);
+            const rows = HB_POT_KEYS.map(([k, label, icon]) => {
+                const btns = [0, 1, 2, 3].map(lv => {
+                    const on = pot[k] === lv;
+                    return `<button type="button" onclick="hbSetPotential('${k}',${lv})" title="ขั้น ${lv}" class="flex-1 min-w-0 px-1 py-1 rounded-lg border text-[10px] font-bold transition ${on
+                        ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-[#161b22] border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}">${lv ? '+' + HB_POTENTIAL[k][lv] : '—'}</button>`;
+                }).join('');
+                return `<div class="flex items-center gap-2"><span class="w-12 flex-shrink-0 text-[11px] text-gray-400 font-bold whitespace-nowrap">${icon} ${label}</span><div class="flex flex-1 gap-1">${btns}</div></div>`;
+            }).join('');
+            return `<div class="mt-3 pt-3 border-t border-gray-800">
+                <div class="text-xs font-black text-indigo-300 mb-2">⚡ ศักยภาพ <span class="text-[10px] text-gray-500 font-normal">(ขั้น 1–3 · ค่า flat)</span></div>
+                <div class="space-y-1.5">${rows}</div>
+            </div>`;
+        }
+        /** 💎 หัวแผงของรัก: เลือกระดับตีบวก + ค่าหลักที่ได้ (ฮีโร่ที่ยังไม่กรอกค่าหลัก = บอกให้ไปกรอก) */
+        function hbRelicHeadHTML(hero, st){
+            const lv = hbRelicLv(st || heroBuildState);
+            const has = hero && hero.relicStats && ['atk','hp','def'].some(k => parseFloat(hero.relicStats[k]) > 0);
+            const opts = [-1].concat(Array.from({ length: 16 }, (_, i) => i)).map(v => `<option value="${v}" ${v === lv ? 'selected' : ''}>${v < 0 ? 'ไม่ใส่' : '+' + v}</option>`).join('');
+            const m = hbRelicMain(hero, lv);
+            const lab = { atk: 'ATK', hp: 'HP', def: 'DEF' };
+            const val = Object.keys(m).map(k => lab[k] + ' +' + m[k]).join(' · ');
+            return `<div class="flex flex-wrap items-center gap-2 mt-1.5">
+                    <select onchange="hbSetRelicLv(this.value)" class="bg-[#161b22] border border-pink-700/50 text-pink-200 text-xs font-bold rounded px-1.5 py-1 outline-none">${opts}</select>
+                    ${has ? `<span class="font-mono text-[11px] ${lv < 0 ? 'text-gray-600' : 'text-emerald-300'}">${lv < 0 ? 'ไม่ได้ใส่ของรัก' : val}</span>`
+                           : '<span class="text-[10px] text-gray-500">ยังไม่ได้กรอกค่าหลักของรักในหน้าฮีโร่</span>'}
+                </div>`;
+        }
+        function hbSetRelicLv(v){ heroBuildState.relicLv = hbRelicLv({ relicLv: v }); hbSave(); renderHeroBuild(); }
+        function hbSetPotential(k, lv){
+            const p = hbCleanPotential(heroBuildState.potential);
+            p[k] = (p[k] === lv) ? 0 : lv; // กดขั้นเดิมซ้ำ = ปลด
+            heroBuildState.potential = p;
+            hbSave(); renderHeroBuild();
+        }
+        function hbToggleRing(){ heroBuildState.ring = !heroBuildState.ring; hbSave(); renderHeroBuild(); }
         function hbToggleAwaken(){ const h = heroesDB.find(x=>String(x.id)===String(heroBuildState.heroId)); if(!h || !(h.img2 && h.img2!==DRIVE_IMG_PREFIX)) return; heroBuildState.awakened = !heroBuildState.awakened; hbSave(); renderHeroBuild(); }
         function hbToggleSkillUp(k){ if(!heroBuildState.skillUp || typeof heroBuildState.skillUp !== 'object') heroBuildState.skillUp = {}; heroBuildState.skillUp[k] = !heroBuildState.skillUp[k]; hbSave(); renderHeroBuild(); hbTipHide(); }
         function hbEnsureRelic(){ if(!Array.isArray(heroBuildState.relic) || heroBuildState.relic.length !== 4) heroBuildState.relic = hbBlankRelic(); }
@@ -26231,7 +26603,7 @@
         // state เต็ม → object ย่อ (คีย์สั้น + ตัด default ทิ้ง)
         function hbToCompact(obj){
             const o = obj || {}; const tIdx = t => { const i = HB_TIERS.indexOf(t); return i < 0 ? 2 : i; };
-            return { v:1, h:o.heroId||'', s:o.setId||'', b:parseInt(o.blueStars)||0, r:parseInt(o.redStars)||0, a:o.awakened?1:0,
+            return { v:1, h:o.heroId||'', s:o.setId||'', b:parseInt(o.blueStars)||0, r:parseInt(o.redStars)||0, a:o.awakened?1:0, g:o.ring?1:0, q:hbRelicLv(o), t:(() => { const p = hbCleanPotential(o.potential); return [p.atk, p.hp, p.def]; })(),
                 u: Object.keys(o.skillUp||{}).filter(k => o.skillUp[k]),
                 l: (Array.isArray(o.relic)?o.relic:[]).slice(0,4).map(r => [ (r&&r.stat)||'', tIdx(r&&r.tier) ]),
                 p: (Array.isArray(o.pieces)?o.pieces:[]).slice(0,4).map(p => [ (p&&p.mainKey)||'', ((p&&Array.isArray(p.subs))?p.subs:[]).slice(0,4).map(s => [ (s&&s.key)||'', parseInt(s&&s.up)||0 ]) ]) };
@@ -26245,7 +26617,7 @@
             const pieces = pad4(c.p, () => ['',[]]).map(p => ({ mainKey:(p&&p[0])||'',
                 subs: (() => { let s = (p&&Array.isArray(p[1])) ? p[1].slice(0,4) : []; while (s.length<4) s.push(['',0]); return s.map(x => ({ key:(x&&x[0])||'', up: parseInt(x&&x[1])||0 })); })() }));
             const skillUp = {}; (Array.isArray(c.u)?c.u:[]).forEach(k => { if (k) skillUp[k] = true; });
-            return { heroId:c.h||null, setId:c.s||'', blueStars:parseInt(c.b)||0, redStars:parseInt(c.r)||0, awakened:!!c.a, skillUp, relic, pieces };
+            return { heroId:c.h||null, setId:c.s||'', blueStars:parseInt(c.b)||0, redStars:parseInt(c.r)||0, awakened:!!c.a, ring:!!c.g, relicLv:hbRelicLv({ relicLv: c.q }), potential:hbCleanPotential(Array.isArray(c.t) ? { atk:c.t[0], hp:c.t[1], def:c.t[2] } : null), skillUp, relic, pieces };
         }
         function hbEncodeBuild(obj){ try { const json = JSON.stringify(hbToCompact(obj)); const payload = hbB64urlEncode(unescape(encodeURIComponent(json))); return 'HB1.' + payload + '.' + hbChecksum(payload); } catch(e){ return ''; } }
         // คืน { ok:true, data, legacy?, newer? } หรือ { ok:false, reason:'corrupt'|'invalid' }
@@ -26283,6 +26655,17 @@
             document.getElementById('hb-share-copylink').classList.remove('hidden');
             document.getElementById('hb-share-load').classList.add('hidden');
             const nameIn = document.getElementById('hb-share-name');
+            // ✏️ เปิดมาจากบิ้วที่เผยแพร่แล้ว (ของตัวเอง) → มีปุ่มบันทึกทับ/ลบ · ชื่อเดิมเติมให้
+            const pub = hbCurrentPub(), canEdit = hbCanEditPub(pub);
+            const editing = document.getElementById('hb-share-editing');
+            editing.classList.toggle('hidden', !pub);
+            if (pub) editing.innerHTML = canEdit
+                ? '✏️ กำลังแก้บิ้วที่เผยแพร่ไว้: <b>' + hbEscText(pub.name || '') + '</b> — กด <b>💾 บันทึกทับบิ้วเดิม</b> เพื่ออัปเดตตัวเดิม (ไม่สร้างซ้ำ)'
+                : '👀 บิ้วนี้เป็นของ <b>' + hbEscText(pub.owner || 'คนอื่น') + '</b> — บันทึกได้เป็นบิ้วใหม่ของคุณเท่านั้น';
+            document.getElementById('hb-share-update').classList.toggle('hidden', !canEdit);
+            document.getElementById('hb-share-delete').classList.toggle('hidden', !canEdit);
+            document.getElementById('hb-share-publish').textContent = pub ? '🌍 เผยแพร่เป็นบิ้วใหม่' : '🌍 เผยแพร่บิ้ว';
+            if (canEdit) nameIn.value = pub.name || '';
             if (!nameIn.value.trim()) { const h = heroesDB.find(x=>String(x.id)===String(heroBuildState.heroId)); nameIn.value = h ? ('บิ้ว ' + h.name) : ''; }
             hbShowShare();
             setTimeout(() => nameIn.focus(), 50);
@@ -26297,6 +26680,7 @@
             document.getElementById('hb-share-copy').classList.add('hidden');
             document.getElementById('hb-share-copylink').classList.add('hidden');
             document.getElementById('hb-share-load').classList.remove('hidden');
+            ['hb-share-update', 'hb-share-delete', 'hb-share-editing'].forEach(id => document.getElementById(id).classList.add('hidden'));
             hbShowShare();
             setTimeout(() => ta.focus(), 50);
         }
@@ -26339,6 +26723,9 @@
                 blueStars: parseInt(d.blueStars) || 0,
                 redStars: parseInt(d.redStars) || 0,
                 awakened: !!d.awakened,
+                ring: !!d.ring,
+                potential: hbCleanPotential(d.potential),
+                relicLv: hbRelicLv(d),
                 skillUp: (d.skillUp && typeof d.skillUp === 'object') ? d.skillUp : {},
                 relic: (Array.isArray(d.relic) && d.relic.length === 4) ? d.relic.map(r => ({ stat:(r&&r.stat)||'', tier:(r&&r.tier)||'gold' })) : hbBlankRelic(),
                 pieces: (Array.isArray(d.pieces) && d.pieces.length === 4) ? d.pieces.map(hbSanitizePiece) : [hbBlankPiece(),hbBlankPiece(),hbBlankPiece(),hbBlankPiece()]
@@ -26375,26 +26762,65 @@
             const b = (heroBuildsDB || []).find(x => String(x.id) === String(id));
             if (!b || !b.data) { alert('ไม่พบข้อมูลบิ้วนี้'); return; }
             heroBuildState = hbNormalizeBuildData(b.data);
+            heroBuildState.pubId = b.id; // ✏️ จำว่าแก้บิ้วไหนอยู่ — กดบันทึกจะทับตัวนี้ได้
             hbSave();
             hbShowEditor();
         }
-        async function hbPublishBuild(){
+        /** บิ้วที่เผยแพร่ซึ่งหน้าบิ้วกำลังแก้อยู่ (null = บิ้วใหม่) */
+        function hbCurrentPub(){
+            const id = heroBuildState && heroBuildState.pubId;
+            return id ? ((heroBuildsDB || []).find(x => String(x.id) === String(id)) || null) : null;
+        }
+        function hbMyOwnerName(){ return (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) ? (CURRENT_USER.name || CURRENT_USER.username || 'ไม่ระบุ') : 'ไม่ระบุ'; }
+        /** แก้/ลบได้ = เจ้าของบิ้ว หรือแอดมิน */
+        function hbCanEditPub(b){
+            if (!b) return false;
+            const role = String((typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.role) || '').toLowerCase();
+            return role === 'admin' || String(b.owner || '') === hbMyOwnerName();
+        }
+        function hbEscText(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        /** 🗑️ ลบบิ้วที่เผยแพร่ (เจ้าของ/แอดมิน) — ลบทั้งในเครื่องและบน server */
+        async function hbDeletePublished(){
+            const pub = hbCurrentPub();
+            if (!hbCanEditPub(pub)) return;
+            if (!confirm('ลบบิ้ว "' + (pub.name || '') + '" ออกจากรายการที่เผยแพร่?\n\nคนอื่นจะไม่เห็นบิ้วนี้อีก (หน้าบิ้วที่เปิดอยู่ยังอยู่)')) return;
+            hbCloseShare();
+            showLoading('🗑️ กำลังลบบิ้ว...');
+            let ok = true;
+            if (typeof USE_CLOUD === 'undefined' || USE_CLOUD) ok = await deleteOneItemFromCloud('hero_builds', pub.id);
+            hideLoading();
+            if (!ok) { alert('❌ ลบบน server ไม่สำเร็จ' + (lastCloudError ? '\n\n' + lastCloudError : '')); return; }
+            heroBuildsDB = (heroBuildsDB || []).filter(x => String(x.id) !== String(pub.id));
+            try { localStorage.setItem('7k_hero_builds', JSON.stringify(heroBuildsDB)); } catch(e){}
+            delete heroBuildState.pubId; hbSave();
+            alert('🗑️ ลบบิ้วแล้ว');
+            hbShowList();
+        }
+        /** asUpdate = true → บันทึกทับบิ้วที่เผยแพร่ตัวเดิม (id เดิม) · ไม่ส่ง = สร้างบิ้วใหม่ */
+        async function hbPublishBuild(asUpdate){
             if (!heroBuildState.heroId) { alert('เลือกตัวละครก่อน'); return; }
             const name = (document.getElementById('hb-share-name').value || '').trim();
             if (!name) { alert('กรุณาตั้งชื่อบิ้ว'); document.getElementById('hb-share-name').focus(); return; }
-            const owner = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) ? (CURRENT_USER.name || CURRENT_USER.username || 'ไม่ระบุ') : 'ไม่ระบุ';
+            const pub = asUpdate ? hbCurrentPub() : null;
+            if (asUpdate && !hbCanEditPub(pub)) { alert('บันทึกทับได้เฉพาะบิ้วของตัวเอง'); return; }
+            const owner = pub ? pub.owner : hbMyOwnerName();
+            const data = JSON.parse(JSON.stringify(heroBuildState)); delete data.pubId; // id ของบิ้วไม่ต้องอยู่ในข้อมูลบิ้ว
             // ID กันชน: timestamp + owner(ascii) + random base36 ยาว → โอกาสชนแทบเป็นไปไม่ได้
             const _oid = ((owner || '').replace(/\W/g, '').slice(0, 6)) || 'x';
-            const record = { id: 'build_' + Date.now() + '_' + _oid + '_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6), name: name, owner: owner, heroId: heroBuildState.heroId, data: JSON.parse(JSON.stringify(heroBuildState)), ts: Date.now() };
-            heroBuildsDB.push(record);
+            const id = pub ? pub.id : 'build_' + Date.now() + '_' + _oid + '_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
+            const record = { id: id, name: name, owner: owner, heroId: heroBuildState.heroId, data: data, ts: Date.now() };
+            const idx = (heroBuildsDB || []).findIndex(x => String(x.id) === String(id));
+            if (idx >= 0) heroBuildsDB[idx] = record; else heroBuildsDB.push(record);
             try { localStorage.setItem('7k_hero_builds', JSON.stringify(heroBuildsDB)); } catch(e){}
+            heroBuildState.pubId = id; hbSave(); // ครั้งหน้ากดบันทึก = ทับตัวนี้ได้เลย
             hbCloseShare();
-            if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) { alert('✅ เผยแพร่ในเครื่องแล้ว (ออฟไลน์ — ยังไม่ขึ้น server)'); hbShowList(); return; }
-            showLoading('🌍 กำลังเผยแพร่บิ้ว...');
+            if (typeof USE_CLOUD !== 'undefined' && !USE_CLOUD) { alert('✅ ' + (pub ? 'บันทึกทับ' : 'เผยแพร่') + 'ในเครื่องแล้ว (ออฟไลน์ — ยังไม่ขึ้น server)'); hbShowList(); return; }
+            showLoading(pub ? '💾 กำลังบันทึกทับบิ้วเดิม...' : '🌍 กำลังเผยแพร่บิ้ว...');
             let ok = false;
             try { ok = await saveOneItemToCloud('hero_builds', record); } catch(e){}
             hideLoading();
-            alert(ok ? '✅ เผยแพร่บิ้วสำเร็จ! แสดงในรายการแล้ว' : '⚠️ บันทึกในเครื่องแล้ว แต่ส่งขึ้น server ไม่สำเร็จ');
+            alert(ok ? (pub ? '✅ บันทึกทับบิ้ว "' + name + '" แล้ว' : '✅ เผยแพร่บิ้วสำเร็จ! แสดงในรายการแล้ว')
+                     : '⚠️ บันทึกในเครื่องแล้ว แต่ส่งขึ้น server ไม่สำเร็จ' + (lastCloudError ? '\n\n' + lastCloudError : ''));
             hbShowList();
         }
         function hbRenderFab(){
@@ -26486,9 +26912,11 @@
             equipSetsDB = cache.data.equip_sets || [];
             accessoriesDB = cache.data.accessories || [];
             skillLibDB = cache.data.skillLib || [];
+            publicBuildsDB = cache.data.hero_builds || []; // แยกจาก heroBuildsDB (ของในแอป) — ไม่ปนบิ้วร่างในเครื่อง
             return cache;
         }
-        const GALLERY_CACHE_CATS = ['heroes', 'pets', 'rings', 'equip_sets', 'accessories', 'skillLib'];
+        var publicBuildsDB = []; // บิ้วที่เผยแพร่ (หน้าสาธารณะ แท็บบิ้วตัวละคร) — var: mergePublicMasterData อาจถูกเรียกก่อนบรรทัดนี้
+        const GALLERY_CACHE_CATS = ['heroes', 'pets', 'rings', 'equip_sets', 'accessories', 'skillLib', 'hero_builds'];
         function loadGalleryStaticCache() {
             try {
                 const raw = JSON.parse(localStorage.getItem(GALLERY_CACHE_KEY));
