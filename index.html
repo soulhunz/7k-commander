@@ -3440,6 +3440,7 @@
                     <button onclick="castleCompCreateTable()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-amber-900/30">🧱 สร้างตาราง</button>
                     <button onclick="castleCompExportCsv()" class="bg-[#1f2937] hover:bg-emerald-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="ดาวน์โหลดเป็นไฟล์ CSV เอาไปเปิดใน Excel / ส่งให้เพื่อน">💾 ส่งออก CSV</button>
                     <button onclick="castleCompPickImportFile()" class="bg-[#1f2937] hover:bg-blue-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="เลือกไฟล์ CSV ที่ส่งออกไว้ มาแทนที่ตารางปัจจุบัน">📥 นำเข้า CSV</button>
+                    <button onclick="castleCompSaveCloud()" class="bg-[#1f2937] hover:bg-sky-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="บันทึกตารางขึ้น server ของกิลด์ — คนเปิดลิงก์หน้าดูจะเห็นตารางนี้เลย ไม่ต้องส่งไฟล์">☁️ บันทึก</button>
                     <button onclick="castleCompCopyViewerLink()" class="bg-[#1f2937] hover:bg-indigo-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="คัดลอกลิงก์หน้าดูอย่างเดียว — คนรับเปิดลิงก์แล้วอัปโหลดไฟล์ CSV ก็เห็นตาราง ไม่ต้อง login">🔗 ลิงก์หน้าดู</button>
                     <button onclick="castleCompClearAll()" class="bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700">🗑️ ล้างตาราง</button>
                 </div>
@@ -13278,10 +13279,11 @@
             return out;
         }
 
-        function castleCompExportCsv() {
+        /** ตารางปัจจุบัน → ข้อความ CSV (null = ยังไม่มีข้อมูล) — ใช้ทั้งปุ่มส่งออกและปุ่มบันทึกขึ้น server */
+        function castleCompBuildCsv() {
             castleCompLoad();
             const { castles, comps } = castleCompDB;
-            if (!castles.length && !comps.length) return alert('ยังไม่มีข้อมูลให้ส่งออก');
+            if (!castles.length && !comps.length) return null;
 
             const L = [];
             L.push(ccCsvRow([CC_CSV_TAG, CC_CSV_VER, 'ส่งออกจากหน้า นับคอมพ์ปราสาท', 'quota=' + (castleCompDB.heroQuota || 0)]));
@@ -13328,8 +13330,14 @@
                 });
             });
 
+            return L.join('\r\n');
+        }
+
+        function castleCompExportCsv() {
+            const csv = castleCompBuildCsv();
+            if (!csv) return alert('ยังไม่มีข้อมูลให้ส่งออก');
             // BOM — กัน Excel อ่านภาษาไทยเป็นตัวประหลาด
-            const blob = new Blob(['﻿' + L.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = 'castle-comp.csv';
@@ -13466,12 +13474,15 @@
         }
 
         // =========================================================
-        // 🔗 หน้าดูตาราง (?mode=castle-view) — เปิดได้โดยไม่ต้อง login
-        //    คนรับลิงก์อัปโหลด/ลากไฟล์ CSV ที่ส่งออกไว้ → เห็นตารางแบบอ่านอย่างเดียว
+        // 🔗 หน้าดูตาราง (?mode=castle-view&g=กิลด์) — เปิดได้โดยไม่ต้อง login
+        //    เปิดมา = โหลดตารางที่กิลด์บันทึกไว้บน server ให้เลย · หรืออัปโหลด/ลากไฟล์ CSV มาดูแทนก็ได้
+        //    กดคอมพ์ที่มีทีมบุกแชร์ไว้ → เปิดหน้ารายละเอียดทีม counter แบบแกลเลอรี
         //    ไม่แตะตารางของเครื่องนั้น (ไม่เขียน localStorage ของหน้านับคอมพ์)
         // =========================================================
         let ccView = null;        // ผลจาก ccParseCsv + fileName
-        let ccViewHeroLoad = '';  // '' | loading | done | fail — สถานะโหลดรูปฮีโร่
+        let ccViewHeroLoad = '';  // '' | loading | done | fail — สถานะโหลดรูปฮีโร่ + ทีมแชร์
+        let ccViewCloud = '';     // '' | loading | none | fail — สถานะโหลดตารางที่บันทึกไว้บน server
+        let ccViewTeams = [];     // ทีมบุกที่แชร์ (เฉพาะกิลด์ในลิงก์) — ใช้หา counter
 
         // 🧪 DEV: ใส่ path ไฟล์ในเครื่อง (เช่น 'file:///C:/.../7k-commander/index.html') ให้ลิงก์หน้าดูชี้เครื่องตัวเอง
         //    '' = ใช้ GitHub Pages / Apps Script ตามปกติ
@@ -13482,11 +13493,36 @@
             const base = CASTLE_VIEW_DEV_URL || (useP ? PUBLIC_PAGES_URL : publicShareBaseUrl());
             const srv = (CASTLE_VIEW_DEV_URL || useP) && SCRIPT_URL
                 ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
-            return base + '?mode=castle-view' + srv;
+            const g = '&g=' + encodeURIComponent(btoa(encodeURIComponent(castleCompGuildRaw())));
+            return base + '?mode=castle-view' + g + srv;
+        }
+
+        /** กิลด์ของคนที่ login — ค่าดิบแบบเดียวกับลิงก์แกลเลอรี (server ใช้ค่านี้เป็น key ของตาราง) */
+        function castleCompGuildRaw() {
+            return String((CURRENT_USER && (CURRENT_USER.guild_name || CURRENT_USER.guildId)) || 'all');
         }
 
         function castleCompCopyViewerLink() {
-            copyTextToClipboard(castleCompViewerUrl(), '🔗 คัดลอกลิงก์หน้าดูแล้ว — ส่งลิงก์ + ไฟล์ CSV ให้เพื่อนได้เลย');
+            copyTextToClipboard(castleCompViewerUrl(), '🔗 คัดลอกลิงก์หน้าดูแล้ว — กด ☁️ บันทึก ก่อน เพื่อนเปิดลิงก์จะเห็นตารางล่าสุดเลย');
+        }
+
+        /** ☁️ บันทึกตารางขึ้น server (1 กิลด์ 1 ตาราง — ทับของเดิม) ให้ลิงก์หน้าดูโหลดได้เลย */
+        async function castleCompSaveCloud() {
+            const csv = castleCompBuildCsv();
+            if (!csv) return alert('ยังไม่มีข้อมูลให้บันทึก');
+            if (!CURRENT_USER || !CURRENT_USER.token) return alert('ต้องเข้าสู่ระบบก่อนถึงบันทึกขึ้น server ได้');
+            if (!confirm('บันทึกตารางนี้ขึ้น server ของกิลด์ "' + currentUserGuildLabel() + '"?\n\nตารางที่บันทึกไว้ก่อนหน้าจะถูกแทนที่ — คนเปิดลิงก์หน้าดูจะเห็นชุดนี้')) return;
+            showLoading('☁️ กำลังบันทึกตาราง...');
+            try {
+                const res = await postJson({ action: 'saveCastleComp', csv: csv, guild: castleCompGuildRaw() });
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
+                showToast('☁️ บันทึกแล้ว — คนเปิดลิงก์หน้าดูจะเห็นตารางนี้', 'success');
+            } catch (e) {
+                console.error(e);
+                alert('❌ บันทึกไม่สำเร็จ: ' + (e.message || e));
+            } finally {
+                hideLoading();
+            }
         }
 
         /** เริ่มหน้าดู — เรียกจาก window.onload ก่อนเช็ค server/login */
@@ -13514,16 +13550,107 @@
                 });
             }
 
-            // รูปฮีโร่: ใช้ของที่เครื่องนี้เคยโหลดไว้ก่อน แล้วค่อยขอข้อมูลกลางจาก server (ไม่ต้อง login)
+            // รูปฮีโร่ + ทีมแชร์: ใช้ของที่เครื่องนี้เคยโหลดไว้ก่อน แล้วค่อยขอของใหม่จาก server (ไม่ต้อง login)
             mergePublicMasterData(null, null);
+            const guild = decodeGuildParam(appUrlParams().get('g')) || 'all';
+            ccViewTeams = ccViewerAttackTeams(loadCachedSharedTeams() || [], guild);
+            if (!SCRIPT_URL) { ccViewerRender(); return; }
+
+            ccViewHeroLoad = 'loading';
+            postJson({ action: 'getAllSharedTeams', userGuild: guild, isAdmin: false, versions: galleryVersionsForRequest() }, { timeout: 60000, retries: 4 })
+                .then(res => {
+                    if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
+                    mergePublicMasterData(res.masterData, res.versions);
+                    // teams = null คือเวอร์ชันเดิม → ใช้ที่เก็บไว้
+                    const teams = Array.isArray(res.teams) ? res.teams : (loadCachedSharedTeams() || []);
+                    if (Array.isArray(res.teams)) saveCachedSharedTeams(res.teams, res.versions);
+                    ccViewTeams = ccViewerAttackTeams(teams, guild);
+                    ccViewHeroLoad = 'done';
+                })
+                .catch(e => { console.warn('castle-view: โหลดข้อมูลฮีโร่/ทีมแชร์ไม่ได้', e); ccViewHeroLoad = 'fail'; })
+                .finally(ccViewerRender);
+
+            // ตารางที่กิลด์บันทึกไว้ — ถ้าคนดูยังไม่ได้เปิดไฟล์เองระหว่างรอ
+            ccViewCloud = 'loading';
             ccViewerRender();
-            if (SCRIPT_URL) {
-                ccViewHeroLoad = 'loading';
-                fetchRosterBootstrap()
-                    .then(() => { ccViewHeroLoad = 'done'; })
-                    .catch(e => { console.warn('castle-view: โหลดข้อมูลฮีโร่ไม่ได้', e); ccViewHeroLoad = 'fail'; })
-                    .finally(ccViewerRender);
-            }
+            postJson({ action: 'getCastleComp', guild: guild }, { timeout: 60000, retries: 4 })
+                .then(res => {
+                    if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
+                    if (!res.csv) { ccViewCloud = 'none'; return; }
+                    ccViewCloud = '';
+                    if (ccView) return;
+                    ccView = ccParseCsv(res.csv);
+                    const at = res.updatedAt ? new Date(res.updatedAt) : null;
+                    ccView.fileName = '☁️ บันทึกล่าสุด' + (at && !isNaN(at) ? ' ' + at.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '');
+                })
+                .catch(e => { console.warn('castle-view: โหลดตารางไม่ได้', e); ccViewCloud = 'fail'; })
+                .finally(ccViewerRender);
+        }
+
+        /** ทีมบุกที่แชร์ + มีศัตรูผูกไว้ · กรองกิลด์แบบเดียวกับแกลเลอรี */
+        function ccViewerAttackTeams(teams, guild) {
+            return galleryTeamsForGuild(teams, guild)
+                .filter(t => t && t.data && t.data.teamType === 'Attack' && Array.isArray(t.data.enemyTeams) && t.data.enemyTeams.length);
+        }
+
+        /** ทีม counter ของคอมพ์นี้ → [{ team, enemyName }]
+         *  ตรงกัน = ศัตรูของทีมบุกมาจากรูปแบบศัตรูใบเดียวกัน หรือเป็นฮีโร่ชุดเดียวกัน (ไม่สนลำดับ) */
+        function ccViewerCounters(cp) {
+            const sig = ccCompSig(cp.heroes);
+            const out = [];
+            ccViewTeams.forEach(t => {
+                const e = t.data.enemyTeams.find(en => {
+                    if (!en) return false;
+                    if (cp.patternId && String(en.id) === String(cp.patternId)) return true;
+                    const sl = en.slots ? Object.keys(en.slots).map(k => en.slots[k] && en.slots[k].id) : [];
+                    return ccCompSig(sl) === sig;
+                });
+                if (e) out.push({ team: t, enemyName: e.name || '' });
+            });
+            return out;
+        }
+
+        /** ป้ายเล็ก โล่ + จำนวนทีม counter (โทนเขียวจาง ไม่แย่งสายตาจากรูป) — กดแล้วเปิดหน้ารายละเอียด · ไม่มี counter = ไม่แสดง
+         *  cls = ตำแหน่ง (เช่น absolute มุมการ์ด) ให้คนเรียกกำหนด */
+        function ccViewerCounterBadge(cp, cls) {
+            const n = ccViewerCounters(cp).length;
+            if (!n) return '';
+            return `<button type="button" onclick="event.stopPropagation(); ccViewerOpenCounter('${cp.id}')" title="มีทีม counter ${n} ทีม — กดเพื่อดู"
+                        class="${cls || ''} inline-flex items-center gap-1 h-5 px-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold leading-none hover:bg-emerald-500/20 hover:border-emerald-400/60 transition">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/></svg>${n}
+                    </button>`;
+        }
+
+        /** มี counter = ทั้งกล่อง/แถวของคอมพ์นั้นกดได้ · ไม่มี = กดไม่ได้ */
+        function ccViewerClickAttr(cp) {
+            return ccViewerCounters(cp).length ? ` onclick="ccViewerOpenCounter('${cp.id}')" style="cursor:pointer"` : '';
+        }
+
+        let ccViewDetailOpen = false;
+
+        /** เปิดหน้ารายละเอียดทีม counter (ตัวเดียวกับแกลเลอรี) แทนหน้าดู */
+        function ccViewerOpenCounter(compId) {
+            const cp = ccView && ccView.comps.find(c => c.id === compId);
+            const list = cp ? ccViewerCounters(cp) : [];
+            if (!list.length) return;
+            ccViewerCloseHeroPicker();
+            const main = document.getElementById('main-content');
+            document.getElementById('cc-viewer').style.display = 'none';
+            main.style.display = '';
+            main.classList.remove('hidden');
+            ccViewDetailOpen = true;
+            renderPublicTeamDisplay(list[0].team, list.map(x => x.team), list[0].enemyName);
+            main.scrollTop = 0;
+            window.scrollTo(0, 0);
+        }
+
+        /** ปุ่ม ❮ ในหน้ารายละเอียด — เปิดมาจากหน้าดูก็กลับหน้าดู (คืน true) */
+        function ccViewerCloseCounter() {
+            if (!ccViewDetailOpen) return false;
+            ccViewDetailOpen = false;
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('cc-viewer').style.display = '';
+            return true;
         }
 
         function ccViewerPickFile() {
@@ -13694,8 +13821,12 @@
                 </div>`;
 
             if (!ccView) {
+                const cloudMsg = ccViewCloud === 'loading' ? '<div class="text-sm text-blue-300 mb-3">⏳ กำลังโหลดตารางที่กิลด์บันทึกไว้…</div>'
+                    : ccViewCloud === 'none' ? '<div class="text-sm text-gray-400 mb-3">กิลด์นี้ยังไม่ได้บันทึกตารางขึ้น server</div>'
+                    : ccViewCloud === 'fail' ? '<div class="text-sm text-amber-300 mb-3">⚠️ โหลดตารางจาก server ไม่ได้ — ลองรีเฟรช หรือเปิดไฟล์ CSV แทน</div>' : '';
                 box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}
                     <div onclick="ccViewerPickFile()" class="cursor-pointer flex flex-col items-center justify-center text-center py-24 px-6 border-2 border-dashed border-gray-700 hover:border-amber-500/60 rounded-3xl bg-[#0f131a] transition">
+                        ${cloudMsg}
                         <div class="text-6xl mb-4 opacity-40">📥</div>
                         <h3 class="text-lg font-bold text-gray-300 mb-2">วางไฟล์ CSV ที่นี่</h3>
                         <p class="text-xs text-gray-500 max-w-sm leading-relaxed">หรือกดเพื่อเลือกไฟล์ (castle-comp.csv) — ไฟล์เปิดในเครื่องนี้เท่านั้น ไม่ถูกส่งขึ้น server</p>
@@ -13893,7 +14024,7 @@
             const tiles = shown.map(({ cp, t, rank }) => {
                 const where = castles.map(cs => ({ cs, n: cnt(cs.id, cp.id) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
                 return `
-                    <div class="bg-[#161b22] border border-gray-800 rounded-2xl p-3 flex flex-col gap-2 shadow-lg" title="${ccEsc(compNames[cp.id])}">
+                    <div class="bg-[#161b22] border border-gray-800 ${ccViewerCounters(cp).length ? 'hover:border-red-600/60' : ''} rounded-2xl p-3 flex flex-col gap-2 shadow-lg transition" title="${ccEsc(compNames[cp.id])}"${ccViewerClickAttr(cp)}>
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] font-black text-gray-500 w-5">#${rank + 1}</span>
                             <div class="flex items-center gap-1 flex-1">${ccViewerCompThumbs(cp, 'xl')}</div>
@@ -13901,7 +14032,10 @@
                                 <div><span class="text-amber-400 font-black text-2xl">${t}</span> <span class="text-[10px] text-gray-500 font-bold">หลัง</span></div>
                             </div>
                         </div>
-                        <div class="text-[11px] text-gray-400 font-bold truncate">${ccEsc(compNames[cp.id] || '')}</div>
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 min-w-0 text-[11px] text-gray-400 font-bold truncate">${ccEsc(compNames[cp.id] || '')}</div>
+                            ${ccViewerCounterBadge(cp, 'flex-shrink-0')}
+                        </div>
                         <div class="flex flex-wrap gap-1">
                             ${where.map(x => `<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-[#0d1117] border border-gray-800 text-gray-300 whitespace-nowrap">🏰 ${ccEsc(x.cs.name || '-')} · <b class="text-sky-400">${x.n}</b> ทีม</span>`).join('')
                                 || '<span class="text-[10px] text-gray-600 italic">ยังไม่เจอในปราสาทไหน</span>'}
@@ -13928,13 +14062,16 @@
                 const total = rows.reduce((a, r) => a + r.n, 0);
 
                 const list = rows.map(r => `
-                    <div class="flex items-center gap-2 py-1.5 border-t border-gray-800/60" title="${ccEsc(ccView.compNames[r.cp.id])}">
+                    <div class="flex items-center gap-2 py-1.5 border-t border-gray-800/60 rounded-lg transition hover:bg-white/[0.03]" title="${ccEsc(ccView.compNames[r.cp.id])}"${ccViewerClickAttr(r.cp)}>
                         <div class="flex items-start gap-1 flex-shrink-0">${ccViewerCompThumbsNamed(r.cp)}</div>
                         ${r.picks.length ? `<div class="flex flex-wrap items-center gap-0.5 min-w-0" title="ฮีโร่ที่จ่าย">
                             <span class="text-gray-600 text-[10px] mx-0.5">➜</span>${r.picks.map((id, i) => ccViewerHeroChip(id, r.pickNames[i], false, true)).join('')}
                         </div>` : ''}
                         <span class="flex-1"></span>
-                        <span class="text-xl font-black ${r.n ? 'text-sky-400' : 'text-gray-600'} flex-shrink-0">${r.n}</span>
+                        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                            <span class="text-xl font-black ${r.n ? 'text-sky-400' : 'text-gray-600'} leading-none">${r.n}</span>
+                            ${ccViewerCounterBadge(r.cp)}
+                        </div>
                     </div>`).join('');
 
                 return `
@@ -27246,7 +27383,7 @@
                 <div class="sticky top-0 z-50  flex flex-col bg-[#0b0e14]">
                     <div class="p-4 md:px-4 md:py-3 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0 shadow-md">
                         <div class="flex items-center gap-4">
-                            <button onclick="loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition text-lg border border-gray-700 shadow">❮</button>
+                            <button onclick="if (!ccViewerCloseCounter()) loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition text-lg border border-gray-700 shadow">❮</button>
                             <div>
                                 <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">${hideCounterSection ? 'SELECTED TEAM' : 'TARGET ENEMY'}</div>
                                 <div class="text-white font-black text-2xl md:text-3xl leading-none uppercase tracking-tighter truncate max-w-[200px] md:max-w-md" title="${hideCounterSection ? teamName : targetName}">${hideCounterSection ? teamName : targetName}</div>
