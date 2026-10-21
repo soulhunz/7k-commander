@@ -13473,8 +13473,9 @@
         let ccView = null;        // ผลจาก ccParseCsv + fileName
         let ccViewHeroLoad = '';  // '' | loading | done | fail — สถานะโหลดรูปฮีโร่
 
-        // 🧪 DEV: ลิงก์หน้าดูชี้ไฟล์ในเครื่องไปก่อน — ตอนขึ้นจริงเปลี่ยนเป็น '' (กลับไปใช้ GitHub Pages / Apps Script)
-        const CASTLE_VIEW_DEV_URL = 'file:///C:/Users/metro/Documents/Project_Arm/7k-commander/index.html';
+        // 🧪 DEV: ใส่ path ไฟล์ในเครื่อง (เช่น 'file:///C:/.../7k-commander/index.html') ให้ลิงก์หน้าดูชี้เครื่องตัวเอง
+        //    '' = ใช้ GitHub Pages / Apps Script ตามปกติ
+        const CASTLE_VIEW_DEV_URL = '';
 
         function castleCompViewerUrl() {
             const useP = !!(PUBLIC_PAGES_URL && SCRIPT_URL);
