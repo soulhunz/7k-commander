@@ -6096,7 +6096,7 @@
 
             // -----------------------------------------------------------
             // 🌍 CASE 1: PUBLIC ACCESS (คนทั่วไป ดู Gallery)
-            // คีย์ใน URL ใช้ได้ 3 วันนับจากวันที่สร้างลิงก์ (ดู GALLERY_KEY_VALID_DAYS)
+            // k= ในลิงก์ไม่มีวันหมดอายุ (ดู isGalleryKeyValid)
             // -----------------------------------------------------------
             if (isGalleryKeyValid(encodedKey)) {
                 console.log("🌍 Public Mode Detected (Valid Gallery Key)");
@@ -22718,7 +22718,8 @@
 
             // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
             navigator.clipboard.writeText(url).then(() => {
-                alert(`✅ คัดลอกลิงก์เรียบร้อย! (ใช้ได้ตลอด ไม่หมดอายุ)\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
+                // (ปิดไว้) แบบมีอายุลิงก์: alert(`✅ คัดลอกลิงก์เรียบร้อย! (ใช้ได้ ${GALLERY_KEY_VALID_DAYS} วัน)\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
+                alert(`✅ คัดลอกลิงก์เรียบร้อย!\n\n${url}\n\n(ระบบกำลังเปิดหน้า Gallery ในแท็บใหม่...)`);
 
                 // 5. เปิดหน้าเว็บในแท็บใหม่
                 window.open(url, '_blank');
@@ -27499,7 +27500,7 @@
                     const targetName = res.team.data?.enemyTeams?.[0]?.name || '';
                     renderPublicTeamDisplay(res.team, allCounterTeams, targetName);
                 } else {
-                    alert("ไม่พบข้อมูลทีม หรือลิงก์อาจหมดอายุ");
+                    alert("ไม่พบข้อมูลทีมนี้ — ทีมอาจถูกลบหรือเลิกแชร์แล้ว");
                     try {
                         window.history.pushState({}, '', '?mode=gallery' + galleryShareQuery());
 
@@ -29526,9 +29527,6 @@
         }
     }
 
-    // 🔑 อายุลิงก์แกลเลอรี (วัน) — ลิงก์ที่สร้างวันนี้ ใช้ได้ถึงอีก 2 วันถัดไป (รวม 3 วัน)
-    const GALLERY_KEY_VALID_DAYS = 3;
-
     /** คีย์ของวันที่ย้อนหลัง offset วัน (0 = วันนี้, 1 = เมื่อวาน) */
     function getGalleryKeyForDayOffset(offset) {
         const d = new Date();
@@ -29541,6 +29539,19 @@
     function getDailyKey() {
         return getGalleryKeyForDayOffset(0);
     }
+
+    // 🔑 (ปิดไว้) อายุลิงก์แกลเลอรี — ตอนนี้ลิงก์ไม่หมดอายุ เก็บไว้เผื่อกลับมาใช้
+    //    เปิดใช้: เอา comment ออก แล้วให้ isGalleryKeyValid เรียก isGalleryKeyValidByDate แทน
+    //    + คืนข้อความแจ้งเตือนตอนคัดลอกลิงก์ใน openPublicGallery (ดู comment ที่นั่น)
+    // const GALLERY_KEY_VALID_DAYS = 3; // ลิงก์ที่สร้างวันนี้ ใช้ได้ถึงอีก 2 วันถัดไป (รวม 3 วัน)
+    // function isGalleryKeyValidByDate(key) {
+    //     if (!key) return false;
+    //     // เผื่อ "พรุ่งนี้" (-1) — เครื่องคนเปิดวันที่ช้ากว่าคนส่ง (นาฬิกาเพี้ยน / อยู่คนละ timezone)
+    //     for (let i = -1; i < GALLERY_KEY_VALID_DAYS; i++) {
+    //         if (key === getGalleryKeyForDayOffset(i)) return true;
+    //     }
+    //     return false;
+    // }
 
     /** ตรวจคีย์จาก URL — ลิงก์แกลเลอรีไม่มีวันหมดอายุแล้ว
      *  คีย์เป็นแค่วันที่ที่ base64 ใครก็สร้างได้ กันอะไรไม่ได้จริง — มีแต่ทำให้ลิงก์ที่ส่งไปแล้วตาย
@@ -29556,7 +29567,6 @@
     const MY_ADMIN_SECRET = "7k_commander_admin"; 
     const ADMIN_ACCESS_KEY = btoa(MY_ADMIN_SECRET); // จะได้ค่าที่ต้องใช้เข้าเว็บ
 
-    // ฟังก์ชันก๊อปปี้ลิงก์รายวัน
 
 
     // 1. ฟังก์ชันสร้างรายการตัวเลือกดาว (แก้ปัญหา ReferenceError)
