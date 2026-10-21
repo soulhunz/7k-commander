@@ -1825,7 +1825,8 @@
             position: sticky; left: 0; z-index: 5;
             background: #161d29;
             box-shadow: 2px 0 6px -3px rgba(0,0,0,0.9);
-            width: 220px; min-width: 220px; max-width: 220px;
+            width: 200px; min-width: 200px; max-width: 200px;
+            overflow: hidden; /* ชื่อยาวเกิน → ตัดเป็น … (ข้างในใช้ truncate) ไม่ดันคอลัมน์ให้กว้างขึ้น */
         }
         /* คอลัมน์ชื่อปราสาทตรึงถัดจากคอลัมน์เลขแถว */
         .cc-sticky-col { left: 36px; }
@@ -1878,6 +1879,15 @@
         .cc-col-head { position: relative; }
         /* คอลัมน์คอมพ์ = กว้างพอดีเนื้อหา (รูปฮีโร่) ไม่ฟิกเลข */
         .cc-col-w { width: 1px; white-space: nowrap; }
+        /* หน้าดู: ตารางกว้างเต็มกรอบ (ช่อง "รวม" ชิดขวาสุดเสมอ) — ที่ว่างเหลือให้คอลัมน์คอมพ์แบ่งกัน ไม่ใช่คอลัมน์ชื่อปราสาท
+           คอลัมน์ชื่อตรึง 200px ด้วย table-layout: fixed (แบบ auto เบราว์เซอร์ไม่สน max-width ของช่องตาราง) */
+        .cc-table.cc-table-fit { table-layout: fixed; width: max(100%, var(--cc-fit-w, 0px)); }
+        .cc-table.cc-table-fit .cc-col-w { width: 180px; } /* คอลัมน์คอมพ์ฟิก 180px */
+        /* แถวปราสาทที่เลือก (เรียงคอมพ์) — ไฮไลต์ทั้งแถบ ทุกช่องรวมช่องตรึงซ้าย/ช่องรวม (ทับสีสลับแถว+hover) */
+        .cc-table tbody tr.cc-row-sel > td, .cc-table tbody tr.cc-row-sel > th { background: #3a2a10 !important; box-shadow: inset 0 1px 0 rgba(245,158,11,.55), inset 0 -1px 0 rgba(245,158,11,.55); }
+        .cc-table tbody tr.cc-row-sel .cc-count-input { color: #fde68a; }
+        .cc-table tbody tr.cc-row-sel .cc-idx { color: #fbbf24; }
+        .cc-table.cc-table-fit .cc-fill { width: auto; padding: 0; } /* ช่องว่างก่อน "รวม" — รับที่ว่างที่เหลือ ให้ "รวม" ชิดขวาสุดเสมอ */
         .cc-col-del { position: absolute; top: 2px; right: 4px; width: 18px; height: 18px; line-height: 1; border-radius: 6px; color: #4b5563; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.15s; }
         .cc-col-del:hover { color: #fff; background: #dc2626; }
         .cc-add-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 12px; border: 1px dashed #374151; border-radius: 10px; background: transparent; color: #6b7280; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.15s; white-space: nowrap; }
@@ -1885,6 +1895,8 @@
         /* รูปฮีโร่ในหัวตาราง — ดูอย่างเดียว แก้ที่เมนูรูปแบบศัตรู */
         .cc-hero-slot { width: 48px; height: 48px; border-radius: 9px; overflow: hidden; background: #0b0e14; border: 2px solid #374151; flex-shrink: 0; cursor: default; }
         .cc-hero-slot.awk { border-color: #a855f7; }
+        /* 🏆 กล่องคอมพ์ที่เจอเยอะ: รูปใหญ่ขึ้น 10px (48 → 58) ทั้งคอมพ์และทีมชน */
+        .cc-rank-box .cc-hero-slot:not(.sm):not(.lg):not(.xl) { width: 58px; height: 58px; border-radius: 10px; }
         .cc-hero-slot.empty { border-style: dashed; display: flex; align-items: center; justify-content: center; color: #4b5563; font-size: 18px; font-weight: bold; }
         .cc-hero-slot.sm { width: 33px; height: 33px; border-radius: 7px; font-size: 13px; }
         .cc-hero-slot.lg { width: 56px; height: 56px; border-radius: 10px; }
@@ -3441,7 +3453,7 @@
                     <button onclick="castleCompExportCsv()" class="bg-[#1f2937] hover:bg-emerald-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="ดาวน์โหลดเป็นไฟล์ CSV เอาไปเปิดใน Excel / ส่งให้เพื่อน">💾 ส่งออก CSV</button>
                     <button onclick="castleCompPickImportFile()" class="bg-[#1f2937] hover:bg-blue-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="เลือกไฟล์ CSV ที่ส่งออกไว้ มาแทนที่ตารางปัจจุบัน">📥 นำเข้า CSV</button>
                     <button onclick="castleCompSaveCloud()" class="bg-[#1f2937] hover:bg-sky-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="บันทึกตารางขึ้น server ของกิลด์ — คนเปิดลิงก์หน้าดูจะเห็นตารางนี้เลย ไม่ต้องส่งไฟล์">☁️ บันทึก</button>
-                    <button onclick="castleCompCopyViewerLink()" class="bg-[#1f2937] hover:bg-indigo-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="คัดลอกลิงก์หน้าดูอย่างเดียว — คนรับเปิดลิงก์แล้วอัปโหลดไฟล์ CSV ก็เห็นตาราง ไม่ต้อง login">🔗 ลิงก์หน้าดู</button>
+                    <button onclick="castleCompCopyViewerLink()" class="bg-[#1f2937] hover:bg-indigo-600 text-gray-200 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700" title="คัดลอกลิงก์หน้ารวม (ลิงก์เดียวกับ Link Gallery หน้า 3v3) — เปิดแล้วกดเมนู 🏰 คอมพ์ปราสาท เห็นตารางที่บันทึกไว้ ไม่ต้อง login">🔗 ลิงก์หน้าดู</button>
                     <button onclick="castleCompClearAll()" class="bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition border border-gray-700">🗑️ ล้างตาราง</button>
                 </div>
             </header>
@@ -13484,18 +13496,14 @@
         let ccViewCloud = '';     // '' | loading | none | fail — สถานะโหลดตารางที่บันทึกไว้บน server
         let ccViewTeams = [];     // ทีมบุกที่แชร์ (เฉพาะกิลด์ในลิงก์) — ใช้หา counter
 
-        // 🧪 DEV: ใส่ path ไฟล์ในเครื่อง (เช่น 'file:///C:/.../7k-commander/index.html') ให้ลิงก์หน้าดูชี้เครื่องตัวเอง
-        //    '' = ใช้ GitHub Pages / Apps Script ตามปกติ
-        const CASTLE_VIEW_DEV_URL = '';
-
-        function castleCompViewerUrl() {
-            const useP = !!(PUBLIC_PAGES_URL && SCRIPT_URL);
-            const base = CASTLE_VIEW_DEV_URL || (useP ? PUBLIC_PAGES_URL : publicShareBaseUrl());
-            const srv = (CASTLE_VIEW_DEV_URL || useP) && SCRIPT_URL
-                ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
-            const g = '&g=' + encodeURIComponent(btoa(encodeURIComponent(castleCompGuildRaw())));
-            return base + '?mode=castle-view' + g + srv;
+        /** 🔗 ลิงก์หน้ารวมสาธารณะ — ลิงก์เดียวใช้ทั้งปุ่ม 🌎 Link Gallery (หน้า 3v3) และ 🔗 ลิงก์หน้าดู (หน้านับคอมพ์)
+         *  เปิดมาที่แกลเลอรีทีม แล้วกดเมนูด้านบนสลับไปคอมพ์ปราสาทได้ · k= ไม่มีวันหมดอายุ · g= กิลด์ของคนสร้างลิงก์ */
+        function publicHubUrl() {
+            const L = publicLinkBase();
+            const g = encodeURIComponent(btoa(encodeURIComponent(castleCompGuildRaw())));
+            return L.base + '?k=' + getDailyKey() + '&g=' + g + L.srv;
         }
+        function castleCompViewerUrl() { return publicHubUrl(); }
 
         /** กิลด์ของคนที่ login — ค่าดิบแบบเดียวกับลิงก์แกลเลอรี (server ใช้ค่านี้เป็น key ของตาราง) */
         function castleCompGuildRaw() {
@@ -13503,7 +13511,7 @@
         }
 
         function castleCompCopyViewerLink() {
-            copyTextToClipboard(castleCompViewerUrl(), '🔗 คัดลอกลิงก์หน้าดูแล้ว — กด ☁️ บันทึก ก่อน เพื่อนเปิดลิงก์จะเห็นตารางล่าสุดเลย');
+            copyTextToClipboard(castleCompViewerUrl(), '🔗 คัดลอกลิงก์แล้ว (ลิงก์เดียวกับแกลเลอรี) — เปิดแล้วกดเมนู 🏰 คอมพ์ปราสาท · กด ☁️ บันทึก ก่อน เพื่อนจะเห็นตารางล่าสุด');
         }
 
         /** ☁️ บันทึกตารางขึ้น server (1 กิลด์ 1 ตาราง — ทับของเดิม) ให้ลิงก์หน้าดูโหลดได้เลย */
@@ -13570,21 +13578,168 @@
                 .catch(e => { console.warn('castle-view: โหลดข้อมูลฮีโร่/ทีมแชร์ไม่ได้', e); ccViewHeroLoad = 'fail'; })
                 .finally(ccViewerRender);
 
-            // ตารางที่กิลด์บันทึกไว้ — ถ้าคนดูยังไม่ได้เปิดไฟล์เองระหว่างรอ
-            ccViewCloud = 'loading';
+            // ตารางที่กิลด์บันทึกไว้ — มีในเครื่องแล้วโชว์ก่อนเลย แล้วค่อยเช็คของใหม่ (ส่งเวอร์ชันไป ไม่เปลี่ยน = ไม่ส่ง CSV ซ้ำ)
+            ccViewGuild = guild;
+            const cached = ccViewCacheGet(guild);
+            if (cached && cached.csv && !ccView) {
+                try { ccView = ccParseCsv(cached.csv); ccView.fileName = ccCloudFileName(cached.updatedAt); ccView.fromCloud = true; } catch (e) { ccView = null; }
+            }
+            ccViewCloud = ccView ? '' : 'loading';
             ccViewerRender();
-            postJson({ action: 'getCastleComp', guild: guild }, { timeout: 60000, retries: 4 })
-                .then(res => {
-                    if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
-                    if (!res.csv) { ccViewCloud = 'none'; return; }
-                    ccViewCloud = '';
-                    if (ccView) return;
+            ccViewerSyncTable();
+            ccViewerStartPolling();
+        }
+
+        // =========================================================
+        // ⚡ เวอร์ชันตาราง — เก็บตารางล่าสุดของแต่ละกิลด์ไว้ในเครื่อง + เช็คของใหม่เป็นระยะ (แบบเดียวกับแกลเลอรี)
+        // =========================================================
+        const CC_VIEW_CACHE_KEY = '7k_castle_view_cache_v1';
+        let ccViewGuild = 'all';
+        let ccSync = { state: 'idle', at: 0, msg: '' }; // idle | checking | updated | error
+        let ccSyncBusy = false, ccPollTimer = null;
+
+        function ccViewCacheGet(guild) {
+            try { const all = JSON.parse(localStorage.getItem(CC_VIEW_CACHE_KEY)) || {}; return all[castleCompKeyLocal(guild)] || null; } catch (e) { return null; }
+        }
+        function ccViewCachePut(guild, entry) {
+            try { const all = JSON.parse(localStorage.getItem(CC_VIEW_CACHE_KEY)) || {}; all[castleCompKeyLocal(guild)] = entry; localStorage.setItem(CC_VIEW_CACHE_KEY, JSON.stringify(all)); } catch (e) {}
+        }
+        /** key เดียวกับ server (castleCompKey_) — ไม่สนตัวพิมพ์/ช่องว่าง */
+        function castleCompKeyLocal(g) { return String(g || 'all').toLowerCase().replace(/\s+/g, '') || 'all'; }
+        function ccCloudFileName(updatedAt) {
+            const at = updatedAt ? new Date(updatedAt) : null;
+            return '☁️ บันทึกล่าสุด' + (at && !isNaN(at) ? ' ' + at.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '');
+        }
+
+        function ccSyncBadgeHTML() {
+            const s = ccSync;
+            const hhmm = s.at ? new Date(s.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            const base = 'px-3 py-2 rounded-xl text-[11px] font-bold border flex items-center gap-1.5 whitespace-nowrap';
+            if (s.state === 'checking') return `<span class="${base} bg-blue-900/30 text-blue-300 border-blue-700/50"><span class="inline-block animate-spin">🔄</span> กำลังเช็คตารางใหม่…</span>`;
+            if (s.state === 'updated') return `<span class="${base} bg-emerald-900/40 text-emerald-300 border-emerald-600/60 animate-pulse">✨ ${s.msg}</span>`;
+            if (s.state === 'error') return `<span class="${base} bg-amber-900/30 text-amber-300 border-amber-700/50" title="${ccEsc(s.msg)}">⚠️ เช็คไม่ได้ — จะลองใหม่เอง</span>`;
+            return hhmm ? `<span class="${base} bg-[#0d1117] text-gray-500 border-gray-800">✓ ล่าสุด ${hhmm}</span>` : '';
+        }
+        function ccSetSync(state, msg) {
+            ccSync = { state: state, at: state === 'checking' ? ccSync.at : Date.now(), msg: msg || '' };
+            const el = document.getElementById('cc-sync-status');
+            if (el) el.innerHTML = ccSyncBadgeHTML();
+        }
+
+        /** ขอตารางจาก server โดยส่งเวอร์ชันที่มี — ได้ของใหม่ก็แทนที่ (เว้นแต่คนดูเปิดไฟล์ของตัวเองอยู่) */
+        async function ccViewerSyncTable() {
+            if (ccSyncBusy || !SCRIPT_URL) return;
+            ccSyncBusy = true;
+            ccSetSync('checking');
+            const guild = ccViewGuild;
+            const cached = ccViewCacheGet(guild);
+            try {
+                const res = await postJson({ action: 'getCastleComp', guild: guild, version: cached ? (cached.version || 0) : 0 }, { timeout: 60000, retries: 4 });
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
+                if (res.unchanged) {                       // เวอร์ชันเดิม — ที่โชว์อยู่ล่าสุดแล้ว
+                    if (!ccView && ccViewCloud === 'loading') ccViewCloud = (cached && cached.csv) ? '' : 'none';
+                    ccSetSync('idle');
+                    return;
+                }
+                const changed = !cached || cached.csv !== (res.csv || '');
+                ccViewCachePut(guild, { csv: res.csv || '', updatedAt: res.updatedAt || '', version: res.version || 0 });
+                if (!res.csv) { if (!ccView) ccViewCloud = 'none'; ccSetSync('idle'); return; }
+                ccViewCloud = '';
+                const userFile = ccView && !ccView.fromCloud;   // คนดูเปิดไฟล์ CSV ของตัวเองอยู่ → ไม่ทับ แค่แจ้ง
+                if (!userFile) {
+                    const firstLoad = !ccView;
+                    const keepSel = new Set(ccViewSel);
                     ccView = ccParseCsv(res.csv);
-                    const at = res.updatedAt ? new Date(res.updatedAt) : null;
-                    ccView.fileName = '☁️ บันทึกล่าสุด' + (at && !isNaN(at) ? ' ' + at.toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '');
-                })
-                .catch(e => { console.warn('castle-view: โหลดตารางไม่ได้', e); ccViewCloud = 'fail'; })
-                .finally(ccViewerRender);
+                    ccView.fileName = ccCloudFileName(res.updatedAt);
+                    ccView.fromCloud = true;
+                    keepSel.forEach(id => ccViewSel.add(id));
+                    if (changed && !firstLoad) {
+                        ccSetSync('updated', 'ตารางอัปเดตแล้ว');
+                        showToast('✨ ตารางคอมพ์ปราสาทมีการอัปเดต' + (res.updatedAt ? ' (' + ccCloudFileName(res.updatedAt).replace('☁️ บันทึกล่าสุด ', '') + ')' : ''), 'success');
+                        setTimeout(() => { if (ccSync.state === 'updated') ccSetSync('idle'); }, 10000);
+                    } else ccSetSync('idle');
+                } else {
+                    ccSetSync('updated', 'มีตารางใหม่บน server');
+                    if (changed) showToast('✨ กิลด์บันทึกตารางใหม่แล้ว — กด "☁️ ใช้ตารางล่าสุด" เพื่อดู', 'info');
+                }
+            } catch (e) {
+                console.warn('castle-view: โหลดตารางไม่ได้', e);
+                if (!ccView) ccViewCloud = 'fail';
+                ccSetSync('error', e && e.message ? e.message : String(e));
+            } finally {
+                ccSyncBusy = false;
+                if (!ccViewDetailOpen) ccViewerRender();
+            }
+        }
+
+        // =========================================================
+        // 🧭 หน้าสาธารณะรวม — แกลเลอรีทีม + คอมพ์ปราสาท อยู่หน้าเดียว สลับด้วยเมนูด้านบน
+        //    ลิงก์ไหนก็เปิดหน้าเดียวกัน (k= → แกลเลอรี · mode=castle-view → ปราสาท) แล้วสลับไปมาได้
+        //    URL เปลี่ยนตาม (ไม่โหลดหน้าใหม่) — รีเฟรช/ก๊อปลิงก์ไปส่งต่อ ได้หน้าที่เปิดอยู่
+        // =========================================================
+        function publicHubNavHTML(active) {
+            if (!isPublicView) return '';
+            const btn = (key, icon, label) => `<button onclick="switchPublicHub('${key}')" class="flex-1 min-w-0 sm:flex-none px-2 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap overflow-hidden ${active === key
+                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
+                : 'text-gray-400 hover:text-white hover:bg-white/5'}">${icon} ${label}</button>`;
+            return `<div class="flex w-full sm:w-auto sm:self-start gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">
+                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}
+                </div>`;
+        }
+        /** ชื่อกิลด์ของลิงก์ (มุมขวาบน) — หน้าสาธารณะเท่านั้น */
+        function publicHubGuildHTML() {
+            if (!isPublicView) return '';
+            const g = decodeGuildParam(appUrlParams().get('g'));
+            return g && g.toLowerCase() !== 'all' ? `<span class="text-xs text-gray-500 whitespace-nowrap">🛡️ กิลด์ <b class="text-yellow-500/90">${ccEsc(g)}</b></span>` : '';
+        }
+
+        function switchPublicHub(target) {
+            const q = galleryShareQuery(); // k / g / s เดิม
+            if (target === 'castle') {
+                try { window.history.replaceState({}, '', window.location.pathname + '?mode=castle-view' + q); } catch (e) {}
+                const main = document.getElementById('main-content');
+                if (main) main.style.display = 'none';
+                const box = document.getElementById('cc-viewer');
+                if (box) {
+                    box.style.display = '';
+                    ccViewDetailOpen = false;
+                    ccViewerRender();
+                    if (Date.now() - (ccSync.at || 0) >= GALLERY_POLL_MS - 1000) ccViewerSyncTable(); // ไม่ได้ดูนาน → เช็คเลย
+                } else {
+                    ccViewerBoot();
+                }
+            } else {
+                // แกลเลอรีต้องมี k= — เปิดมาจากลิงก์ปราสาทจะยังไม่มี
+                const k = appUrlParams().get('k') ? '' : '&k=' + encodeURIComponent(getDailyKey());
+                try { window.history.replaceState({}, '', window.location.pathname + '?' + (q + k).slice(1)); } catch (e) {}
+                const box = document.getElementById('cc-viewer');
+                if (box) box.style.display = 'none';
+                if (typeof ccViewerCloseHeroPicker === 'function') ccViewerCloseHeroPicker();
+                ccViewDetailOpen = false;
+                const main = document.getElementById('main-content');
+                if (main) { main.style.display = ''; main.classList.remove('hidden'); }
+                loadSharedGallery(); // มีในหน่วยความจำ/เครื่องแล้ว = วาดทันที แล้วเช็คของใหม่เบื้องหลัง
+                if (galleryCacheDB && galleryCacheDB.length && Date.now() - (gallerySync.at || 0) >= GALLERY_POLL_MS - 1000) syncSharedGalleryInBackground(decodeGuildParam(appUrlParams().get('g'))); // ไม่ได้ดูนาน → เช็คเลย
+            }
+            window.scrollTo(0, 0);
+        }
+
+        /** ทิ้งไฟล์ที่เปิดเอง กลับไปใช้ตารางล่าสุดของกิลด์ */
+        function ccViewerUseCloud() {
+            const c = ccViewCacheGet(ccViewGuild);
+            if (!c || !c.csv) { ccViewerSyncTable(); return; }
+            ccView = ccParseCsv(c.csv); ccView.fileName = ccCloudFileName(c.updatedAt); ccView.fromCloud = true;
+            ccSetSync('idle');
+            ccViewerRender();
+        }
+
+        /** เช็คซ้ำทุก GALLERY_POLL_MS ตอนเปิดหน้าดูค้างไว้ — ข้ามตอนแท็บซ่อน / ไม่ได้อยู่หน้าปราสาท */
+        function ccViewerStartPolling() {
+            if (ccPollTimer) return;
+            const active = () => { const b = document.getElementById('cc-viewer'); return b && b.style.display !== 'none'; };
+            const due = () => Date.now() - (ccSync.at || 0) >= GALLERY_POLL_MS - 1000;
+            ccPollTimer = setInterval(() => { if (document.visibilityState === 'visible' && active() && due()) ccViewerSyncTable(); }, GALLERY_POLL_MS);
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && active() && due()) ccViewerSyncTable(); });
         }
 
         /** ทีมบุกที่แชร์ + มีศัตรูผูกไว้ · กรองกิลด์แบบเดียวกับแกลเลอรี */
@@ -13809,14 +13964,24 @@
                 : (ccViewHeroLoad === 'fail' && !heroesDB.length) ? '<span class="text-amber-300">⚠️ โหลดรูปฮีโร่ไม่ได้ — แสดงเป็นชื่อแทน</span>' : '';
 
             const head = `
-                <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-                    <div>
-                        <h2 class="text-2xl md:text-3xl font-black text-amber-500 uppercase tracking-tighter flex items-center gap-3"><span>🏰</span> นับคอมพ์ปราสาท</h2>
-                        <p class="text-xs text-gray-500 mt-1">หน้าดูอย่างเดียว — เลือกหรือลากไฟล์ CSV ที่ส่งออกจากหน้านับคอมพ์ปราสาทมาวาง ${heroNote}</p>
+                <div class="flex flex-col md:flex-row items-start justify-between gap-4 mb-5">
+                    <!-- ซ้าย: หัวข้อ (บน) · เมนูสลับหน้า (ล่าง) -->
+                    <div class="flex flex-col gap-3">
+                        <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Castle <span class="text-amber-500">Comp</span></h1>
+                        ${publicHubNavHTML('castle')}
                     </div>
-                    <div class="flex items-center gap-2">
+                    <!-- ขวา: กิลด์ (บน) · สถานะ/ไฟล์ (ล่าง) -->
+                    <div class="flex flex-col items-start md:items-end gap-2">
+                    <div class="flex flex-wrap items-center md:justify-end gap-3">
+                        ${publicHubGuildHTML()}
+                        <span id="cc-sync-status">${ccSyncBadgeHTML()}</span>
+                    </div>
+                    ${heroNote ? `<div class="text-[11px]">${heroNote}</div>` : ''}
+                    <div class="flex flex-wrap items-center md:justify-end gap-2">
                         ${ccView ? `<span class="text-[11px] text-gray-400 truncate max-w-[200px]" title="${ccEsc(ccView.fileName)}">📄 ${ccEsc(ccView.fileName)}</span>` : ''}
-                        <button onclick="ccViewerPickFile()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-amber-900/30">📂 ${ccView ? 'เปลี่ยนไฟล์' : 'เลือกไฟล์ CSV'}</button>
+                        ${ccView && !ccView.fromCloud ? `<button onclick="ccViewerUseCloud()" class="bg-[#1f2937] hover:bg-[#2d3748] text-sky-300 border border-sky-800/60 px-3 py-2 rounded-xl text-xs font-bold transition">☁️ ใช้ตารางล่าสุดของกิลด์</button>` : ''}
+                        <button onclick="ccViewerPickFile()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-amber-900/30">📂 ${ccView ? 'เปิดไฟล์อื่น' : 'เลือกไฟล์ CSV'}</button>
+                    </div>
                     </div>
                 </div>`;
 
@@ -13839,30 +14004,39 @@
             const colTotal = comps.map(cp => castles.reduce((s, cs) => s + cnt(cs.id, cp.id), 0));
             const grand = colTotal.reduce((a, b) => a + b, 0);
 
-            const tabBtn = (key, label) => `<button onclick="ccViewerSetTab('${key}')" class="px-4 py-2 rounded-xl text-xs font-black transition border ${ccViewTab === key
-                ? 'bg-amber-600/20 text-amber-300 border-amber-500/60' : 'bg-[#161d29] text-gray-400 border-gray-800 hover:text-white'}">${label}</button>`;
+            // แท็บ = กล่องเดียวแบบเมนูสลับหน้า (ชัดว่ากดได้)
+            const tabBtn = (key, label) => `<button onclick="ccViewerSetTab('${key}')" class="flex-1 min-w-0 sm:flex-none px-1.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap overflow-hidden text-ellipsis ${ccViewTab === key
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
 
+            const bodyHTML = ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
             box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">${head}
-                <div class="flex flex-wrap items-center gap-2 mb-4 text-xs font-bold">
-                    ${tabBtn('table', '📊 ตาราง')}
-                    ${tabBtn('comp', '⚔️ คอมพ์')}
-                    ${tabBtn('castle', '🏰 แยกรายปราสาท')}
-                    <button onclick="ccViewerOpenHeroPicker()" class="px-4 py-2 rounded-xl text-xs font-black transition border ${ccViewSel.size
-                        ? 'bg-amber-600/20 text-amber-300 border-amber-500/60' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:text-white'}">🦸 เลือกตัวละคร${ccViewSel.size ? ' (' + ccViewSel.size + ')' : ''}</button>
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+                <!-- 🖱️ ส่วนที่กดได้: แท็บมุมมอง + เลือกตัวละคร -->
+                <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+                    <div class="flex w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">
+                        ${tabBtn('table', '<span class="hidden sm:inline">📊 </span>ตาราง')}
+                        ${tabBtn('comp', '<span class="hidden sm:inline">⚔️ </span>คอมพ์')}
+                        ${tabBtn('castle', '<span class="hidden sm:inline">🏰 </span><span class="sm:hidden">รายปราสาท</span><span class="hidden sm:inline">แยกรายปราสาท</span>')}
+                    </div>
+                </div>
+                <!-- 📊 สรุปตัวเลข: ตัวหนังสือล้วน ไม่มีกรอบแบบปุ่ม — มือถือขึ้นแถวของตัวเอง · แท็บตาราง = สรุปละเอียด -->
+                ${ccSummaryHTML(cnt)}
+                </div>
+                ${bodyHTML}
+            </div>`;
+        }
+
+        /** ปุ่ม 🦸 เลือกตัวละคร + ป้ายฮีโร่ที่เลือก + ล้าง — แท็บคอมพ์วางขวาแถว TYPE · แท็บอื่นอยู่แถวแท็บ */
+        function ccHeroPickerHTML() {
+            return `<button onclick="ccViewerOpenHeroPicker()" class="px-4 py-2.5 rounded-xl text-xs font-black transition border ${ccViewSel.size
+                        ? 'bg-amber-600/20 text-amber-300 border-amber-500/60' : 'bg-[#1f2937] text-gray-200 border-gray-600 hover:text-white hover:border-gray-400'}">🦸 เลือกตัวละคร${ccViewSel.size ? ' (' + ccViewSel.size + ')' : ''}</button>
                     ${[...ccViewSel].map(id => {
                         const sh = heroesDB.find(x => String(x.id) === id);
                         const nm = sh ? sh.name : id;
                         return `<button onclick="ccViewerToggleHero('${ccEsc(id)}')" title="เอา ${ccEsc(nm)} ออก" class="flex items-center gap-1 pl-0.5 pr-2 py-0.5 rounded-lg bg-[#161d29] border border-amber-600/50 text-[11px] text-gray-200 hover:border-red-500 transition">
                             ${sh && sh.img ? `<img src="${sh.img}" class="w-6 h-6 rounded object-cover">` : ''}${ccEsc(nm)} <span class="text-gray-500">✕</span></button>`;
                     }).join('')}
-                    ${ccViewSel.size ? '<button onclick="ccViewerClearHeroes()" class="text-[11px] text-gray-500 hover:text-white underline">ล้าง</button>' : ''}
-                    <span class="flex-1"></span>
-                    <span class="px-3 py-1.5 rounded-xl bg-[#161d29] border border-gray-800">🏰 ${castles.length} ปราสาท</span>
-                    <span class="px-3 py-1.5 rounded-xl bg-[#161d29] border border-gray-800">⚔️ ${comps.length} คอมพ์</span>
-                    <span class="px-3 py-1.5 rounded-xl bg-amber-900/30 border border-amber-700/50 text-amber-300">Σ รวม ${grand} หลัง</span>
-                </div>
-                ${ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand)}
-            </div>`;
+                    ${ccViewSel.size ? '<button onclick="ccViewerClearHeroes()" class="text-[11px] text-gray-500 hover:text-white underline">ล้าง</button>' : ''}`;
         }
 
         let ccViewTab = 'table'; // table | comp | castle
@@ -13900,11 +14074,31 @@
         function ccViewerSheet(cnt, allColTotal, allGrand) {
             const { castles, compNames, picks } = ccView;
             // กำลังค้นหา → เหลือเฉพาะคอลัมน์คอมพ์ที่มีตัวละครตรงคำค้น (ยอดรวมคิดใหม่ตามที่เห็น)
-            const keep = ccView.comps.map(ccViewerCompMatch);
-            const comps = ccView.comps.filter((_, i) => keep[i]);
-            const colTotal = allColTotal.filter((_, i) => keep[i]);
-            const grand = ccViewSel.size ? colTotal.reduce((a, b) => a + b, 0) : allGrand;
-            if (!comps.length) return '<div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบคอมพ์ที่มีตัวละครที่เลือก</div>';
+            const heroOk = ccView.comps.map(ccViewerCompMatch);
+            const types = ccView.comps.map(cp => heroIdsMainType(cp.heroes));
+            // 🧬 ตัวกรอง type เดียวกับแท็บคอมพ์ — type ที่เลือกไม่มีในชุดนี้แล้ว = ล้างทิ้ง
+            if (ccCompTypeFilter && !types.some((t, i) => heroOk[i] && t === ccCompTypeFilter)) ccCompTypeFilter = null;
+            const keep = heroOk.map((ok, i) => ok && (!ccCompTypeFilter || types[i] === ccCompTypeFilter));
+            const typeChips = ccTypeChipsHTML(types.filter((_, i) => heroOk[i]));
+            let comps = ccView.comps.filter((_, i) => keep[i]);
+            let colTotal = allColTotal.filter((_, i) => keep[i]);
+            // 🏰 เลือกปราสาทไว้ → เรียงคอลัมน์คอมพ์ตามจำนวนในปราสาทนั้น (มาก → น้อย · เท่ากันคงลำดับเดิม)
+            const sortCs = ccSortCastleKey ? castles.find(cs => ccCastleKey(cs) === ccSortCastleKey) : null;
+            let hiddenBySort = 0;
+            if (sortCs) {
+                // ซ่อนคอมพ์ที่ไม่มีในปราสาทนี้ (0 หลัง) — เหลือเฉพาะที่ต้องเจอ
+                const order = comps.map((cp, i) => i)
+                    .filter(i => cnt(sortCs.id, comps[i].id) > 0)
+                    .sort((a, b) => (cnt(sortCs.id, comps[b].id) - cnt(sortCs.id, comps[a].id)) || (a - b));
+                hiddenBySort = comps.length - order.length;
+                comps = order.map(i => comps[i]);
+                colTotal = order.map(i => colTotal[i]);
+            }
+            const grand = (ccViewSel.size || hiddenBySort || ccCompTypeFilter) ? colTotal.reduce((a, b) => a + b, 0) : allGrand;
+            if (!comps.length && sortCs) return `<div class="flex flex-wrap items-center justify-end gap-2 mb-4">${ccHeroPickerHTML()}</div><div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">
+                    ปราสาท "${ccEsc(sortCs.name || '-')}" ไม่มีคอมพ์${ccViewSel.size ? 'ที่มีตัวละครที่เลือก' : ''}
+                    <button type="button" onclick="ccViewerSortByCastleKey('')" class="ml-2 not-italic text-amber-400 hover:text-amber-300 underline">ดูทุกปราสาท</button></div>`;
+            if (!comps.length) return '<div class="flex flex-wrap items-center justify-end gap-2 mb-4">' + ccHeroPickerHTML() + '</div><div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบคอมพ์ที่มีตัวละครที่เลือก</div>';
             const quota = ccView.heroQuota || 0;
 
             const headCells = comps.map(cp => `
@@ -13919,16 +14113,20 @@
                     return `<td class="cc-col-w"><input type="text" readonly value="${n || ''}" placeholder="0" class="cc-count-input ${n ? '' : 'is-zero'}"></td>`;
                 }).join('');
                 const rowTotal = comps.reduce((s, cp) => s + cnt(cs.id, cp.id), 0);
+                const isSort = sortCs === cs;
                 return `
-                    <tr>
+                    <tr${isSort ? ' class="cc-row-sel"' : ''}>
                         <td class="cc-idx">${ri + 1}</td>
                         <th class="cc-sticky-col cc-pad text-left">
-                            <div class="flex items-center gap-1">
+                            <button type="button" onclick="ccViewerSortByCastleIdx(${ri})" title="${isSort ? 'กดอีกครั้งเพื่อกลับลำดับเดิม' : 'กดเพื่อเรียงคอมพ์ตามปราสาทนี้'}"
+                                class="w-full flex items-center gap-1 rounded-lg transition ${isSort ? '' : 'hover:bg-white/5'}">
                                 <span class="text-base">🏰</span>
-                                <span class="flex-1 min-w-0 px-2 py-1.5 text-sm font-bold text-white truncate" title="${ccEsc(cs.name)}">${ccEsc(cs.name || '-')}</span>
-                            </div>
+                                <span class="flex-1 min-w-0 px-2 py-1.5 text-sm font-bold ${isSort ? 'text-amber-300' : 'text-white'} truncate text-left" title="${ccEsc(cs.name)}">${ccEsc(cs.name || '-')}</span>
+                                ${isSort ? '<span class="text-amber-400 text-xs pr-1">⇅</span>' : ''}
+                            </button>
                         </th>
                         ${cells}
+                        <td class="cc-fill"></td>
                         <td class="cc-total-col bg-[#121826]"><span class="text-amber-400 font-black text-sm">${rowTotal}</span></td>
                     </tr>`;
             }).join('');
@@ -13938,31 +14136,9 @@
                     <span class="text-gray-200 font-black">${t}</span>
                 </td>`).join('');
 
-            // --- สรุปบนสุด (เหมือนแถบสรุปของหน้าหลัก) ---
-            let noPlan = 0;
-            comps.forEach(cp => castles.forEach(cs => {
-                if (cnt(cs.id, cp.id) > 0 && !((picks[cp.id] && picks[cp.id][cs.id]) || []).length) noPlan++;
-            }));
             const usage = ccViewerHeroUsage(cnt);
             const over = quota > 0 ? usage.filter(e => e[1].times > quota) : [];
-            const topComp = comps.length ? comps[colTotal.indexOf(Math.max(...colTotal))] : null;
-            const topCastle = castles.length
-                ? castles.map(cs => ({ cs, t: comps.reduce((s, cp) => s + cnt(cs.id, cp.id), 0) })).sort((a, b) => b.t - a.t)[0] : null;
-            const stat = (label, val, cls) =>
-                `<div class="flex flex-col min-w-0"><span class="text-[10px] text-gray-500 uppercase tracking-wider">${label}</span>
-                 <span class="font-black truncate ${cls || 'text-gray-200'}">${val}</span></div>`;
-
-            const topbar = `
-                <div class="bg-[#111827] border border-gray-700 rounded-xl px-4 py-3 mb-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-                    ${stat('ปราสาท', castles.length)}
-                    ${stat('คอมพ์', comps.length)}
-                    ${stat('รวมทั้งหมด', grand + ' หลัง', 'text-amber-400')}
-                    ${stat('เฉลี่ย/ปราสาท', castles.length ? (grand / castles.length).toFixed(1) + ' หลัง' : '-')}
-                    ${topComp ? stat('คอมพ์ที่เจอมากสุด', ccEsc(compNames[topComp.id] || '') + ' · ' + Math.max(...colTotal) + ' หลัง', 'text-sky-400') : ''}
-                    ${topCastle ? stat('ปราสาทหนักสุด', ccEsc(topCastle.cs.name || '-') + ' · ' + topCastle.t + ' หลัง', 'text-sky-400') : ''}
-                    ${noPlan ? stat('ยังไม่เลือกฮีโร่', noPlan + ' ช่อง', 'text-red-400') : stat('วางแผนครบ', '✅', 'text-emerald-400')}
-                    ${quota ? stat('โควต้าฮีโร่/ตัว', quota + ' ครั้ง' + (over.length ? ' · ⚠️ เกิน ' + over.length + ' ตัว' : ''), over.length ? 'text-red-400' : 'text-emerald-400') : ''}
-                </div>`;
+            const topbar = '';
 
             // --- สรุปใต้ตาราง: ฮีโร่ที่ต้องจ่าย ---
             const heroTiles = usage.map(([hid, u]) => {
@@ -13989,14 +14165,26 @@
                         : '<div class="text-xs text-gray-600 italic border border-dashed border-gray-800 rounded-2xl px-4 py-6 text-center">ไฟล์นี้ยังไม่ได้เลือกฮีโร่ที่จะจ่าย</div>'}
                 </div>`;
 
-            return `${topbar}
+            // แถวเหนือตาราง: (กำลังเรียงตามปราสาท → บอกสถานะ + ล้าง) · เลือกตัวละครชิดขวา
+            //    เลือกปราสาท = กดชื่อปราสาทในตาราง (กดซ้ำ = ลำดับเดิม)
+            const sortBar = `
+                <div class="flex flex-wrap items-center gap-2 mb-3 text-xs">
+                    ${typeChips}
+                    ${sortCs ? `<span class="text-amber-300 font-bold ${typeChips ? 'ml-2' : ''}">⇅ เรียงตาม ${ccEsc(sortCs.name || '-')}</span>
+                        ${hiddenBySort ? `<span class="text-[11px] text-gray-500">· ซ่อน ${hiddenBySort} คอมพ์ที่ไม่มีในปราสาทนี้</span>` : ''}
+                        <button type="button" onclick="ccViewerSortByCastleKey('')" class="text-[11px] text-gray-500 hover:text-white underline">ล้าง</button>` : ''}
+                    <div class="ml-auto flex flex-wrap items-center justify-end gap-2">${ccHeroPickerHTML()}</div>
+                </div>`;
+
+            return `${topbar}${sortBar}
                 <div class="w-full cc-scroll-x border border-gray-700 rounded-xl bg-[#0b0e14] shadow-2xl">
-                    <table class="cc-table text-sm">
+                    <table class="cc-table cc-table-fit text-sm" style="--cc-fit-w:${36 + 200 + 36 + comps.length * 180}px">
                         <thead>
                             <tr>
                                 <th class="cc-idx"></th>
                                 <th class="cc-sticky-col cc-pad text-left text-xs font-black text-gray-400 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
                                 ${headCells}
+                                <th class="cc-fill"></th>
                                 <th class="cc-total-col text-[10px] font-black text-amber-500 uppercase tracking-wider">รวม</th>
                             </tr>
                         </thead>
@@ -14006,22 +14194,86 @@
                                 <td class="cc-idx" style="background:#1b2433"></td>
                                 <th class="cc-sticky-col cc-pad text-left text-xs font-black text-amber-500/90 uppercase tracking-wider" style="background:#1b2433">รวมทุกปราสาท</th>
                                 ${footCells}
+                                <td class="cc-fill" style="background:#121826"></td>
                                 <td class="cc-total-col" style="background:#182031"><span class="text-amber-400 font-black text-sm">${grand}</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+                ${ccRankBoxHTML(cnt)}
                 ${heroBox}`;
+        }
+
+        /** 🏆 สรุปใต้ตาราง: คอมพ์ที่เจอเยอะ เรียงมาก → น้อย + ทีมชน (ทีมบุกที่แชร์ไว้ในแกลเลอรีที่ตรงคอมพ์นั้น)
+         *  นับตามตัวกรองตัวละคร + TYPE (ไม่ขึ้นกับการเรียงตามปราสาท) · คอมพ์ที่ไม่เจอเลยไม่แสดง */
+        function ccRankBoxHTML(cnt) {
+            const { castles, compNames } = ccView;
+            // 🏰 เลือกดูเฉพาะปราสาท (null = ทุกปราสาท) — ปราสาทที่เลือกไว้หายไปจากไฟล์ใหม่ = กลับเป็นทุกปราสาท
+            const selCs = ccRankCastleKey ? castles.find(cs => ccCastleKey(cs) === ccRankCastleKey) : null;
+            if (ccRankCastleKey && !selCs) ccRankCastleKey = null;
+            const scope = selCs ? [selCs] : castles;
+            const csBtn = (label, idx, on) => `<button type="button" onclick="ccViewerSetRankCastle(${idx})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition whitespace-nowrap ${on
+                ? 'bg-amber-600 text-white border-amber-500' : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'}">${label}</button>`;
+            const castleBar = `<div class="flex flex-wrap items-center gap-1.5 mb-3">
+                    ${csBtn('🏰 ทุกปราสาท', -1, !selCs)}${castles.map((cs, i) => csBtn(ccEsc(cs.name || '-'), i, selCs === cs)).join('')}
+                </div>`;
+            const rows = ccView.comps
+                .filter(cp => ccViewerCompMatch(cp) && (!ccCompTypeFilter || heroIdsMainType(cp.heroes) === ccCompTypeFilter))
+                .map((cp, i) => ({ cp, i, t: scope.reduce((s, cs) => s + cnt(cs.id, cp.id), 0), counters: ccViewerCounters(cp) }))
+                .filter(r => r.t > 0)
+                .sort((a, b) => (b.t - a.t) || (a.i - b.i));
+            if (!rows.length && !selCs) return '';
+            const withCounter = rows.filter(r => r.counters.length).length;
+            const teamChips = team => ((team.data && team.data.slots) || []).filter(s => s && s.id)
+                .map(s => ccViewerHeroChip(String(s.id), '', !!(s.awakened || s.isAwakened), false)).join('');
+            const body = rows.map((r, n) => {
+                const st = teamTypeStyle(heroIdsMainType(r.cp.heroes));
+                const counters = r.counters.length
+                    ? `<div class="flex flex-wrap items-center gap-2">${r.counters.map(c => `
+                        <button type="button" onclick="ccViewerOpenCounter('${r.cp.id}')" title="ทีมชน: ${ccEsc(c.team.name || '')} — กดเพื่อดูรายละเอียด"
+                            class="flex flex-col items-start gap-1 px-2 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/70 hover:bg-emerald-500/20 transition text-left">
+                            <span class="flex items-center gap-1">${teamChips(c.team)}</span>
+                            <span class="text-[11px] text-emerald-300 font-bold max-w-[180px] truncate">🛡️ ${ccEsc(c.team.name || 'ทีมชน')}</span>
+                        </button>`).join('')}</div>`
+                    : '<span class="text-[11px] text-gray-600 italic">ยังไม่มีทีมชน</span>';
+                return `
+                    <div class="grid items-center gap-3 px-3 py-2.5 border-t border-gray-800/70 first:border-t-0" style="grid-template-columns:2.25rem minmax(0,17rem) 4.5rem minmax(0,1fr)">
+                        <span class="text-sm font-black ${n < 3 ? 'text-amber-400' : 'text-gray-500'}">#${n + 1}</span>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1">${ccViewerCompThumbs(r.cp)}</div>
+                            <div class="flex items-center gap-1.5 mt-1 min-w-0"><span class="w-2 h-2 rounded-full flex-shrink-0 ${st.dot}"></span>
+                                <span class="text-[11px] text-gray-400 font-bold truncate" title="${ccEsc(compNames[r.cp.id] || '')}">${ccEsc(compNames[r.cp.id] || '')}</span></div>
+                        </div>
+                        <div class="text-right"><span class="text-amber-400 font-black text-xl">${r.t}</span> <span class="text-[10px] text-gray-500 font-bold">หลัง</span></div>
+                        ${counters}
+                    </div>`;
+            }).join('');
+            return `
+                <div class="mt-6 cc-rank-box">
+                    <div class="flex flex-wrap items-center gap-3 mb-3">
+                        <h3 class="text-sm font-black text-white uppercase tracking-wider">🏆 คอมพ์ที่เจอเยอะ + ทีมชน</h3>
+                        <span class="text-[11px] text-gray-500">${selCs ? '🏰 ' + ccEsc(selCs.name || '-') + ' · ' : ''}${rows.length} คอมพ์ · รวม ${rows.reduce((a, r) => a + r.t, 0)} หลัง · มีทีมชน ${withCounter} คอมพ์</span>
+                    </div>
+                    ${castleBar}
+                    ${rows.length ? `<div class="bg-[#161b22] border border-gray-800 rounded-2xl overflow-x-auto">
+                        <div style="min-width:560px">${body}</div>
+                    </div>` : '<div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-6 text-center">ปราสาทนี้ไม่มีคอมพ์ที่ตรงตัวกรอง</div>'}
+                </div>`;
         }
 
         // ---------- แท็บคอมพ์: คอมพ์ทั้งหมด + จำนวนรวม + เจอที่ปราสาทไหนกี่หลัง ----------
         function ccViewerCompCards(cnt, colTotal) {
             const { castles, comps, compNames } = ccView;
             const order = comps.map((cp, i) => ({ cp, t: colTotal[i] })).sort((a, b) => b.t - a.t);
-            const shown = order.map((x, rank) => Object.assign({ rank }, x)).filter(x => ccViewerCompMatch(x.cp));
-            if (!shown.length) return `<div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบคอมพ์ที่มีตัวละครที่เลือก</div>`;
+            const matched = order.map((x, rank) => Object.assign({ rank, type: heroIdsMainType(x.cp.heroes) }, x)).filter(x => ccViewerCompMatch(x.cp));
+            if (!matched.length) return `<div class="flex flex-wrap items-center justify-end gap-2 mb-4">${ccHeroPickerHTML()}</div>
+                <div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบคอมพ์ที่มีตัวละครที่เลือก</div>`;
 
-            const tiles = shown.map(({ cp, t, rank }) => {
+            // 🧬 แยกตาม type หลักของคอมพ์ (เกณฑ์เดียวกับแกลเลอรี) — แถบกรองนับจากรายการก่อนกรอง type
+            if (ccCompTypeFilter && !matched.some(x => x.type === ccCompTypeFilter)) ccCompTypeFilter = null;
+            const shown = ccCompTypeFilter ? matched.filter(x => x.type === ccCompTypeFilter) : matched;
+
+            const tile = ({ cp, t, rank }) => {
                 const where = castles.map(cs => ({ cs, n: cnt(cs.id, cp.id) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
                 return `
                     <div class="bg-[#161b22] border border-gray-800 ${ccViewerCounters(cp).length ? 'hover:border-red-600/60' : ''} rounded-2xl p-3 flex flex-col gap-2 shadow-lg transition" title="${ccEsc(compNames[cp.id])}"${ccViewerClickAttr(cp)}>
@@ -14036,21 +14288,115 @@
                             <div class="flex-1 min-w-0 text-[11px] text-gray-400 font-bold truncate">${ccEsc(compNames[cp.id] || '')}</div>
                             ${ccViewerCounterBadge(cp, 'flex-shrink-0')}
                         </div>
-                        <div class="flex flex-wrap gap-1">
+                        ${ccShowCompCastles ? `<div class="flex flex-wrap gap-1">
                             ${where.map(x => `<span class="text-[10px] px-1.5 py-0.5 rounded-md bg-[#0d1117] border border-gray-800 text-gray-300 whitespace-nowrap">🏰 ${ccEsc(x.cs.name || '-')} · <b class="text-sky-400">${x.n}</b> ทีม</span>`).join('')
                                 || '<span class="text-[10px] text-gray-600 italic">ยังไม่เจอในปราสาทไหน</span>'}
+                        </div>`
+                        : `<div class="text-[10px] text-gray-600">${where.length ? '🏰 พบใน ' + where.length + ' ปราสาท' : 'ยังไม่เจอในปราสาทไหน'}</div>`}
+                    </div>`;
+            };
+
+            // แถบกรอง type
+            const counts = {};
+            matched.forEach(x => { counts[x.type] = (counts[x.type] || 0) + 1; });
+            const avail = TEAM_TYPE_ORDER.filter(t => counts[t] > 0);
+            const off = 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500';
+            // 🏰 เปิด/ปิดป้าย "จำนวนในแต่ละปราสาท" ของทุกการ์ด (ค่าเริ่ม = ปิด ให้ดูสบายตา)
+            // ขวาของแถว TYPE: สลับจำนวนในปราสาท + เลือกตัวละคร
+            const castleToggle = `<div class="ml-auto flex flex-wrap items-center justify-end gap-2">
+                <button type="button" onclick="ccViewerToggleCompCastles()" aria-pressed="${ccShowCompCastles}"
+                class="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border transition ${ccShowCompCastles ? 'bg-amber-600/20 text-amber-300 border-amber-500/60' : off}">
+                🏰 จำนวนในปราสาท: ${ccShowCompCastles ? 'แสดง' : 'ซ่อน'}</button>
+                ${ccHeroPickerHTML()}
+            </div>`;
+            const typeBar = `
+                <div class="flex flex-wrap items-center gap-2 mb-5">
+                    ${ccTypeChipsHTML(matched.map(x => x.type))}
+                    ${castleToggle}
+                </div>`;
+
+            // หัวข้อกลุ่มแบบแกลเลอรี · ในกลุ่มเรียงตามจำนวนหลัง (มาก → น้อย)
+            const groups = TEAM_TYPE_ORDER.filter(t => shown.some(x => x.type === t)).map(t => {
+                const items = shown.filter(x => x.type === t);
+                const st = teamTypeStyle(t);
+                return `
+                    <div class="mb-8">
+                        <div class="flex items-center gap-3 mb-4 border-b-2 border-gray-800 pb-2">
+                            <div class="w-3 h-3 rounded-full ${st.dot}"></div>
+                            <h2 class="text-lg font-bold ${st.text} uppercase tracking-wider">${ccEsc(t)}</h2>
+                            <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${items.length} คอมพ์ · ${items.reduce((a, x) => a + x.t, 0)} หลัง</span>
+                            <div class="flex-1 h-px bg-gradient-to-r ${st.line} to-transparent"></div>
                         </div>
+                        <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(310px,100%),1fr))">${items.map(tile).join('')}</div>
                     </div>`;
             }).join('');
 
-            return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(310px,1fr))">${tiles}</div>`;
+            return typeBar + groups;
+        }
+
+        // 🧬 กรองแท็บคอมพ์ตาม type (ส่งเป็นลำดับใน TEAM_TYPE_ORDER — กันชื่อไทยใน onclick) · กดซ้ำ = ทั้งหมด
+        /** ปุ่มกรอง 🧬 TYPE (ใช้ร่วมแท็บตาราง + คอมพ์ · ตัวกรองเดียวกัน) — types = type หลักของคอมพ์แต่ละตัว "ก่อน" กรอง type
+         *  มี type เดียว = ไม่ต้องโชว์ */
+        function ccTypeChipsHTML(types) {
+            const counts = {};
+            types.forEach(t => { counts[t] = (counts[t] || 0) + 1; });
+            const avail = TEAM_TYPE_ORDER.filter(t => counts[t] > 0);
+            if (avail.length < 2) return '';
+            const off = 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500';
+            return `<span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">🧬 Type</span>
+                <button type="button" onclick="ccViewerSetCompType(null)" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${!ccCompTypeFilter ? 'bg-white text-black border-white' : off}">ทั้งหมด <span class="opacity-60">(${types.length})</span></button>
+                ${avail.map(t => { const st = teamTypeStyle(t); const on = ccCompTypeFilter === t;
+                    return `<button type="button" onclick="ccViewerSetCompType(${TEAM_TYPE_ORDER.indexOf(t)})" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${on ? st.on : off}">
+                        <span class="w-2 h-2 rounded-full ${st.dot}"></span>${ccEsc(t)} <span class="opacity-60">(${counts[t]})</span></button>`; }).join('')}`;
+        }
+
+        /** 📊 สรุปขวาแถวเมนู (ทุกแท็บ) — นับคอมพ์ที่ผ่านตัวกรองตัวละคร + TYPE (ไม่ขึ้นกับการเรียงตามปราสาท)
+         *  ปราสาท · คอมพ์ · รวมทั้งหมด (+ โควต้าฮีโร่ ถ้าไฟล์ตั้งไว้) */
+        function ccSummaryHTML(cnt) {
+            const { castles } = ccView;
+            const comps = ccView.comps.filter(cp => ccViewerCompMatch(cp) && (!ccCompTypeFilter || heroIdsMainType(cp.heroes) === ccCompTypeFilter));
+            const tot = comps.map(cp => castles.reduce((s, cs) => s + cnt(cs.id, cp.id), 0));
+            const grand = tot.reduce((a, b) => a + b, 0);
+            const quota = ccView.heroQuota || 0;
+            const over = quota > 0 ? ccViewerHeroUsage(cnt).filter(e => e[1].times > quota) : [];
+            const stat = (label, val, cls) =>
+                `<div class="flex flex-col min-w-0 lg:items-end"><span class="text-[10px] text-gray-500 uppercase tracking-wider">${label}</span>
+                 <span class="font-black truncate ${cls || 'text-gray-200'}">${val}</span></div>`;
+            return `<div class="flex flex-wrap items-center lg:justify-end gap-x-5 gap-y-2 px-1 cursor-default select-none text-sm">
+                    ${stat('ปราสาท', castles.length)}
+                    ${stat('คอมพ์', comps.length)}
+                    ${stat('รวมทั้งหมด', grand + ' หลัง', 'text-amber-400')}
+                    ${quota ? stat('โควต้าฮีโร่/ตัว', quota + ' ครั้ง' + (over.length ? ' · ⚠️ เกิน ' + over.length + ' ตัว' : ''), over.length ? 'text-red-400' : 'text-emerald-400') : ''}
+                </div>`;
+        }
+
+        // 🏆 กล่องคอมพ์ที่เจอเยอะ: ดูเฉพาะปราสาท (จำด้วยชื่อ · null = ทุกปราสาท)
+        let ccRankCastleKey = null;
+        function ccViewerSetRankCastle(i) {
+            const cs = (i >= 0 && ccView) ? ccView.castles[i] : null;
+            ccRankCastleKey = cs ? ccCastleKey(cs) : null;
+            ccRerenderKeepScroll();
+        }
+
+        let ccCompTypeFilter = null;
+        // 🏰 แสดงป้ายจำนวนในปราสาทบนการ์ดคอมพ์ไหม — จำไว้ในเครื่องคนดู (ค่าเริ่ม: ซ่อน)
+        let ccShowCompCastles = (() => { try { return localStorage.getItem('7k_cc_show_comp_castles') === '1'; } catch (e) { return false; } })();
+        function ccViewerToggleCompCastles() {
+            ccShowCompCastles = !ccShowCompCastles;
+            try { localStorage.setItem('7k_cc_show_comp_castles', ccShowCompCastles ? '1' : '0'); } catch (e) {}
+            ccRerenderKeepScroll();
+        }
+        function ccViewerSetCompType(i) {
+            const t = (i === null || i === undefined) ? null : TEAM_TYPE_ORDER[i];
+            ccCompTypeFilter = (!t || ccCompTypeFilter === t) ? null : t;
+            ccRerenderKeepScroll();
         }
 
         // ---------- แท็บแยกรายปราสาท: การ์ดปราสาทเรียงเป็นตาราง · ในการ์ด = รูปคอมพ์ + จำนวน แถวสั้นๆ ----------
         function ccViewerCastleCards(cnt) {
             const { castles, comps, picks, pickNames } = ccView;
 
-            const cards = castles.map(cs => {
+            const cards = castles.map((cs, ci) => {
                 const rows = comps.map(cp => ({
                     cp,
                     n: cnt(cs.id, cp.id),
@@ -14074,23 +14420,76 @@
                         </div>
                     </div>`).join('');
 
+                const key = ccCastleKey(cs);
+                const closed = ccCastleCollapsed.has(key);
                 return `
                     <div class="bg-[#161b22] border border-gray-800 rounded-2xl overflow-hidden shadow-lg">
-                        <div class="flex items-center gap-2 px-3 py-2 bg-[#1b2433]">
+                        <button type="button" onclick="ccViewerToggleCastleIdx(${ci})" aria-expanded="${!closed}"
+                            title="${closed ? 'กดเพื่อกาง' : 'กดเพื่อพับ'}"
+                            class="w-full flex items-center gap-2 px-3 py-2 bg-[#1b2433] hover:bg-[#223047] transition text-left">
+                            <span class="text-gray-400 text-xs w-3 flex-shrink-0 transition-transform ${closed ? '-rotate-90' : ''}">▼</span>
                             <span class="text-lg">🏰</span>
                             <div class="flex-1 min-w-0 text-sm text-white font-black truncate">${ccEsc(cs.name || 'ปราสาทไม่มีชื่อ')}</div>
                             <span class="text-[10px] text-gray-500">${rows.length} คอมพ์</span>
                             <span class="text-amber-400 font-black text-xl leading-none">${total}</span>
                             <span class="text-[10px] text-gray-500 font-bold">หลัง</span>
-                        </div>
-                        <div class="px-3 pb-1">
+                        </button>
+                        ${closed ? '' : `<div class="px-3 pb-1">
                             ${list || '<div class="text-xs text-gray-600 italic py-3">ไม่มีคอมพ์ในปราสาทนี้</div>'}
-                        </div>
+                        </div>`}
                     </div>`;
             }).join('');
 
-            if (!cards) return `<div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบปราสาทที่มีคอมพ์ตัวละครที่เลือก</div>`;
-            return `<div class="grid gap-3 items-start" style="grid-template-columns:repeat(auto-fill,minmax(330px,1fr))">${cards}</div>`;
+            if (!cards) return `<div class="flex flex-wrap items-center justify-end gap-2 mb-4">${ccHeroPickerHTML()}</div><div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบปราสาทที่มีคอมพ์ตัวละครที่เลือก</div>`;
+            const allKeys = castles.map(ccCastleKey);
+            const nClosed = allKeys.filter(k => ccCastleCollapsed.has(k)).length;
+            const ctl = (label, open, disabled) => `<button type="button" onclick="ccViewerSetAllCastles(${open})" ${disabled ? 'disabled' : ''}
+                class="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-gray-700 bg-[#1f2937] text-gray-300 hover:text-white hover:border-gray-500 transition disabled:opacity-30 disabled:cursor-default">${label}</button>`;
+            return `<div class="flex flex-wrap items-center justify-end gap-2 mb-2">
+                    ${ctl('▼ กางทั้งหมด', true, nClosed === 0)}${ctl('▶ พับทั้งหมด', false, nClosed === allKeys.length)}
+                    ${ccHeroPickerHTML()}
+                </div>
+                <div class="grid gap-3 items-start" style="grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))">${cards}</div>`;
+        }
+
+        // 🏰 พับ/กางการ์ดปราสาท — จำด้วยชื่อปราสาท (id ในตารางสุ่มใหม่ทุกครั้งที่โหลด) · เก็บในเครื่องคนดู
+        const CC_COLLAPSE_KEY = '7k_cc_view_collapsed';
+        const ccCastleCollapsed = (() => { try { return new Set(JSON.parse(localStorage.getItem(CC_COLLAPSE_KEY)) || []); } catch (e) { return new Set(); } })();
+        function ccCastleKey(cs) { return String((cs && cs.name) || '').trim() || ('#' + (ccView ? ccView.castles.indexOf(cs) : 0)); }
+        function ccSaveCollapsed() { try { localStorage.setItem(CC_COLLAPSE_KEY, JSON.stringify([...ccCastleCollapsed])); } catch (e) {} }
+        /** วาดใหม่โดยไม่ให้หน้ากระโดด */
+        function ccRerenderKeepScroll() {
+            const box = document.getElementById('cc-viewer');
+            const top = box ? box.scrollTop : 0;
+            ccViewerRender();
+            if (box) box.scrollTop = top;
+        }
+        // ⇅ เรียงคอลัมน์คอมพ์ตามปราสาทที่เลือก (จำด้วยชื่อปราสาท) — กดปราสาทเดิมซ้ำ = กลับลำดับเดิม
+        let ccSortCastleKey = null;
+        function ccViewerSortByCastleKey(key) {
+            ccSortCastleKey = key || null;
+            ccRerenderKeepScroll();
+            const sx = document.querySelector('#cc-viewer .cc-scroll-x');
+            if (sx) sx.scrollLeft = 0; // คอมพ์ที่เยอะสุดของปราสาทนั้นอยู่ซ้ายสุด — เลื่อนกลับไปให้เห็น
+        }
+        function ccViewerSortByCastleIdx(i) {
+            const cs = ccView && ccView.castles[i];
+            if (!cs) return;
+            const k = ccCastleKey(cs);
+            ccViewerSortByCastleKey(ccSortCastleKey === k ? '' : k);
+        }
+
+        function ccViewerToggleCastleIdx(i) { if (ccView && ccView.castles[i]) ccViewerToggleCastle(ccCastleKey(ccView.castles[i])); }
+        function ccViewerToggleCastle(key) {
+            if (ccCastleCollapsed.has(key)) ccCastleCollapsed.delete(key); else ccCastleCollapsed.add(key);
+            ccSaveCollapsed();
+            ccRerenderKeepScroll();
+        }
+        function ccViewerSetAllCastles(open) {
+            if (!ccView) return;
+            ccView.castles.forEach(cs => { const k = ccCastleKey(cs); if (open) ccCastleCollapsed.delete(k); else ccCastleCollapsed.add(k); });
+            ccSaveCollapsed();
+            ccRerenderKeepScroll();
         }
 
         /** รูปฮีโร่ของคอมพ์ (56px) + ชื่อใต้รูป — ใช้ในแท็บแยกรายปราสาท */
@@ -18434,9 +18833,8 @@
         // ❌ เดิมใช้ URL หน้าปัจจุบัน — เปิดผ่าน Apps Script จะได้ URL iframe ของ googleusercontent (คนอื่นเปิดไม่ได้)
         //    เปิดผ่าน GitHub Pages คนรับลิงก์ไม่รู้ URL เซิร์ฟเวอร์ → ฟอร์มว่าง
         //    ✅ ชี้ GitHub Pages + แนบ URL เซิร์ฟเวอร์ใน s= (แบบเดียวกับลิงก์แกลเลอรี)
-        const url = (PUBLIC_PAGES_URL && SCRIPT_URL)
-            ? PUBLIC_PAGES_URL + '?mode=apply&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL))))
-            : publicShareBaseUrl() + '?mode=apply';
+        const L = publicLinkBase();
+        const url = L.base + '?mode=apply' + L.srv;
         navigator.clipboard.writeText(url).then(() => {
             alert("คัดลอกลิงก์รับสมัครแล้ว!\n\n" + url);
         });
@@ -22301,21 +22699,22 @@
             return SCRIPT_URL || window.location.href.split('?')[0];
         }
 
+        /** 🔗 ต้นทางของลิงก์แชร์สาธารณะ (แกลเลอรี / คอมพ์ปราสาท / ฟอร์มสมัคร) → { base, srv }
+         *  🧪 DEV: เปิดหน้านี้จากไฟล์ในเครื่อง (file://) หรือ localhost → ลิงก์ชี้หน้าในเครื่องเดียวกันเอง
+         *         ไม่ต้องแก้ค่าอะไร และไม่ต้องจำแก้กลับก่อน commit — เปิดจาก GitHub Pages ก็ได้ลิงก์จริงตามปกติ
+         *  ปกติ: ชี้ GitHub Pages (เร็วกว่า Apps Script) + แนบ URL server ใน s= */
+        function publicLinkBase() {
+            const here = window.location.href.split(/[?#]/)[0];
+            const isDev = /^file:/i.test(here) || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\//i.test(here);
+            const srv = SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
+            if (isDev) return { base: here, srv: srv, dev: true };
+            if (PUBLIC_PAGES_URL && SCRIPT_URL) return { base: PUBLIC_PAGES_URL, srv: srv, dev: false };
+            return { base: publicShareBaseUrl(), srv: '', dev: false };
+        }
+
         function openPublicGallery() {
-            // 1. คีย์ของวันนี้ — คนรับลิงก์เปิดได้ถึง 3 วัน
-            const dailyKey = getDailyKey();
-
-            // 🟢 2. เข้ารหัส Guild ของผู้ใช้ (ถ้ามี)
-            const userGuild = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
-            const encodedGuild = btoa(encodeURIComponent(userGuild));
-
-            // 3. สร้าง URL มีทั้ง Key และ Guild
-            //    ชี้ GitHub Pages ถ้ารู้ URL เซิร์ฟเวอร์ (หน้าเสิร์ฟเร็วกว่า Apps Script ~7 เท่า)
-            //    แล้วแนบ URL นั้นมาใน s= เพราะหน้าบน Pages ไม่มีทางรู้เอง
-            const useP = !!(PUBLIC_PAGES_URL && SCRIPT_URL);
-            const baseUrl = useP ? PUBLIC_PAGES_URL : publicShareBaseUrl();
-            const srv = useP ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
-            const url = `${baseUrl}?k=${dailyKey}&g=${encodeURIComponent(encodedGuild)}${srv}`;
+            // 🔗 ลิงก์หน้ารวม (แกลเลอรี + คอมพ์ปราสาท) — ตัวเดียวกับปุ่มลิงก์ในหน้านับคอมพ์
+            const url = publicHubUrl();
 
             // 4. คัดลอกลิงก์ลง Clipboard ให้อัตโนมัติ (เพื่อให้คุณกด Ctrl+V ส่งให้เพื่อนได้เลย)
             navigator.clipboard.writeText(url).then(() => {
@@ -26333,15 +26732,18 @@
             }
         }
 
+        /** แกลเลอรีอยู่บนจอไหม (สลับไปหน้าปราสาทอยู่ = ไม่ต้องเช็ค) */
+        function galleryOnScreen() { const m = document.getElementById('main-content'); return !!(m && m.style.display !== 'none' && !m.classList.contains('hidden')); }
+
         /** เช็คซ้ำเองตอนเปิดหน้าค้างไว้ — ข้ามตอนแท็บซ่อน · กลับมาที่แท็บแล้วนานเกินรอบ = เช็คทันที */
         function startGalleryPolling(urlGuild) {
             if (galleryPollTimer) return;
             const due = () => Date.now() - (gallerySync.at || 0) >= GALLERY_POLL_MS - 1000;
             galleryPollTimer = setInterval(() => {
-                if (document.visibilityState === 'visible' && due()) syncSharedGalleryInBackground(urlGuild);
+                if (document.visibilityState === 'visible' && galleryOnScreen() && due()) syncSharedGalleryInBackground(urlGuild);
             }, GALLERY_POLL_MS);
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible' && due()) syncSharedGalleryInBackground(urlGuild);
+                if (document.visibilityState === 'visible' && galleryOnScreen() && due()) syncSharedGalleryInBackground(urlGuild);
             });
         }
 
@@ -26894,18 +27296,23 @@
             container.innerHTML = `
                 <div class="w-full h-full flex flex-col overflow-hidden bg-[#0b0e14]">
                     <div class="w-full h-full flex flex-col overflow-y-auto custom-scroll p-4 md:p-6">
-                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 shrink-0 w-full">
-                            <div class="flex items-center gap-3">
-                                <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Community <span class="text-blue-500">Gallery</span></h1>
-                                ${isAdmin ? '<span class="bg-purple-600/30 text-purple-300 border border-purple-500/50 px-3 py-1 rounded-full text-xs font-bold uppercase">👑 Admin View</span>' : ''}
+                        <div class="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 shrink-0 w-full">
+                            <!-- ซ้าย: หัวข้อ (บน) · เมนูสลับหน้า (ล่าง) -->
+                            <div class="flex flex-col gap-3">
+                                <div class="flex items-center gap-3">
+                                    <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">Community <span class="text-blue-500">Gallery</span></h1>
+                                    ${isAdmin ? '<span class="bg-purple-600/30 text-purple-300 border border-purple-500/50 px-3 py-1 rounded-full text-xs font-bold uppercase">👑 Admin View</span>' : ''}
+                                </div>
+                                ${publicHubNavHTML('gallery')}
                             </div>
-                            <div class="flex flex-wrap items-center justify-center gap-2">
+                            <!-- ขวา: กิลด์ (บน) · สถานะเช็คทีมใหม่ (ล่าง) — หน้าสาธารณะไม่มีปุ่ม Refresh แล้ว (เช็คเองทุก 90 วิ) -->
+                            <div class="flex flex-wrap items-center md:justify-end gap-3">
+                                ${publicHubGuildHTML()}
                                 <span id="gallery-sync-status">${gallerySyncBadgeHTML()}</span>
-                                ${memberLoginBtnHTML()}
-                                <button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">↻ Refresh</button>
+                                ${isPublicView ? '' : '<button onclick="loadSharedGallery(true)" class="bg-[#1f2937] hover:bg-white hover:text-black text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-gray-600 shadow-lg">↻ Refresh</button>'}
                             </div>
                         </div>
-                        <div class="flex justify-center mb-6 shrink-0 w-full">
+                        <div class="flex justify-start mb-6 shrink-0 w-full">
                             <div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
                                 <button onclick="switchGalleryTab('Attack')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Attack' ? btnActiveRed : btnInactive} text-xs font-black uppercase">⚔️ Targets</button>
                                 <button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>
@@ -26914,8 +27321,11 @@
                             </div>
                         </div>
                         ${memberTeamsPanelHTML}
-                        ${(currentGalleryTab !== 'MyHeroes' && currentGalleryTab !== 'Rotation') ? galleryHeroFilterBarHTML(displayItems.length) : ''}
-                        ${currentGalleryTab === 'Attack' ? galleryTypeFilterBarHTML(typeBarItems) : ''}
+                        <!-- แถวเดียว: TYPE (ซ้าย) · ค้นหา + กรองจากฮีโร่ (ขวา) -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 w-full">
+                            ${currentGalleryTab === 'Attack' ? galleryTypeFilterBarHTML(typeBarItems, true) : '<span></span>'}
+                            ${(currentGalleryTab !== 'MyHeroes' && currentGalleryTab !== 'Rotation') ? galleryHeroFilterBarHTML(displayItems.length, true) : ''}
+                        </div>
                         ${contentHTML}
                     </div>
                 </div>`;
@@ -28584,9 +28994,11 @@
     }
 
     // type ที่เยอะสุดในทีม — ถ้าเสมอกันตั้งแต่ 2 type ขึ้นไป → 'ผสม'
-    function galleryItemMainType(item) {
+    function galleryItemMainType(item) { return heroIdsMainType(galleryItemHeroIds(item)); }
+    /** type หลักจากรายชื่อฮีโร่ — เกณฑ์เดียวกันทั้งแกลเลอรีและหน้า Castle Comp (เลขบนปุ่มกรองจะตรงกัน) */
+    function heroIdsMainType(ids) {
         const cnt = {};
-        galleryItemHeroIds(item).forEach(id => {
+        (ids || []).forEach(id => {
             const h = heroesDB.find(x => String(x.id) === String(id));
             if (h && h.type) cnt[h.type] = (cnt[h.type] || 0) + 1;
         });
@@ -28602,7 +29014,7 @@
 
     // แถบปุ่มกรอง type (โชว์เฉพาะแท็บ Targets) — นับจากรายการ "ก่อน" กรอง type
     // ใช้ "type หลักของทีม" เกณฑ์เดียวกับหัวข้อกลุ่ม → เลขบนปุ่มรวมกันได้เท่ากับทั้งหมด
-    function galleryTypeFilterBarHTML(items) {
+    function galleryTypeFilterBarHTML(items, bare) {
         const counts = {};
         items.forEach(it => { const t = galleryItemMainType(it); counts[t] = (counts[t] || 0) + 1; });
         const avail = TEAM_TYPE_ORDER.filter(t => counts[t] > 0);
@@ -28620,12 +29032,12 @@
             </button>`;
         });
 
-        return `<div class="flex justify-center mb-4 shrink-0 w-full">
-            <div class="flex flex-wrap items-center gap-2 justify-center max-w-4xl">
+        const inner = `<div class="flex flex-wrap items-center gap-2 justify-start">
                 <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">🧬 Type</span>
                 ${html}
-            </div>
-        </div>`;
+            </div>`;
+        if (bare) return inner;
+        return `<div class="flex justify-start mb-4 shrink-0 w-full">${inner}</div>`;
     }
 
     function setGalleryTypeFilter(t) {
@@ -28634,7 +29046,7 @@
     }
 
     // แถบเครื่องมือกรอง (ปุ่มเปิด dialog + ป้ายฮีโร่ที่เลือก)
-    function galleryHeroFilterBarHTML(resultCount) {
+    function galleryHeroFilterBarHTML(resultCount, bare) {
         const chips = gallerySearchHeroIds.map(id => {
             const h = heroesDB.find(x => String(x.id) === String(id));
             const nm = h ? h.name : id;
@@ -28643,8 +29055,7 @@
         }).join('');
         const anyFilter = gallerySearchHeroIds.length > 0 || !!gallerySearchText || !!galleryTypeFilter;
 
-        return `<div class="flex justify-center mb-4 shrink-0 w-full">
-            <div class="flex flex-wrap items-center gap-2 justify-center max-w-4xl">
+        const inner = `<div class="flex flex-wrap items-center gap-2 ${bare ? 'justify-end ml-auto' : 'justify-start'}">
                 <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔤</span>
                     <input id="gallery-text-search" type="text" value="${mlEsc(gallerySearchText)}"
@@ -28656,9 +29067,10 @@
                 ${anyFilter
                     ? `<span class="text-xs font-bold text-emerald-300 bg-emerald-900/30 border border-emerald-600/40 rounded-lg px-2 py-1">พบ ${resultCount != null ? resultCount : 0} ทีม</span>
                        <button onclick="clearGalleryAllFilters()" class="text-xs font-bold text-gray-300 hover:text-white bg-[#1f2937] hover:bg-red-600 border border-gray-600 rounded-lg px-3 py-1.5 transition">✕ ล้างตัวกรองทั้งหมด</button>`
-                    : '<span class="text-xs text-gray-500">พิมพ์ชื่อ หรือเลือกฮีโร่เพื่อค้นหาทีม</span>'}
-            </div>
-        </div>`;
+                    : (bare ? '' : '<span class="text-xs text-gray-500">พิมพ์ชื่อ หรือเลือกฮีโร่เพื่อค้นหาทีม</span>')}
+            </div>`;
+        if (bare) return inner;
+        return `<div class="flex justify-start mb-4 shrink-0 w-full">${inner}</div>`;
     }
 
     // ข้อความที่ใช้ค้นของการ์ดหนึ่งใบ: ชื่อ + โน้ต + ชื่อฮีโร่ในทีม
