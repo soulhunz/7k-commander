@@ -1864,6 +1864,14 @@
             width: 36px; min-width: 36px; max-width: 36px;
             text-align: center; padding: 8px 2px;
         }
+        /* ตรึง "＋ เพิ่มคอมพ์" + "รวม" ไว้ขวาสุด — เลื่อนตารางไปแค่ไหนก็ยังเห็น (พื้นหลังทึบ กันคอลัมน์ที่เลื่อนผ่านโผล่) */
+        .cc-table .cc-total-sticky { position: sticky; right: 0; z-index: 5; background: #121826; }
+        .cc-table .cc-add-col {
+            position: sticky; right: 36px; z-index: 5;
+            width: 150px; min-width: 150px; max-width: 150px;
+            background: #0b0e14; box-shadow: -4px 0 8px -4px rgba(0,0,0,0.9);
+        }
+        .cc-table thead th.cc-total-sticky, .cc-table thead th.cc-add-col { z-index: 9; background: #1b2433; }
 
         /* ซ่อนแถบเลื่อนแต่ยังเลื่อนได้ (ล้อเมาส์ / trackpad / ปุ่มลูกศร) */
         .cc-hide-scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -12631,8 +12639,8 @@
                             </div>
                         </th>
                         ${cells}
-                        <td></td>
-                        <td class="cc-total-col bg-[#121826]">
+                        <td class="cc-add-col"></td>
+                        <td class="cc-total-col cc-total-sticky bg-[#121826]">
                             <span id="cc-row-total-${cs.id}" class="text-amber-400 font-black text-sm">0</span>
                         </td>
                     </tr>`;
@@ -12652,11 +12660,11 @@
                                 <th class="cc-idx"></th>
                                 <th class="cc-sticky-col cc-pad text-left text-xs font-black text-gray-400 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
                                 ${headCells}
-                                <th class="align-middle min-w-[150px]" style="padding:8px">
+                                <th class="cc-add-col align-middle" style="padding:8px">
                                     <button type="button" class="cc-add-btn" onclick="castleCompOpenAddDialog()"
                                         title="เลือกจากรูปแบบศัตรู หรือทีมบุก (ATK) ที่แชร์">＋ เพิ่มคอมพ์</button>
                                 </th>
-                                <th class="cc-total-col text-[10px] font-black text-amber-500 uppercase tracking-wider">รวม</th>
+                                <th class="cc-total-col cc-total-sticky text-[10px] font-black text-amber-500 uppercase tracking-wider">รวม</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -12666,14 +12674,16 @@
                                 <th class="cc-sticky-col" style="padding:6px">
                                     <button type="button" class="cc-add-btn" onclick="castleCompAddRow()">＋ เพิ่มปราสาท</button>
                                 </th>
-                                <td colspan="${comps.length + 2}"></td>
+                                ${comps.length ? `<td colspan="${comps.length}"></td>` : ''}
+                                <td class="cc-add-col"></td>
+                                <td class="cc-total-col cc-total-sticky"></td>
                             </tr>
                             <tr>
                                 <td class="cc-idx" style="background:#1b2433"></td>
                                 <th class="cc-sticky-col cc-pad text-left text-xs font-black text-amber-500/90 uppercase tracking-wider" style="background:#1b2433">รวมทุกปราสาท</th>
                                 ${footCells}
-                                <td style="background:#121826"></td>
-                                <td class="cc-total-col" style="background:#182031">
+                                <td class="cc-add-col" style="background:#121826"></td>
+                                <td class="cc-total-col cc-total-sticky" style="background:#182031">
                                     <span id="cc-grand-total" class="text-amber-400 font-black text-sm">0</span>
                                 </td>
                             </tr>
@@ -13776,6 +13786,7 @@
             }
             box.style.display = '';
             mergePublicMasterData(null, null); // ของที่เครื่องนี้เคยโหลดไว้ — โชว์ก่อนเลย
+            hbvLoadSharedFromUrl();
             hbvRender();
             hbvSyncData();
             if (!hbvPollTimer) {
@@ -13811,7 +13822,8 @@
             } finally {
                 hbvBusy = false;
                 const box = document.getElementById('hb-viewer');
-                if (box && box.style.display !== 'none') hbvRender(); else hbvSetBadge();
+                // dialog สร้างบิ้วเปิดอยู่ = ไม่วาดใหม่ (กันช่องที่กำลังพิมพ์หลุด focus) — ปิด dialog แล้วรายการอัปเดตเอง
+                if (box && box.style.display !== 'none' && !hbvSandboxOpen) hbvRender(); else hbvSetBadge();
             }
         }
 
@@ -13837,7 +13849,9 @@
             if (!box) return;
             const q = hbvSearch.trim().toLowerCase();
             const all = (Array.isArray(publicBuildsDB) ? publicBuildsDB.slice() : []).sort((a, b) => (b.ts || 0) - (a.ts || 0));
-            const list = q ? all.filter(b => { const hr = hbvHero(b); return [b.name, b.owner, hr && hr.name].some(s => String(s || '').toLowerCase().includes(q)); }) : all;
+            const match = b => { const hr = hbvHero(b); return [b.name, b.owner, hr && hr.name].some(s => String(s || '').toLowerCase().includes(q)); };
+            const list = q ? all.filter(match) : all;
+            const mine = q ? hbvMyBuilds.filter(match) : hbvMyBuilds;
             const cards = list.map((b, i) => {
                 const hero = hbvHero(b), d = b.data || {};
                 const set = d.setId ? equipSetsDB.find(s => String(s.id) === String(d.setId)) : null;
@@ -13861,7 +13875,13 @@
                     </div>
                 </button>`;
             }).join('');
-            const emptyMsg = q ? 'ไม่พบบิ้วที่ตรงคำค้น' : (hbvSync.state === 'checking' && !all.length ? 'กำลังโหลดบิ้ว…' : 'ยังไม่มีบิ้วที่เผยแพร่');
+            const isMine = hbvTab === 'mine';
+            const emptyMsg = q ? 'ไม่พบบิ้วที่ตรงคำค้น'
+                : isMine ? 'ยังไม่มีบิ้วของคุณ — กด ＋ สร้างบิ้วใหม่'
+                : (hbvSync.state === 'checking' && !all.length ? 'กำลังโหลดบิ้ว…' : 'ยังไม่มีบิ้วที่เผยแพร่');
+            const grid = isMine ? mine.map(hbvMyCardHTML).join('') : cards;
+            const tabBtn = (key, label, n) => `<button onclick="hbvSetTab('${key}')" class="px-4 py-2 rounded-xl text-xs font-black transition border ${hbvTab === key
+                ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/60' : 'bg-[#161d29] text-gray-400 border-gray-800 hover:text-white'}">${label} <span class="opacity-70">${n}</span></button>`;
             box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">
                 <div class="flex flex-col md:flex-row items-start justify-between gap-4 mb-5">
                     <div class="flex flex-col gap-3">
@@ -13874,16 +13894,241 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <span class="text-xs text-gray-500">${list.length}${q ? ' / ' + all.length : ''} บิ้ว</span>
-                    <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔤</span>
-                        <input id="hbv-search" type="text" value="${ccEsc(hbvSearch)}" oninput="hbvOnSearch(this.value)" placeholder="ค้นหาชื่อบิ้ว / ตัวละคร / คนสร้าง..."
-                            class="w-72 max-w-[80vw] bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-emerald-500">
+                    <div class="flex flex-wrap items-center gap-2">
+                        ${tabBtn('public', '🌍 บิ้วที่เผยแพร่', q ? list.length + '/' + all.length : all.length)}
+                        ${tabBtn('mine', '📱 บิ้วของฉัน', q ? mine.length + '/' + hbvMyBuilds.length : hbvMyBuilds.length)}
+                        ${isMine ? '<span class="text-[11px] text-gray-500">เก็บในเครื่องนี้เท่านั้น · คนอื่นไม่เห็นจนกว่าจะแชร์ลิงก์</span>' : ''}
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔤</span>
+                            <input id="hbv-search" type="text" value="${ccEsc(hbvSearch)}" oninput="hbvOnSearch(this.value)" placeholder="ค้นหาชื่อบิ้ว / ตัวละคร / คนสร้าง..."
+                                class="w-72 max-w-[80vw] bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-emerald-500">
+                        </div>
+                        <button onclick="hbvNewMy()" title="สร้างบิ้วใหม่ของคุณ — เก็บในเครื่องนี้ แชร์เป็นลิงก์ได้"
+                            class="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/30 px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap">＋ สร้างบิ้วใหม่</button>
                     </div>
                 </div>
-                ${list.length ? `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">${cards}</div>`
-                    : `<div class="text-center text-gray-600 py-24"><div class="text-6xl mb-4 opacity-30">🔨</div><div class="text-sm">${emptyMsg}</div></div>`}
-            </div>${hbvOpenId !== null ? hbvDetailHTML(all[hbvOpenId]) : ''}`;
+                ${grid ? `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">${grid}</div>`
+                    : `<div class="text-center text-gray-600 py-24"><div class="text-6xl mb-4 opacity-30">${isMine ? '📱' : '🔨'}</div><div class="text-sm">${emptyMsg}</div></div>`}
+            </div>${hbvShared ? hbvDetailHTML(hbvShared) : hbvOpenId !== null ? hbvDetailHTML(all[hbvOpenId]) : ''}
+            ${hbvSandboxOpen ? `<div id="hbv-sandbox-dlg" class="fixed inset-0 z-[140] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 overflow-y-auto">
+                <div id="hbv-sandbox-slot" class="w-full max-w-7xl my-4"></div>
+            </div>` : ''}`;
+            hbvMountSandbox();
+        }
+
+        // =========================================================
+        // 🔗 บิ้วจากลิงก์แชร์ (?mode=builds-view&b=HB1...) + 🔨 ลองสร้างบิ้ว (ไม่ต้อง login)
+        //    ทุกอย่างอยู่ในเครื่องคนดู — บิ้วร่างเก็บใน localStorage (7k_hero_build) ไม่ขึ้น server
+        // =========================================================
+        let hbvShared = null; // บิ้วที่เปิดมาจากลิงก์ { name, owner, data }
+
+        /** อ่าน b= ในลิงก์ (เรียกตอน hbvBoot) */
+        function hbvLoadSharedFromUrl() {
+            const code = appUrlParams().get('b');
+            if (!code) return;
+            const res = hbDecodeBuild(code);
+            if (!res || !res.ok || !res.data) {
+                setTimeout(() => alert('🔗 ลิงก์บิ้วนี้ไม่สมบูรณ์ (อาจก๊อปมาไม่ครบ) — ขอลิงก์ใหม่จากคนที่ส่งให้'), 300);
+                return;
+            }
+            hbvShared = { name: 'บิ้วที่แชร์มา', owner: 'ลิงก์แชร์', data: res.data };
+            if (res.newer) setTimeout(() => alert('⚠️ บิ้วนี้มาจากแอปเวอร์ชันใหม่กว่า บางค่าอาจไม่ครบ'), 400);
+        }
+
+        /** ลิงก์แชร์บิ้ว — ชี้หน้าบิ้วสาธารณะ เปิดได้โดยไม่ต้อง login
+         *  ต้นทางจาก publicLinkBase(): เปิดจากไฟล์ในเครื่อง/localhost = ลิงก์ในเครื่อง · ปกติ = GitHub Pages + s= */
+        function hbPublicBuildLink(code) {
+            const L = publicLinkBase();
+            // g= : หน้าสาธารณะใช้ของในลิงก์เดิม · คนที่ login ใช้กิลด์ตัวเอง
+            const gRaw = isPublicView ? appUrlParams().get('g') : btoa(encodeURIComponent(castleCompGuildRaw()));
+            const g = gRaw ? '&g=' + encodeURIComponent(gRaw) : '';
+            return L.base + '?mode=builds-view&b=' + encodeURIComponent(code) + g + L.srv;
+        }
+
+        let hbvSandboxOpen = false; // dialog สร้างบิ้วเปิดอยู่ (ทับรายการบิ้ว)
+        let hbvEditorEl = null;     // หน้าบิ้วของแอป (view-hero-build) ที่ยืมมาใช้
+
+        /** ยืมหน้าบิ้วของแอปมาใส่ใน dialog — ปรับเป็นกล่อง (ไม่เต็มจอ ไม่เลื่อนแยก ให้ dialog เลื่อนแทน) ครั้งเดียว */
+        function hbvEditorNode() {
+            if (hbvEditorEl) return hbvEditorEl;
+            const n = document.getElementById('view-hero-build');
+            if (!n) return null;
+            n.className = 'flex flex-col bg-[#0b0e14] border border-emerald-700/40 rounded-2xl overflow-hidden shadow-xl';
+            n.style.display = '';
+            const body = n.querySelector('#hero-build-body');
+            if (body) body.classList.remove('flex-1', 'overflow-y-auto');
+            const h = n.querySelector('header');
+            if (h) {
+                h.classList.add('gap-3', 'flex-wrap');
+                h.insertAdjacentHTML('beforeend', `<input id="hbv-build-name" type="text" maxlength="60" oninput="hbvRenameMy(this.value)" placeholder="ตั้งชื่อบิ้ว..."
+                        class="flex-1 min-w-[160px] max-w-md bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded-xl text-sm font-bold outline-none focus:border-emerald-500">
+                    <div class="flex items-center gap-3 ml-auto">
+                        <span id="hbv-saved" class="text-[11px] text-gray-500 whitespace-nowrap"></span>
+                        <button onclick="hbvCloseSandbox()" title="ปิด (บันทึกในเครื่องแล้ว)" class="w-9 h-9 flex items-center justify-center bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white rounded-xl transition">✕</button>
+                    </div>`);
+            }
+            hbvEditorEl = n;
+            return n;
+        }
+
+        /** hbvRender เขียนทับทั้งหน้า → แปะหน้าบิ้วกลับเข้า dialog ทุกครั้ง (ตัว element เดิม งานที่ทำค้างไม่หาย)
+         *  dialog วาดใหม่ = ตำแหน่งเลื่อนกลับบนสุด → จำไว้แล้วคืนให้ (เช่นตอนเช็คบิ้วใหม่เบื้องหลัง) */
+        let hbvSandboxScroll = 0;
+        function hbvMountSandbox() {
+            if (!hbvSandboxOpen) return;
+            const slot = document.getElementById('hbv-sandbox-slot'), n = hbvEditorNode();
+            if (slot && n) slot.appendChild(n);
+            const dlg = document.getElementById('hbv-sandbox-dlg');
+            if (dlg) { dlg.scrollTop = hbvSandboxScroll; dlg.onscroll = () => { hbvSandboxScroll = dlg.scrollTop; }; }
+        }
+
+        /** เปิด dialog แก้ "บิ้วของฉัน" ใบนี้ */
+        function hbvEditMy(id) {
+            const b = hbvMyFind(id);
+            if (!b) return;
+            if (!hbvEditorNode()) return alert('เปิดหน้าสร้างบิ้วไม่ได้ — ลองรีเฟรชหน้า');
+            hbvEditingId = id;
+            heroBuildState = hbNormalizeBuildData(b.data);
+            hbvSandboxOpen = true;
+            hbvSandboxScroll = 0;
+            hbvRender();
+            const nameIn = document.getElementById('hbv-build-name');
+            if (nameIn) nameIn.value = b.name || '';
+            hbvSetSaved(b.ts);
+            heroBuildMode = 'editor';
+            renderHeroBuild();
+            hbRenderFab();
+        }
+
+        function hbvCloseSandbox() {
+            hbvSandboxOpen = false;
+            hbvEditingId = null;
+            hbCloseShare();
+            hbvRender(); // ไม่มี dialog แล้ว = หน้าบิ้วหลุดออกจากหน้า (ปุ่มลอยหายไปด้วย)
+        }
+
+        /** ✏️ เอาบิ้วที่ดูอยู่ไปปรับต่อ = สร้างสำเนาเป็นบิ้วของฉันใบใหม่ (ไม่ทับของเดิม) */
+        function hbvEditCopy(i) {
+            const b = i === -1 ? hbvShared : (Array.isArray(publicBuildsDB) ? publicBuildsDB.slice().sort((a, c) => (c.ts || 0) - (a.ts || 0))[i] : null);
+            if (!b || !b.data) return;
+            if (hbvShared) hbvClose();
+            hbvOpenId = null;
+            hbvNewMy(b.data, 'สำเนา: ' + (b.name || 'บิ้ว'));
+        }
+
+        // =========================================================
+        // 📱 บิ้วของฉัน — เก็บในเครื่องได้หลายบิ้ว (localStorage 7k_my_builds) แยกจากบิ้วที่เผยแพร่
+        //    แก้ใน dialog → hbSave() เรียก hbvOnBuildSaved() → เขียนกลับเข้าบิ้วใบที่เปิดอยู่ทันที
+        // =========================================================
+        const HBV_MY_KEY = '7k_my_builds';
+        let hbvTab = 'public';            // public | mine
+        let hbvMyBuilds = hbvLoadMy();    // [{ id, name, ts, data }] ใหม่สุดก่อน
+        let hbvEditingId = null;          // บิ้วของฉันที่เปิดแก้อยู่ใน dialog
+
+        function hbvLoadMy() {
+            try { const a = JSON.parse(localStorage.getItem(HBV_MY_KEY)); if (Array.isArray(a)) return a; } catch (e) {}
+            // ครั้งแรก: บิ้วร่างแบบเดิม (มีได้ใบเดียว) ย้ายมาเป็นบิ้วของฉันใบแรก
+            try {
+                const d = JSON.parse(localStorage.getItem('7k_hero_build'));
+                if (d && d.heroId) return [{ id: 'MB_' + Date.now().toString(36), name: 'บิ้วร่างของฉัน', ts: Date.now(), data: d }];
+            } catch (e) {}
+            return [];
+        }
+        function hbvSaveMy() {
+            try { localStorage.setItem(HBV_MY_KEY, JSON.stringify(hbvMyBuilds)); }
+            catch (e) { alert('❌ บันทึกในเครื่องไม่ได้ (เบราว์เซอร์ไม่ให้เก็บข้อมูล / โหมดไม่ระบุตัวตน) — กด 🔗 แชร์ เก็บลิงก์ไว้แทน'); }
+        }
+        function hbvMyFind(id) { return hbvMyBuilds.find(b => b.id === id) || null; }
+
+        function hbvSetTab(t) { hbvTab = t; hbvRender(); }
+
+        function hbvNewMy(data, name) {
+            const b = {
+                id: 'MB_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                name: name || 'บิ้วใหม่',
+                ts: Date.now(),
+                data: data ? hbNormalizeBuildData(data) : hbDefaultBuild()
+            };
+            hbvMyBuilds.unshift(b);
+            hbvSaveMy();
+            hbvTab = 'mine';
+            hbvEditMy(b.id);
+        }
+
+        /** hbSave() เรียกทุกครั้งที่แก้บิ้ว → เก็บเข้าบิ้วของฉันใบที่เปิดอยู่ */
+        function hbvOnBuildSaved() {
+            if (!hbvSandboxOpen || !hbvEditingId) return;
+            const b = hbvMyFind(hbvEditingId);
+            if (!b) return;
+            b.data = JSON.parse(JSON.stringify(heroBuildState));
+            b.ts = Date.now();
+            hbvSaveMy();
+            hbvSetSaved(b.ts);
+        }
+
+        function hbvRenameMy(v) {
+            const b = hbvMyFind(hbvEditingId);
+            if (!b) return;
+            b.name = String(v || '').slice(0, 60);
+            b.ts = Date.now();
+            hbvSaveMy();
+            hbvSetSaved(b.ts);
+        }
+
+        /** ป้าย "✓ บันทึกในเครื่องแล้ว HH:MM" ที่หัว dialog */
+        function hbvSetSaved(ts) {
+            const el = document.getElementById('hbv-saved');
+            if (!el) return;
+            const t = ts ? new Date(ts).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '';
+            el.innerHTML = `<span class="text-emerald-400">✓</span> บันทึกในเครื่องแล้ว${t ? ' ' + t : ''}`;
+        }
+
+        function hbvDeleteMy(id) {
+            const b = hbvMyFind(id);
+            if (!b || !confirm('ลบบิ้ว "' + (b.name || 'บิ้วไม่มีชื่อ') + '" ออกจากเครื่องนี้?\n\nลบแล้วกู้คืนไม่ได้ (ถ้าเคยแชร์ลิงก์ไว้ ลิงก์ยังเปิดได้)')) return;
+            hbvMyBuilds = hbvMyBuilds.filter(x => x.id !== id);
+            hbvSaveMy();
+            hbvRender();
+        }
+
+        function hbvShareMy(id) {
+            const b = hbvMyFind(id);
+            if (!b || !b.data || !b.data.heroId) return alert('เลือกตัวละครในบิ้วนี้ก่อน ถึงจะแชร์ได้');
+            copyTextToClipboard(hbPublicBuildLink(hbEncodeBuild(b.data)), '🔗 คัดลอกลิงก์บิ้วแล้ว — ส่งให้เพื่อนเปิดดูได้เลย (ไม่ต้อง login)');
+        }
+
+        /** การ์ดบิ้วของฉัน — กดการ์ด = แก้ · ปุ่ม 🔗 แชร์ / 🗑️ ลบ */
+        function hbvMyCardHTML(b) {
+            const d = b.data || {}, hero = hbvHero(b);
+            const set = d.setId ? equipSetsDB.find(s => String(s.id) === String(d.setId)) : null;
+            const awk = !!d.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX;
+            const img = hero ? (awk ? hero.img2 : hero.img) : '';
+            const when = b.ts ? new Date(b.ts).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '';
+            const id = ccEsc(b.id);
+            const act = 'w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-[#0d1117] border border-gray-700 transition';
+            return `<div role="button" tabindex="0" onclick="hbvEditMy('${id}')" title="กดเพื่อแก้บิ้วนี้"
+                class="cursor-pointer text-left bg-[#161b22] border border-emerald-800/50 hover:border-emerald-500/70 rounded-2xl p-4 transition hover:-translate-y-0.5 shadow-lg flex flex-col gap-2 group">
+                <div class="flex items-center gap-3">
+                    <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        ${img ? `<img src="${img}" class="w-full h-full object-cover">` : '<span class="text-2xl opacity-30">🦸</span>'}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-black text-white truncate group-hover:text-emerald-300">${ccEsc(b.name || 'บิ้วไม่มีชื่อ')}</div>
+                        <div class="text-[11px] text-gray-400 truncate">${hero ? ccEsc(hero.name) : '— ยังไม่ได้เลือกตัวละคร —'}</div>
+                        <div class="text-[10px] text-gray-600 truncate">📱 แก้ล่าสุด ${when}</div>
+                    </div>
+                    <span class="text-sm flex-shrink-0">${hbvCTag(d)}</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    ${set ? `<span class="px-1.5 py-0.5 rounded-md bg-cyan-900/20 border border-cyan-800/40 text-cyan-300">🛡️ ${ccEsc(set.name)}</span>` : ''}
+                    ${awk ? '<span class="px-1.5 py-0.5 rounded-md bg-purple-900/30 border border-purple-700/50 text-purple-300">✨ ปลุกพลัง</span>' : ''}
+                    <span class="flex-1"></span>
+                    <button type="button" onclick="event.stopPropagation(); hbvShareMy('${id}')" title="คัดลอกลิงก์แชร์" class="${act} hover:border-emerald-500 hover:text-emerald-300">🔗</button>
+                    <button type="button" onclick="event.stopPropagation(); hbvDeleteMy('${id}')" title="ลบบิ้วนี้" class="${act} hover:border-red-500 hover:bg-red-900/30">🗑️</button>
+                </div>
+            </div>`;
         }
 
         function hbvOnSearch(v) {
@@ -13894,7 +14139,15 @@
         }
         /** i = ลำดับในรายการทั้งหมด (เรียงใหม่สุดก่อน) — ไม่ส่ง id ใน onclick กันอักขระแปลก */
         function hbvOpen(i) { hbvOpenId = i; hbvRender(); }
-        function hbvClose() { hbvOpenId = null; hbvRender(); }
+        function hbvClose() {
+            hbvOpenId = null;
+            if (hbvShared) {
+                hbvShared = null;
+                // เอา b= ออกจาก URL — รีเฟรชแล้วไม่เด้งบิ้วเดิมขึ้นมาอีก
+                try { const u = new URL(window.location.href); u.searchParams.delete('b'); window.history.replaceState({}, '', u.pathname + u.search); } catch (e) {}
+            }
+            hbvRender();
+        }
 
         /** หน้าต่างรายละเอียดบิ้ว (อ่านอย่างเดียว) — คำนวณด้วย hbComputeFrom ตัวเดียวกับหน้าบิ้ว */
         function hbvDetailHTML(b) {
@@ -13917,6 +14170,8 @@
                                 ${hero && hero.attackType ? `<span class="text-[11px] font-bold ${hero.attackType === 'magic' ? 'text-purple-300' : 'text-orange-300'}">${hero.attackType === 'magic' ? '🔮 โจมตีเวท' : '⚔️ โจมตีกายภาพ'}</span>` : ''}
                             </div>
                         </div>
+                        <button type="button" onclick="hbvEditCopy(${b === hbvShared ? -1 : hbvOpenId})" title="คัดลอกบิ้วนี้ไปปรับต่อในหน้าสร้างบิ้วของคุณ (เก็บในเครื่องนี้)"
+                            class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️ เอาไปปรับต่อ</button>
                         <button type="button" onclick="hbvClose()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
                     </div>
                     <div class="p-3 md:p-4">${hbvBodyHTML(d)}</div>
@@ -14343,22 +14598,98 @@
             return cp.heroes.map((id, i) => ccViewerHeroChip(id, names[i], cp.awk[i], cp.heroes.length > 3 || size)).join('');
         }
 
-        /** ฮีโร่ 1 ตัว → จ่ายกี่ครั้ง (จำนวนหลังของช่องที่เลือกเขาไว้) — สูตรเดียวกับ 🧾 ฮีโร่ที่ต้องจ่าย ในหน้าหลัก */
-        function ccViewerHeroUsage(cnt) {
-            const { castles, comps, picks, pickNames } = ccView;
-            const usage = new Map(); // heroId → { times, name, slots }
-            comps.forEach(cp => castles.forEach(cs => {
-                const ids = (picks[cp.id] && picks[cp.id][cs.id]) || [];
-                const pn = (pickNames[cp.id] && pickNames[cp.id][cs.id]) || [];
-                const n = cnt(cs.id, cp.id);
-                ids.forEach((hid, i) => {
-                    if (!usage.has(hid)) usage.set(hid, { times: 0, name: pn[i] || '', slots: 0 });
-                    const u = usage.get(hid);
-                    u.times += n;
-                    u.slots++;
+        let ccPayComps = []; // คอมพ์ (ที่มีหลัง) ที่ใช้คำนวณ "ฮีโร่ที่ต้องจ่าย" ล่าสุด — dialog ใช้ชุดเดียวกัน ตัวเลขจะตรงกัน
+
+        /** 🧾 dialog: ฮีโร่ตัวนี้เข้าหลังไหนได้บ้าง — แยกตามปราสาท · คอมพ์ที่เจอ × จำนวนหลัง · ทีม counter ที่มีตัวนี้ */
+        function ccViewerOpenHeroPay(hid) {
+            hid = String(hid);
+            const cnt = (csId, cpId) => (ccView.counts[csId] && ccView.counts[csId][cpId]) || 0;
+            const hasHero = team => (team.data.slots || []).some(sl => sl && String(sl.id) === hid);
+            // คอมพ์ที่ตัวนี้อยู่ในทีม counter → ทีมที่มีตัวนี้
+            const usable = ccPayComps.map(cp => ({ cp, teams: ccViewerCounters(cp).map(x => x.team).filter(hasHero) })).filter(x => x.teams.length);
+            // รูปศัตรู/ทีม counter ขนาดเดียวกัน (56px) — ตัวที่กดมา = กรอบเขียว
+            const teamThumbs = t => (t.data.slots || []).filter(sl => sl && sl.id)
+                .map(sl => `<div class="${String(sl.id) === hid ? 'ring-2 ring-emerald-400 rounded-[10px]' : ''}">${ccViewerHeroChip(sl.id, '', sl.awakened, 'lg')}</div>`).join('');
+
+            let total = 0;
+            const rows = ccView.castles.map(cs => {
+                const here = usable.map(u => ({ ...u, n: cnt(cs.id, u.cp.id) })).filter(u => u.n > 0);
+                if (!here.length) return '';
+                const sum = here.reduce((s, u) => s + u.n, 0);
+                total += sum;
+                return `
+                    <div class="bg-[#161b22] border border-gray-800 rounded-xl overflow-hidden">
+                        <div class="flex items-center gap-2 px-3 py-2 bg-[#1b2433]">
+                            <span>🏰</span>
+                            <span class="flex-1 min-w-0 text-sm font-black text-white truncate">${ccEsc(cs.name || '-')}</span>
+                            <span class="text-emerald-400 font-black">${sum}</span><span class="text-[10px] text-gray-500 font-bold">หลัง</span>
+                        </div>
+                        ${here.map(u => `
+                            <div class="flex flex-wrap items-center gap-3 px-3 py-2.5 border-t border-gray-800/60">
+                                <div class="flex items-center gap-1 flex-shrink-0" title="ศัตรู: ${ccEsc(ccView.compNames[u.cp.id])}">${ccViewerCompThumbs(u.cp, 'lg')}</div>
+                                <span class="text-sky-400 font-black text-xl w-12">× ${u.n}</span>
+                                <span class="flex-1"></span>
+                                <div class="flex flex-col items-end gap-1.5">
+                                    ${u.teams.map(t => `<div class="flex items-center gap-1" title="ทีม counter: ${ccEsc(t.name || '')}">
+                                        <span class="text-[10px] text-gray-500 mr-1 max-w-[160px] truncate">🛡️ ${ccEsc(t.name || 'ทีม counter')}</span>${teamThumbs(t)}</div>`).join('')}
+                                </div>
+                            </div>`).join('')}
+                    </div>`;
+            }).join('');
+
+            const h = heroesDB.find(x => String(x.id) === hid);
+            let m = document.getElementById('cc-pay-dlg');
+            if (!m) {
+                m = document.createElement('div');
+                m.id = 'cc-pay-dlg';
+                m.className = 'fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 md:p-6';
+                m.onclick = e => { if (e.target === m) ccViewerCloseHeroPay(); };
+                document.body.appendChild(m);
+            }
+            m.style.display = 'flex';
+            // สูงไม่เกินจอ — หัวอยู่กับที่ เลื่อนเฉพาะรายการปราสาท
+            m.innerHTML = `
+                <div class="bg-[#11161f] border border-gray-700 rounded-2xl w-full max-w-4xl flex flex-col shadow-2xl" style="max-height:min(720px,92vh)">
+                    <div class="flex items-center gap-3 p-4 border-b border-gray-800 flex-shrink-0">
+                        ${ccViewerHeroChip(hid, hid, false, 'xl')}
+                        <div class="flex-1 min-w-0">
+                            <div class="text-lg font-black text-white truncate">${ccEsc(h ? h.name : hid)}</div>
+                            <div class="text-xs text-gray-400">เข้าได้ <b class="text-emerald-400">${total}</b> หลัง · ${usable.length} คอมพ์ · กรอบเขียว = ตัวนี้ในทีม counter</div>
+                        </div>
+                        <button type="button" onclick="ccViewerCloseHeroPay()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
+                    </div>
+                    <!-- block + space-y (ไม่ใช่ flex) — flex จะบีบการ์ดให้เตี้ยลงแทนที่จะล้นให้เลื่อน -->
+                    <div class="p-4 space-y-3 overflow-y-auto custom-scroll min-h-0 flex-1">${rows || '<div class="text-xs text-gray-500 italic text-center py-6">ไม่พบหลังที่ใช้ตัวนี้</div>'}</div>
+                </div>`;
+        }
+
+        function ccViewerCloseHeroPay() {
+            const m = document.getElementById('cc-pay-dlg');
+            if (m) m.style.display = 'none';
+        }
+
+        /** 🧾 ฮีโร่ที่ต้องจ่าย = ฮีโร่ในทีม counter ทุกทีมของคอมพ์ที่เจอ · 1 หลัง = จ่ายตัวละ 1 ครั้ง
+         *  คอมพ์เดียวมี counter หลายทีมแล้วมีตัวซ้ำ → ต่อหลังยังนับครั้งเดียว (เช่น counter 2 ทีม = 6 ตัว ต่อ 1 หลัง)
+         *  ตัวละครคนละคอมพ์ → รวมจำนวนหลังของทุกคอมพ์ที่ใช้ตัวนั้น (14 + 12 + 1 = 27 ครั้ง)
+         *  → { heroes: [[heroId, { times, comps:Set }]] เรียงตามจำนวนครั้ง, noCounter: จำนวนคอมพ์ที่ยังไม่มี counter } */
+        function ccViewerCounterHeroes(comps, colTotal) {
+            const used = new Map(); // heroId → { times, comps }
+            let noCounter = 0;
+            comps.forEach((cp, i) => {
+                const houses = colTotal[i];
+                if (!houses) return;
+                const list = ccViewerCounters(cp);
+                if (!list.length) { noCounter++; return; }
+                const ids = new Set(); // ตัวละครของคอมพ์นี้ (ไม่ซ้ำ)
+                list.forEach(({ team }) => (team.data.slots || []).forEach(sl => { if (sl && sl.id) ids.add(String(sl.id)); }));
+                ids.forEach(k => {
+                    if (!used.has(k)) used.set(k, { times: 0, comps: new Set() });
+                    const u = used.get(k);
+                    u.times += houses;
+                    u.comps.add(cp.id);
                 });
-            }));
-            return [...usage.entries()].sort((a, b) => b[1].times - a[1].times);
+            });
+            return { heroes: [...used.entries()].sort((a, b) => b[1].times - a[1].times), noCounter };
         }
 
         // ---------- แท็บตาราง: หน้าตาเดียวกับตารางในหน้านับคอมพ์ปราสาท + สรุป ----------
@@ -14390,7 +14721,6 @@
                     ปราสาท "${ccEsc(sortCs.name || '-')}" ไม่มีคอมพ์${ccViewSel.size ? 'ที่มีตัวละครที่เลือก' : ''}
                     <button type="button" onclick="ccViewerSortByCastleKey('')" class="ml-2 not-italic text-amber-400 hover:text-amber-300 underline">ดูทุกปราสาท</button></div>`;
             if (!comps.length) return '<div class="flex flex-wrap items-center justify-end gap-2 mb-4">' + ccHeroPickerHTML() + '</div><div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบคอมพ์ที่มีตัวละครที่เลือก</div>';
-            const quota = ccView.heroQuota || 0;
 
             const headCells = comps.map(cp => `
                     <th class="cc-col-head cc-col-w align-middle" style="padding:8px" title="${ccEsc(compNames[cp.id])}">
@@ -14418,7 +14748,7 @@
                         </th>
                         ${cells}
                         <td class="cc-fill"></td>
-                        <td class="cc-total-col bg-[#121826]"><span class="text-amber-400 font-black text-sm">${rowTotal}</span></td>
+                        <td class="cc-total-col cc-total-sticky bg-[#121826]"><span class="text-amber-400 font-black text-sm">${rowTotal}</span></td>
                     </tr>`;
             }).join('');
 
@@ -14427,21 +14757,35 @@
                     <span class="text-gray-200 font-black">${t}</span>
                 </td>`).join('');
 
-            const usage = ccViewerHeroUsage(cnt);
-            const over = quota > 0 ? usage.filter(e => e[1].times > quota) : [];
             const topbar = '';
 
-            // --- สรุปใต้ตาราง: ฮีโร่ที่ต้องจ่าย ---
-            const heroTiles = usage.map(([hid, u]) => {
-                const isOver = quota > 0 && u.times > quota;
+            // --- สรุปใต้ตาราง: ฮีโร่ที่ต้องจ่าย (จากทีม counter ของคอมพ์ที่แสดงอยู่ · ไม่นับซ้ำ) ---
+            const pay = ccViewerCounterHeroes(comps, colTotal);
+            const compsWithCounter = comps.filter((cp, i) => colTotal[i] > 0).length - pay.noCounter;
+            // แบบรายการ: ลำดับ · รูป (ใหญ่) · ชื่อ + แถบสัดส่วนเทียบตัวที่ใช้มากสุด · จำนวนครั้ง
+            //    กดแถว → dialog ว่าตัวนี้เข้าหลังไหนได้บ้าง (ใช้คอมพ์ชุดเดียวกับที่แสดงอยู่)
+            ccPayComps = comps.filter((cp, i) => colTotal[i] > 0);
+            const maxTimes = pay.heroes.length ? pay.heroes[0][1].times : 0;
+            const heroTiles = pay.heroes.map(([hid, u], i) => {
                 const h = heroesDB.find(x => String(x.id) === String(hid));
-                const nm = h ? h.name : (u.name || hid);
+                const nm = h ? h.name : hid;
+                const pct = maxTimes ? Math.round(u.times / maxTimes * 100) : 0;
                 return `
-                    <div class="bg-[#161b22] border ${isOver ? 'border-red-600/70' : 'border-gray-800'} rounded-xl p-2 flex items-center gap-2" title="${ccEsc(nm)} — ${u.slots} ช่อง">
-                        ${ccViewerHeroChip(hid, u.name, false, false)}
+                    <div role="button" tabindex="0" onclick="ccViewerOpenHeroPay('${ccEsc(hid)}')" class="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg border-b border-gray-800/70 cursor-pointer hover:bg-white/[0.04] transition" title="${ccEsc(nm)} — กดเพื่อดูว่าเข้าหลังไหนได้บ้าง">
+                        <span class="w-6 text-right text-[11px] font-black text-gray-500 flex-shrink-0">${i + 1}</span>
+                        ${ccViewerHeroChip(hid, nm, false, 'xl')}
                         <div class="flex-1 min-w-0">
-                            <div class="text-[11px] text-gray-300 font-bold truncate">${ccEsc(nm)}</div>
-                            <div class="leading-none mt-0.5"><span class="${isOver ? 'text-red-400' : 'text-emerald-400'} font-black text-lg">${u.times}</span> <span class="text-[10px] text-gray-500 font-bold">ครั้ง</span></div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-sm text-gray-100 font-bold truncate">${ccEsc(nm)}</span>
+                                <span class="text-[11px] text-gray-500 whitespace-nowrap">${u.comps.size} คอมพ์</span>
+                            </div>
+                            <div class="h-1.5 rounded-full bg-[#0d1117] overflow-hidden mt-1.5">
+                                <div class="h-full bg-emerald-500/70 rounded-full" style="width:${pct}%"></div>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0 w-16 leading-none">
+                            <span class="text-emerald-400 font-black text-2xl">${u.times}</span>
+                            <span class="text-[10px] text-gray-500 font-bold">ตัว</span>
                         </div>
                     </div>`;
             }).join('');
@@ -14449,11 +14793,12 @@
                 <div class="mt-6">
                     <div class="flex flex-wrap items-center gap-3 mb-3">
                         <h3 class="text-sm font-black text-white uppercase tracking-wider">🧾 ฮีโร่ที่ต้องจ่าย</h3>
-                        <span class="text-[11px] text-gray-500">${usage.length} ตัว · รวม ${usage.reduce((s, e) => s + e[1].times, 0)} ครั้ง</span>
+                        <span class="text-[11px] text-gray-500">${pay.heroes.length} ตัวละคร · รวม ${pay.heroes.reduce((s, e) => s + e[1].times, 0)} ตัว · 1 หลัง = จ่ายตัวละ 1 ตัว · จากทีม counter ของ ${compsWithCounter} คอมพ์</span>
+                        ${pay.noCounter ? `<span class="text-[11px] text-amber-400">· ${pay.noCounter} คอมพ์ยังไม่มีทีม counter</span>` : ''}
                     </div>
                     ${heroTiles
-                        ? `<div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${heroTiles}</div>`
-                        : '<div class="text-xs text-gray-600 italic border border-dashed border-gray-800 rounded-2xl px-4 py-6 text-center">ไฟล์นี้ยังไม่ได้เลือกฮีโร่ที่จะจ่าย</div>'}
+                        ? `<div class="bg-[#161b22] border border-gray-800 rounded-2xl px-4 py-1 grid gap-x-8" style="grid-template-columns:repeat(auto-fill,minmax(min(420px,100%),1fr))">${heroTiles}</div>`
+                        : `<div class="text-xs text-gray-600 italic border border-dashed border-gray-800 rounded-2xl px-4 py-6 text-center">${ccViewHeroLoad === 'loading' ? '⏳ กำลังโหลดทีม counter…' : 'คอมพ์ที่แสดงอยู่ยังไม่มีทีม counter ที่แชร์ไว้'}</div>`}
                 </div>`;
 
             // แถวเหนือตาราง: (กำลังเรียงตามปราสาท → บอกสถานะ + ล้าง) · เลือกตัวละครชิดขวา
@@ -14476,7 +14821,7 @@
                                 <th class="cc-sticky-col cc-pad text-left text-xs font-black text-gray-400 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
                                 ${headCells}
                                 <th class="cc-fill"></th>
-                                <th class="cc-total-col text-[10px] font-black text-amber-500 uppercase tracking-wider">รวม</th>
+                                <th class="cc-total-col cc-total-sticky text-[10px] font-black text-amber-500 uppercase tracking-wider">รวม</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -14486,12 +14831,11 @@
                                 <th class="cc-sticky-col cc-pad text-left text-xs font-black text-amber-500/90 uppercase tracking-wider" style="background:#1b2433">รวมทุกปราสาท</th>
                                 ${footCells}
                                 <td class="cc-fill" style="background:#121826"></td>
-                                <td class="cc-total-col" style="background:#182031"><span class="text-amber-400 font-black text-sm">${grand}</span></td>
+                                <td class="cc-total-col cc-total-sticky" style="background:#182031"><span class="text-amber-400 font-black text-sm">${grand}</span></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                ${ccRankBoxHTML(cnt)}
                 ${heroBox}`;
         }
 
@@ -14649,7 +14993,6 @@
             const tot = comps.map(cp => castles.reduce((s, cs) => s + cnt(cs.id, cp.id), 0));
             const grand = tot.reduce((a, b) => a + b, 0);
             const quota = ccView.heroQuota || 0;
-            const over = quota > 0 ? ccViewerHeroUsage(cnt).filter(e => e[1].times > quota) : [];
             const stat = (label, val, cls) =>
                 `<div class="flex flex-col min-w-0 lg:items-end"><span class="text-[10px] text-gray-500 uppercase tracking-wider">${label}</span>
                  <span class="font-black truncate ${cls || 'text-gray-200'}">${val}</span></div>`;
@@ -14657,7 +15000,7 @@
                     ${stat('ปราสาท', castles.length)}
                     ${stat('คอมพ์', comps.length)}
                     ${stat('รวมทั้งหมด', grand + ' หลัง', 'text-amber-400')}
-                    ${quota ? stat('โควต้าฮีโร่/ตัว', quota + ' ครั้ง' + (over.length ? ' · ⚠️ เกิน ' + over.length + ' ตัว' : ''), over.length ? 'text-red-400' : 'text-emerald-400') : ''}
+                    ${quota ? stat('โควต้าฮีโร่/ตัว', quota + ' ครั้ง', 'text-emerald-400') : ''}
                 </div>`;
         }
 
@@ -14683,71 +15026,20 @@
             ccRerenderKeepScroll();
         }
 
-        // ---------- แท็บแยกรายปราสาท: การ์ดปราสาทเรียงเป็นตาราง · ในการ์ด = รูปคอมพ์ + จำนวน แถวสั้นๆ ----------
+        // ---------- แท็บแยกรายปราสาท: 🏆 คอมพ์ที่เจอเยอะ + ทีมชน (ปุ่มเลือกดูทีละปราสาทอยู่ในกล่อง) ----------
         function ccViewerCastleCards(cnt) {
-            const { castles, comps, picks, pickNames } = ccView;
-
-            const cards = castles.map((cs, ci) => {
-                const rows = comps.map(cp => ({
-                    cp,
-                    n: cnt(cs.id, cp.id),
-                    picks: (picks[cp.id] && picks[cp.id][cs.id]) || [],
-                    pickNames: (pickNames[cp.id] && pickNames[cp.id][cs.id]) || []
-                })).filter(r => (r.n > 0 || r.picks.length) && ccViewerCompMatch(r.cp)).sort((a, b) => b.n - a.n);
-                // กำลังค้นหา → ซ่อนปราสาทที่ไม่มีคอมพ์ตรงคำค้น
-                if (ccViewSel.size && !rows.length) return '';
-                const total = rows.reduce((a, r) => a + r.n, 0);
-
-                const list = rows.map(r => `
-                    <div class="flex items-center gap-2 py-1.5 border-t border-gray-800/60 rounded-lg transition hover:bg-white/[0.03]" title="${ccEsc(ccView.compNames[r.cp.id])}"${ccViewerClickAttr(r.cp)}>
-                        <div class="flex items-start gap-1 flex-shrink-0">${ccViewerCompThumbsNamed(r.cp)}</div>
-                        ${r.picks.length ? `<div class="flex flex-wrap items-center gap-0.5 min-w-0" title="ฮีโร่ที่จ่าย">
-                            <span class="text-gray-600 text-[10px] mx-0.5">➜</span>${r.picks.map((id, i) => ccViewerHeroChip(id, r.pickNames[i], false, true)).join('')}
-                        </div>` : ''}
-                        <span class="flex-1"></span>
-                        <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
-                            <span class="text-xl font-black ${r.n ? 'text-sky-400' : 'text-gray-600'} leading-none">${r.n}</span>
-                            ${ccViewerCounterBadge(r.cp)}
-                        </div>
-                    </div>`).join('');
-
-                const key = ccCastleKey(cs);
-                const closed = ccCastleCollapsed.has(key);
-                return `
-                    <div class="bg-[#161b22] border border-gray-800 rounded-2xl overflow-hidden shadow-lg">
-                        <button type="button" onclick="ccViewerToggleCastleIdx(${ci})" aria-expanded="${!closed}"
-                            title="${closed ? 'กดเพื่อกาง' : 'กดเพื่อพับ'}"
-                            class="w-full flex items-center gap-2 px-3 py-2 bg-[#1b2433] hover:bg-[#223047] transition text-left">
-                            <span class="text-gray-400 text-xs w-3 flex-shrink-0 transition-transform ${closed ? '-rotate-90' : ''}">▼</span>
-                            <span class="text-lg">🏰</span>
-                            <div class="flex-1 min-w-0 text-sm text-white font-black truncate">${ccEsc(cs.name || 'ปราสาทไม่มีชื่อ')}</div>
-                            <span class="text-[10px] text-gray-500">${rows.length} คอมพ์</span>
-                            <span class="text-amber-400 font-black text-xl leading-none">${total}</span>
-                            <span class="text-[10px] text-gray-500 font-bold">หลัง</span>
-                        </button>
-                        ${closed ? '' : `<div class="px-3 pb-1">
-                            ${list || '<div class="text-xs text-gray-600 italic py-3">ไม่มีคอมพ์ในปราสาทนี้</div>'}
-                        </div>`}
-                    </div>`;
-            }).join('');
-
-            if (!cards) return `<div class="flex flex-wrap items-center justify-end gap-2 mb-4">${ccHeroPickerHTML()}</div><div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบปราสาทที่มีคอมพ์ตัวละครที่เลือก</div>`;
-            const allKeys = castles.map(ccCastleKey);
-            const nClosed = allKeys.filter(k => ccCastleCollapsed.has(k)).length;
-            const ctl = (label, open, disabled) => `<button type="button" onclick="ccViewerSetAllCastles(${open})" ${disabled ? 'disabled' : ''}
-                class="px-3 py-1.5 rounded-lg text-[11px] font-bold border border-gray-700 bg-[#1f2937] text-gray-300 hover:text-white hover:border-gray-500 transition disabled:opacity-30 disabled:cursor-default">${label}</button>`;
-            return `<div class="flex flex-wrap items-center justify-end gap-2 mb-2">
-                    ${ctl('▼ กางทั้งหมด', true, nClosed === 0)}${ctl('▶ พับทั้งหมด', false, nClosed === allKeys.length)}
-                    ${ccHeroPickerHTML()}
-                </div>
-                <div class="grid gap-3 items-start" style="grid-template-columns:repeat(auto-fill,minmax(min(330px,100%),1fr))">${cards}</div>`;
+            const types = ccView.comps.filter(ccViewerCompMatch).map(cp => heroIdsMainType(cp.heroes));
+            if (ccCompTypeFilter && !types.includes(ccCompTypeFilter)) ccCompTypeFilter = null; // type ที่เลือกไม่มีแล้ว = ล้าง
+            const bar = `<div class="flex flex-wrap items-center gap-2 mb-2">
+                    ${ccTypeChipsHTML(types)}
+                    <div class="ml-auto flex flex-wrap items-center justify-end gap-2">${ccHeroPickerHTML()}</div>
+                </div>`;
+            return bar + (ccRankBoxHTML(cnt)
+                || '<div class="mt-6 text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-10 text-center">ไม่พบคอมพ์ที่ตรงตัวกรอง</div>');
         }
 
-        // 🏰 พับ/กางการ์ดปราสาท — จำด้วยชื่อปราสาท (id ในตารางสุ่มใหม่ทุกครั้งที่โหลด) · เก็บในเครื่องคนดู
-        const CC_COLLAPSE_KEY = '7k_cc_view_collapsed';
-        const ccCastleCollapsed = (() => { try { return new Set(JSON.parse(localStorage.getItem(CC_COLLAPSE_KEY)) || []); } catch (e) { return new Set(); } })();
+        // 🏰 key ของปราสาท = ชื่อ (id ในตารางสุ่มใหม่ทุกครั้งที่โหลด)
         function ccCastleKey(cs) { return String((cs && cs.name) || '').trim() || ('#' + (ccView ? ccView.castles.indexOf(cs) : 0)); }
-        function ccSaveCollapsed() { try { localStorage.setItem(CC_COLLAPSE_KEY, JSON.stringify([...ccCastleCollapsed])); } catch (e) {} }
         /** วาดใหม่โดยไม่ให้หน้ากระโดด */
         function ccRerenderKeepScroll() {
             const box = document.getElementById('cc-viewer');
@@ -14770,31 +15062,7 @@
             ccViewerSortByCastleKey(ccSortCastleKey === k ? '' : k);
         }
 
-        function ccViewerToggleCastleIdx(i) { if (ccView && ccView.castles[i]) ccViewerToggleCastle(ccCastleKey(ccView.castles[i])); }
-        function ccViewerToggleCastle(key) {
-            if (ccCastleCollapsed.has(key)) ccCastleCollapsed.delete(key); else ccCastleCollapsed.add(key);
-            ccSaveCollapsed();
-            ccRerenderKeepScroll();
-        }
-        function ccViewerSetAllCastles(open) {
-            if (!ccView) return;
-            ccView.castles.forEach(cs => { const k = ccCastleKey(cs); if (open) ccCastleCollapsed.delete(k); else ccCastleCollapsed.add(k); });
-            ccSaveCollapsed();
-            ccRerenderKeepScroll();
-        }
 
-        /** รูปฮีโร่ของคอมพ์ (56px) + ชื่อใต้รูป — ใช้ในแท็บแยกรายปราสาท */
-        function ccViewerCompThumbsNamed(cp) {
-            const names = String(ccView.compNames[cp.id] || '').split(' · ');
-            return cp.heroes.map((id, i) => {
-                const h = heroesDB.find(x => String(x.id) === String(id));
-                const nm = h ? h.name : (names[i] || '?');
-                return `<div class="flex flex-col items-center" style="width:56px">
-                            ${ccViewerHeroChip(id, names[i], cp.awk[i], 'lg')}
-                            <span class="text-[9px] text-gray-400 font-bold truncate w-full text-center mt-0.5" title="${ccEsc(nm)}">${ccEsc(nm)}</span>
-                        </div>`;
-            }).join('');
-        }
 
         // =========================================================
         // ➕ DIALOG เพิ่มคอมพ์ — รวมทุกแหล่งไว้ที่เดียว
@@ -14802,9 +15070,8 @@
         //    มีตัวกรอง Type + เตือนคอมพ์ซ้ำ (ฮีโร่ชุดเดียวกัน)
         // =========================================================
         let ccAddTab = 'pattern';   // pattern | atk
-        let ccAddSearch = '';
+        let ccAddHeroes = new Set(); // id ฮีโร่ที่เลือกกรอง — ต้องมีครบทุกตัว (เลือก 3 ตัว = หาคอมพ์ชุดนั้นพอดี)
         let ccAddType = '';
-        let ccAddFocus = false;
 
         /** ลายเซ็นคอมพ์ = id ฮีโร่เรียงแล้วต่อกัน — ใช้เทียบว่าซ้ำไหม (ไม่สนลำดับ) */
         function ccCompSig(heroes) {
@@ -14832,7 +15099,8 @@
 
         function castleCompOpenAddDialog() {
             castleCompLoad();
-            ccAddSearch = '';
+            ccAddHeroes.clear();
+            ccAddStripScroll = 0;
             ccAddType = '';
             let modal = document.getElementById('cc-add-modal');
             if (!modal) {
@@ -14846,13 +15114,96 @@
         }
 
         function castleCompCloseAddDialog() {
+            ccAddCloseHeroPicker();
             const m = document.getElementById('cc-add-modal');
             if (m) m.style.display = 'none';
         }
 
         function ccAddSetTab(t) { ccAddTab = t; ccAddType = ''; ccAddRenderShell(); }
         function ccAddSetType(t) { ccAddType = (ccAddType === t) ? '' : t; ccAddRenderList(); }
-        function ccAddSetSearch(v) { ccAddSearch = String(v || '').trim().toLowerCase(); ccAddFocus = true; ccAddRenderList(); }
+        function ccAddToggleHero(id) {
+            id = String(id);
+            if (ccAddHeroes.has(id)) ccAddHeroes.delete(id); else ccAddHeroes.add(id);
+            ccAddRenderList();
+            ccAddRenderHeroPicker();
+        }
+        function ccAddClearHeroes() { ccAddHeroes.clear(); ccAddRenderList(); ccAddRenderHeroPicker(); }
+
+        // 🦸 Dialog เลือกตัวละคร — ซ้อนบน dialog เพิ่มคอมพ์ · กดเลือกแล้วรายการด้านหลังกรองทันที
+        function ccAddOpenHeroPicker() {
+            let m = document.getElementById('cc-add-picker');
+            if (!m) {
+                m = document.createElement('div');
+                m.id = 'cc-add-picker';
+                m.className = 'fixed inset-0 z-[560] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4';
+                m.onclick = e => { if (e.target === m) ccAddCloseHeroPicker(); };
+                document.body.appendChild(m);
+            }
+            m.style.display = 'flex';
+            ccAddStripScroll = 0;
+            ccAddRenderHeroPicker();
+        }
+        function ccAddCloseHeroPicker() {
+            const m = document.getElementById('cc-add-picker');
+            if (m) m.style.display = 'none';
+        }
+        function ccAddRenderHeroPicker() {
+            const m = document.getElementById('cc-add-picker');
+            if (!m || m.style.display === 'none') return;
+            const all = ccAddSource();
+            const n = ccAddFiltered(all).length;
+            m.innerHTML = `
+                <div class="bg-[#11161f] border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl">
+                    <div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-800">
+                        <h3 class="text-sm font-black text-white">🦸 เลือกตัวละคร</h3>
+                        <span class="text-[11px] text-gray-500">เลือกได้หลายตัว — เหลือเฉพาะคอมพ์ที่มีครบทุกตัว · ตัวเลขมุมขวา = อยู่ในกี่ใบ</span>
+                        <span class="flex-1"></span>
+                        <span class="text-[11px] font-bold ${ccAddHeroes.size ? 'text-amber-300' : 'text-gray-500'}">เลือก ${ccAddHeroes.size} ตัว · เจอ ${n} ใบ</span>
+                    </div>
+                    <div id="cc-add-strip" class="p-3 overflow-y-auto custom-scroll grid gap-1.5" style="grid-template-columns:repeat(auto-fill,minmax(78px,1fr))">${ccAddHeroStrip(all)}</div>
+                    <div class="flex items-center gap-2 px-4 py-3 border-t border-gray-800">
+                        <button onclick="ccAddClearHeroes()" class="px-4 py-2 rounded-xl text-xs font-bold bg-[#1f2937] border border-gray-700 text-gray-300 hover:text-white transition">ล้างที่เลือก</button>
+                        <span class="flex-1"></span>
+                        <button onclick="ccAddCloseHeroPicker()" class="px-5 py-2 rounded-xl text-xs font-black bg-amber-600 hover:bg-amber-500 text-white transition">เสร็จ</button>
+                    </div>
+                </div>`;
+            // กดเลือกแล้ววาดใหม่ — ไม่ให้เด้งกลับบนสุด
+            const strip = document.getElementById('cc-add-strip');
+            strip.scrollTop = ccAddStripScroll;
+            strip.onscroll = () => { ccAddStripScroll = strip.scrollTop; };
+        }
+
+        /** รายการตามแท็บ หลังกรอง type + ฮีโร่ที่เลือก (ใช้ทั้งตอนวาดและตอนกดเลือก ลำดับต้องตรงกัน) */
+        function ccAddFiltered(all) {
+            let list = all;
+            if (ccAddType) list = list.filter(it => ccHeroTypes(it.heroes).has(ccAddType));
+            if (ccAddHeroes.size) {
+                list = list.filter(it => {
+                    const ids = new Set(it.heroes.map(String));
+                    return [...ccAddHeroes].every(id => ids.has(id));
+                });
+            }
+            return list;
+        }
+
+        /** แถบรูปตัวละครสำหรับกรอง — เฉพาะตัวที่อยู่ในรายการของแท็บนี้ เรียงตามระดับแล้วชื่อ */
+        function ccAddHeroStrip(all) {
+            const count = {};
+            all.forEach(it => it.heroes.forEach(id => { count[id] = (count[id] || 0) + 1; }));
+            const heroes = heroesSortedByRarity(heroesDB.filter(h => count[String(h.id)]));
+            return heroes.map(h => {
+                const id = String(h.id);
+                const on = ccAddHeroes.has(id);
+                return `
+                    <button type="button" onclick="ccAddToggleHero('${ccEsc(id)}')" title="${ccEsc(h.name)} — อยู่ใน ${count[id]} ใบ"
+                        class="relative p-1 rounded-xl border-2 transition ${on ? 'border-amber-400 bg-amber-500/15' : 'border-transparent hover:border-gray-600'}">
+                        <img src="${h.img}" alt="${ccEsc(h.name)}" class="w-full aspect-square object-cover rounded-lg bg-black">
+                        ${on ? '<span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-amber-500 text-black text-[11px] font-black flex items-center justify-center">✓</span>' : ''}
+                        <span class="absolute top-0.5 right-0.5 px-1 rounded bg-black/75 text-[9px] text-gray-200 font-bold">${count[id]}</span>
+                        <div class="text-[10px] text-gray-300 font-bold truncate mt-1">${ccEsc(h.name)}</div>
+                    </button>`;
+            }).join('');
+        }
 
         function ccAddRenderShell() {
             const modal = document.getElementById('cc-add-modal');
@@ -14906,20 +15257,7 @@
             all.forEach(it => ccHeroTypes(it.heroes).forEach(t => { typeCount[t] = (typeCount[t] || 0) + 1; }));
             const availTypes = TYPE_OPTS.filter(t => typeCount[t] > 0);
 
-            // กรอง
-            let list = all;
-            if (ccAddType) list = list.filter(it => ccHeroTypes(it.heroes).has(ccAddType));
-            if (ccAddSearch) {
-                const q = ccAddSearch;
-                list = list.filter(it => {
-                    if (String(it.name).toLowerCase().includes(q)) return true;
-                    if (String(it.note).toLowerCase().includes(q)) return true;
-                    return it.heroes.some(id => {
-                        const h = heroesDB.find(x => String(x.id) === String(id));
-                        return h && String(h.name || '').toLowerCase().includes(q);
-                    });
-                });
-            }
+            const list = ccAddFiltered(all);
 
             // หาซ้ำภายในแหล่งเดียวกัน (คนละใบแต่ฮีโร่ชุดเดียวกัน)
             const sigCount = {};
@@ -14968,23 +15306,40 @@
 
             const dupTotal = all.filter(it => ccDupInTable(it.heroes)).length;
 
+            // เลือกฮีโร่อยู่ → บอกสั้นๆ ว่าชุดนี้มีหรือยัง / มีในตารางแล้วหรือยัง
+            let pickNote = '';
+            if (ccAddHeroes.size) {
+                const inTable = list.filter(it => ccDupInTable(it.heroes)).length;
+                pickNote = !list.length
+                    ? '<span class="text-red-300">❌ ยังไม่มีคอมพ์ที่มีตัวละครที่เลือกครบ</span>'
+                    : inTable === list.length
+                        ? `<span class="text-amber-300">⚠️ เจอ ${list.length} ใบ — มีในตารางแล้วทั้งหมด</span>`
+                        : `<span class="text-emerald-300">✅ เจอ ${list.length} ใบ${inTable ? ` · มีในตารางแล้ว ${inTable}` : ' · ยังไม่มีในตาราง'}</span>`;
+            }
+
+            const sel = [...ccAddHeroes].map(id => {
+                const h = heroesDB.find(x => String(x.id) === id);
+                return `<button onclick="ccAddToggleHero('${ccEsc(id)}')" title="เอาออก" class="flex items-center gap-1 pl-0.5 pr-2 py-0.5 rounded-lg bg-[#0d1117] border border-amber-600/50 text-[11px] text-gray-200 hover:border-red-500 transition">
+                            ${h && h.img ? `<img src="${h.img}" class="w-5 h-5 rounded object-cover">` : ''}${ccEsc(h ? h.name : id)} <span class="text-gray-500">✕</span></button>`;
+            }).join('');
+
             box.innerHTML = `
                 <div class="p-3 border-b border-gray-800 flex flex-col gap-2 flex-shrink-0">
-                    <div class="flex items-center gap-2">
-                        <div class="relative flex-1">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs pointer-events-none">🔍</span>
-                            <input id="cc-add-search" type="text" value="${ccEsc(ccAddSearch)}" oninput="ccAddSetSearch(this.value)"
-                                placeholder="ค้นหาชื่อทีม / ชื่อตัวละคร..."
-                                class="w-full bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-amber-500">
-                        </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="ccAddOpenHeroPicker()" class="px-4 py-2 rounded-xl text-xs font-black transition border ${ccAddHeroes.size
+                            ? 'bg-amber-600/20 text-amber-300 border-amber-500/60' : 'bg-[#0d1117] text-gray-300 border-gray-600 hover:text-white hover:border-gray-500'}">🦸 เลือกตัวละคร${ccAddHeroes.size ? ' (' + ccAddHeroes.size + ')' : ''}</button>
+                        ${sel}
+                        ${ccAddHeroes.size ? '<button onclick="ccAddClearHeroes()" class="text-[11px] text-gray-500 hover:text-white underline">ล้าง</button>' : ''}
+                        <span class="flex-1"></span>
                         ${ccAddTab === 'pattern' ? `<button onclick="ccAddNewPattern()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border border-emerald-500/40" title="สร้างรูปแบบศัตรูใบใหม่ แล้วกลับมาเลือก">➕ สร้างรูปแบบศัตรูใหม่</button>` : ''}
                     </div>
                     ${availTypes.length ? `<div class="flex flex-wrap gap-1.5 items-center">
                         <span class="text-[10px] text-gray-600 font-bold uppercase mr-0.5">Type</span>${typeBtns}
                     </div>` : ''}
-                    <div class="text-[11px] text-gray-500">
-                        แสดง <b class="text-gray-300">${list.length}</b> / ${all.length} รายการ
-                        ${dupTotal ? ` · <span class="text-amber-400">${dupTotal} ใบมีในตารางแล้ว</span>` : ''}
+                    <div class="text-[11px] text-gray-500 flex flex-wrap gap-x-2">
+                        <span>แสดง <b class="text-gray-300">${list.length}</b> / ${all.length} รายการ</span>
+                        ${dupTotal ? `<span class="text-amber-400">· ${dupTotal} ใบมีในตารางแล้ว</span>` : ''}
+                        ${pickNote ? '<span>·</span>' + pickNote : ''}
                     </div>
                 </div>
                 <div class="p-3 overflow-y-auto custom-scroll flex flex-col gap-2 min-h-0">
@@ -14994,30 +15349,12 @@
                     </div>`}
                 </div>`;
 
-            if (ccAddFocus) {
-                const el = document.getElementById('cc-add-search');
-                if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) { } }
-                ccAddFocus = false;
-            }
         }
+        let ccAddStripScroll = 0; // ตำแหน่งเลื่อนใน dialog เลือกตัวละคร
 
         /** กดเลือกใบที่ i จากรายการที่กรองอยู่ */
         function ccAddPick(i) {
-            const all = ccAddSource();
-            let list = all;
-            if (ccAddType) list = list.filter(it => ccHeroTypes(it.heroes).has(ccAddType));
-            if (ccAddSearch) {
-                const q = ccAddSearch;
-                list = list.filter(it => {
-                    if (String(it.name).toLowerCase().includes(q)) return true;
-                    if (String(it.note).toLowerCase().includes(q)) return true;
-                    return it.heroes.some(id => {
-                        const h = heroesDB.find(x => String(x.id) === String(id));
-                        return h && String(h.name || '').toLowerCase().includes(q);
-                    });
-                });
-            }
-            const it = list[i];
+            const it = ccAddFiltered(ccAddSource())[i];
             if (!it) return;
 
             const dupName = ccDupInTable(it.heroes);
@@ -23297,7 +23634,7 @@
             } catch(e){}
             return hbDefaultBuild();
         }
-        function hbSave(){ try { localStorage.setItem('7k_hero_build', JSON.stringify(heroBuildState)); } catch(e){} }
+        function hbSave(){ try { localStorage.setItem('7k_hero_build', JSON.stringify(heroBuildState)); } catch(e){} hbvOnBuildSaved(); }
 
         // สเตตัสฮีโร่ตามระดับดาว: base = 6 ดาวเหลือง + บลูสตาร์ (growthConfig) + เรดสตาร์ + พาสซีฟสกิล (สูตรเดียวกับหน้า detail)
         /** base stat บริสุทธิ์ของฮีโร่ (ไม่มีดาว/พาสซีฟ/อุปกรณ์) — ตอนปลุกพลังใช้ค่า Awakening ถ้ากรอกไว้ */
@@ -26667,6 +27004,14 @@
             document.getElementById('hb-share-publish').textContent = pub ? '🌍 เผยแพร่เป็นบิ้วใหม่' : '🌍 เผยแพร่บิ้ว';
             if (canEdit) nameIn.value = pub.name || '';
             if (!nameIn.value.trim()) { const h = heroesDB.find(x=>String(x.id)===String(heroBuildState.heroId)); nameIn.value = h ? ('บิ้ว ' + h.name) : ''; }
+            // 🔨 หน้าสาธารณะ (ไม่ login) — เผยแพร่ขึ้น server ไม่ได้ เหลือแชร์ลิงก์/โค้ด
+            if (isPublicView) {
+                document.getElementById('hb-share-title').textContent = '🔗 แชร์บิ้ว';
+                document.getElementById('hb-share-hint').textContent = 'กด 🔗 คัดลอกลิงก์ ส่งให้เพื่อนเปิดดูได้เลย (ไม่ต้อง login) หรือ 📋 คัดลอกโค้ดไปวางเอง';
+                ['hb-share-name-wrap', 'hb-share-publish', 'hb-share-update', 'hb-share-delete', 'hb-share-editing'].forEach(id => document.getElementById(id).classList.add('hidden'));
+                hbShowShare();
+                return;
+            }
             hbShowShare();
             setTimeout(() => nameIn.focus(), 50);
         }
@@ -26691,14 +27036,10 @@
             alert('📋 คัดลอกโค้ดแล้ว');
         }
         // 🔗 คัดลอกเป็น "ลิงก์" (...?build=CODE) — เพื่อนกดลิงก์เดียวเห็นบิ้วเลย ไม่ต้อง copy โค้ด
-        function hbBuildShareLink(code){
-            try { const u = new URL(window.location.href); u.hash=''; u.searchParams.set('build', code); return u.toString(); }
-            catch(e){ return window.location.origin + window.location.pathname + '?build=' + encodeURIComponent(code); }
-        }
         function hbCopyShareLink(){
             const code = (document.getElementById('hb-share-code').value || '').trim();
             if (!code) { alert('ยังไม่มีโค้ดบิ้ว — เลือกตัวละครก่อน'); return; }
-            const url = hbBuildShareLink(code);
+            const url = hbPublicBuildLink(code); // หน้าบิ้วสาธารณะ — คนรับไม่ต้อง login
             const ta = document.getElementById('hb-share-code');
             const prev = ta.value; ta.value = url; ta.select();
             try { navigator.clipboard.writeText(url); } catch(e) { try { document.execCommand('copy'); } catch(e2){} }
@@ -26732,8 +27073,11 @@
             };
         }
         function hbApplyShareCode(){
-            const code = (document.getElementById('hb-share-code').value || '').trim();
+            let code = (document.getElementById('hb-share-code').value || '').trim();
             if (!code) { alert('กรุณาวางโค้ดบิ้วก่อน'); return; }
+            // วางทั้งลิงก์มาก็ได้ — ดึงโค้ดจาก b= / build=
+            const inLink = code.match(/[?&](?:b|build)=([^&#\s]+)/);
+            if (inLink) { try { code = decodeURIComponent(inLink[1]); } catch (e) { code = inLink[1]; } }
             const res = hbDecodeBuild(code);
             if (!res || !res.ok) {
                 alert(res && res.reason === 'corrupt'
@@ -26826,7 +27170,14 @@
         function hbRenderFab(){
             const fab = document.getElementById('hb-fab'); if (!fab) return;
             const b = 'rounded-full text-white shadow-xl flex items-center justify-center transition hover:scale-110';
-            if (heroBuildMode === 'editor') {
+            if (heroBuildMode === 'editor' && isPublicView) {
+                // 🔨 ลองสร้างบิ้ว (ไม่ login) — ไม่มีเผยแพร่/รายการบิ้วในแอป · แชร์เป็นลิงก์/โค้ดได้
+                fab.innerHTML =
+                    `<button onclick="hbvCloseSandbox()" title="ปิดหน้าสร้างบิ้ว" class="w-12 h-12 text-xl ${b} bg-gray-700 hover:bg-gray-600">✕</button>
+                     <button onclick="hbSaveBuild()" title="แชร์ลิงก์ / คัดลอกโค้ด" class="w-12 h-12 text-xl ${b} bg-emerald-600 hover:bg-emerald-500">🔗</button>
+                     <button onclick="hbLoadBuild()" title="Load (วางโค้ด)" class="w-12 h-12 text-xl ${b} bg-blue-600 hover:bg-blue-500">📥</button>
+                     <button onclick="resetHeroBuild()" title="ล้างทั้งหมด" class="w-12 h-12 text-xl ${b} bg-gray-700 hover:bg-gray-600">🗑️</button>`;
+            } else if (heroBuildMode === 'editor') {
                 fab.innerHTML =
                     `<button onclick="hbShowList()" title="กลับรายการบิ้ว" class="w-12 h-12 text-xl ${b} bg-gray-700 hover:bg-gray-600">📋</button>
                      <button onclick="hbSaveBuild()" title="Save / เผยแพร่บิ้ว" class="w-12 h-12 text-xl ${b} bg-emerald-600 hover:bg-emerald-500">💾</button>
