@@ -14266,7 +14266,7 @@
             const awk = !!d.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX;
             return `<div class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center p-3 overflow-y-auto" onclick="if(event.target===this)hbvClose()">
                 <div class="bg-[#0b0f17] border border-gray-700 rounded-2xl w-full max-w-7xl shadow-2xl my-4">
-                    <div class="flex items-center gap-3 p-4 border-b border-gray-800">
+                    <div class="flex flex-wrap items-center gap-3 p-4 border-b border-gray-800">
                         <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0">${hero ? `<img src="${awk ? hero.img2 : hero.img}" class="w-full h-full object-cover">` : ''}</div>
                         <div class="min-w-0 flex-1">
                             <div class="text-lg font-black text-white truncate">${ccEsc(b.name || 'บิ้วไม่มีชื่อ')}</div>
@@ -14278,6 +14278,7 @@
                                 ${hero && hero.attackType ? `<span class="text-[11px] font-bold ${hero.attackType === 'magic' ? 'text-purple-300' : 'text-orange-300'}">${hero.attackType === 'magic' ? '🔮 โจมตีเวท' : '⚔️ โจมตีกายภาพ'}</span>` : ''}
                             </div>
                         </div>
+                        ${hbvSkillIcons(hero, d)}
                         <button type="button" onclick="hbvEditCopy(${b === hbvShared ? -1 : hbvOpenId})" title="คัดลอกบิ้วนี้ไปปรับต่อในหน้าสร้างบิ้วของคุณ (เก็บในเครื่องนี้)"
                             class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️<span class="hidden sm:inline"> เอาไปปรับต่อ</span></button>
                         <button type="button" onclick="hbvClose()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
@@ -14287,30 +14288,47 @@
             </div>`;
         }
 
-        /** ⚡ การ์ดสกิล (หน้าแชร์บิ้ว) — ไอคอนตามสถานะปลุกพลัง + คูลดาวน์ · กดเพื่อดูคำอธิบาย */
-        function hbvSkillsCard(hero, d) {
+        /** ⚡ ไอคอนสกิลที่หัวป๊อปอัปบิ้ว — รูปตามสถานะปลุกพลัง · กดเพื่อดูคำอธิบาย */
+        const HBV_SKILL_LIST = [['n', 'โจมตีพื้นฐาน'], ['s1', 'สกิล 1'], ['s2', 'สกิล 2'], ['p', 'พาสซีฟ'], ['aw', 'ปลุกพลัง']];
+        function hbvSkillIcons(hero, d) {
             if (!hero) return '';
             const awk = !!d.awakened;
-            const list = [['n','โจมตีพื้นฐาน'],['s1','สกิล 1'],['s2','สกิล 2'],['p','พาสซีฟ']].concat(awk ? [['aw','ปลุกพลัง']] : []);
-            const rows = list.map(([k, label]) => {
-                const c = (hero.skillData && hero.skillData[k]) || {};
-                const txt = String((hero.skills && hero.skills[k]) || '').trim();
+            const cells = HBV_SKILL_LIST.filter(([k]) => k !== 'aw' || awk).map(([k, label]) => {
                 const img = skillIconOf(hero, k, awk);
-                const tag = k === 'aw' ? (c.awType === 'passive' ? ' <span class="text-[9px] text-sky-300">🛡️ พาสซีฟ</span>' : ' <span class="text-[9px] text-purple-300">⚡ กดใช้ 1 ครั้ง</span>') : '';
-                const cd = c.cooldown ? ` <span class="text-[10px] text-amber-300 font-mono">⏱ ${c.cooldown}</span>` : '';
-                return `<details class="group bg-black/20 border border-gray-800 rounded-lg">
-                    <summary class="flex items-center gap-2 p-1.5 cursor-pointer list-none select-none">
-                        <span class="w-9 h-9 rounded-md bg-black border border-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">${img ? `<img src="${img}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : `<span class="text-[9px] text-gray-500 font-bold">${k.toUpperCase()}</span>`}</span>
-                        <span class="min-w-0 flex-1 text-xs font-bold text-gray-200 truncate">${label}${tag}${cd}</span>
-                        <span class="text-gray-500 text-[10px] group-open:rotate-180 transition">▼</span>
-                    </summary>
-                    <div class="skill-display px-2.5 pb-2.5 text-[11px] leading-relaxed text-gray-200">${txt || '<span class="text-gray-600 italic">ยังไม่มีคำอธิบายสกิล</span>'}</div>
-                </details>`;
+                const cd = hero.skillData && hero.skillData[k] && hero.skillData[k].cooldown;
+                return `<button type="button" onclick="hbvShowSkill('${String(hero.id).replace(/'/g, "\\'")}','${k}',${awk ? 1 : 0})" title="${label}${cd ? ' · ⏱ ' + cd : ''} — กดเพื่อดูคำอธิบาย"
+                    class="relative w-11 h-11 rounded-lg border-2 ${k === 'aw' ? 'border-purple-500' : 'border-gray-600'} hover:border-emerald-400 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center transition">
+                    ${img ? `<img src="${img}" class="w-full h-full object-cover pointer-events-none" onerror="this.style.visibility='hidden'">` : `<span class="text-[9px] text-gray-400 font-bold">${k.toUpperCase()}</span>`}
+                    ${cd ? `<span class="absolute bottom-0 inset-x-0 bg-black/70 text-[8px] text-amber-300 font-mono leading-tight text-center">⏱${cd}</span>` : ''}
+                </button>`;
             }).join('');
-            return `<div class="bg-[#111827] border border-purple-800/40 rounded-2xl p-4">
-                <div class="text-sm font-black text-purple-300 mb-2">⚡ สกิล <span class="text-[10px] text-gray-500 font-normal">(อัปสกิลแล้ว · กดเพื่อดูคำอธิบาย)</span></div>
-                <div class="space-y-1.5">${rows}</div>
+            return `<div class="flex items-center gap-1.5 order-last sm:order-none w-full sm:w-auto justify-center sm:justify-end">${cells}</div>`;
+        }
+        /** หน้าต่างคำอธิบายสกิล (เปิดทับป๊อปอัปบิ้ว) */
+        function hbvShowSkill(heroId, k, awk) {
+            const hero = heroesDB.find(x => String(x.id) === String(heroId)); if (!hero) return;
+            const label = (HBV_SKILL_LIST.find(x => x[0] === k) || [k, k])[1];
+            const c = (hero.skillData && hero.skillData[k]) || {};
+            const txt = String((hero.skills && hero.skills[k]) || '').trim();
+            const img = skillIconOf(hero, k, !!awk);
+            const tag = k === 'aw' ? (c.awType === 'passive' ? '<span class="text-[10px] text-sky-300 font-bold">🛡️ พาสซีฟปลุกพลัง</span>' : '<span class="text-[10px] text-purple-300 font-bold">⚡ กดใช้ 1 ครั้งต่อการต่อสู้</span>') : '';
+            let m = document.getElementById('hbv-skill-dlg');
+            if (!m) { m = document.createElement('div'); m.id = 'hbv-skill-dlg'; document.body.appendChild(m); }
+            m.className = 'fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4';
+            m.onclick = ev => { if (ev.target === m) m.style.display = 'none'; };
+            m.innerHTML = `<div class="bg-[#111827] border border-purple-700/50 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
+                <div class="flex items-center gap-3 p-4 border-b border-gray-800">
+                    <div class="w-14 h-14 rounded-xl border-2 border-gray-600 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">${img ? `<img src="${img}" class="w-full h-full object-cover">` : `<span class="text-xs text-gray-500 font-bold">${k.toUpperCase()}</span>`}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs text-gray-400">${ccEsc(hero.name)}</div>
+                        <div class="text-base font-black text-white">${label}${c.cooldown ? ` <span class="text-xs text-amber-300 font-mono">⏱ ${c.cooldown}</span>` : ''}</div>
+                        ${tag}
+                    </div>
+                    <button type="button" onclick="document.getElementById('hbv-skill-dlg').style.display='none'" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
+                </div>
+                <div class="skill-display p-4 overflow-y-auto custom-scroll text-sm">${txt || '<span class="text-gray-500 italic">ยังไม่มีคำอธิบายสกิล</span>'}</div>
             </div>`;
+            m.style.display = 'flex';
         }
         /** เนื้อหาบิ้ว (ดูอย่างเดียว) 3 คอลัมน์: ซ้าย = รูปตัวละคร + ดาว + สเตตัส · กลาง = ของรัก · ขวา = เซต + อุปกรณ์ 4 ชิ้น */
         function hbvBodyHTML(d) {
@@ -14397,7 +14415,7 @@
             }).join('');
 
             return `<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}${hbvSkillsCard(hero, d)}</div>
+                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}</div>
                 <div class="lg:col-span-4 flex flex-col gap-4">${relicCard}${extrasCard}</div>
                 <div class="lg:col-span-5 flex flex-col gap-4">${setCard}<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${pieces}</div></div>
             </div>`;
