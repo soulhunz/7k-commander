@@ -12416,7 +12416,8 @@
 
             // 4. [NEW] บวกค่าจาก "Passive Skill" (Auto-Detect)
             if (currentDetailHero.skillData && currentDetailHero.skillData.p && currentDetailHero.skillData.p.effects) {
-                currentDetailHero.skillData.p.effects.forEach(eff => {
+                const _pe = currentDetailHero.skillData.p.effects;
+                _pe.filter(e => !hbScaleSpec(e)).concat(_pe.filter(e => hbScaleSpec(e))).forEach(eff => { // แบบ "ทุก Y ของสเตต" คิดท้ายสุด
                     // เลือกเฉพาะ Type = Stat
                     if (hbIsPassiveStatEff(eff)) {
                         // 4.1 หาค่าที่จะใช้ตามระดับดาว (Base/Green/C2/C6) · แบบ "ทุก Y ของสเตต" คิดจากสเตตตอนนี้
@@ -14278,7 +14279,7 @@
                             </div>
                         </div>
                         <button type="button" onclick="hbvEditCopy(${b === hbvShared ? -1 : hbvOpenId})" title="คัดลอกบิ้วนี้ไปปรับต่อในหน้าสร้างบิ้วของคุณ (เก็บในเครื่องนี้)"
-                            class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️ เอาไปปรับต่อ</button>
+                            class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️<span class="hidden sm:inline"> เอาไปปรับต่อ</span></button>
                         <button type="button" onclick="hbvClose()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
                     </div>
                     <div class="p-3 md:p-4">${hbvBodyHTML(d)}</div>
@@ -14286,6 +14287,31 @@
             </div>`;
         }
 
+        /** ⚡ การ์ดสกิล (หน้าแชร์บิ้ว) — ไอคอนตามสถานะปลุกพลัง + คูลดาวน์ · กดเพื่อดูคำอธิบาย */
+        function hbvSkillsCard(hero, d) {
+            if (!hero) return '';
+            const awk = !!d.awakened;
+            const list = [['n','โจมตีพื้นฐาน'],['s1','สกิล 1'],['s2','สกิล 2'],['p','พาสซีฟ']].concat(awk ? [['aw','ปลุกพลัง']] : []);
+            const rows = list.map(([k, label]) => {
+                const c = (hero.skillData && hero.skillData[k]) || {};
+                const txt = String((hero.skills && hero.skills[k]) || '').trim();
+                const img = skillIconOf(hero, k, awk);
+                const tag = k === 'aw' ? (c.awType === 'passive' ? ' <span class="text-[9px] text-sky-300">🛡️ พาสซีฟ</span>' : ' <span class="text-[9px] text-purple-300">⚡ กดใช้ 1 ครั้ง</span>') : '';
+                const cd = c.cooldown ? ` <span class="text-[10px] text-amber-300 font-mono">⏱ ${c.cooldown}</span>` : '';
+                return `<details class="group bg-black/20 border border-gray-800 rounded-lg">
+                    <summary class="flex items-center gap-2 p-1.5 cursor-pointer list-none select-none">
+                        <span class="w-9 h-9 rounded-md bg-black border border-gray-700 overflow-hidden flex-shrink-0 flex items-center justify-center">${img ? `<img src="${img}" class="w-full h-full object-cover" onerror="this.style.visibility='hidden'">` : `<span class="text-[9px] text-gray-500 font-bold">${k.toUpperCase()}</span>`}</span>
+                        <span class="min-w-0 flex-1 text-xs font-bold text-gray-200 truncate">${label}${tag}${cd}</span>
+                        <span class="text-gray-500 text-[10px] group-open:rotate-180 transition">▼</span>
+                    </summary>
+                    <div class="skill-display px-2.5 pb-2.5 text-[11px] leading-relaxed text-gray-200">${txt || '<span class="text-gray-600 italic">ยังไม่มีคำอธิบายสกิล</span>'}</div>
+                </details>`;
+            }).join('');
+            return `<div class="bg-[#111827] border border-purple-800/40 rounded-2xl p-4">
+                <div class="text-sm font-black text-purple-300 mb-2">⚡ สกิล <span class="text-[10px] text-gray-500 font-normal">(อัปสกิลแล้ว · กดเพื่อดูคำอธิบาย)</span></div>
+                <div class="space-y-1.5">${rows}</div>
+            </div>`;
+        }
         /** เนื้อหาบิ้ว (ดูอย่างเดียว) 3 คอลัมน์: ซ้าย = รูปตัวละคร + ดาว + สเตตัส · กลาง = ของรัก · ขวา = เซต + อุปกรณ์ 4 ชิ้น */
         function hbvBodyHTML(d) {
             const c = hbComputeFrom(d), hero = c.hero;
@@ -14371,7 +14397,7 @@
             }).join('');
 
             return `<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}</div>
+                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}${hbvSkillsCard(hero, d)}</div>
                 <div class="lg:col-span-4 flex flex-col gap-4">${relicCard}${extrasCard}</div>
                 <div class="lg:col-span-5 flex flex-col gap-4">${setCard}<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${pieces}</div></div>
             </div>`;
@@ -23759,6 +23785,7 @@
             if (!eff) return false;
             if (eff.type === 'stat') return true;
             if (eff.type !== 'buff') return false;
+            if (['on_hit_dealt','on_hit_taken','on_removed','on_death','on_revive','turn_start','turn_end','on_crit','on_kill'].includes(eff.trigger)) return false; // ได้ตอนเกิดเหตุการณ์
             const always = eff.trigger === 'passive' || eff.durType === 'perm';
             const onSelf = !eff.target || eff.target === 'self' || eff.target === 'ally_all';
             return always && onSelf && !String(eff.cond || '').trim();
@@ -23772,11 +23799,10 @@
         /** ค่าที่ใช้ตามระดับ (Base → อัปสกิล → C2 → C6) · อัตราติด 0 ทุกระดับ = ยังไม่ได้ผลนี้ */
         function hbPassiveEffVal(eff, up, blue) {
             let v = parseFloat(eff.val) || 0, r = eff.rate === undefined ? 100 : (parseFloat(eff.rate) || 0);
-            if (up) {
-                if (eff.green_val) v = eff.green_val; if (eff.green_rate) r = eff.green_rate;
-                if (blue >= 2) { if (eff.c2_val) v = eff.c2_val; if (eff.c2_rate) r = eff.c2_rate; }
-                if (blue >= 6) { if (eff.c6_val) v = eff.c6_val; if (eff.c6_rate) r = eff.c6_rate; }
-            }
+            // ผลอัปเกรดสกิล = ต้องติ๊กอัปสกิล · ผลข้ามขีดจำกัด (C2/C6) = มาจากดาว ไม่เกี่ยวกับอัปสกิล
+            if (up) { if (eff.green_val) v = eff.green_val; if (eff.green_rate) r = eff.green_rate; }
+            if (blue >= 2) { if (eff.c2_val) v = eff.c2_val; if (eff.c2_rate) r = eff.c2_rate; }
+            if (blue >= 6) { if (eff.c6_val) v = eff.c6_val; if (eff.c6_rate) r = eff.c6_rate; }
             if (eff.type === 'buff' && !(r > 0)) return 0;
             return parseFloat(v) || 0;
         }
@@ -24238,22 +24264,25 @@
                 if (percentStats.includes(conf.stat)) out[conf.stat] = (out[conf.stat] || 0) + val;
                 else out[conf.stat] = (out[conf.stat] || 0) + (parseFloat(base[conf.stat]) || 0) * (val / 100);
             });
-            // พาสซีฟที่เป็น stat (เดาสเตตจากชื่อ — ตรรกะเดียวกับ hbHeroStats)
+            // พาสซีฟที่เพิ่มสเตตถาวร — ตัวช่วยชุดเดียวกับหน้าบิ้ว/รายละเอียด (hbIsPassiveStatEff ฯลฯ)
             const pe = hero && hero.skillData && hero.skillData.p && hero.skillData.p.effects;
             if (Array.isArray(pe)) {
+                const up = !!cfg.skillUp;
                 pe.forEach(eff => {
-                    if (!eff || eff.type !== 'stat') return;
-                    let v = eff.val || 0;
-                    if (cfg.skillUp) {
-                        if (eff.green_val) v = eff.green_val;
-                        if (blue >= 2 && eff.c2_val) v = eff.c2_val;
-                        if (blue >= 6 && eff.c6_val) v = eff.c6_val;
-                    }
-                    if (!(v > 0)) return;
-                    const tk = simStatKeyFromName(eff.name);
-                    if (!tk) return;
+                    if (!hbIsPassiveStatEff(eff) || hbScaleSpec(eff)) return;
+                    const v = hbPassiveEffVal(eff, up, blue);
+                    const tk = hbPassiveEffKey(eff);
+                    if (!(v > 0) || !tk) return;
                     if (percentStats.includes(tk)) out[tk] = (out[tk] || 0) + v;
                     else out[tk] = (out[tk] || 0) + (parseFloat(base[tk]) || 0) * (v / 100);
+                });
+                // แบบ "+X ทุก Y ของสเตต" — คิดจากสเตตที่ได้ด้านบน
+                const snap = Object.assign({}, out);
+                pe.forEach(eff => {
+                    if (!hbIsPassiveStatEff(eff) || !hbScaleSpec(eff)) return;
+                    const tk = hbPassiveEffKey(eff);
+                    const amt = hbScaledPassiveAmt(eff, snap, up, blue);
+                    if (tk && amt) out[tk] = (out[tk] || 0) + amt;
                 });
             }
             return out;
@@ -24277,7 +24306,7 @@
             if (/crit\s*d(?:a?m|mg)|critdmg|คริ.*ดาเมจ|ดาเมจ.*คริ|ความแรงคริ|แรงคริ|พลังคริ/.test(name)) return 'critDmg';
             if (name.includes('crit') || name.includes('คริ')) return 'critRate';
             if (name.includes('weak') || name.includes('จุดอ่อน')) return 'weakness';
-            if (name.includes('acc') || name.includes('แม่น') || name.includes('เข้าเป้า') || name.includes('ปรับใช้ผล')) return 'acc';
+            if (name.includes('acc') || name.includes('แม่น') || name.includes('เข้าเป้า') || /ปรับใช้ผลs*$/.test(name)) return 'acc'; // "ปรับใช้ผลไฟช็อต" = เฉพาะสถานะ ไม่นับ
             if (/ลดดาเมจ|ลดความเสียหาย|ลดทอน|dmgred|damage reduc/.test(name)) return 'dmgRed';
             if (name.includes('resist') || name.includes('ต้าน')) return 'resist';
             return null;
@@ -24304,11 +24333,9 @@
         function simPickVal(eff, field, cfg) {
             const blue = parseInt(cfg.blueStar) || 0;
             let v = eff[field] || 0;
-            if (cfg.skillUp) {
-                if (eff['green_' + field]) v = eff['green_' + field];
-                if (blue >= 2 && eff['c2_' + field]) v = eff['c2_' + field];
-                if (blue >= 6 && eff['c6_' + field]) v = eff['c6_' + field];
-            }
+            if (cfg.skillUp && eff['green_' + field]) v = eff['green_' + field];   // ผลอัปเกรดสกิล
+            if (blue >= 2 && eff['c2_' + field]) v = eff['c2_' + field];           // ผลข้ามขีดจำกัด — มาจากดาว
+            if (blue >= 6 && eff['c6_' + field]) v = eff['c6_' + field];
             return v || 0;
         }
 
@@ -24453,8 +24480,8 @@
                     if (ls > u.lifesteal) u.lifesteal = ls;
                     if (SIM_REACTIVE_TRIGGERS.indexOf(String(eff.trigger || '')) >= 0) {
                         simRegisterHook(u, eff, skill, 9999, null);
-                    } else if (eff.type === 'buff' && u.fromBuild && key === 'p' && hbIsPassiveStatEff(eff)) {
-                        // สเตตัสจากบิ้วรวมพาสซีฟถาวรแล้ว (hbComputeFrom) — ไม่ซ้อนซ้ำ
+                    } else if (eff.type === 'buff' && key === 'p' && hbIsPassiveStatEff(eff)) {
+                        // สเตตพาสซีฟถาวรรวมในสเตตฐานแล้ว (hbComputeFrom / simHeroStats) — ไม่ซ้อนซ้ำ
                     } else if (eff.type === 'buff') {
                         // บัฟที่เขียนบนพาสซีฟ = ติดตั้งแต่เริ่มและอยู่ยาว
                         const val = simPickVal(eff, 'val', cfg) || simLibDefVal(eff) || 10;
@@ -26453,7 +26480,7 @@
         function hbComputeFrom(build){
             const b = build || heroBuildState;
             const hero = heroesDB.find(h => String(h.id) === String(b.heroId)) || null;
-            const statOpts = { awakened: !!b.awakened, skillUpP: !!(b.skillUp && b.skillUp.p) };
+            const statOpts = { awakened: !!b.awakened, skillUpP: true }; // ⬆️ คิดแบบอัปสกิลแล้วเสมอ (ไม่ต้องติ๊ก)
             // 📐 แยกส่วนกันชัดๆ — ทุกโบนัสคิดจาก "base บริสุทธิ์" แล้วค่อยบวกกัน ไม่คูณทับกัน
             //    เดิม: (base + ดาว + พาสซีฟ) × (1 + %อุปกรณ์) → โบนัสดาวโดน % อุปกรณ์คูณซ้ำ ค่าพองเกินจริง
             //    ตอนนี้: base + ดาว(C) + พาสซีฟ + base×%อุปกรณ์ + flat
@@ -26666,9 +26693,9 @@
                 const cells = sk.map(([k,label]) => {
                     if (k === 'aw' && !heroBuildState.awakened) return '';
                     const img = skillIconOf(hero, k, heroBuildState.awakened);
-                    const up = !!(heroBuildState.skillUp && heroBuildState.skillUp[k]);
+                    const up = true; // ⬆️ คิดแบบอัปสกิลแล้วเสมอ
                     return `<div class="flex flex-col items-center gap-1">
-                        <div onclick="hbToggleSkillUp('${k}')" onmouseenter="hbTip(event,'${k}')" onmousemove="hbTipMove(event)" onmouseleave="hbTipHide()" class="w-full aspect-square rounded-lg border-2 ${up?'border-green-500':'border-gray-600'} hover:border-purple-400 bg-black overflow-hidden flex items-center justify-center transition cursor-pointer">
+                        <div onmouseenter="hbTip(event,'${k}')" onmousemove="hbTipMove(event)" onmouseleave="hbTipHide()" class="w-full aspect-square rounded-lg border-2 ${up?'border-green-500':'border-gray-600'} hover:border-purple-400 bg-black overflow-hidden flex items-center justify-center transition cursor-help">
                             ${img ? `<img src="${img}" class="w-full h-full object-cover pointer-events-none" onerror="this.style.visibility='hidden'">` : `<span class="text-[9px] text-gray-500 font-bold text-center leading-tight px-0.5">${label}</span>`}
                         </div>
                         <span class="text-[9px] ${up?'text-green-400 font-bold':'text-gray-400'} text-center leading-tight">${label}</span>
@@ -26676,7 +26703,7 @@
                 }).join('');
                 skillsPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4">
                     <div class="flex items-center justify-between mb-3">
-                        <div class="text-sm font-black text-purple-300">⚡ สกิล <span class="hb-edit-only text-[10px] text-gray-500 font-normal">(กดรูป = อัพ · ชี้ค้าง = ดูคำอธิบาย)</span></div>
+                        <div class="text-sm font-black text-purple-300">⚡ สกิล <span class="hb-edit-only text-[10px] text-gray-500 font-normal">(คิดแบบอัปสกิลแล้ว · ชี้ค้าง = ดูคำอธิบาย)</span></div>
                         <button onclick="hbOpenSkillDetail()" class="hb-edit-only text-[10px] text-blue-400 hover:underline">ดูรายละเอียด</button>
                     </div>
                     <div class="grid grid-cols-5 gap-2">${cells}</div>
@@ -26866,7 +26893,7 @@
         function hbTip(e, k){
             const tip = document.getElementById('hb-tooltip'); if (!tip) return;
             const hero = heroesDB.find(h => String(h.id) === String(heroBuildState.heroId)); if (!hero) return;
-            const up = !!(heroBuildState.skillUp && heroBuildState.skillUp[k]);
+            const up = true; // คิดแบบอัปสกิลแล้วเสมอ
             const raw = (hero.skills && hero.skills[k]) ? hero.skills[k] : '';
             const desc = String(raw).trim() ? raw : '<span class="text-gray-500 italic">ไม่มีคำอธิบาย</span>';
             tip.innerHTML =
@@ -26875,7 +26902,7 @@
                     ${up ? '<span class="text-[9px] bg-green-600/30 text-green-300 border border-green-600/50 px-1.5 py-0.5 rounded-full font-bold">▲ อัพแล้ว</span>' : '<span class="text-[9px] bg-gray-700/50 text-gray-400 px-1.5 py-0.5 rounded-full">ยังไม่อัพ</span>'}
                 </div>
                 <div class="text-[11px] text-gray-200 leading-relaxed whitespace-pre-line break-words">${desc}</div>
-                <div class="text-[9px] text-purple-400/70 mt-2 pt-1.5 border-t border-gray-700">👆 กดรูปเพื่อ${up ? 'ปลดอัพ' : 'อัพสกิล'}</div>`;
+`;
             tip.classList.remove('hidden');
             hbTipMove(e);
         }
