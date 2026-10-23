@@ -24212,7 +24212,10 @@
 
         /** เป้าที่ตีได้ตอนนี้ — แถวหน้าก่อน ถ้าแถวหน้าล้มหมดค่อยถึงแถวหลัง */
         function simEligibleTargets(foes) {
-            const live = (Array.isArray(foes) ? foes : []).filter(u => u && u.hp > 0);
+            let live = (Array.isArray(foes) ? foes : []).filter(u => u && u.hp > 0);
+            // 👻 พรางตา — ไม่ตกเป็นเป้า (ถ้ายังมีตัวอื่นให้ตี)
+            const seen = live.filter(u => !(u.statuses || []).some(s => s.stealth));
+            if (seen.length) live = seen;
             const cfg = simBattleCtx && simBattleCtx.cfg;
             if (!cfg || cfg.formationTargeting === false) return live;
             const front = live.filter(u => u.row !== 'back');
@@ -24347,15 +24350,21 @@
             const sd = (hero && hero.skillData) || {};
             const re = /คืนชีพ|ฟื้นคืน|ชุบชีวิต|revive|resurrect|rebirth/i;
             let found = null;
-            Object.keys(sd).forEach(key => {
+            ['p'].concat(cfg && cfg.awakened && simAwType(hero) === 'passive' ? ['aw'] : []).forEach(key => {
                 const effs = sd[key] && sd[key].effects;
                 if (!Array.isArray(effs)) return;
                 effs.forEach(eff => {
-                    if (!eff || found) return;
-                    if (eff.type !== 'special') return;
+                    if (!eff || found || eff.type !== 'special') return;
+                    if (!simEffUnlocked(eff, cfg)) return;
+                    if (eff.target && eff.target !== 'self') return;          // ปลุกเพื่อน ไม่ใช่คืนชีพตัวเอง
+                    const m = simMechOf(eff);
+                    if ((m === 'immortal' || m === 'resolve') && eff.trigger === 'on_death') {
+                        found = { kind: m, turns: simPickVal(eff, 'turn', cfg) || (m === 'resolve' ? 8 : 2), left: 1 };
+                        return;
+                    }
                     if (!re.test(String(eff.name || ''))) return;
                     const pct = simPickVal(eff, 'val', cfg) || 30;
-                    found = { pct: Math.max(1, Math.min(100, pct)), left: 1 };
+                    found = { kind: 'pct', pct: Math.max(1, Math.min(100, pct)), left: 1 };
                 });
             });
             return found;
@@ -24476,8 +24485,22 @@
                 const skill = { key, label: label[key] || key, hits: 1, targets: 1, effects: effs };
                 effs.forEach(eff => {
                     if (!eff) return;
+                    if (!simEffUnlocked(eff, cfg)) return;   // 🔓 ยังไม่ถึงระดับดาว/อัปสกิล
                     const ls = parseFloat(eff.lifesteal) || 0;
                     if (ls > u.lifesteal) u.lifesteal = ls;
+                    // 🧠 ค่าติดตัว
+                    const mech = simMechOf(eff), always = !eff.trigger || eff.trigger === 'passive';
+                    if (mech === 'bless' && always) { u.blessPct = simPickVal(eff, 'val', cfg) || 25; return; }
+                    if (mech === 'authority' && always) { u.authority = 1; return; }
+                    if (mech === 'flank' && always) { u.flankRate = simPickVal(eff, 'rate', cfg) || 0; return; }
+                    if (mech === 'cover' && always) { u.coverRate = simPickVal(eff, 'rate', cfg) || 0; return; }
+                    if (mech === 'ignore_def' && always) { u.ignoreDefAll = Math.max(u.ignoreDefAll || 0, simPickVal(eff, 'val', cfg) || 40); return; }
+                    if (simTags(eff.tags).indexOf('pierce') >= 0 && always) u.pierceAll = true;
+                    // ⏩ ผลตอนเริ่มต่อสู้ (ทันทีที่ร่าย / ความเสียหายไม่มีผลตั้งแต่เริ่ม) — รันใน simTeamBattle หลังจัดทีม
+                    if (eff.trigger === 'on_apply' || (mech === 'dmg_immune' && always)) {
+                        (u.startEffects = u.startEffects || []).push({ eff, skill });
+                        return;
+                    }
                     if (SIM_REACTIVE_TRIGGERS.indexOf(String(eff.trigger || '')) >= 0) {
                         simRegisterHook(u, eff, skill, 9999, null);
                     } else if (eff.type === 'buff' && key === 'p' && hbIsPassiveStatEff(eff)) {
@@ -24487,8 +24510,9 @@
                         const val = simPickVal(eff, 'val', cfg) || simLibDefVal(eff) || 10;
                         u.statuses.push({
                             name: eff.name || 'บัฟพาสซีฟ', kind: 'buff', turns: 9999, val,
-                            stat: simStatKeyFromName(eff.name) || 'atk', born: -1,
-                            tags: simTags(eff.tags), immuneTags: simTags(eff.immuneTags), locked: !!eff.locked
+                            stat: eff.gainStat || (eff.valueType === 'pct_stat' && eff.scaleStat) || simStatKeyFromName(eff.name) || '', born: -1,
+                            tags: simTags(eff.tags), immuneTags: simTags(eff.immuneTags), locked: !!eff.locked,
+                            _effRef: eff.cond ? eff : null   // มีเงื่อนไขทีม — ตรวจอีกรอบหลังจัดทีม
                         });
                     } else if (eff.type === 'cc' && simTags(eff.immuneTags).length) {
                         // พาสซีฟกันสถานะ (เช่น ภูมิคุ้มกันควบคุม) — เก็บเป็นสถานะถาวรที่ทำหน้าที่กันติด
@@ -24601,6 +24625,11 @@
             st.tags = tags;
             st.immuneTags = simTags(eff && eff.immuneTags);
             st.locked = !!(eff && eff.locked); // 🔒 ไอคอนมีพื้นสี — ล้าง/ลดเทิร์นไม่ได้
+            const _m = simMechOf(eff || { name: st.name });
+            if (_m === 'dmg_immune') st.dmgImmune = true;     // 🛡️ ดาเมจไม่มีผล
+            if (_m === 'stealth') st.stealth = true;          // 👻 พรางตา — ไม่ตกเป็นเป้า
+            if (_m === 'taunt') st.taunt = true;              // 📢 ยั่วยุ — ศัตรูตีตัวนี้
+            if (_m === 'immortal') st.immortal = true;
             // ⏱️ ระยะเวลา: ตลอดเวลา = ไม่หมดเอง · ถูกโจมตี N ครั้ง = นับจากการโดนตี ไม่ใช่เทิร์น
             const dur = String((eff && eff.durType) || '');
             if (dur === 'perm') st.turns = 9999;
@@ -24670,6 +24699,9 @@
             simHookDepth++;
             try {
                 list.forEach(h => {
+                    if (!simEffUnlocked(h.eff, cfg) || !simCondOk(h.eff, u, null, extra)) return;   // ยังไม่ปลดล็อก / ไม่เข้าเงื่อนไขทีม — ไม่นับ ไม่ทำงาน
+                    const every = simEveryN(h.eff, when);
+                    if (every > 1) { h.count = (h.count || 0) + 1; if (h.count % every) return; }   // ทำงานทุก N ครั้ง
                     const pick = (extra && extra.target && extra.target.hp > 0) ? extra.target : (foes.length ? foes[0] : null);
                     const def = pick || u;
                     log.push(`   ⚡ ${u.name} · ${h.eff.name || h.eff.type} ทำงาน (${SIM_TRIGGER_LABELS[when] || when})`);
@@ -24686,16 +24718,199 @@
             return u.effectBook.find(x => String(x.eff.name || '').trim().toLowerCase() === key) || null;
         }
 
+        // =========================================================
+        // 🧠 กลไกพิเศษ — อ่านจากชื่อในคลัง (lib) / ชื่อเอฟเฟกต์
+        // =========================================================
+        function simMechOf(eff) {
+            if (!eff) return '';
+            // ชื่อในคลัง: จาก JSON (lib) หรือจากรหัสอ้างอิงคลัง (libId) ที่บันทึกในชีต
+            let lib = eff.lib || '';
+            if (!lib && eff.libId && Array.isArray(skillLibDB)) { const it = skillLibDB.find(x => String(x.id) === String(eff.libId)); if (it) lib = it.name || ''; }
+            const exact = String(lib || eff.name || '').trim();
+            const txt = (String(lib) + ' ' + String(eff.name || '')).trim();
+            if (eff.trigger === 'on_death' && (!eff.target || eff.target === 'self')) {   // คืนชีพตัวเองในสถานะ...
+                if (/อมตะ/.test(txt)) return 'immortal';
+                if (/เด็ดเดี่ยว/.test(txt)) return 'resolve';
+            }
+            const one = { 'พร': 'bless', 'อำนาจ': 'authority', 'ตีขนาบ': 'flank', 'กำบัง': 'cover', 'พรางตา': 'stealth', 'ยั่วยุ': 'taunt', 'อมตะ': 'immortal', 'เด็ดเดี่ยว': 'resolve' };
+            if (one[exact]) return one[exact];
+            if (/ปลุกพันธมิตร/.test(txt)) return 'ally_revive';
+            if (/แลกเปลี่ยน HP/.test(txt)) return 'swap_hp';
+            if (/เปลี่ยน HP/.test(txt)) return 'set_hp';
+            if (/รีเซตคูลดาวน์/.test(txt)) return 'cd_reset';
+            if (/ลดคูลดาวน์/.test(txt)) return 'cd_down';
+            if (/เพิ่มคูลดาวน์/.test(txt)) return 'cd_up';
+            if (/ทำงานต่อเนื่อง/.test(txt)) return 'recast';
+            if (/^ไม่สนป้องกัน/.test(exact)) return 'ignore_def';
+            if (/^ทะลุทะลวง/.test(exact)) return 'pierce';
+            if (/ความเสียหายทั้งหมดไม่มีผล|คุ้มกันความเสียหายทั้งหมด/.test(txt) || simTags(eff.tags).indexOf('dmg_immune') >= 0) return 'dmg_immune';
+            return '';
+        }
+        /** เอฟเฟกต์นี้ "ได้แล้ว" หรือยัง — อัตราฐาน 0 + มีค่าตอนอัปสกิล/C2/C6 = ยังไม่ปลดล็อกจนกว่าจะถึงระดับนั้น */
+        function simEffUnlocked(eff, cfg) {
+            if (!eff) return false;
+            const gated = String(eff.rate) === '0' && (parseFloat(eff.green_rate) || parseFloat(eff.c2_rate) || parseFloat(eff.c6_rate));
+            return !gated || simPickVal(eff, 'rate', cfg) > 0;
+        }
+        const SIM_CLASS_RE = { 'โจมตี': /โจมตี/, 'เวท': /เวท/, 'ป้องกัน': /ป้องกัน/, 'สนับสนุน': /สนับสนุน/, 'สมดุล': /สมดุล/ };
+        function simUnitIsClass(u, cls) { return !!(u && SIM_CLASS_RE[cls] && SIM_CLASS_RE[cls].test(String(u.type || ''))); }
+        /**
+         * เงื่อนไขในช่อง "เงื่อนไข" ที่อ่านแล้วตัดสินได้ — ไม่รู้จัก = ถือว่าผ่าน
+         *   target = null → เช็คเฉพาะเงื่อนไขทีม/ตัวเอง · มี target → เช็คเงื่อนไขของเป้าด้วย
+         */
+        function simCondOk(eff, att, target, ex) {
+            const c = String((eff && eff.cond) || '');
+            if (!c) return true;
+            const team = (att && att._team) || [att];
+            // ทีมมีสาย X อย่างน้อย N คน · "สายป้องกัน และสายสนับสนุน อย่างละ 1 คน"
+            const each = /อย่างละ\s*(\d+)\s*คน/.exec(c);
+            if (each) {
+                const need = +each[1];
+                const classes = (c.match(/สาย(โจมตี|เวท|ป้องกัน|สนับสนุน|สมดุล)/g) || []).map(s => s.replace('สาย', ''));
+                if (!classes.every(cl => team.filter(u => simUnitIsClass(u, cl)).length >= need)) return false;
+            } else {
+                const m = /(?:ทีม|จัดทีม)[^·]*?สาย(โจมตี|เวท|ป้องกัน|สนับสนุน|สมดุล)\s*(\d+)\s*คน/.exec(c) || /^สาย(โจมตี|เวท|ป้องกัน|สนับสนุน|สมดุล)\s*(\d+)\s*คน/.exec(c)
+                    || /(?:อัศวิน)?สาย(เวท|โจมตี|ป้องกัน|สนับสนุน|สมดุล)\s*(\d+)\s*คนขึ้นไป/.exec(c);
+                if (m && team.filter(u => simUnitIsClass(u, m[1])).length < +m[2]) return false;
+            }
+            // HP ของตัวเอง
+            const hpSelf = /HP\s*(?:ตัวเอง|ของตนเอง)\s*(?:น้อยกว่า|ต่ำกว่า)\s*(\d+)%/.exec(c);
+            if (hpSelf && att && (att.hp / att.maxHp) * 100 >= +hpSelf[1]) return false;
+            // ตีขนาบ — เกิดเฉพาะตอนตีขนาบ
+            if (/ตีขนาบทำงาน/.test(c) && !(ex && ex.flank)) return false;
+            if (!target) return true;
+            // พันธมิตร/ศัตรู ที่ HP น้อยกว่า X%
+            const hpT = /(?:พันธมิตร|ศัตรู)(?:ที่)?\s*HP\s*(?:น้อยกว่า|ต่ำกว่า)\s*(\d+)%/.exec(c);
+            if (hpT && (target.hp / target.maxHp) * 100 >= +hpT[1]) return false;
+            const hpOver = /HP\s*(?:ปัจจุบัน)?(?:ของ)?เป้า(?:หมาย)?\s*มากกว่า\s*(\d+)%/.exec(c);
+            if (hpOver && (target.hp / target.maxHp) * 100 <= +hpOver[1]) return false;
+            // เป้า (ไม่) อยู่ในสถานะ ... · เป้าติดเครื่องหมาย 2 สแตค
+            const st = /เป้า(?:หมาย)?(?:หลัก)?ติด\s*([^\s·,(0-9]+)(?:\s*(\d+)\s*สแตค)?/.exec(c);
+            if (st) {
+                const word = st[1].replace(/ขึ้นไป$/, '');
+                const n = (target.statuses || []).filter(s => String(s.name || '').indexOf(word) >= 0 || (word === 'พิษ' && simTags(s.tags).indexOf('poison') >= 0)).length;
+                if (n < (st[2] ? +st[2] : 1)) return false;
+            }
+            // จำกัดสายของเป้า: "พันธมิตรสายโจมตี, สายเวท" / "ศัตรูสายป้องกัน, สนับสนุน, สมดุล"
+            const cls = /^(?:พันธมิตร|ศัตรู)(?:แถว\S+\s*)?สาย([^·]+)/.exec(c.trim());
+            if (cls) {
+                const list = Object.keys(SIM_CLASS_RE).filter(k => cls[1].indexOf(k) >= 0);
+                if (list.length && !list.some(k => simUnitIsClass(target, k))) return false;
+            }
+            return true;
+        }
+        /** Trigger แบบนับครั้ง ("ถูกโจมตีครบ 3 ครั้ง", "ทำงานครบ 2 ครั้ง", "ศัตรูตาย 4 คน") → ทุกกี่ครั้งถึงทำงาน */
+        function simEveryN(eff, when) {
+            const c = String((eff && eff.cond) || '');
+            let m = null;
+            if (when === 'on_hit_taken') m = /ถูก(?:ศัตรู)?โจมตี(?:เข้าเป้า)?\s*(?:ครบ)?\s*(\d+)\s*ครั้ง/.exec(c);
+            else if (when === 'on_hit_dealt') m = /(?:ทำงาน|ใช้สกิล|ตีปกติ)\s*(?:ครบ)?\s*(\d+)\s*ครั้ง/.exec(c);
+            else if (when === 'on_kill') m = /ศัตรูตาย\s*(?:ครบ)?\s*(\d+)\s*คน/.exec(c);
+            return m ? Math.max(1, +m[1]) : 1;
+        }
+        /** ทำงานไม่ได้ถ้าตาย — อมตะ/เด็ดเดี่ยว ค้าง HP 1 · อำนาจ รอด 1 ครั้งด้วย HP 1 */
+        function simSurvive(u, log) {
+            if (u.hp > 0) return;
+            if ((u.statuses || []).some(s => s.immortal)) { u.hp = 1; return; }
+            if (u.authority > 0) {
+                u.authority -= 1; u.hp = 1;
+                log.push(`   👑 ${u.name} อำนาจทำงาน — รอดด้วย HP 1`);
+                simFireHooks(u, 'on_revive', null); // "เมื่ออำนาจทำงาน" ตั้งเป็น Trigger เมื่อคืนชีพ
+            }
+        }
+        /** ทะลุทะลวง / ไม่สนป้องกัน ของการโจมตีครั้งนี้ */
+        function simHitFlags(att, skill, cfg) {
+            const effs = (skill && skill.effects) || [];
+            const on = m => effs.filter(e => simMechOf(e) === m && simEffUnlocked(e, cfg));
+            let pierce = !!att.pierceAll || on('pierce').length > 0 || (att.statuses || []).some(s => simTags(s.tags).indexOf('pierce') >= 0);
+            let ign = att.ignoreDefAll || 0;
+            on('ignore_def').forEach(e => { ign = Math.max(ign, simPickVal(e, 'val', cfg) || 40); });
+            (att.statuses || []).forEach(s => { if (/คำพิพากษาสุดท้าย/.test(s.name || '')) ign = Math.max(ign, 40); });
+            return { pierce, ignoreDef: Math.min(100, ign) };
+        }
+        /** ผลพิเศษที่มีสูตร — คืน true ถ้าจัดการแล้ว (ไม่ต้องไปทางเดิม) */
+        function simApplyMech(mech, eff, att, target, val, turn, cfg, log, foeList) {
+            const nm = eff.name || eff.lib || mech;
+            const now = (simBattleCtx && simBattleCtx.clock) || 0;
+            if (mech === 'set_hp') {
+                const to = target.maxHp * (val || 39) / 100;
+                if (target.hp > to) { target.hp = to; log.push(`   💔 ${nm} — HP ${target.name} เหลือ ${Math.round(val || 39)}% (${Math.round(to)})`); }
+                else log.push(`   💔 ${nm} — ${target.name} HP ต่ำกว่าอยู่แล้ว ไม่เปลี่ยน`);
+                return true;
+            }
+            if (mech === 'swap_hp') {
+                const live = (foeList || []).filter(u => u.hp > 0);
+                const t = live.length ? live.slice().sort((a, b) => b.hp - a.hp)[0] : target;
+                const a = att.hp / att.maxHp, b = t.hp / t.maxHp;
+                if (b <= a) { log.push(`   🔁 ${nm} ไม่ทำงาน — HP ของ ${t.name} ไม่ได้มากกว่า`); return true; }
+                att.hp = Math.max(1, b * att.maxHp); t.hp = Math.max(1, a * t.maxHp);
+                log.push(`   🔁 ${nm} — ${att.name} HP ${Math.round(a * 100)}% → ${Math.round(b * 100)}% · ${t.name} HP ${Math.round(b * 100)}% → ${Math.round(a * 100)}%`);
+                return true;
+            }
+            if (mech === 'cd_reset' || mech === 'cd_down' || mech === 'cd_up') {
+                const sk = (target.skills || []).filter(s => s.key !== 'n' && s.readyAt !== Infinity);
+                if (mech === 'cd_reset') sk.forEach(s => { s.readyAt = 0; });
+                else if (mech === 'cd_down') sk.forEach(s => { s.readyAt = Math.max(0, (s.readyAt || 0) - (val || 0)); });
+                else sk.forEach(s => { s.readyAt = Math.max(s.readyAt || 0, now) + (val || 0); });
+                log.push(`   ⏱️ ${nm} — ${target.name} ${mech === 'cd_reset' ? 'รีเซตคูลดาวน์สกิล' : (mech === 'cd_down' ? 'คูลดาวน์ -' : 'คูลดาวน์ +') + (mech === 'cd_reset' ? '' : (val || 0) + ' วิ')}`);
+                return true;
+            }
+            if (mech === 'ally_revive') {
+                const dead = ((att._team || [])).filter(u => u.hp <= 0);
+                const n = Math.max(1, parseInt(eff.targets) || 1);
+                const pick = dead.filter(u => simCondOk(eff, att, u, {})).slice(0, n);
+                if (!pick.length) { log.push(`   ✨ ${nm} — ไม่มีพันธมิตรที่ตายให้ปลุก`); return 'all'; }
+                pick.forEach(u => {
+                    const immortal = /อมตะ/.test(nm) || /อมตะ/.test(eff.lib || '');
+                    simRevive(u, immortal ? { kind: 'immortal', turns: turn || 3 } : { kind: 'pct', pct: val || 30 }, log, '✨ ' + att.name + ' ปลุก');
+                });
+                return 'all';
+            }
+            return false;
+        }
+        /** ฟื้นตัวที่ตาย — kind: pct (HP %) | immortal (อมตะ N เทิร์น) | resolve (เด็ดเดี่ยว ถูกตี N ครั้ง) */
+        function simRevive(u, how, log, label) {
+            u._dead = false;
+            u.statuses = []; u.shield = 0;
+            if (how.kind === 'immortal') {
+                u.hp = 1;
+                u.statuses.push({ name: 'อมตะ', kind: 'buff', turns: Math.max(1, how.turns || 2), val: 0, stat: '', born: simTurnNow, immortal: true, locked: true, tags: [], immuneTags: [] });
+                log.push(`${label || '❤️ ' + u.name} คืนชีพเป็นอมตะ ${how.turns || 2} เทิร์น (HP 1)`);
+            } else if (how.kind === 'resolve') {
+                u.hp = 1;
+                u.statuses.push({ name: 'เด็ดเดี่ยว', kind: 'buff', turns: 9999, hitsLeft: Math.max(1, how.turns || 8), val: 0, stat: '', born: simTurnNow, immortal: true, locked: true, tags: [], immuneTags: [] });
+                log.push(`${label || '❤️ ' + u.name} คืนชีพเด็ดเดี่ยว (ไม่ตายจนถูกตี ${how.turns || 8} ครั้ง)`);
+            } else {
+                u.hp = Math.max(1, Math.round(u.maxHp * (how.pct || 30) / 100));
+                log.push(`${label || '❤️ ' + u.name} คืนชีพ ${how.pct}% (${Math.round(u.hp)}/${Math.round(u.maxHp)})`);
+            }
+            if (simBattleCtx && simBattleCtx.requeue) simBattleCtx.requeue(u);
+            simFireHooks(u, 'on_revive', null);
+        }
+
         /** ทำดาเมจใส่ 1 ตัว → คืนดาเมจที่เข้าจริง (หลังโล่กัน) */
         function simTakeDamage(u, dmg, log, label, att, opts) {
             const o = opts || {};
             let d = Math.max(0, Math.round(dmg));
+            // 🛡️ ความเสียหายทั้งหมดไม่มีผล / คุ้มกันความเสียหายทั้งหมด — ทะลุทะลวงไม่สน
+            const imm = d > 0 && !o.pierce && (u.statuses || []).find(s => s.dmgImmune);
+            if (imm) {
+                log.push(`   🛡️ ${label} → ${u.name} ไม่มีผล (${imm.name}${imm.hitsLeft ? ' เหลือ ' + (imm.hitsLeft - 1) + ' ครั้ง' : ''})`);
+                if (imm.hitsLeft > 0 && --imm.hitsLeft <= 0) { u.statuses = u.statuses.filter(s => s !== imm); simStatusRemoved(u, imm, log); }
+                return 0;
+            }
+            // ✝️ พร — ดาเมจต่อครั้งไม่เกิน X% ของ HP สูงสุด
+            if (d > 0 && u.blessPct > 0) {
+                const cap = Math.round(u.maxHp * u.blessPct / 100 * Math.max(1, o.hits || 1));
+                if (d > cap) { log.push(`   ✝️ พรของ ${u.name} จำกัดดาเมจ ${d} → ${cap}`); d = cap; }
+            }
             if (u.shield > 0) {
                 const absorbed = Math.min(u.shield, d);
                 u.shield -= absorbed; d -= absorbed;
                 if (absorbed > 0) log.push(`   🧊 โล่กัน ${absorbed}`);
             }
             u.hp = Math.max(0, u.hp - d);
+            simSurvive(u, log);
             log.push(`   ${label} ${d} → ${u.name} เหลือ ${Math.round(u.hp)}/${Math.round(u.maxHp)}`);
 
             // 🩸 ดูดเลือด — % ของดาเมจที่เข้าจริง
@@ -24707,10 +24922,14 @@
             }
             // 🛡️ สถานะแบบ [ถูกโจมตี N ครั้ง] — โดนตีเข้าเป้า 1 ครั้ง = นับลด 1
             if (d > 0 && Array.isArray(u.statuses)) {
-                const used = u.statuses.filter(s => s.hitsLeft > 0 && --s.hitsLeft <= 0);
+                const used = u.statuses.filter(s => s.hitsLeft > 0 && !s.dmgImmune && --s.hitsLeft <= 0);
                 if (used.length) {
                     u.statuses = u.statuses.filter(s => used.indexOf(s) < 0);
-                    used.forEach(s => { log.push(`   ⌛ ${s.name} ของ ${u.name} หมด (ครบจำนวนครั้งที่ถูกโจมตี)`); simStatusRemoved(u, s, log); });
+                    used.forEach(s => {
+                        log.push(`   ⌛ ${s.name} ของ ${u.name} หมด (ครบจำนวนครั้งที่ถูกโจมตี)`);
+                        if (s.immortal) { u.hp = 0; log.push(`   ☠️ ${u.name} หมด${s.name} — ตาย`); }
+                        simStatusRemoved(u, s, log);
+                    });
                 }
             }
             // ⚡ "เมื่อถูกตี" ของฝั่งที่โดน (ตอบโต้กลับไปที่ผู้ตี)
@@ -24748,11 +24967,21 @@
 
             // ⏲️ Trigger ที่ต้องรอเหตุการณ์ → ลงทะเบียนไว้ ไม่ทำงานทันที
             if (!ex.fromHook && SIM_REACTIVE_TRIGGERS.indexOf(when) >= 0) {
-                if (when === 'on_removed') return;     // ผูกกับสถานะที่สกิลใบนี้สร้าง (ดู ex.onRemoved)
+                if (when === 'on_removed') return;
+                if (simMechOf(eff) === 'recast') return;   // ทำงานต่อเนื่อง จัดการใน simUseSkill เอง     // ผูกกับสถานะที่สกิลใบนี้สร้าง (ดู ex.onRemoved)
                 const life = simPickVal(eff, 'turn', cfg);
                 simRegisterHook(att, eff, skill, life > 0 ? life : 9999, log);
                 return;
             }
+
+            // 🔓 ยังไม่ปลดล็อก (เช่น ได้ตอน C6 แต่ตอนนี้ยังไม่ถึง)
+            if (!simEffUnlocked(eff, cfg)) return;
+            // 🧩 เงื่อนไขทีม/ตัวเอง
+            if (!simCondOk(eff, att, null, ex)) { if (!ex.fromHook) log.push(`   ⏸️ ${eff.name || eff.type} ไม่เข้าเงื่อนไข (${eff.cond})`); return; }
+            // ธงของการโจมตี (ทะลุทะลวง/ไม่สนป้องกัน/ทำงานต่อเนื่อง) และค่าติดตัว — จัดการที่อื่นแล้ว
+            const mech = simMechOf(eff);
+            if (['pierce', 'ignore_def', 'recast', 'bless', 'authority', 'flank', 'cover'].indexOf(mech) >= 0) return;
+            if ((mech === 'immortal' || mech === 'resolve') && eff.trigger === 'on_death') return; // คืนชีพตัวเอง — simFindRevive
 
             // 1️⃣ (ทำงาน 1 ครั้งต่อการต่อสู้) — ใช้ไปแล้วไม่ทำงานอีกทั้งไฟต์
             if (eff.oncePerBattle) {
@@ -24806,7 +25035,10 @@
             // ⚔️ "ในแต่ละการโจมตี" → ทอยเท่าจำนวนครั้งที่ตี · ติดรอบไหนก็พอ
             const rolls = eff.perHit ? Math.max(1, skill.hits || 1) : 1;
 
+            let mechDone = false;
             effTargets.forEach(target => {
+                if (mechDone) return;
+                if (!simCondOk(eff, att, target, ex)) return;   // เงื่อนไขของเป้า (สาย/HP/สถานะ)
                 // โอกาสติด: เอฟเฟกต์ที่ลงศัตรู หักด้วยต้านทาน บวกด้วยผลเข้าเป้า — ทอยแยกรายเป้า
                 let chance = rate > 0 ? rate : 100;
                 if (!toSelf) chance = chance + (att.acc || 0) - (target.resist || 0);
@@ -24827,6 +25059,14 @@
                     return st;
                 };
 
+                const mr = simApplyMech(mech, eff, att, target, val, turn, cfg, log, foeList);
+                if (mr === 'all') { mechDone = true; return; }
+                if (mr) return;
+                if (mech === 'dmg_immune' && eff.type === 'special') {
+                    const st = simAddStatus(target, { name: nm, kind: 'buff', turns: Math.max(1, turn || 1), val: 0, stat: '' }, eff, log);
+                    if (st) log.push(`   🛡️ ${target.name} ได้ ${nm}${st.hitsLeft ? ' ' + st.hitsLeft + ' ครั้ง' : ' ' + Math.max(1, turn || 1) + ' เทิร์น'}`);
+                    return;
+                }
                 if (eff.type === 'cc') {
                     const ccMode = simCcMode(eff);
                     const st = simAddStatus(target, { name: nm, kind: 'cc', mode: ccMode, turns: Math.max(1, turn || 1) }, eff, log);
@@ -24856,11 +25096,13 @@
                 } else if (eff.type === 'buff' || eff.type === 'debuff' || eff.type === 'stat') {
                     // 📊 'stat' บนสกิลที่กดใช้ = บัฟสเตตชั่วคราว (ถ้าอยู่บนพาสซีฟ simHeroStats บวกเข้าสเตตฐานไปแล้ว)
                     const kind = eff.type === 'stat' ? 'buff' : eff.type;
-                    const stat = eff.scaleStat && eff.valueType === 'pct_stat' ? eff.scaleStat : (simStatKeyFromName(nm) || 'atk');
-                    const st = simAddStatus(target, { name: nm, kind, turns: Math.max(1, turn || 1), val: val || 10, stat }, eff, log);
+                    // สเตตที่กระทบ: ช่อง % ของสเตต → เดาจากชื่อ · ไม่รู้ = สถานะเฉยๆ ไม่แตะสเตต (เดิมเดาเป็น ATK +10%)
+                    const stat = eff.scaleStat && eff.valueType === 'pct_stat' ? eff.scaleStat : (eff.gainStat || simStatKeyFromName(eff.lib || nm) || '');
+                    const sv = stat ? (val || 10) : 0;
+                    const st = simAddStatus(target, { name: nm, kind, turns: Math.max(1, turn || 1), val: sv, stat }, eff, log);
                     if (st) {
                         bindRemoved(st);
-                        log.push(`   ${kind === 'buff' ? '⬆️' : '⬇️'} ${nm} (${stat} ${val || 10}%) ${Math.max(1, turn || 1)} เทิร์น`);
+                        log.push(`   ${kind === 'buff' ? '⬆️' : '⬇️'} ${nm}${stat ? ' (' + stat + ' ' + sv + '%)' : ''} ${st.hitsLeft ? st.hitsLeft + ' ครั้ง' : (st.turns >= 9999 ? 'ตลอดการต่อสู้' : Math.max(1, turn || 1) + ' เทิร์น')}`);
                     }
                 } else if (eff.type === 'dispel') {
                     // 🧹 ขจัด N ผล — Value = จำนวนผลที่ล้าง (ล้างตามลำดับที่ติด)
@@ -24936,9 +25178,10 @@
 
                     // ดาเมจอิง %HP เจาะเกราะโดยธรรมชาติ · ATK-based หักเกราะตามปกติ (ติ๊กข้ามได้)
                     const pierce = hpBased || eff.trueDamage || eff.ignoreDef;
-                    const mit = pierce ? 1 : (cfg.defK / (cfg.defK + simEffStat(target, 'def')));
+                    const hf = simHitFlags(att, skill, cfg);
+                    const mit = pierce ? 1 : (cfg.defK / (cfg.defK + simEffStat(target, 'def') * (1 - hf.ignoreDef / 100)));
                     const dealt = simTakeDamage(target, extraDmg * mit, log, `💥 ${nm}${capped ? ' [ชนเพดาน]' : ''}`, att,
-                        { lifesteal: parseFloat(eff.lifesteal) || 0 });
+                        { lifesteal: parseFloat(eff.lifesteal) || 0, pierce: hf.pierce || !!eff.trueDamage });
                     if (dealt > 0 && target.hp <= 0) simFireHooks(att, 'on_kill', { target });
                 } else if (eff.type === 'special') {
                     // ✨ ผลพิเศษที่ยังไม่มีสูตรตายตัว (คืนชีพอ่านแยกที่ simFindRevive) — โชว์ไว้ใน log ให้เห็นว่าติดแล้ว
@@ -24962,8 +25205,10 @@
             });   // จบ effTargets.forEach
         }
 
-        function simUseSkill(att, def, skill, cfg, rand, log, allies, foes) {
+        function simUseSkill(att, def, skill, cfg, rand, log, allies, foes, uopts) {
+            const uo = uopts || {};
             const foeList = Array.isArray(foes) && foes.length ? foes : [def];
+            const hf = simHitFlags(att, skill, cfg);
             // 1) ดาเมจจาก scales
             let raw = 0;
             skill.scales.forEach(sc => {
@@ -24982,7 +25227,7 @@
                 if (hitTargets.length > 1) log.push(`   🎯 ลง ${hitTargets.length} เป้า: ${hitTargets.map(u => u.name).join(', ')}`);
                 hitTargets.forEach(tg => {
                     // 🎲 ทอยคริ/จุดอ่อน/บล็อก "รายครั้ง" — ตี 5 ครั้ง ไม่ใช่คริยกก้อนหรือไม่คริเลยทั้งก้อน
-                    const mit = cfg.defK / (cfg.defK + simEffStat(tg, 'def'));
+                    const mit = cfg.defK / (cfg.defK + simEffStat(tg, 'def') * (1 - hf.ignoreDef / 100));
                     let total = 0, nCrit = 0, nWeak = 0, nBlock = 0;
                     for (let i = 0; i < hitCount; i++) {
                         let dmg = raw * mit;
@@ -24995,8 +25240,10 @@
                     const tags = [];
                     const tag = (n, label) => { if (n) tags.push(hitCount > 1 ? `${label} ${n}/${hitCount}` : label); };
                     tag(nCrit, 'CRIT'); tag(nWeak, 'จุดอ่อน'); tag(nBlock, 'บล็อก');
-                    const dealt = simTakeDamage(tg, total, log, `⚔️ ${skill.label}${hitCount > 1 ? ' ×' + hitCount : ''}${tags.length ? ' [' + tags.join('/') + ']' : ''}`,
-                        att, { lifesteal: att.lifesteal || 0 });
+                    if (hf.pierce) tags.push('ทะลุทะลวง');
+                    if (hf.ignoreDef) tags.push('ไม่สนป้องกัน ' + hf.ignoreDef + '%');
+                    const dealt = simTakeDamage(tg, total, log, `⚔️ ${skill.label}${uo.label || ''}${hitCount > 1 ? ' ×' + hitCount : ''}${tags.length ? ' [' + tags.join('/') + ']' : ''}`,
+                        att, { lifesteal: att.lifesteal || 0, pierce: hf.pierce, hits: hitCount });
                     dealtTotal += dealt;
                     if (nCrit) anyCrit = true;
                     if (tg.hp <= 0) anyKill = true;
@@ -25013,9 +25260,22 @@
 
             // 3) เหตุการณ์หลังออกสกิล
             if (att.hp > 0) {
-                if (dealtTotal > 0) simFireHooks(att, 'on_hit_dealt', { target: def, damage: dealtTotal });
+                if (dealtTotal > 0) simFireHooks(att, 'on_hit_dealt', { target: def, damage: dealtTotal, flank: !!uo.flank });
                 if (anyCrit) simFireHooks(att, 'on_crit', { target: def, damage: dealtTotal });
                 if (anyKill) simFireHooks(att, 'on_kill', { target: def, damage: dealtTotal });
+            }
+
+            // 🔁 ทำงานต่อเนื่อง — กำจัดศัตรูได้ ใช้สกิลซ้ำ (อานุภาพ Value%) สูงสุด 1 ครั้ง
+            if (anyKill && !uo.recast && att.hp > 0) {
+                const rc = (skill.effects || []).find(e => simMechOf(e) === 'recast' && simEffUnlocked(e, cfg));
+                const live = foeList.filter(u => u.hp > 0);
+                if (rc && live.length) {
+                    const pct = simPickVal(rc, 'val', cfg) || 100;
+                    const nxt = live[Math.floor(rand() * live.length)];
+                    log.push(`   🔁 ${att.name} ทำงานต่อเนื่อง ${skill.label} (${pct}%) ใส่ ${nxt.name}`);
+                    const scaled = Object.assign({}, skill, { scales: (skill.scales || []).map(sc => Object.assign({}, sc, { percent: (sc.percent || 0) * pct / 100, greenPercent: (sc.greenPercent || 0) * pct / 100 })) });
+                    simUseSkill(att, nxt, scaled, cfg, rand, log, allies, foes, { recast: true, label: ' (ต่อเนื่อง)' });
+                }
             }
         }
 
@@ -25024,6 +25284,7 @@
             u.statuses.forEach(s => {
                 if (s.kind === 'dot' && s.val > 0) {
                     u.hp = Math.max(0, u.hp - s.val);
+                    simSurvive(u, log);
                     log.push(`   🔥 ${s.name} กัด ${Math.round(s.val)} → ${u.name} เหลือ ${Math.round(u.hp)}`);
                 }
             });
@@ -25041,6 +25302,10 @@
             u.statuses.forEach(s => { if (s.born !== simTurnNow) s.turns -= 1; });
             const gone = u.statuses.filter(s => s.turns <= 0);
             u.statuses = u.statuses.filter(s => s.turns > 0);
+            if (gone.some(s => s.immortal) && u.hp > 0) {
+                u.hp = 0;
+                if (simBattleCtx) simBattleCtx.log.push(`   ☠️ ${u.name} หมดสถานะอมตะ — ตาย`);
+            }
             if (gone.length && simBattleCtx) gone.forEach(s => simStatusRemoved(u, s, simBattleCtx.log));
             if (Array.isArray(u.hooks) && u.hooks.length) {
                 u.hooks.forEach(h => { if (h.turns < 9999) h.turns -= 1; });
@@ -25722,6 +25987,8 @@
             const live = simEligibleTargets(foes);
             if (!live.length) return null;
             if (live.length === 1) return live[0];
+            const taunter = live.find(u => (u.statuses || []).some(s => s.taunt));   // 📢 ยั่วยุ
+            if (taunter) return taunter;
             if (rand() * 100 < (att.weakness || 0)) {
                 return live.slice().sort((a, b) => (a.hp - b.hp) || (a.maxHp - b.maxHp))[0];
             }
@@ -25792,6 +26059,21 @@
             log.push(`   👊 ${unit.name} เข้าตีปกติใส่ ${def.name}`);
             simUseSkill(unit, def, normal, cfg, rand, log, team, foes);
             if (unit.skillGate > 0) unit.skillGate -= 1;   // ⏳ ตีปกติครบแล้วประตูสกิลเปิด
+            // 🤝 ตีขนาบ (เพื่อนตีตาม) · 🛡️ กำบัง (ตัวเองเรียกเพื่อนตีตาม) — ไม่ต่อทอดซ้ำ
+            if (def.hp > 0) {
+                const can = u => u && u !== unit && u.hp > 0 && !simIsStunned(u);
+                const joiners = [];
+                team.forEach(u => { if (can(u) && u.flankRate > 0 && rand() * 100 < u.flankRate) joiners.push([u, '🤝 ตีขนาบ']); });
+                if (unit.coverRate > 0 && rand() * 100 < unit.coverRate) {
+                    const pool = team.filter(u => can(u) && !joiners.some(j => j[0] === u));
+                    if (pool.length) joiners.push([pool[Math.floor(rand() * pool.length)], '🛡️ กำบังเรียก']);
+                }
+                joiners.forEach(([u, why]) => {
+                    if (def.hp <= 0) return;
+                    log.push(`   ${why}: ${u.name} ตีตามใส่ ${def.name}`);
+                    simUseSkill(u, def, simNormalSkill(u), cfg, rand, log, team, foes, { flank: true, label: ' (ตีตาม)' });
+                });
+            }
         }
 
         /**
@@ -25847,7 +26129,11 @@
             // 🔗 ให้ทุกตัวรู้จักทีมตัวเอง/ฝั่งตรงข้าม — Trigger ที่ทำงานนอกตาปกติจะได้หาเป้าถูก
             A.forEach(u => { u._team = A; u._foes = B; });
             B.forEach(u => { u._team = B; u._foes = A; });
-            simBattleCtx = { cfg, rand, log };
+            simBattleCtx = { cfg, rand, log, clock: 0 };
+            // บัฟพาสซีฟที่มีเงื่อนไขทีม (เช่น ทีมมีสายเวท 3 คน) — ตัดทิ้งถ้าไม่เข้าเงื่อนไข
+            A.concat(B).forEach(u => {
+                u.statuses = (u.statuses || []).filter(s => !s._effRef || simCondOk(s._effRef, u, null, {}));
+            });
             simHookDepth = 0;
 
             const oFmt = opts || {};
@@ -25952,16 +26238,10 @@
                 log.push(`☠️ ${u.name} ตาย`);
                 simFireHooks(u, 'on_death', null);
                 dropFromQueue(u);
-                // ❤️ พาสซีฟคืนชีพ — ฟื้นทันที แล้วไปต่อท้ายคิวเสมอ
+                // ❤️ พาสซีฟคืนชีพ — ฟื้นทันที แล้วไปต่อท้ายคิวเสมอ (อมตะ / เด็ดเดี่ยว / % HP)
                 if (u.revive && u.revive.left > 0) {
                     u.revive.left -= 1;
-                    u._dead = false;
-                    u.hp = Math.max(1, Math.round(u.maxHp * u.revive.pct / 100));
-                    u.statuses = [];
-                    u.shield = 0;
-                    queue.push(u);
-                    log.push(`❤️ ${u.name} คืนชีพ ${u.revive.pct}% (${Math.round(u.hp)}/${Math.round(u.maxHp)}) — ต่อท้ายคิว`);
-                    simFireHooks(u, 'on_revive', null); // เช่น "เมื่อคืนชีพ ได้รับโล่" (หลังล้างสถานะ/โล่เดิมแล้ว)
+                    simRevive(u, u.revive, log, '❤️ ' + u.name);
                 }
             });
 
@@ -25973,6 +26253,7 @@
             clock = 0;
             const spend = (sec, why) => {
                 clock += Math.max(0, sec || 0);
+                simBattleCtx.clock = clock;
                 if (why) log.push(`   ⏱️ ${why} ${sec} วิ → นาฬิกา ${mmss(clock)}`);
             };
             const _aN = parseFloat(cfg.animNormal) || 2;
@@ -25988,6 +26269,14 @@
             let queue = A.concat(B).filter(u => u.hp > 0)
                 .sort((a, b) => (b.spd - a.spd) || (openerRank(a) - openerRank(b)) || (rand() < 0.5 ? -1 : 1));
             const dropFromQueue = u => { const i = queue.indexOf(u); if (i >= 0) queue.splice(i, 1); };
+            simBattleCtx.requeue = u => { if (queue.indexOf(u) < 0) queue.push(u); };   // คืนชีพ → ต่อท้ายคิว
+            // ⏩ ผลตอนเริ่มต่อสู้จากพาสซีฟ (โล่เริ่มต้น · ความเสียหายไม่มีผล N ครั้ง · คุ้มกัน CC ฯลฯ)
+            A.concat(B).forEach(u => {
+                (u.startEffects || []).forEach(x => {
+                    const foes = u._foes.filter(f => f.hp > 0);
+                    simRunEffect(u, foes[0] || u, x.eff, x.skill, cfg, rand, log, u._team, foes, { fromHook: true });
+                });
+            });
             const nextHitter = () => {
                 while (queue.length) {
                     const u = queue.shift();
@@ -26038,6 +26327,7 @@
                     // ออกสกิลแล้วเข้าตีปกติต่อในเทิร์นเดียวกัน
                     if (alive(A).length && alive(B).length) doNormalHit();
                     team.forEach(u => { if (u.hp > 0) simEndTurn(u); });
+                    markDead(A); markDead(B);   // หมดอมตะตอนจบเทิร์น = ตาย
 
                     side = side === 'A' ? 'B' : 'A';   // ตาสกิลถัดไปเป็นของอีกฝั่ง
                 } else {
