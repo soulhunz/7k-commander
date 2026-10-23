@@ -10311,7 +10311,8 @@
         function skillIconOf(hero, key, awakened){
             const c = hero && hero.skillData && hero.skillData[key];
             if (!c) return '';
-            return (awakened && c.img2) ? c.img2 : (c.img || '');
+            const ok = v => !!(v && v !== DRIVE_IMG_PREFIX);
+            return (awakened && ok(c.img2)) ? c.img2 : (ok(c.img) ? c.img : '');
         }
         /** หน้ารายละเอียดฮีโร่: วาดไอคอนสกิลทั้ง 5 ตามโหมดปลุกพลังที่ดูอยู่ */
         function renderDetailSkillIcons(item, awakened){
@@ -11676,7 +11677,9 @@
                                 skipPrimary: q('.eff-skipprimary')?.checked || false,  // 💥 ลูกหลง — ไม่ลงเป้าหลัก
                                 locked: q('.eff-locked')?.checked || false,            // 🔒 ไอคอนมีพื้นสี = ล้าง/ลดเทิร์น/เร่งเทิร์นไม่ได้
                                 durType: q('.eff-durtype')?.value || '',
-                                oncePerBattle: q('.eff-once')?.checked || false,      // 1️⃣ (ทำงาน 1 ครั้งต่อการต่อสู้)               // ⏱️ '' = ต่อเนื่อง N เทิร์น · perm = ตลอดเวลา · hits = ถูกโจมตี N ครั้ง
+                                oncePerBattle: q('.eff-once')?.checked || false,      // 1️⃣ (ทำงาน 1 ครั้งต่อการต่อสู้)
+                                gainStat: q('.eff-gainstat')?.value || '',            // 📈 สเตตที่เพิ่ม (ว่าง = เดาจากชื่อ)
+                                perStep: num('.eff-perstep'), perEvery: num('.eff-perevery'), perFrom: q('.eff-perfrom')?.value || 'def',               // ⏱️ '' = ต่อเนื่อง N เทิร์น · perm = ตลอดเวลา · hits = ถูกโจมตี N ครั้ง
                                 note: q('.eff-note')?.value || '',
                                 cond: q('.eff-cond')?.value || '',
                                 cap: q('.eff-cap')?.value || '',
@@ -12049,7 +12052,7 @@
                 const chk = (b) => b ? 'checked' : '';
                 const tags = Array.isArray(eff.tags) ? eff.tags.join(', ') : (eff.tags || '');
                 const immune = Array.isArray(eff.immuneTags) ? eff.immuneTags.join(', ') : (eff.immuneTags || '');
-                const advOpen = (eff.targets||eff.trigger||eff.target||eff.valueType||eff.ignoreDef||eff.trueDamage||eff.lifesteal||(eff.capType&&eff.capType!=='none')||tags||immune||eff.dispellable||eff.maxStacks||eff.followUp) ? 'open' : '';
+                const advOpen = (eff.gainStat||eff.perEvery||eff.targets||eff.trigger||eff.target||eff.valueType||eff.ignoreDef||eff.trueDamage||eff.lifesteal||(eff.capType&&eff.capType!=='none')||tags||immune||eff.dispellable||eff.maxStacks||eff.followUp) ? 'open' : '';
                 return `
                 <div class="bg-[#2d3748] p-3 rounded-lg border border-gray-600 relative group text-sm animate-fade-in effect-item shadow-lg">
                     <div class="absolute -top-2 -right-2 cursor-pointer text-white bg-red-600 hover:bg-red-500 font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border border-red-400 z-10" onclick="this.parentElement.remove()">×</div>
@@ -12146,12 +12149,28 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <label class="block" title="บอกว่าเลข Value ในตารางด้านบนหมายถึงอะไร เช่น '% maxHP เป้าหมาย' → Value 60 = 60% ของเลือดสูงสุดเป้าหมาย"><span class="text-[9px] text-cyan-400 font-bold uppercase">Value คืออะไร ❓</span>
                                 <select class="eff-valuetype w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
-                                    ${o('','— ไม่ระบุ —',eff.valueType)}${o('flat','ค่าคงที่ (flat)',eff.valueType)}${o('pct_atk','% ATK',eff.valueType)}${o('pct_def','% DEF',eff.valueType)}${o('pct_hp','% HP',eff.valueType)}${o('pct_maxhp_self','% maxHP ตัวเอง',eff.valueType)}${o('pct_maxhp_target','% maxHP เป้าหมาย',eff.valueType)}${o('pct_curhp_target','% HP ปัจจุบันเป้าหมาย',eff.valueType)}${o('pct_damage_dealt','% ดาเมจที่ทำ',eff.valueType)}${o('pct_stat','% ของสเตต (เลือกข้างขวา)',eff.valueType)}
+                                    ${o('','— ไม่ระบุ —',eff.valueType)}${o('flat','ค่าคงที่ (flat)',eff.valueType)}${o('pct_atk','% ATK',eff.valueType)}${o('pct_def','% DEF',eff.valueType)}${o('pct_hp','% HP',eff.valueType)}${o('pct_maxhp_self','% maxHP ตัวเอง',eff.valueType)}${o('pct_maxhp_target','% maxHP เป้าหมาย',eff.valueType)}${o('pct_curhp_target','% HP ปัจจุบันเป้าหมาย',eff.valueType)}${o('pct_def_target','% DEF เป้าหมาย',eff.valueType)}${o('pct_damage_dealt','% ดาเมจที่ทำ',eff.valueType)}${o('pct_stat','% ของสเตต (เลือกข้างขวา)',eff.valueType)}
                                 </select></label>
                                 <label class="block"><span class="text-[9px] text-cyan-400 font-bold uppercase">สเตตอ้างอิง (ใช้กับ % สเตต)</span>
                                 <select class="eff-scalestat w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
                                     ${o('','—',eff.scaleStat)}${o('atk','ATK',eff.scaleStat)}${o('def','DEF',eff.scaleStat)}${o('hp','HP',eff.scaleStat)}${o('spd','SPD',eff.scaleStat)}${o('critRate','Crit Rate',eff.scaleStat)}${o('critDmg','Crit Dmg',eff.scaleStat)}
                                 </select></label>
+                            </div>
+                            <div class="bg-[#1a202c] rounded border border-emerald-800/60 p-2" title="ใช้กับพาสซีฟที่เพิ่มสเตตตัวเองถาวร — นับเข้าสเตตัสหน้าบิ้ว/รายละเอียด">
+                                <div class="text-[9px] text-emerald-300 font-bold uppercase mb-1">📈 เพิ่มสเตตตัวเอง (พาสซีฟถาวร)</div>
+                                <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-300">
+                                    <span>สเตตที่เพิ่ม</span>
+                                    <select class="eff-gainstat bg-[#111827] border border-gray-600 rounded text-xs text-white py-0.5 px-1 outline-none">
+                                        ${o('','— เดาจากชื่อ —',eff.gainStat)}${o('atk','ATK',eff.gainStat)}${o('def','DEF',eff.gainStat)}${o('hp','HP',eff.gainStat)}${o('spd','ความเร็ว',eff.gainStat)}${o('critRate','อัตราคริ',eff.gainStat)}${o('critDmg','ดาเมจคริ',eff.gainStat)}${o('weakness','จุดอ่อน',eff.gainStat)}${o('acc','ผลเข้าเป้า',eff.gainStat)}${o('block','บล็อก',eff.gainStat)}${o('resist','ต้านทานผล',eff.gainStat)}${o('dmgRed','ลดความเสียหาย',eff.gainStat)}
+                                    </select>
+                                    <span class="text-gray-500">·</span><span>ถ้าเพิ่มตามสเตต: +</span>
+                                    <input type="number" step="any" class="eff-perstep w-12 bg-[#111827] border border-gray-600 rounded text-center text-xs text-white outline-none" value="${eff.perStep||''}" placeholder="3">
+                                    <span>ทุก</span>
+                                    <input type="number" step="any" class="eff-perevery w-14 bg-[#111827] border border-gray-600 rounded text-center text-xs text-white outline-none" value="${eff.perEvery||''}" placeholder="150">
+                                    <span>ของ</span>
+                                    <select class="eff-perfrom bg-[#111827] border border-gray-600 rounded text-xs text-white py-0.5 px-1 outline-none">${o('def','DEF',eff.perFrom||'def')}${o('hp','HP',eff.perFrom)}${o('atk','ATK',eff.perFrom)}</select>
+                                    <span class="text-gray-500">(สูงสุด = Value)</span>
+                                </div>
                             </div>
                             <div class="flex flex-wrap gap-2 items-center">
                                 <label class="flex items-center gap-1 text-[10px] text-gray-200 bg-[#1a202c] px-2 py-1 rounded border border-gray-600"><input type="checkbox" class="eff-ignoredef" ${chk(eff.ignoreDef)}> ไม่สนป้องกัน</label>
@@ -12399,33 +12418,21 @@
             if (currentDetailHero.skillData && currentDetailHero.skillData.p && currentDetailHero.skillData.p.effects) {
                 currentDetailHero.skillData.p.effects.forEach(eff => {
                     // เลือกเฉพาะ Type = Stat
-                    if (eff.type === 'stat') {
-                        // 4.1 หาค่าที่จะใช้ตามระดับดาว (Base/Green/C2/C6)
-                        let actVal = eff.val || 0;
-                        if (blueLvl >= 6 && eff.c6_val) actVal = eff.c6_val;
-                        else if (blueLvl >= 2 && eff.c2_val) actVal = eff.c2_val;
-                        else if (blueLvl >= 1 && eff.green_val) actVal = eff.green_val;
+                    if (hbIsPassiveStatEff(eff)) {
+                        // 4.1 หาค่าที่จะใช้ตามระดับดาว (Base/Green/C2/C6) · แบบ "ทุก Y ของสเตต" คิดจากสเตตตอนนี้
+                        const _flatScaled = !!hbScaleSpec(eff);
+                        let actVal = _flatScaled ? hbScaledPassiveAmt(eff, finalStats, blueLvl >= 1, blueLvl) : hbPassiveEffVal(eff, blueLvl >= 1, blueLvl);
 
                         if (actVal > 0) {
                             // 4.2 ตรวจสอบชื่อ (Name) เพื่อ Map เข้ากับ Stat Key
-                            const name = eff.name.toLowerCase();
                             let targetKey = null;
 
-                            // Keyword Mapping (ไทย/Eng)
-                            if (name.includes('hp') || name.includes('เลือด')) targetKey = 'hp';
-                            else if (name.includes('atk') || name.includes('โจมตี')) targetKey = 'atk';
-                            else if (name.includes('def') || name.includes('ป้องกัน')) targetKey = 'def';
-                            else if (name.includes('spd') || name.includes('speed') || name.includes('ความเร็ว')) targetKey = 'spd';
-                            else if (name.includes('block') || name.includes('บล็อก')) targetKey = 'block';
-                            else if (name.includes('crit') || name.includes('คริ')) targetKey = 'critRate'; // Crit Rate
-                            else if (name.includes('dmg') && (name.includes('crit') || name.includes('คริ'))) targetKey = 'critDmg'; // Crit Dmg (ถ้าชื่อมีทั้ง Dmg และ Crit)
-                            else if (name.includes('weak') || name.includes('จุดอ่อน')) targetKey = 'weakness';
-                            else if (name.includes('acc') || name.includes('แม่น')) targetKey = 'acc';
-                            else if (name.includes('resist') || name.includes('ต้าน')) targetKey = 'resist';
+                            // Keyword Mapping — ตัวเดียวกับหน้าบิ้ว/เครื่องจำลอง (มีช่อง "สเตตที่เพิ่ม" ใช้ก่อน)
+                            targetKey = hbPassiveEffKey(eff);
 
                             // 4.3 บวกค่าเข้าไป
                             if (targetKey) {
-                                if (percentStats.includes(targetKey)) {
+                                if (percentStats.includes(targetKey) || _flatScaled) {
                                     // พวก Rate บวกตรงๆ (เช่น Block +20)
                                     finalStats[targetKey] = (finalStats[targetKey] || 0) + actVal;
                                 } else {
@@ -22842,7 +22849,7 @@
         function getComboSkillView(hero, type, awakened) {
             const skillKey = (type === 'UP') ? 's2' : (type === 'AW') ? 'aw' : 's1';
             const sd = (hero && hero.skillData) || {};
-            const skillImg = (sd[skillKey] && sd[skillKey].img && sd[skillKey].img !== DRIVE_IMG_PREFIX) ? sd[skillKey].img : '';
+            const skillImg = skillIconOf(hero, skillKey, awakened); // ✨ ปลุกพลังแล้ว = รูปสกิลชุดหลังปลุกพลัง
             // ✨ สกิล Awakening: ถ้าไม่มีไอคอนสกิล ใช้รูปฮีโร่ตื่นรู้ (img2) เป็นภาพแทน
             const awImg = (type === 'AW' && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX) ? hero.img2 : '';
             const heroImg = hero ? ((awakened && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX) ? hero.img2 : hero.img) : '';
@@ -23146,7 +23153,7 @@
                         const s1v = getComboSkillView(h, 'DOWN', awk); // สกิลล่าง = S1
                         const awv = getComboSkillView(h, 'AW', awk);   // ✨ สกิล Awakening (ปลุกพลัง)
                         // ✨ แสดงปุ่มจองสกิล Awakening เฉพาะช่องที่เปิด/ติ๊ก Awakening ไว้แล้ว (ดาวม่วง 6) เท่านั้น
-                        const awAvail = awk;
+                        const awAvail = awk && !(h && h.skillData && h.skillData.aw && h.skillData.aw.awType === 'passive'); // 🛡️ ปลุกพลังแบบพาสซีฟจองไม่ได้
 
                         skillOptionsHTML += `
                             <div class="bg-[#111827] p-4 rounded-2xl border border-gray-700 flex items-center gap-5 hover:border-gray-500 transition shadow-lg mb-3">
@@ -23746,6 +23753,62 @@
             return useAw ? aws : ((hero && hero.baseStats) ? hero.baseStats : {});
         }
 
+        /** 📈 เอฟเฟกต์พาสซีฟที่ "เพิ่มสเตตตัวเองถาวร" → นับเข้าสเตตัสหน้าบิ้ว/รายละเอียด
+         *  นับ: ชนิด 📊 Stat · หรือ ⬆️ Buff ที่ติดตัวตลอด (Trigger ติดตัวตลอด / [ตลอดเวลา]) ลงตัวเอง/พวกทั้งหมด และไม่มีเงื่อนไข */
+        function hbIsPassiveStatEff(eff) {
+            if (!eff) return false;
+            if (eff.type === 'stat') return true;
+            if (eff.type !== 'buff') return false;
+            const always = eff.trigger === 'passive' || eff.durType === 'perm';
+            const onSelf = !eff.target || eff.target === 'self' || eff.target === 'ally_all';
+            return always && onSelf && !String(eff.cond || '').trim();
+        }
+        /** สเตตที่เอฟเฟกต์นี้เพิ่ม: ช่อง "สเตตที่เพิ่ม" → % ของสเตต → เดาจากชื่อ */
+        function hbPassiveEffKey(eff) {
+            if (eff.gainStat) return eff.gainStat;
+            if (eff.valueType === 'pct_stat' && eff.scaleStat) return eff.scaleStat;
+            return simStatKeyFromName(eff.name);
+        }
+        /** ค่าที่ใช้ตามระดับ (Base → อัปสกิล → C2 → C6) · อัตราติด 0 ทุกระดับ = ยังไม่ได้ผลนี้ */
+        function hbPassiveEffVal(eff, up, blue) {
+            let v = parseFloat(eff.val) || 0, r = eff.rate === undefined ? 100 : (parseFloat(eff.rate) || 0);
+            if (up) {
+                if (eff.green_val) v = eff.green_val; if (eff.green_rate) r = eff.green_rate;
+                if (blue >= 2) { if (eff.c2_val) v = eff.c2_val; if (eff.c2_rate) r = eff.c2_rate; }
+                if (blue >= 6) { if (eff.c6_val) v = eff.c6_val; if (eff.c6_rate) r = eff.c6_rate; }
+            }
+            if (eff.type === 'buff' && !(r > 0)) return 0;
+            return parseFloat(v) || 0;
+        }
+        /** 📈 สูตร "+X ทุก Y ของ [สเตต]" ของเอฟเฟกต์ → { step, every, from } หรือ null
+         *  ใช้ช่องในฟอร์มก่อน · ไม่ได้กรอก → อ่านจากหมายเหตุ / คำอธิบายในคลังสกิล (ข้อมูลที่นำเข้าก่อนมีช่องนี้) */
+        function hbScaleSpec(eff) {
+            if (!eff) return null;
+            const every = parseFloat(eff.perEvery) || 0, step = parseFloat(eff.perStep) || 0;
+            if (every > 0 && step > 0) return { step, every, from: eff.perFrom || 'def' };
+            const lib = (eff.libId && Array.isArray(skillLibDB)) ? skillLibDB.find(x => String(x.id) === String(eff.libId)) : null;
+            const libByName = (!lib && Array.isArray(skillLibDB) && eff.name) ? skillLibDB.find(x => String(x.name || '').trim() === String(eff.name).trim()) : null;
+            const texts = [eff.note, (lib || libByName || {}).rawText];
+            for (const t of texts) {
+                const m = /\+?\s*([\d.]+)\s*%?\s*ทุก\s*([\d,]+)\s*(?:ของ)?\s*(?:ค่า)?\s*(พลังป้องกัน|DEF|HP สูงสุด|HP|พลังโจมตี|ATK)/i.exec(String(t || ''));
+                if (m) {
+                    const w = m[3].toLowerCase();
+                    const from = /ป้องกัน|def/.test(w) ? 'def' : /hp/.test(w) ? 'hp' : 'atk';
+                    return { step: parseFloat(m[1]), every: parseFloat(m[2].replace(/,/g, '')), from };
+                }
+            }
+            return null;
+        }
+        /** 📈 แบบ "+X ทุก Y ของ [สเตต] (สูงสุด Value)" — คิดจากสเตตรวมแล้ว */
+        function hbScaledPassiveAmt(eff, totals, up, blue) {
+            const sp = hbScaleSpec(eff);
+            if (!sp) return 0;
+            const every = sp.every, step = sp.step;
+            const from = parseFloat(totals[sp.from]) || 0;
+            const cap = hbPassiveEffVal(eff, up, blue);
+            const amt = Math.floor(from / every) * step;
+            return cap > 0 ? Math.min(cap, amt) : amt;
+        }
         function hbHeroStats(hero, blue, red, opts){
             const out = {};
             // opts = { awakened, skillUpP, noPassive } — ไม่ส่งมา = ใช้ค่าจากหน้าบิ้วที่เปิดอยู่ (พฤติกรรมเดิม)
@@ -23776,16 +23839,11 @@
             const pe = hero && hero.skillData && hero.skillData.p && hero.skillData.p.effects;
             if (Array.isArray(pe) && !o.noPassive) {
                 pe.forEach(eff => {
-                    if (!eff || eff.type !== 'stat') return;
-                    let v = eff.val || 0; // ยังไม่อัพ = ค่าพื้นฐานเท่านั้น
-                    if (pUp) {
-                        if (eff.green_val) v = eff.green_val;             // อัพแล้ว → ผลอัปเกรด
-                        if (blueLvl >= 2 && eff.c2_val) v = eff.c2_val;   // C2 (ดาวฟ้า 2)
-                        if (blueLvl >= 6 && eff.c6_val) v = eff.c6_val;   // C6 (ดาวฟ้า 6)
-                    }
+                    if (!hbIsPassiveStatEff(eff) || hbScaleSpec(eff)) return; // แบบ "ทุก Y ของสเตต" คิดทีหลังใน hbComputeFrom
+                    const v = hbPassiveEffVal(eff, pUp, blueLvl);
                     if (!(v > 0)) return;
                     // ⚠️ ใช้ตัวจับชื่อตัวเดียวกับเครื่องจำลอง — แยก "ความแรงคริ" (critDmg) ออกจาก "โอกาสคริ" (critRate)
-                    const tk = simStatKeyFromName(eff.name);
+                    const tk = hbPassiveEffKey(eff);
                     if (!tk) return;
                     if (percentStats.includes(tk)) out[tk] = (out[tk]||0) + v;
                     else out[tk] = (out[tk]||0) + (parseFloat(base[tk])||0) * (v/100);
@@ -24203,6 +24261,13 @@
 
         function simStatKeyFromName(nameRaw) {
             const name = String(nameRaw || '').toLowerCase();
+            if (/^ลดทอน/.test(name)) return 'dmgRed';
+            if (/ป้องกันตามสัดส่วน/.test(name)) return 'def';  // "เพิ่มพลังป้องกันตามสัดส่วน HP" = เพิ่ม DEF
+            if (/โจมตีตามสัดส่วน/.test(name)) return 'atk';
+            if (/อัตราบล็อก/.test(name)) return 'block';   // "เพิ่มอัตราบล็อกตามสัดส่วน HP" ไม่ใช่ HP
+            if (name.includes('weak') || name.includes('จุดอ่อน')) return 'weakness'; // "อัตราโจมตีจุดอ่อน" ไม่ใช่ ATK
+            if (/ความเสียหายคริ|ดาเมจคริ/.test(name)) return 'critDmg';               // "เพิ่มความเสียหายคริติคอล"
+            if (/อัตราคริ/.test(name)) return 'critRate';
             if (name.includes('hp') || name.includes('เลือด')) return 'hp';
             if (name.includes('atk') || name.includes('โจมตี')) return 'atk';
             if (name.includes('def') || name.includes('ป้องกัน')) return 'def';
@@ -24212,8 +24277,8 @@
             if (/crit\s*d(?:a?m|mg)|critdmg|คริ.*ดาเมจ|ดาเมจ.*คริ|ความแรงคริ|แรงคริ|พลังคริ/.test(name)) return 'critDmg';
             if (name.includes('crit') || name.includes('คริ')) return 'critRate';
             if (name.includes('weak') || name.includes('จุดอ่อน')) return 'weakness';
-            if (name.includes('acc') || name.includes('แม่น')) return 'acc';
-            if (/ลดดาเมจ|ลดความเสียหาย|dmgred|damage reduc/.test(name)) return 'dmgRed';
+            if (name.includes('acc') || name.includes('แม่น') || name.includes('เข้าเป้า') || name.includes('ปรับใช้ผล')) return 'acc';
+            if (/ลดดาเมจ|ลดความเสียหาย|ลดทอน|dmgred|damage reduc/.test(name)) return 'dmgRed';
             if (name.includes('resist') || name.includes('ต้าน')) return 'resist';
             return null;
         }
@@ -24388,6 +24453,8 @@
                     if (ls > u.lifesteal) u.lifesteal = ls;
                     if (SIM_REACTIVE_TRIGGERS.indexOf(String(eff.trigger || '')) >= 0) {
                         simRegisterHook(u, eff, skill, 9999, null);
+                    } else if (eff.type === 'buff' && u.fromBuild && key === 'p' && hbIsPassiveStatEff(eff)) {
+                        // สเตตัสจากบิ้วรวมพาสซีฟถาวรแล้ว (hbComputeFrom) — ไม่ซ้อนซ้ำ
                     } else if (eff.type === 'buff') {
                         // บัฟที่เขียนบนพาสซีฟ = ติดตั้งแต่เริ่มและอยู่ยาว
                         const val = simPickVal(eff, 'val', cfg) || simLibDefVal(eff) || 10;
@@ -24472,6 +24539,7 @@
                 case 'pct_maxhp_self': return att.maxHp * pct;
                 case 'pct_maxhp_target': return (target ? target.maxHp : att.maxHp) * pct;
                 case 'pct_curhp_target': return (target ? target.hp : att.hp) * pct;
+                case 'pct_def_target': return simEffStat(target || att, 'def') * pct; // 🛡️ อิง DEF ของเป้าหมาย (เช่น อาริส)
                 case 'pct_damage_dealt': return ((extra && extra.damage) || 0) * pct;
                 case 'pct_stat': return statOf(eff.scaleStat || 'atk') * pct;
                 default: return null;
@@ -26464,6 +26532,20 @@
                 resist: num('resist') + (acc.resist||0),
                 dmgRed: num('dmgRed') + (acc.dmgRed||0)
             };
+            // 📈 พาสซีฟแบบ "+X ทุก Y ของสเตต" — ใช้สเตตรวมอุปกรณ์แล้ว (เช่น บล็อก +3% ทุก 150 DEF สูงสุด 33%)
+            const pe = hero && hero.skillData && hero.skillData.p && hero.skillData.p.effects;
+            if (Array.isArray(pe)) {
+                const snap = Object.assign({}, totals);
+                pe.forEach(eff => {
+                    if (!hbIsPassiveStatEff(eff) || !hbScaleSpec(eff)) return;
+                    const k = hbPassiveEffKey(eff);
+                    if (!k || totals[k] === undefined) return;
+                    const amt = hbScaledPassiveAmt(eff, snap, statOpts.skillUpP, parseInt(b.blueStars) || 0);
+                    if (!amt) return;
+                    totals[k] = ['atk','def','hp'].includes(k) ? Math.round(totals[k] + amt) : totals[k] + amt;
+                    passive[k] = (passive[k] || 0) + amt;
+                });
+            }
             return { hero, base, growth, passive, totals, effects, extra, set };
         }
 
@@ -28677,7 +28759,7 @@
             const sd = (hero && hero.skillData) || {};
             const fields = [{ key: 'n', label: 'N' }, { key: 's1', label: 'S1' }, { key: 's2', label: 'S2' }, { key: 'p', label: 'P' }, { key: 'aw', label: 'AW' }];
             const chips = fields.filter(f => hs[f.key]).map(f => {
-                const img = (sd[f.key] && sd[f.key].img && sd[f.key].img !== DRIVE_IMG_PREFIX) ? sd[f.key].img : '';
+                const img = skillIconOf(hero, f.key, !!s.awakened);
                 const imgEl = img
                     ? '<img src="' + img + '" alt="" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid #a855f7;box-shadow:0 0 8px rgba(168,85,247,0.6);">'
                     : '<div style="width:80px;height:80px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;border:2px solid #a855f7;color:#e9d5ff;background:#1f2937;box-shadow:0 0 8px rgba(168,85,247,0.6);">' + f.label + '</div>';
@@ -32168,7 +32250,7 @@
         const anyOn = fields.some(f => hs[f.k]);
         const boxes = fields.map(f => {
             const on = !!hs[f.k];
-            const img = sd[f.k] && sd[f.k].img ? sd[f.k].img : '';
+            const img = skillIconOf(hero, f.k, !!s.awakened);
             const onCss = 'border:2px solid #a855f7;color:#e9d5ff;background:#1f2937;box-shadow:0 0 8px #a855f7;';
             const offCss = 'border:2px solid #374151;color:#6b7280;background:#1f2937;opacity:0.5;';
             const inner = img
@@ -32600,7 +32682,7 @@
         if (awakened) fields.push({ key: 'aw', label: 'AW' });
         const chips = fields.map(f => {
             const on = !!hs[f.key];
-            const img = sd[f.key] && sd[f.key].img ? sd[f.key].img : '';
+            const img = skillIconOf(hero, f.key, !!awakened);
             const imgStyle = 'width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid ' + (on ? '#a855f7' : '#374151') + ';' + (on ? 'box-shadow:0 0 8px #a855f7;' : 'filter:grayscale(1) brightness(0.5);opacity:0.55;');
             const imgEl = img
                 ? '<img src="' + img + '" alt="" style="' + imgStyle + '">'
