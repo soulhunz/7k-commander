@@ -10341,6 +10341,25 @@
             const ok = v => !!(v && v !== DRIVE_IMG_PREFIX);
             return (awakened && ok(c.img2)) ? c.img2 : (ok(c.img) ? c.img : '');
         }
+        /** 🏷️ ชื่อสกิลในเกม (ช่องชื่อในหน้าบันทึกฮีโร่) — ไม่มี = '' */
+        function skillNameOf(hero, key){
+            const c = hero && hero.skillData && hero.skillData[key];
+            return c && c.name ? String(c.name).trim() : '';
+        }
+        /** เอฟเฟกต์ → รายการในคลังสกิล (libId ก่อน ไม่งั้นจับจากชื่อ) */
+        function statusLibOf(eff){
+            if (!eff) return null;
+            const lib = Array.isArray(skillLibDB) ? skillLibDB : [];
+            let it = eff.libId ? lib.find(x => String(x.id) === String(eff.libId)) : null;
+            if (!it) { const nm = String(eff.lib || eff.name || '').trim(); if (nm) it = lib.find(x => String(x.name || '').trim() === nm) || null; }
+            return it || null;
+        }
+        /** 🖼️ ไอคอนบัฟ/ดีบัฟจากคลังสกิล — ไม่มีรูป = '' (ให้ผู้เรียกใช้อีโมจิเดิมแทน) */
+        function statusIconHTML(it, px){
+            const u = it && it.img;
+            if (!u || u === DRIVE_IMG_PREFIX) return '';
+            return `<img src="${u}" alt="" style="width:${px}px;height:${px}px" class="inline-block rounded object-cover flex-shrink-0 align-middle" onerror="this.style.display='none'">`;
+        }
         /** หน้ารายละเอียดฮีโร่: วาดไอคอนสกิลทั้ง 5 ตามโหมดปลุกพลังที่ดูอยู่ */
         function renderDetailSkillIcons(item, awakened){
             [['n','N'],['s1','S1'],['s2','S2'],['p','P'],['aw','AW']].forEach(([key, fallback]) => {
@@ -10350,6 +10369,8 @@
                 lbl.innerHTML = iconUrl
                     ? `<img src="${iconUrl}" class="inline-block w-20 h-20 rounded-lg align-middle object-cover border border-gray-700" onerror="this.style.display='none'">`
                     : `<span style="width:80px;height:80px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;border:2px solid #a855f7;color:#e9d5ff;background:#1f2937;box-shadow:0 0 8px #a855f7;">${fallback}</span>`;
+                const nm = skillNameOf(item, key);
+                if (nm) lbl.innerHTML += `<div class="text-[11px] font-bold text-amber-200 mt-1 leading-tight break-words" style="max-width:96px">${ccEsc(nm)}</div>`;
             });
         }
         // ✨ สถานะ "ดูสกิลปลุกพลัง" ในหน้ารายละเอียด
@@ -10515,7 +10536,7 @@
 
                     html += `
                     <div class="px-2 py-1 rounded border text-xs flex flex-wrap items-center ${colorClass}">
-                        <span class="font-bold mr-1">${icon} ${eff.name}</span>
+                        <span class="font-bold mr-1 inline-flex items-center gap-1">${statusIconHTML(statusLibOf(eff), 18) || icon} ${eff.name}</span>
                         ${extra}${tagBadges}
                     </div>`;
                 });
@@ -14340,17 +14361,47 @@
         /** หน้าต่างคำอธิบายสกิล (เปิดทับป๊อปอัปบิ้ว) */
         /** สถานะที่สกิลใบนี้ใช้ → รายการจากคลังสกิล (ชื่อ + คำอธิบาย) ไม่ซ้ำ */
         function hbvSkillStatuses(c) {
-            const lib = Array.isArray(skillLibDB) ? skillLibDB : [];
             const seen = new Set(), out = [];
             ((c && c.effects) || []).forEach(eff => {
-                if (!eff) return;
-                let it = eff.libId ? lib.find(x => String(x.id) === String(eff.libId)) : null;
-                if (!it) { const nm = String(eff.lib || eff.name || '').trim(); it = lib.find(x => String(x.name || '').trim() === nm) || null; }
-                if (!it || seen.has(String(it.id))) return;
+                const it = statusLibOf(eff);
+                if (!it) return;
+                const prev = out.find(x => String(x.it.id) === String(it.id));
+                if (prev) { prev.effs.push(eff); prev.locked = prev.locked || !!eff.locked; return; }
                 seen.add(String(it.id));
-                out.push({ it, locked: !!eff.locked });
+                out.push({ it, locked: !!eff.locked, effs: [eff] });
             });
             return out;
+        }
+        /**
+         * คำอธิบายสถานะ "ตามสกิลนี้" — ตัวเลขในคลังสกิลจดมาจากฮีโร่ตัวแรกที่ใช้สถานะนั้น อาจไม่ตรงกับสกิลที่ดูอยู่
+         * • ข้อความแบบ "ชื่อ N% (ผลอัปเกรด...)" ประโยคเดียว + ตัวเลขไม่ตรงกับค่าในสกิล → เขียนใหม่จากค่าของสกิลนี้
+         * • ข้อความกลไกยาว → ใช้ข้อความเดิม + ป้ายเงื่อนไขปลดล็อก/ระยะเวลาของสกิลนี้
+         */
+        function hbvStatusText(it, effs) {
+            const raw = String(it.rawText || '').replace(/<br\s*\/?>/gi, '\n').trim();
+            const num = v => parseFloat(v) || 0;
+            const e = (effs || []).find(x => num(x.val) || num(x.green_val) || num(x.c2_val) || num(x.c6_val)) || (effs || [])[0] || {};
+            const v = { base: num(e.val), up: num(e.green_val), c2: num(e.c2_val), c6: num(e.c6_val) };
+            // ปลดล็อกเมื่อไร (Rate ช่องปกติ = 0 แต่ช่องอัปสกิล/C2/C6 มีค่า)
+            const any = (effs || []).find(x => !num(x.rate) && (num(x.green_rate) || num(x.c2_rate) || num(x.c6_rate))) || null;
+            const unlock = any ? (num(any.green_rate) ? 'ได้หลังอัปเกรดสกิล' : num(any.c2_rate) ? 'ได้ตอนข้ามขีดจำกัด 2' : 'ได้ตอนข้ามขีดจำกัด 6') : '';
+            const d = (effs || []).find(x => x.durType || num(x.turn)) || {};
+            const dur = d.durType === 'perm' ? '[ตลอดเวลา]' : d.durType === 'hits' ? `[ถูกโจมตี ${num(d.turn) || 1} ครั้ง]` : num(d.turn) ? `[ต่อเนื่อง ${num(d.turn)} เทิร์น]` : '';
+            const chips = [unlock && '⭐ ' + unlock, dur].filter(Boolean);
+            const simple = /^([^\d\n]+?)\s*[\d.,]+%\s*(\([^)]*\))?\s*(\[[^\]]*\])?\s*$/.exec(raw);
+            const vals = [v.base, v.up, v.c2, v.c6].filter(Boolean);
+            if (simple && vals.length) {
+                const inRaw = (raw.match(/[\d.]+(?=%)/g) || []).map(parseFloat);
+                if (!vals.every(x => inRaw.includes(x))) {
+                    const main = v.base || v.up || v.c2 || v.c6;
+                    const ex = [];
+                    if (v.up && v.up !== main) ex.push('ผลอัปเกรดสกิล เป็น ' + v.up + '%');
+                    if (v.c2 && v.c2 !== main) ex.push('ข้ามขีดจำกัด 2 : ' + v.c2 + '%');
+                    if (v.c6 && v.c6 !== main) ex.push('ข้ามขีดจำกัด 6 : ' + v.c6 + '%');
+                    return { text: simple[1].trim() + ' ' + main + '%' + (ex.length ? ' (' + ex.join(', ') + ')' : '') + (dur ? ' ' + dur : ''), chips: unlock ? ['⭐ ' + unlock] : [] };
+                }
+            }
+            return { text: raw, chips: raw.includes(dur) ? chips.filter(c => c !== dur) : chips };
         }
         /** ข้อความสกิล → แบบในเกม: บรรทัดที่เป็นหัวข้อเป้าหมาย (ศัตรู…/ตนเอง/พันธมิตร…) กลายเป็นแถบหัวข้อ · ดึงเกจปลุกพลังออกไปเป็นป้าย */
         function hbvGameSkillText(raw) {
@@ -14374,10 +14425,10 @@
             const badge = k === 'n' ? '' : `<span class="gsk-badge ${passive ? 'p' : 'a'}">${passive ? 'P' : 'A'}</span>`;
             const pills = (c.cooldown ? `<span class="gsk-pill cd">⏱ ${c.cooldown}</span>` : '') + (g.gauge ? `<span class="gsk-pill gauge">💠 ${g.gauge}</span>` : '');
             const sts = hbvSkillStatuses(c);
-            const stHtml = sts.map(({ it, locked }) => `<div class="gsk-st">
-                    <div class="nm">${ccEsc(it.name)}${locked ? ' <span title="ล้าง/ลดเทิร์นไม่ได้">🔒</span>' : ''}</div>
-                    <div class="tx">${ccEsc(it.rawText || '— ยังไม่มีคำอธิบาย —')}</div>
-                </div>`).join('');
+            const stHtml = sts.map(({ it, locked, effs }) => { const t = hbvStatusText(it, effs); return `<div class="gsk-st">
+                    <div class="nm flex items-center gap-2">${statusIconHTML(it, 30)}<span>${ccEsc(it.name)}${locked ? ' <span title="ล้าง/ลดเทิร์นไม่ได้">🔒</span>' : ''}</span></div>
+                    <div class="tx">${ccEsc(t.text || '— ยังไม่มีคำอธิบาย —')}${t.chips.length ? `<div class="mt-1.5 flex flex-wrap gap-1">${t.chips.map(c => `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">${ccEsc(c)}</span>`).join('')}</div>` : ''}</div>
+                </div>`; }).join('');
             const box = document.getElementById('hb-viewer') || document.body;
             let m = document.getElementById('hbv-skill-dlg');
             if (!m || m.parentNode !== box) { if (m) m.remove(); m = document.createElement('div'); m.id = 'hbv-skill-dlg'; box.appendChild(m); }
@@ -14388,7 +14439,7 @@
                     <div class="flex items-start gap-3 mb-3">
                         <div class="gsk-ico ${k === 'aw' ? 'aw' : ''}">${img ? `<img src="${img}" class="w-full h-full object-cover">` : `<span class="text-xs text-gray-400 font-bold flex items-center justify-center h-full">${k.toUpperCase()}</span>`}</div>
                         <div class="min-w-0 flex-1 pt-1">
-                            <div class="text-xl font-black text-zinc-800 leading-tight">${label}</div>
+                            <div class="text-xl font-black text-zinc-800 leading-tight">${ccEsc(label)}</div>
                             <div class="text-xs text-zinc-500 truncate">${ccEsc(hero.name)}${c.name ? ' · ' + slot : ''}</div>
                             <div class="flex flex-wrap items-center gap-1 mt-1">${pills}</div>
                         </div>
@@ -17500,7 +17551,7 @@
             const desc = slEsc(String(s.rawText||'').replace(/\s*\n\s*/g,' ').slice(0,120));
             return `<div class="bg-[#161b22] border border-gray-800 hover:border-indigo-600/60 rounded-xl p-3 flex flex-col gap-1.5 transition">
                 <div class="flex items-start justify-between gap-2">
-                    <div class="font-bold text-white text-sm flex items-center gap-2 min-w-0">${s.img?`<img src="${slEsc(s.img)}" class="w-6 h-6 rounded object-cover bg-black flex-shrink-0">`:''}<span class="truncate">${slEsc(s.name||'(ไม่มีชื่อ)')}</span>${s.isDraft?'<span class="text-[9px] bg-amber-900/50 text-amber-300 px-1.5 py-0.5 rounded-full border border-amber-700/50 flex-shrink-0">ร่าง</span>':''}</div>
+                    <div class="font-bold text-white text-sm flex items-center gap-2 min-w-0">${s.img?`<img src="${slEsc(s.img)}" class="w-8 h-8 rounded object-cover bg-black flex-shrink-0" onerror="this.style.display='none'">`:''}<span class="truncate">${slEsc(s.name||'(ไม่มีชื่อ)')}</span>${s.isDraft?'<span class="text-[9px] bg-amber-900/50 text-amber-300 px-1.5 py-0.5 rounded-full border border-amber-700/50 flex-shrink-0">ร่าง</span>':''}</div>
                     <div class="flex gap-1 flex-shrink-0">
                         <button onclick="slOpenEdit('${s.id}')" class="text-gray-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-white/10">✏️</button>
                         <button onclick="slDelete('${s.id}')" class="text-gray-500 hover:text-red-400 text-xs px-1.5 py-0.5 rounded hover:bg-red-900/20">🗑️</button>
@@ -17519,6 +17570,7 @@
                 <button onclick="slReclassifyAll()" class="bg-purple-700 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold" title="เดาหมวดใหม่ทุกรายการจากคำอธิบาย">🔄 จัดหมวด</button>
                 <button onclick="slShowAllText()" class="bg-sky-700 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">📄 ดูทั้งหมด (AI)</button>
                 <button onclick="slOpenBulk()" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">📋 วางหลายรายการ</button>
+                <label class="bg-amber-700 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer" title="เลือกรูปหลายไฟล์ — ตั้งชื่อไฟล์ให้ตรงชื่อสถานะ เช่น เผาไหม้.png">🖼️ อัปไอคอนหลายรูป<input type="file" accept="image/*" multiple class="hidden" onchange="slBulkIcons(this.files); this.value=''"></label>
                 <button onclick="slOpenEdit(null)" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">+ เพิ่ม</button>
             </div>
             <div class="px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto custom-scroll border-b border-gray-900">${catChips}</div>
@@ -17539,6 +17591,13 @@
             <div class="p-4 border-b border-gray-800 flex items-center justify-between"><h3 class="text-white font-bold">${isNew?'➕ เพิ่มสกิล/สถานะ':'✏️ แก้ไข'}</h3><button onclick="slCloseEdit()" class="text-gray-400 hover:text-white text-xl w-9 h-9 rounded-full hover:bg-white/10">✕</button></div>
             <div class="p-4 flex flex-col gap-3 overflow-y-auto custom-scroll">
                 <div><label class="text-[11px] text-gray-400 font-bold uppercase">ชื่อ</label><input id="sl-f-name" value="${slEsc(s.name)}" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-indigo-500" placeholder="เช่น จุดเยือกแข็ง, อมตะ"></div>
+                <div><label class="text-[11px] text-gray-400 font-bold uppercase">🖼️ ไอคอนสถานะ (รูปเล็กแบบในเกม)</label>
+                    <div class="flex items-center gap-2 mt-1">
+                        <img id="sl-f-img-prev" src="${slEsc(s.img || '')}" class="w-12 h-12 rounded-lg border border-gray-600 object-cover bg-black flex-shrink-0" onerror="this.src='https:\/\/placehold.co/48/161b22/666?text=Icon'">
+                        <input id="sl-f-img" value="${slEsc(s.img || '')}" onchange="document.getElementById('sl-f-img-prev').src=this.value" class="flex-1 min-w-0 font-mono text-[10px] bg-[#0d1117] border border-gray-600 text-gray-300 p-2 rounded outline-none focus:border-indigo-500" placeholder="ลิงก์รูป หรือกด 📂 อัปโหลด">
+                        <label class="bg-indigo-700 hover:bg-indigo-600 text-white px-2.5 py-2 rounded text-xs font-bold cursor-pointer flex-shrink-0">📂<input type="file" accept="image/*" class="hidden" onchange="previewImgFromFile(this,'sl-f-img-prev','sl-f-img')"></label>
+                        <button type="button" onclick="const i=document.getElementById('sl-f-img');i.value='';i.dispatchEvent(new Event('change'))" class="text-gray-500 hover:text-red-400 text-xs px-1.5" title="ลบรูป">✕</button>
+                    </div></div>
                 <div><label class="text-[11px] text-gray-400 font-bold uppercase">หมวด</label><select id="sl-f-cat" class="w-full bg-[#0d1117] border border-gray-600 text-white p-2 rounded text-sm outline-none focus:border-indigo-500">${catOpts}</select></div>
                 <div class="bg-[#0d1117] border-2 border-indigo-800/60 rounded-lg p-2.5">
                     <label class="text-[11px] text-indigo-300 font-bold uppercase">⚔️ ค่าประจำสถานะนี้ (เครื่องจำลองใช้)</label>
@@ -17589,6 +17648,12 @@
         s.rawText = document.getElementById('sl-f-raw').value || '';
         s.defVal = parseFloat((document.getElementById('sl-f-defval')||{}).value) || 0;   // ⚔️ ค่ากลางของสถานะ
         s.isDraft = document.getElementById('sl-f-draft').checked;
+        s.img = String((document.getElementById('sl-f-img')||{}).value || '').trim();
+        if (s.img.indexOf('data:image') === 0 && typeof USE_CLOUD!=='undefined' && USE_CLOUD){
+            const url = await slUploadIcon(s, s.img);
+            if (!url){ alert('❌ อัปรูปไอคอนขึ้น Drive ไม่สำเร็จ — ลองกดบันทึกอีกครั้ง' + (lastCloudError ? '\n\n' + lastCloudError : '')); return; }
+            s.img = url;
+        }
         const idx = skillLibDB.findIndex(x=>String(x.id)===String(s.id));
         const clean = Object.assign({}, s); delete clean._isNew;
         if (idx>=0) skillLibDB[idx] = clean; else skillLibDB.push(clean);
@@ -17598,6 +17663,47 @@
             const ok = await saveOneItemToCloud('skill_lib', clean);
             if (!ok) alert('❌ บันทึก "' + clean.name + '" ขึ้น server ไม่สำเร็จ (เก็บไว้ในเครื่องแล้ว)' + (lastCloudError ? ('\n\n' + lastCloudError) : ''));
         }
+    }
+    /** 🖼️ อัปไอคอนสถานะ (base64) ขึ้น Drive → คืนลิงก์ ('' = ไม่สำเร็จ) · ลองซ้ำ 1 ครั้ง */
+    async function slUploadIcon(s, dataUrl){
+        const nm = String(s.name || 'status').trim().replace(/[^\w฀-๿-]+/g, '_').slice(0, 40);
+        lastCloudError = '';
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                showLoading('📤 กำลังอัปไอคอน "' + s.name + '"...');
+                const res = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(withAuth({ action:'uploadSkillImage', fileName:'status_' + nm + '_' + s.id, fileData:dataUrl })) });
+                const r = await res.json();
+                if (r.status === 'success' && r.url) return r.url;
+                lastCloudError = r.message || r.code || '';
+            } catch(e) { lastCloudError = 'ต่อเซิร์ฟเวอร์ไม่ได้: ' + (e && e.message ? e.message : e); }
+            finally { hideLoading(); }
+        }
+        return '';
+    }
+    /** 📥 อัปไอคอนหลายรูปพร้อมกัน — ชื่อไฟล์ = ชื่อสถานะ (เช่น "เผาไหม้.png") */
+    async function slBulkIcons(files){
+        files = Array.from(files || []);
+        if (!files.length) return;
+        const byName = {}; skillLibDB.forEach(x => { if (x && x.name) byName[String(x.name).trim()] = x; });
+        const match = [], miss = [];
+        files.forEach(f => { const nm = f.name.replace(/\.[^.]+$/, '').trim(); (byName[nm] ? match.push([f, byName[nm]]) : miss.push(f.name)); });
+        if (!match.length){ alert('ไม่พบชื่อสถานะที่ตรงกับชื่อไฟล์เลย\n\nตั้งชื่อไฟล์ให้ตรงชื่อในคลัง เช่น "เผาไหม้.png"'); return; }
+        if (!confirm('จับคู่ได้ ' + match.length + ' รูป' + (miss.length ? ' · ไม่ตรงชื่อ ' + miss.length + ' รูป' : '') + '\n\nอัปขึ้น Drive แล้วบันทึกเข้าคลังเลย?')) return;
+        const cloud = typeof USE_CLOUD!=='undefined' && USE_CLOUD;
+        const done = [], fail = [];
+        for (let i = 0; i < match.length; i++) {
+            const [f, it] = match[i];
+            const dataUrl = await new Promise(ok => { const r = new FileReader(); r.onload = e => ok(e.target.result); r.onerror = () => ok(''); r.readAsDataURL(f); });
+            if (!dataUrl) { fail.push(it.name); continue; }
+            const url = cloud ? await slUploadIcon(it, dataUrl) : dataUrl;
+            if (!url) { fail.push(it.name + (lastCloudError ? ' — ' + lastCloudError : '')); continue; }
+            it.img = url; done.push(it);
+        }
+        try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch(e){}
+        let saveMsg = '';
+        if (done.length && cloud) { const c = await slCloudSaveMany(done); if (c.fail) saveMsg = '\n⚠️ บันทึกเข้าคลังบน server ไม่สำเร็จ ' + c.fail + ' รายการ'; }
+        renderSkillLibrary();
+        alert('✅ ใส่ไอคอนแล้ว ' + done.length + ' รายการ' + saveMsg + (fail.length ? '\n\n❌ อัปไม่สำเร็จ:\n' + fail.join('\n') : '') + (miss.length ? '\n\n⚠️ ไม่มีชื่อนี้ในคลัง:\n' + miss.join('\n') : ''));
     }
     async function slDelete(id){
         const s = skillLibDB.find(x=>String(x.id)===String(id)); if(!s) return;
@@ -22972,6 +23078,7 @@
                 skillKey: skillKey,
                 img: skillImg || awImg || heroImg,   // ใช้รูปสกิล ถ้าไม่มีก็ใช้รูปฮีโร่แทน
                 hasSkillImg: !!skillImg,
+                name: skillNameOf(hero, skillKey),   // 🏷️ ชื่อสกิลในเกม
                 code: (type === 'UP') ? 'S2' : (type === 'AW') ? 'AW' : 'S1',
                 text: (type === 'UP') ? 'สกิลบน' : (type === 'AW') ? '✨ Awakening' : 'สกิลล่าง'
             };
@@ -23165,7 +23272,7 @@
                             const h = heroesDB.find(x => String(x.id) === String(slot.id));
                             const awk = !!(h && slot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
                             const sv = getComboSkillView(h, type, awk);
-                            inner = `<div onclick="openSkillModal(${i}, ${planIdx})" style="width:120px;height:120px;" class="bg-[#0b0e14] border-2 border-gray-600 hover:border-yellow-500 hover:shadow-lg rounded-2xl relative cursor-pointer group overflow-hidden transition-all"><img src="${sv.img}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500"><div class="absolute top-0 left-0 bg-black/80 text-white text-[10px] px-2 py-1 rounded-br-lg font-bold border-r border-b border-gray-600">Q${i+1}</div><div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent pt-6"><div class="bg-black/60 text-white text-[13px] font-bold text-center py-2 uppercase tracking-wider w-full">${sv.text}</div></div></div>`;
+                            inner = `<div onclick="openSkillModal(${i}, ${planIdx})" style="width:120px;height:120px;" class="bg-[#0b0e14] border-2 border-gray-600 hover:border-yellow-500 hover:shadow-lg rounded-2xl relative cursor-pointer group overflow-hidden transition-all"><img src="${sv.img}" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition duration-500"><div class="absolute top-0 left-0 bg-black/80 text-white text-[10px] px-2 py-1 rounded-br-lg font-bold border-r border-b border-gray-600">Q${i+1}</div><div class="absolute bottom-0 w-full bg-gradient-to-t from-black to-transparent pt-6"><div class="bg-black/60 text-white text-[13px] font-bold text-center py-2 uppercase tracking-wider w-full">${sv.text}${sv.name ? `<div class="text-[10px] normal-case tracking-normal text-amber-200 truncate px-1">${ccEsc(sv.name)}</div>` : ''}</div></div></div>`;
                         } else { inner = `<div onclick="openSkillModal(${i}, ${planIdx})" class="w-24 h-32 border-2 border-red-500 border-dashed rounded-2xl flex items-center justify-center text-red-500 font-bold bg-black/40 cursor-pointer">Empty</div>`; }
                     } else {
                         inner = `<div onclick="openSkillModal(${i}, ${planIdx})" style="width:120px;height:120px;" class="border-2 border-dashed border-gray-700 hover:border-yellow-500 hover:bg-[#1f2937] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition group bg-black/40"><span class="text-5xl text-gray-600 group-hover:text-yellow-500 font-light mb-2 transition">+</span><span class="text-[10px] text-gray-500 group-hover:text-yellow-500 font-bold uppercase tracking-wider">Select</span><span class="absolute top-2 left-2 text-[9px] text-gray-600 font-bold">Q${i+1}</span></div>`;
@@ -23284,18 +23391,18 @@
                                     <button onclick="confirmSkillSelection('${sIdx}_DOWN')" title="สกิลล่าง (S1)"
                                         class="w-[200px] flex flex-col items-center gap-2 bg-blue-600/10 hover:bg-blue-500/25 border border-blue-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
                                         <img src="${s1v.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-blue-600/50 bg-black flex-shrink-0" onerror="this.src='https:\/\/placehold.co/90?text=%E2%96%BC'">
-                                        <div class="text-xs font-black text-blue-300">สกิลล่าง</div>
+                                        <div class="text-xs font-black text-blue-300">สกิลล่าง</div>${s1v.name ? `<div class="text-[11px] text-gray-300 text-center leading-tight">${ccEsc(s1v.name)}</div>` : ''}
                                     </button>
                                     <button onclick="confirmSkillSelection('${sIdx}_UP')" title="สกิลบน (S2)"
                                         class="w-[200px] flex flex-col items-center gap-2 bg-yellow-600/10 hover:bg-yellow-500/25 border border-yellow-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
                                         <img src="${s2v.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-yellow-600/50 bg-black flex-shrink-0" onerror="this.src='https:\/\/placehold.co/90?text=%E2%96%B2'">
-                                        <div class="text-xs font-black text-yellow-400">สกิลบน</div>
+                                        <div class="text-xs font-black text-yellow-400">สกิลบน</div>${s2v.name ? `<div class="text-[11px] text-gray-300 text-center leading-tight">${ccEsc(s2v.name)}</div>` : ''}
                                     </button>
                                     ${awAvail ? `
                                     <button onclick="confirmSkillSelection('${sIdx}_AW')" title="Awakening (ปลุกพลัง ✨)"
                                         class="w-[200px] flex flex-col items-center gap-2 bg-purple-600/10 hover:bg-purple-500/25 border border-purple-600/40 py-3 px-2 rounded-xl transition-all active:scale-95 shadow-sm">
                                         <img src="${awv.img}" class="w-[90px] h-[90px] rounded-lg object-cover border border-purple-600/50 bg-black flex-shrink-0" onerror="this.src='https:\/\/placehold.co/90?text=%E2%9C%A8'">
-                                        <div class="text-xs font-black text-purple-300">✨ ปลุกพลัง</div>
+                                        <div class="text-xs font-black text-purple-300">✨ ปลุกพลัง</div>${awv.name ? `<div class="text-[11px] text-gray-300 text-center leading-tight">${ccEsc(awv.name)}</div>` : ''}
                                     </button>` : ''}
                                 </div>
                             </div>
@@ -24493,7 +24600,7 @@
                 const effects = Array.isArray(c.effects) ? c.effects : [];
                 if (!scales.length && !effects.length) return null;
                 return {
-                    key, label,
+                    key, label: c.name ? `${String(c.name).trim()} (${label})` : label,   // 🏷️ log แสดงชื่อสกิลในเกม
                     scales, effects,
                     hits: Math.max(1, parseInt(c.hits) || 1),
                     // ⚔️ จำนวนศัตรูที่ "ดาเมจ" ลง — อัปตามระดับดาวได้
@@ -27077,7 +27184,7 @@
                         <div onmouseenter="hbTip(event,'${k}')" onmousemove="hbTipMove(event)" onmouseleave="hbTipHide()" class="w-full aspect-square rounded-lg border-2 ${up?'border-green-500':'border-gray-600'} hover:border-purple-400 bg-black overflow-hidden flex items-center justify-center transition cursor-help">
                             ${img ? `<img src="${img}" class="w-full h-full object-cover pointer-events-none" onerror="this.style.visibility='hidden'">` : `<span class="text-[9px] text-gray-500 font-bold text-center leading-tight px-0.5">${label}</span>`}
                         </div>
-                        <span class="text-[9px] ${up?'text-green-400 font-bold':'text-gray-400'} text-center leading-tight">${label}</span>
+                        <span class="text-[9px] ${up?'text-green-400 font-bold':'text-gray-400'} text-center leading-tight break-words w-full" title="${label}">${skillNameOf(hero, k) ? ccEsc(skillNameOf(hero, k)) : label}</span>
                     </div>`;
                 }).join('');
                 skillsPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4">
@@ -27277,7 +27384,7 @@
             const desc = String(raw).trim() ? raw : '<span class="text-gray-500 italic">ไม่มีคำอธิบาย</span>';
             tip.innerHTML =
                 `<div class="flex items-center gap-1.5 mb-1.5 pb-1.5 border-b border-gray-700">
-                    <span class="text-purple-300 font-black text-xs">⚡ ${HB_SKILL_LABELS[k] || k}</span>
+                    <span class="text-purple-300 font-black text-xs">⚡ ${skillNameOf(hero, k) ? ccEsc(skillNameOf(hero, k)) + ' <span class="text-gray-500 font-normal">· ' + (HB_SKILL_LABELS[k] || k) + '</span>' : (HB_SKILL_LABELS[k] || k)}</span>
                     ${up ? '<span class="text-[9px] bg-green-600/30 text-green-300 border border-green-600/50 px-1.5 py-0.5 rounded-full font-bold">▲ อัพแล้ว</span>' : '<span class="text-[9px] bg-gray-700/50 text-gray-400 px-1.5 py-0.5 rounded-full">ยังไม่อัพ</span>'}
                 </div>
                 <div class="text-[11px] text-gray-200 leading-relaxed whitespace-pre-line break-words">${desc}</div>
@@ -29288,7 +29395,7 @@
                     ? '<img src="' + img + '" alt="" style="width:80px;height:80px;border-radius:10px;object-fit:cover;border:2px solid #a855f7;box-shadow:0 0 8px rgba(168,85,247,0.6);">'
                     : '<div style="width:80px;height:80px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;border:2px solid #a855f7;color:#e9d5ff;background:#1f2937;box-shadow:0 0 8px rgba(168,85,247,0.6);">' + f.label + '</div>';
                 return '<div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;" title="แนะนำอัพสกิล ' + f.label + '">' +
-                    imgEl +
+                    imgEl + (skillNameOf(hero, f.key) ? '<div style="max-width:80px;font-size:10px;line-height:1.2;text-align:center;color:#fde68a;word-break:break-word;">' + ccEsc(skillNameOf(hero, f.key)) + '</div>' : '') +
                     '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:16px;height:16px;font-size: 14px;line-height:16px;text-align:center;">⬆</span>' +
                     '</div>';
             }).join('');
@@ -29629,7 +29736,7 @@
                                                     const sv = getComboSkillView(h, type, sqAwk);
                                                     // ✨ Awakening ในหน้า Share: คงรูปไอคอนไว้ แต่เปลี่ยน "ชื่อสกิล" ใต้รูปเป็น "AW"
                                                     const sqLabel = (type === 'AW') ? 'AW' : sv.text;
-                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0"><div class="w-[70px] h-[70px] rounded-lg border ${(sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sqLabel}</div></div>`;
+                                                    return `<div class="flex flex-col items-center mx-0.5 shrink-0" style="width:70px" title="${ccEsc(sv.name || sv.text)}"><div class="w-[70px] h-[70px] rounded-lg border ${(sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600'} bg-black overflow-hidden"><img src="${sv.img}" class="w-full h-full object-cover"></div><div class="text-[14px] font-bold ${typeClass} px-1 rounded w-full text-center mt-1">${sqLabel}</div>${sv.name ? `<div class="text-[10px] text-gray-300 text-center leading-tight mt-0.5 break-words w-full">${ccEsc(sv.name)}</div>` : ''}</div>`;
                                                 }).filter(Boolean).join('<div class="text-gray-600 pt-6 shrink-0">➜</div>');
                                                 return cells || '<span class="text-gray-500 text-xs">No Data</span>';
                                             };
@@ -32782,7 +32889,7 @@
                 : '<div style="width:80px;height:80px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;' + (on ? onCss : offCss) + '">' + f.l + '</div>';
             return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="position:relative;">' + inner +
                 (on ? '<span style="position:absolute;top:-5px;right:-3px;background:#a855f7;color:#fff;border-radius:50%;width:15px;height:15px;font-size: 14px;line-height:15px;text-align:center;">⬆</span>' : '') +
-                '</div></div>';
+                '</div>' + (skillNameOf(hero, f.k) ? '<div style="max-width:80px;font-size:10px;line-height:1.2;text-align:center;color:#fde68a;word-break:break-word;">' + ccEsc(skillNameOf(hero, f.k)) + '</div>' : '') + '</div>';
         }).join('');
         return '<div class="rcm-ring-section"><div class="text-[11px] font-bold text-purple-400 uppercase tracking-wider mb-2">⚡ สกิลแนะนำให้อัพ ' +
             (anyOn ? '<span class="text-gray-500 normal-case">(แนะนำ — ไม่บังคับ)</span>' : '<span class="text-gray-500 normal-case">(ไม่มี — ไม่ต้องอัพ)</span>') +
@@ -33215,7 +33322,7 @@
                 ' onclick="update3v3HeroSkillFlag(' + slotIdx + ', \'' + f.key + '\', ' + (!on) + ')"' +
                 ' oncontextmenu="event.preventDefault(); update3v3HeroSkillFlag(' + slotIdx + ', \'' + f.key + '\', ' + (!on) + '); return false;"' +
                 ' title="' + (on ? '\u0e41\u0e19\u0e30\u0e19\u0e33\u0e2d\u0e31\u0e1e ' + f.label + ' (\u0e04\u0e25\u0e34\u0e01\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01)' : '\u0e04\u0e25\u0e34\u0e01/\u0e04\u0e25\u0e34\u0e01\u0e02\u0e27\u0e32 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e41\u0e19\u0e30\u0e19\u0e33\u0e2d\u0e31\u0e1e ' + f.label) + '">' +
-                imgEl +
+                imgEl + (skillNameOf(hero, f.key) ? '<div style="max-width:80px;font-size:10px;line-height:1.2;text-align:center;color:#fde68a;word-break:break-word;">' + ccEsc(skillNameOf(hero, f.key)) + '</div>' : '') +
                 (on ? '<span style="position:absolute;top:-5px;right:-2px;background:#a855f7;color:#fff;border-radius:50%;width:15px;height:15px;font-size: 14px;line-height:15px;text-align:center;">\u2b06</span>' : '') +
                 '</div>';
         }).join('');
@@ -34568,7 +34675,8 @@
             const typeClass = type === 'UP' ? 'text-yellow-400 bg-yellow-900/30' : (type === 'AW' ? 'text-purple-300 bg-purple-900/30' : 'text-cyan-300 bg-cyan-900/30');
             const sqAwk = !!(h && targetSlot.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
             const sv = getComboSkillView(h, type, sqAwk);
-            return '<div class="roster-skill-cell flex flex-col items-center"><div class="rounded-lg border ' + ((sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + sv.img + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + sv.text + '</div></div>';
+            return '<div class="roster-skill-cell flex flex-col items-center" title="' + ccEsc(sv.name || sv.text) + '"><div class="rounded-lg border ' + ((sqAwk || type === 'AW') ? 'border-purple-500' : 'border-gray-600') + ' bg-black overflow-hidden" style="width:84px;height:84px;"><img src="' + sv.img + '" class="w-full h-full object-cover"></div><div class="text-sm font-bold ' + typeClass + ' px-1 rounded w-full text-center mt-1">' + sv.text + '</div>' +
+                (sv.name ? '<div class="text-[11px] text-gray-300 text-center leading-tight mt-0.5 break-words" style="max-width:84px">' + ccEsc(sv.name) + '</div>' : '') + '</div>';
         }).filter(Boolean);
         const skillAlts = (Array.isArray(team.skillQueueAlts) ? team.skillQueueAlts : []).filter(p => Array.isArray(p) && p.some(Boolean));
         let skillHtml;
