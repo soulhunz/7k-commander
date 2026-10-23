@@ -2877,6 +2877,33 @@
         .hb-ro select { appearance: none; -webkit-appearance: none; }
         .hb-ro button:disabled { opacity: 1; }
         .hb-ro .hb-edit-only { display: none !important; }
+        /* 🎴 หน้าต่างสกิลแบบในเกม (หน้าแชร์บิ้ว) */
+        .gsk-card { background: #fbfaf7; border-radius: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.55); color: #3f3f46; }
+        .gsk-ico { position: relative; width: 84px; height: 84px; border-radius: 14px; overflow: hidden; background: #111; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+        .gsk-ico.aw { outline: 3px solid #8b5cf6; outline-offset: -3px; }
+        .gsk-badge { width: 38px; height: 38px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #fff; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.12), inset 0 -3px 0 rgba(0,0,0,.18); flex-shrink: 0; }
+        .gsk-badge.p { background: linear-gradient(#d78aa5, #b6587b); }
+        .gsk-badge.a { background: linear-gradient(#8aa6db, #5a76b8); }
+        .gsk-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 12px 2px 6px; border-radius: 9999px; font-weight: 800; font-size: 15px; }
+        .gsk-pill.cd { background: transparent; color: #27272a; }
+        .gsk-pill.gauge { background: linear-gradient(90deg, #6d5ab8, #8f7fd0); color: #fff; }
+        .gsk-body { background: #d4d0ca; border-radius: 14px; padding: 10px 12px 12px; font-size: 14.5px; line-height: 1.6; color: #5b5b63; white-space: pre-wrap; }
+        .gsk-body .text-orange { color: #e0701c !important; font-weight: 600; }
+        .gsk-body .text-blue { color: #6a54c9 !important; font-weight: 600; }
+        .gsk-body .text-red { color: #c2415b !important; font-weight: 600; }
+        .gsk-body .gsk-head { display: flex; align-items: center; gap: 6px; background: #f5f1ec; border-radius: 8px; padding: 3px 10px; margin: 2px 0 6px; font-weight: 700; font-size: 15px; white-space: normal; }
+        .gsk-body .gsk-head.enemy { color: #c2415b !important; }
+        .gsk-body .gsk-head.ally { color: #2f6fa8 !important; }
+        .gsk-body .sb-green, .gsk-body .sb-purple { margin-top: 10px; border-radius: 10px; box-shadow: none; white-space: normal; }
+        .gsk-body .sb-green { background: #dcf0e6; border: 0; }
+        .gsk-body .sb-green .sb-head { background: #5aa98f; text-transform: none; font-size: 15px; border-radius: 8px; margin: 6px; padding: 3px 10px; }
+        .gsk-body .sb-green .sb-content { color: #1f5f4c; font-weight: 600; white-space: pre-wrap; }
+        .gsk-body .sb-purple { background: #efe4fb; border: 0; }
+        .gsk-body .sb-purple .sb-head { background: #8a55b5; text-transform: none; font-size: 15px; border-radius: 8px; margin: 6px; padding: 3px 10px; }
+        .gsk-body .sb-purple .sb-content { color: #4a2c6e; font-weight: 600; white-space: pre-wrap; }
+        .gsk-st { background: #fbfaf7; border-radius: 16px; padding: 10px 12px; box-shadow: 0 6px 18px rgba(0,0,0,.35); color: #52525b; }
+        .gsk-st .nm { color: #5b49c1; font-weight: 800; font-size: 15px; }
+        .gsk-st .tx { font-size: 13.5px; line-height: 1.55; white-space: pre-line; border-top: 1px solid #d4d4d8; margin-top: 6px; padding-top: 6px; }
     </style>
 </head>
 <body class="flex" onclick="rosterGlobalPointerDismiss(event)">
@@ -10809,6 +10836,8 @@
                         class="w-full bg-[#0d1117] border border-gray-600 text-white pl-9 pr-3 py-2 rounded-xl text-xs outline-none focus:border-blue-500">
                 </div>
                 ${chips}
+                ${isHero ? `<button onclick="openSkillJsonBulk()" title="เลือกไฟล์ JSON สกิลหลายไฟล์ (หรือไฟล์รวม) → อัปขึ้น server ทีเดียวทุกตัว"
+                    class="w-full mt-2 bg-indigo-700/40 hover:bg-indigo-600/60 text-indigo-100 px-3 py-2 rounded-xl text-[11px] font-bold border border-indigo-600/60 transition text-left">📦 นำเข้า JSON สกิลหลายตัวพร้อมกัน</button>` : ''}
                 ${(function () {
                     const n = dbAll.filter(x => managerBase64Count(currentView, x) > 0).length;
                     if (!n) return '';
@@ -11659,6 +11688,7 @@
                         img2: normalizeDriveImg(document.getElementById(`conf-${k}-img2`)?.value || ''), // ✨ ไอคอนหลังปลุกพลัง (ว่าง = ใช้ img)
                         // ⏳ คูลดาวน์ (เทิร์น) — ใช้ในเครื่องจำลองการต่อสู้ 0 = กดได้ทุกเทิร์น
                         cooldown: parseInt(document.getElementById(`conf-${k}-cd`)?.value) || 0,
+                        name: (document.getElementById(`conf-${k}-name`)?.value || '').trim(),   // 🏷️ ชื่อสกิลในเกม
                         effects: []
                     };
 
@@ -12288,6 +12318,10 @@
                         </div>
                     </div>
                     <div class="p-4 bg-[#111827]">
+                        <label class="flex items-center gap-2 mb-3 bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-2">
+                            <span class="text-[10px] text-cyan-400 font-bold uppercase whitespace-nowrap">🏷️ ชื่อสกิล</span>
+                            <input type="text" id="conf-${key}-name" value="${String((config[key] && config[key].name) || '').replace(/"/g, '&quot;')}" placeholder="เช่น กระบวนดาบอนันต์" class="flex-1 min-w-0 bg-transparent text-sm text-white font-bold outline-none">
+                        </label>
                         ${renderSkillIconBox(key, config[key])}
                         <textarea id="${id}-base" oncontextmenu="openTextContextMenu(event, this)" class="builder-textarea w-full h-[180px] bg-[#0d1117] border border-gray-600 rounded-md p-3 text-sm text-white mb-3 focus:border-blue-500 transition" placeholder="คำอธิบาย...">${val.base}</textarea>
                         ${renderConfigBox(key, config[key])}
@@ -14278,7 +14312,6 @@
                                 ${hero && hero.attackType ? `<span class="text-[11px] font-bold ${hero.attackType === 'magic' ? 'text-purple-300' : 'text-orange-300'}">${hero.attackType === 'magic' ? '🔮 โจมตีเวท' : '⚔️ โจมตีกายภาพ'}</span>` : ''}
                             </div>
                         </div>
-                        ${hbvSkillIcons(hero, d)}
                         <button type="button" onclick="hbvEditCopy(${b === hbvShared ? -1 : hbvOpenId})" title="คัดลอกบิ้วนี้ไปปรับต่อในหน้าสร้างบิ้วของคุณ (เก็บในเครื่องนี้)"
                             class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️<span class="hidden sm:inline"> เอาไปปรับต่อ</span></button>
                         <button type="button" onclick="hbvClose()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
@@ -14296,37 +14329,75 @@
             const cells = HBV_SKILL_LIST.filter(([k]) => k !== 'aw' || awk).map(([k, label]) => {
                 const img = skillIconOf(hero, k, awk);
                 const cd = hero.skillData && hero.skillData[k] && hero.skillData[k].cooldown;
-                return `<button type="button" onclick="hbvShowSkill('${String(hero.id).replace(/'/g, "\\'")}','${k}',${awk ? 1 : 0})" title="${label}${cd ? ' · ⏱ ' + cd : ''} — กดเพื่อดูคำอธิบาย"
+                return `<button type="button" onclick="hbvShowSkill('${String(hero.id).replace(/'/g, "\\'")}','${k}',${awk ? 1 : 0})" title="${((hero.skillData && hero.skillData[k] && hero.skillData[k].name) ? hero.skillData[k].name + ' · ' : '') + label}${cd ? ' · ⏱ ' + cd : ''} — กดเพื่อดูคำอธิบาย"
                     class="relative w-11 h-11 rounded-lg border-2 ${k === 'aw' ? 'border-purple-500' : 'border-gray-600'} hover:border-emerald-400 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center transition">
                     ${img ? `<img src="${img}" class="w-full h-full object-cover pointer-events-none" onerror="this.style.visibility='hidden'">` : `<span class="text-[9px] text-gray-400 font-bold">${k.toUpperCase()}</span>`}
                     ${cd ? `<span class="absolute bottom-0 inset-x-0 bg-black/70 text-[8px] text-amber-300 font-mono leading-tight text-center">⏱${cd}</span>` : ''}
                 </button>`;
             }).join('');
-            return `<div class="flex items-center gap-1.5 order-last sm:order-none w-full sm:w-auto justify-center sm:justify-end">${cells}</div>`;
+            return `<div class="flex flex-wrap items-center gap-1.5">${cells}</div>`;
         }
         /** หน้าต่างคำอธิบายสกิล (เปิดทับป๊อปอัปบิ้ว) */
+        /** สถานะที่สกิลใบนี้ใช้ → รายการจากคลังสกิล (ชื่อ + คำอธิบาย) ไม่ซ้ำ */
+        function hbvSkillStatuses(c) {
+            const lib = Array.isArray(skillLibDB) ? skillLibDB : [];
+            const seen = new Set(), out = [];
+            ((c && c.effects) || []).forEach(eff => {
+                if (!eff) return;
+                let it = eff.libId ? lib.find(x => String(x.id) === String(eff.libId)) : null;
+                if (!it) { const nm = String(eff.lib || eff.name || '').trim(); it = lib.find(x => String(x.name || '').trim() === nm) || null; }
+                if (!it || seen.has(String(it.id))) return;
+                seen.add(String(it.id));
+                out.push({ it, locked: !!eff.locked });
+            });
+            return out;
+        }
+        /** ข้อความสกิล → แบบในเกม: บรรทัดที่เป็นหัวข้อเป้าหมาย (ศัตรู…/ตนเอง/พันธมิตร…) กลายเป็นแถบหัวข้อ · ดึงเกจปลุกพลังออกไปเป็นป้าย */
+        function hbvGameSkillText(raw) {
+            let gauge = '';
+            let t = String(raw || '').replace(/\n?\s*\(เกจปลุกพลัง\s*([\d\s/]+)\)\s*/, (m, g) => { gauge = g.trim(); return ''; });
+            t = t.replace(/(^|\n)\s*<span class="text-(red|blue)">([^<]+)<\/span>\s*(?=\n|$)/g, (m, pre, col, label) => {
+                const enemy = col === 'red' || /^ศัตรู/.test(label);
+                if (!enemy && !/^(ตนเอง|พันธมิตร)/.test(label.trim())) return m;   // คำในประโยค ไม่ใช่หัวข้อ
+                return pre + `<div class="gsk-head ${enemy ? 'enemy' : 'ally'}">${enemy ? '☠️' : '👤'} ${label}</div>`;
+            });
+            return { html: t.replace(/<\/div>\n/g, '</div>'), gauge };
+        }
         function hbvShowSkill(heroId, k, awk) {
             const hero = heroesDB.find(x => String(x.id) === String(heroId)); if (!hero) return;
-            const label = (HBV_SKILL_LIST.find(x => x[0] === k) || [k, k])[1];
+            const slot = (HBV_SKILL_LIST.find(x => x[0] === k) || [k, k])[1];
             const c = (hero.skillData && hero.skillData[k]) || {};
-            const txt = String((hero.skills && hero.skills[k]) || '').trim();
+            const label = c.name || slot;   // 🏷️ ชื่อสกิลในเกม (ไม่มี = ชื่อช่อง)
             const img = skillIconOf(hero, k, !!awk);
-            const tag = k === 'aw' ? (c.awType === 'passive' ? '<span class="text-[10px] text-sky-300 font-bold">🛡️ พาสซีฟปลุกพลัง</span>' : '<span class="text-[10px] text-purple-300 font-bold">⚡ กดใช้ 1 ครั้งต่อการต่อสู้</span>') : '';
+            const g = hbvGameSkillText((hero.skills && hero.skills[k]) || '');
+            const passive = k === 'p' || (k === 'aw' && c.awType === 'passive');
+            const badge = k === 'n' ? '' : `<span class="gsk-badge ${passive ? 'p' : 'a'}">${passive ? 'P' : 'A'}</span>`;
+            const pills = (c.cooldown ? `<span class="gsk-pill cd">⏱ ${c.cooldown}</span>` : '') + (g.gauge ? `<span class="gsk-pill gauge">💠 ${g.gauge}</span>` : '');
+            const sts = hbvSkillStatuses(c);
+            const stHtml = sts.map(({ it, locked }) => `<div class="gsk-st">
+                    <div class="nm">${ccEsc(it.name)}${locked ? ' <span title="ล้าง/ลดเทิร์นไม่ได้">🔒</span>' : ''}</div>
+                    <div class="tx">${ccEsc(it.rawText || '— ยังไม่มีคำอธิบาย —')}</div>
+                </div>`).join('');
+            const box = document.getElementById('hb-viewer') || document.body;
             let m = document.getElementById('hbv-skill-dlg');
-            if (!m) { m = document.createElement('div'); m.id = 'hbv-skill-dlg'; document.body.appendChild(m); }
-            m.className = 'fixed inset-0 z-[200] bg-black/70 flex items-center justify-center p-4';
-            m.onclick = ev => { if (ev.target === m) m.style.display = 'none'; };
-            m.innerHTML = `<div class="bg-[#111827] border border-purple-700/50 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
-                <div class="flex items-center gap-3 p-4 border-b border-gray-800">
-                    <div class="w-14 h-14 rounded-xl border-2 border-gray-600 bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">${img ? `<img src="${img}" class="w-full h-full object-cover">` : `<span class="text-xs text-gray-500 font-bold">${k.toUpperCase()}</span>`}</div>
-                    <div class="min-w-0 flex-1">
-                        <div class="text-xs text-gray-400">${ccEsc(hero.name)}</div>
-                        <div class="text-base font-black text-white">${label}${c.cooldown ? ` <span class="text-xs text-amber-300 font-mono">⏱ ${c.cooldown}</span>` : ''}</div>
-                        ${tag}
+            if (!m || m.parentNode !== box) { if (m) m.remove(); m = document.createElement('div'); m.id = 'hbv-skill-dlg'; box.appendChild(m); }
+            m.className = 'fixed inset-0 z-[200] bg-black/70 flex items-start md:items-center justify-center p-3 sm:p-5 overflow-y-auto';
+            m.onclick = ev => { if (ev.target === m || ev.target.dataset.close) m.style.display = 'none'; };
+            m.innerHTML = `<div data-close="1" class="w-full max-w-5xl flex flex-col md:flex-row-reverse items-stretch md:items-start gap-4 my-auto">
+                <div class="gsk-card flex-1 min-w-0 p-4">
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="gsk-ico ${k === 'aw' ? 'aw' : ''}">${img ? `<img src="${img}" class="w-full h-full object-cover">` : `<span class="text-xs text-gray-400 font-bold flex items-center justify-center h-full">${k.toUpperCase()}</span>`}</div>
+                        <div class="min-w-0 flex-1 pt-1">
+                            <div class="text-xl font-black text-zinc-800 leading-tight">${label}</div>
+                            <div class="text-xs text-zinc-500 truncate">${ccEsc(hero.name)}${c.name ? ' · ' + slot : ''}</div>
+                            <div class="flex flex-wrap items-center gap-1 mt-1">${pills}</div>
+                        </div>
+                        ${badge}
+                        <button type="button" onclick="document.getElementById('hbv-skill-dlg').style.display='none'" class="w-9 h-9 rounded-full bg-zinc-200 hover:bg-red-500 text-zinc-600 hover:text-white font-bold flex-shrink-0">✕</button>
                     </div>
-                    <button type="button" onclick="document.getElementById('hbv-skill-dlg').style.display='none'" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
+                    <div class="gsk-body max-h-[60vh] overflow-y-auto custom-scroll">${g.html.trim() || '<span class="italic text-zinc-500">ยังไม่มีคำอธิบายสกิล</span>'}</div>
                 </div>
-                <div class="skill-display p-4 overflow-y-auto custom-scroll text-sm">${txt || '<span class="text-gray-500 italic">ยังไม่มีคำอธิบายสกิล</span>'}</div>
+                ${sts.length ? `<div class="md:w-[340px] flex-shrink-0 space-y-3 md:max-h-[85vh] md:overflow-y-auto custom-scroll">${stHtml}</div>` : ''}
             </div>`;
             m.style.display = 'flex';
         }
@@ -14415,7 +14486,7 @@
             }).join('');
 
             return `<div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}</div>
+                <div class="lg:col-span-3 flex flex-col gap-4">${statsCard}${hero ? card(`<div class="text-sm font-black text-purple-300 mb-2">⚡ สกิล <span class="text-[10px] text-gray-500 font-normal">(กดรูปเพื่อดูคำอธิบาย)</span></div>${hbvSkillIcons(hero, d)}`, 'border-purple-800/40') : ''}</div>
                 <div class="lg:col-span-4 flex flex-col gap-4">${relicCard}${extrasCard}</div>
                 <div class="lg:col-span-5 flex flex-col gap-4">${setCard}<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${pieces}</div></div>
             </div>`;
@@ -27359,6 +27430,123 @@
             out.innerHTML = html;
             return r;
         }
+        /** JSON สกิล 1 ตัว → { skills, skillData } · keep(k) คืนค่าเดิมของช่องนั้น (รูป/ชื่อ) */
+        function skjBuild(j, keys, lib, keep) {
+            const num = v => parseFloat(v) || 0, int = v => parseInt(v) || 0;
+            const out = { skills: {}, skillData: {} };
+            keys.forEach(k => {
+                const s = j.skills[k], old = keep(k) || {};
+                let html = s.text || '';
+                if (s.green) html += `<div class="sb-green"><div class="sb-head">⬆️ ผลอัปเกรดสกิล</div><div class="sb-content">${s.green}</div></div>`;
+                if (s.c2) html += `<div class="sb-purple"><div class="sb-head">⭐ ผลข้ามขีดจำกัด 2</div><div class="sb-content">${s.c2}</div></div>`;
+                if (s.c6) html += `<div class="sb-purple"><div class="sb-head">⭐ ผลข้ามขีดจำกัด 6</div><div class="sb-content">${s.c6}</div></div>`;
+                out.skills[k] = html;
+                const scales = (s.scales || []).map(x => ({ scale: x.scale || 'atk', percent: num(x.percent), greenPercent: num(x.greenPercent) }));
+                out.skillData[k] = {
+                    scales, scale: scales[0] ? scales[0].scale : 'atk', percent: scales[0] ? scales[0].percent : 0, greenPercent: scales[0] ? scales[0].greenPercent : 0,
+                    targets: int(s.targets) || (k === 'p' ? 0 : 1), hits: int(s.hits) || 1,
+                    targets_up: int(s.targets_up), targets_c2: int(s.targets_c2), targets_c6: int(s.targets_c6),
+                    hits_up: int(s.hits_up), hits_c2: int(s.hits_c2), hits_c6: int(s.hits_c6),
+                    cooldown: int(s.cooldown),
+                    name: s.name || old.name || '',
+                    awType: k === 'aw' ? (s.awType === 'passive' ? 'passive' : 'active') : undefined,
+                    img: old.img || '', img2: old.img2 || '',
+                    effects: (s.effects || []).map(e => {
+                        const L = e.lib ? lib[String(e.lib).trim()] : null;
+                        return Object.assign({ rate: 100 }, e, { libId: L ? L.id : (e.libId || ''), name: e.name || (L && L.name) || '', type: e.type || (L && L.category) || 'special' });
+                    })
+                };
+            });
+            return out;
+        }
+        /** สถานะใหม่จาก JSON → คลังสกิล (ชื่อซ้ำ = ใช้ของเดิม) · คืนรายการที่เพิ่ม */
+        function skjAddStatuses(statuses, lib) {
+            const added = [];
+            (statuses || []).forEach(s => {
+                const name = String(s && s.name || '').trim();
+                if (!name || lib[name]) return;
+                const it = { id: slNewId(), name, category: s.category || slGuessCat(name + ' ' + (s.rawText || '')), rawText: s.rawText || '', defVal: parseFloat(s.defVal) || 0, isDraft: false };
+                skillLibDB.push(it); lib[name] = it; added.push(it);
+            });
+            if (added.length) { try { localStorage.setItem('7k_skill_lib', JSON.stringify(skillLibDB)); } catch (e) {} }
+            return added;
+        }
+
+        // 📦 นำเข้าหลายตัวพร้อมกัน — เลือกหลายไฟล์ หรือไฟล์รวม (array) → อัปขึ้น server ทีละตัว
+        let skjBulkItems = [];
+        function openSkillJsonBulk(){
+            let m = document.getElementById('skj-bulk');
+            if (!m) { m = document.createElement('div'); m.id = 'skj-bulk'; m.className = 'fixed inset-0 z-[520] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4'; document.body.appendChild(m); }
+            skjBulkItems = [];
+            m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+                <div class="p-4 border-b border-gray-800 flex items-center justify-between"><h3 class="text-white font-bold">📦 นำเข้า JSON สกิลหลายตัวพร้อมกัน</h3><button onclick="document.getElementById('skj-bulk').style.display='none'" class="text-gray-400 hover:text-white text-xl w-9 h-9 rounded-full hover:bg-white/10">✕</button></div>
+                <div class="p-4 flex flex-col gap-3 overflow-y-auto custom-scroll">
+                    <div class="text-xs text-gray-400 leading-relaxed">เลือกไฟล์ <b class="text-white">*_skills.json</b> ได้หลายไฟล์พร้อมกัน (หรือไฟล์รวมที่เป็นรายการ) · จับคู่ฮีโร่จาก<b class="text-white">ชื่อ</b> · รูปไอคอนเดิมคงไว้ · สกิลช่องที่ไม่มีในไฟล์ไม่ถูกแตะ</div>
+                    <label class="block"><input type="file" accept=".json,application/json" multiple onchange="skjBulkRead(this.files)" class="hidden">
+                        <span class="block text-center bg-indigo-700/40 hover:bg-indigo-600/60 text-indigo-100 px-3 py-3 rounded-xl text-sm font-bold border border-indigo-600/60 cursor-pointer">📂 เลือกไฟล์ JSON</span></label>
+                    <div id="skj-bulk-list" class="text-xs text-gray-300 space-y-1"></div>
+                </div>
+                <div class="p-4 border-t border-gray-800 flex justify-end gap-2">
+                    <button onclick="document.getElementById('skj-bulk').style.display='none'" class="px-4 py-2 rounded-lg text-xs font-bold bg-gray-700 hover:bg-gray-600 text-white">ปิด</button>
+                    <button id="skj-bulk-go" onclick="skjBulkUpload()" disabled class="px-5 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40">☁️ อัปขึ้น server ทั้งหมด</button>
+                </div>
+            </div>`;
+            m.style.display = 'flex';
+        }
+        async function skjBulkRead(files){
+            skjBulkItems = [];
+            const bad = [];
+            for (const f of Array.from(files || [])) {
+                try {
+                    const j = JSON.parse(await f.text());
+                    (Array.isArray(j) ? j : [j]).forEach(x => { if (x && x.skills && x.hero) skjBulkItems.push(x); else bad.push(f.name); });
+                } catch (e) { bad.push(f.name + ' (อ่านไม่ได้)'); }
+            }
+            const list = document.getElementById('skj-bulk-list');
+            const rows = skjBulkItems.map(x => {
+                const hero = heroesDB.find(hh => String(hh.name).trim() === String(x.hero).trim());
+                x._hero = hero || null;
+                const n = SKJ_KEYS.filter(k => x.skills[k]).length;
+                return `<div class="flex items-center gap-2 bg-black/20 border border-gray-800 rounded px-2 py-1">${hero ? '✅' : '❌'} <b class="text-white">${slEsc(x.hero)}</b> <span class="text-gray-500">· สกิล ${n} ช่อง · สถานะ ${(x.statuses || []).length}</span>${hero ? '' : ' <span class="text-red-400 ml-auto">ไม่พบชื่อนี้ในฐานข้อมูล</span>'}</div>`;
+            }).join('');
+            const ok = skjBulkItems.filter(x => x._hero).length;
+            list.innerHTML = `<div class="font-bold text-emerald-300 mb-1">พบ ${skjBulkItems.length} ตัว · อัปได้ ${ok} ตัว</div>${rows}${bad.length ? '<div class="text-amber-400 mt-1">ข้ามไฟล์: ' + slEsc(bad.join(', ')) + '</div>' : ''}`;
+            document.getElementById('skj-bulk-go').disabled = !ok;
+        }
+        async function skjBulkUpload(){
+            const items = skjBulkItems.filter(x => x._hero);
+            if (!items.length) return;
+            if (!confirm('อัปสกิล ' + items.length + ' ตัวขึ้น server?\n\nสกิลช่องที่มีในไฟล์จะแทนที่ของเดิม (รูปไอคอนเดิมคงไว้)')) return;
+            const lib = skjLibByName();
+            const added = [];
+            items.forEach(x => added.push.apply(added, skjAddStatuses(x.statuses, lib)));
+            const results = [];
+            if (added.length && typeof USE_CLOUD !== 'undefined' && USE_CLOUD) {
+                const c = await slCloudSaveMany(added);
+                results.push('📚 สถานะใหม่เข้าคลัง ' + added.length + ' อัน' + (c.fail ? ' (ขึ้น server ไม่สำเร็จ ' + c.fail + ')' : ''));
+            }
+            let ok = 0; const fail = [];
+            for (let i = 0; i < items.length; i++) {
+                const x = items[i], hero = x._hero;
+                showLoading(`☁️ กำลังอัปสกิล ${i + 1}/${items.length} · ${hero.name}`);
+                const keys = SKJ_KEYS.filter(k => x.skills[k]);
+                const b = skjBuild(x, keys, lib, k => hero.skillData && hero.skillData[k]);
+                const item = JSON.parse(JSON.stringify(hero));
+                item.skills = Object.assign({}, item.skills || {}, b.skills);
+                item.skillData = Object.assign({}, item.skillData || {}, b.skillData);
+                const prob = heroSaveProblems(item);
+                if (prob) { fail.push(hero.name + ' — ' + prob); continue; }
+                let saved = false;
+                try { saved = await saveOneItemToCloud('heroes', item); } catch (e) {}
+                if (saved) { Object.assign(hero, { skills: item.skills, skillData: item.skillData }); ok++; }
+                else fail.push(hero.name + (lastCloudError ? ' — ' + lastCloudError : ''));
+            }
+            hideLoading();
+            try { if (typeof persistMainDataCache === 'function') persistMainDataCache(); } catch (e) {}
+            document.getElementById('skj-bulk').style.display = 'none';
+            if (typeof renderManagerUI === 'function') renderManagerUI();
+            alert('✅ อัปสกิลขึ้น server สำเร็จ ' + ok + '/' + items.length + ' ตัว' + (results.length ? '\n' + results.join('\n') : '') + (fail.length ? '\n\n❌ ไม่สำเร็จ:\n' + fail.join('\n') : ''));
+        }
         async function skjApply(){
             const r = skjPreview();
             if (!r) return;
@@ -27388,6 +27576,7 @@
                     targets_up: int(s.targets_up), targets_c2: int(s.targets_c2), targets_c6: int(s.targets_c6),
                     hits_up: int(s.hits_up), hits_c2: int(s.hits_c2), hits_c6: int(s.hits_c6),
                     cooldown: int(s.cooldown),
+                    name: s.name || ((document.getElementById('conf-' + k + '-name') || {}).value || ''),
                     awType: k === 'aw' ? (s.awType === 'passive' ? 'passive' : 'active') : undefined,
                     img: (document.getElementById('conf-' + k + '-img') || {}).value || '',
                     img2: (document.getElementById('conf-' + k + '-img2') || {}).value || '',
