@@ -14321,8 +14321,8 @@
             const c = hbComputeFrom(d);
             const hero = c.hero;
             const awk = !!d.awakened && hero && hero.img2 && hero.img2 !== DRIVE_IMG_PREFIX;
-            return `<div class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center p-3 overflow-y-auto" onclick="if(event.target===this)hbvClose()">
-                <div class="bg-[#0b0f17] border border-gray-700 rounded-2xl w-full max-w-7xl shadow-2xl my-4">
+            return `<div class="fixed inset-0 z-[150] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 overflow-y-auto" onclick="if(event.target===this)hbvClose()">
+                <div class="bg-[#0b0f17] border border-gray-700 rounded-2xl w-full max-w-7xl shadow-2xl my-auto">
                     <div class="flex flex-wrap items-center gap-3 p-4 border-b border-gray-800">
                         <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0">${hero ? `<img src="${awk ? hero.img2 : hero.img}" class="w-full h-full object-cover">` : ''}</div>
                         <div class="min-w-0 flex-1">
@@ -14425,10 +14425,10 @@
             const box = document.getElementById('hb-viewer') || document.body;
             let m = document.getElementById('hbv-skill-dlg');
             if (!m || m.parentNode !== box) { if (m) m.remove(); m = document.createElement('div'); m.id = 'hbv-skill-dlg'; box.appendChild(m); }
-            m.className = 'fixed inset-0 z-[200] bg-black/70 flex items-start md:items-center justify-center p-3 sm:p-5 overflow-y-auto';
+            m.className = 'fixed inset-0 z-[200] bg-black/70 flex items-start justify-center p-3 sm:p-5 overflow-y-auto';
             m.onclick = ev => { if (ev.target === m || ev.target.dataset.close) m.style.display = 'none'; };
-            m.innerHTML = `<div data-close="1" class="w-full max-w-5xl flex flex-col md:flex-row-reverse items-stretch md:items-start md:justify-center gap-4 my-auto">
-                <div class="gsk-card w-full md:w-[668px] md:flex-none min-w-0 p-4">
+            m.innerHTML = `<div data-close="1" class="w-full max-w-5xl flex flex-col lg:flex-row-reverse items-stretch md:items-center lg:items-start lg:justify-center gap-4 my-auto">
+                <div class="gsk-card w-full md:w-[668px] md:max-w-full md:flex-none min-w-0 p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="gsk-ico ${k === 'aw' ? 'aw' : ''}">${img ? `<img src="${img}" class="w-full h-full object-cover">` : `<span class="text-xs text-gray-400 font-bold flex items-center justify-center h-full">${k.toUpperCase()}</span>`}</div>
                         <div class="min-w-0 flex-1 pt-1">
@@ -14441,7 +14441,7 @@
                     </div>
                     <div class="gsk-body min-h-[35vh] max-h-[60vh] overflow-y-auto custom-scroll">${g.html.trim() || '<span class="italic text-zinc-500">ยังไม่มีคำอธิบายสกิล</span>'}</div>
                 </div>
-                ${sts.length ? `<div class="md:w-[340px] flex-shrink-0 space-y-3 md:max-h-[85vh] md:overflow-y-auto custom-scroll">${stHtml}</div>` : ''}
+                ${sts.length ? `<div class="w-full md:w-[668px] md:max-w-full lg:w-[340px] flex-shrink-0 space-y-3 lg:max-h-[85vh] lg:overflow-y-auto custom-scroll">${stHtml}</div>` : ''}
             </div>`;
             m.style.display = 'flex';
         }
