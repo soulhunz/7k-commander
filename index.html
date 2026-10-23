@@ -12470,7 +12470,9 @@
             });
 
             // 4. [NEW] บวกค่าจาก "Passive Skill" (Auto-Detect)
-            if (currentDetailHero.skillData && currentDetailHero.skillData.p && currentDetailHero.skillData.p.effects) {
+            // ⚔️ ปิดไว้: พาสซีฟทำงานตอนเข้าต่อสู้เท่านั้น — สเตตในหน้ารายละเอียดเป็นค่านอกการต่อสู้ (เหมือนในเกม)
+            const DETAIL_ADD_PASSIVE = false;
+            if (DETAIL_ADD_PASSIVE && currentDetailHero.skillData && currentDetailHero.skillData.p && currentDetailHero.skillData.p.effects) {
                 const _pe = currentDetailHero.skillData.p.effects;
                 _pe.filter(e => !hbScaleSpec(e)).concat(_pe.filter(e => hbScaleSpec(e))).forEach(eff => { // แบบ "ทุก Y ของสเตต" คิดท้ายสุด
                     // เลือกเฉพาะ Type = Stat
@@ -14458,7 +14460,7 @@
                     <span class="text-sm font-mono"><span class="text-gray-500">${bb}${suf}</span> <span class="text-gray-600">→</span> <span class="font-bold ${t > bb ? 'text-emerald-400' : 'text-white'}">${t}${suf}</span></span></div>`;
             }).join('') + (c.extra || []).map(e => `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-cyan-900/10 border border-cyan-800/30">
                     <span class="text-xs text-cyan-200/80">${ccEsc(e.stat)}</span><span class="text-sm font-mono font-bold text-emerald-400">+${e.value}%</span></div>`).join('');
-            const statsCard = card(`<div class="text-sm font-black text-blue-400 mb-3">📊 สเตตัสสุทธิ <span class="text-[10px] text-gray-500 font-normal">(base → รวม)</span></div><div class="space-y-1.5">${statRows}</div>`);
+            const statsCard = card(`<div class="text-sm font-black text-blue-400 mb-3">📊 สเตตัสสุทธิ <span class="text-[10px] text-gray-500 font-normal">(base → รวม)</span></div><div class="space-y-1.5">${statRows}</div>${hbBattlePassiveHTML(c)}`);
 
             // ── กลาง: ของรัก ──
             const lv = hbRelicLv(d), rm = hbRelicMain(hero, lv), lab = { atk: 'ATK', hp: 'HP', def: 'DEF' };
@@ -24427,7 +24429,8 @@
                             skillUp: cfg.skillUp ? { n: true, s1: true, s2: true, p: true, aw: true } : {}
                         }));
                         if (c && c.totals) {
-                            STAT_KEYS.forEach(k => { out[k] = parseFloat(c.totals[k]) || 0; });
+                            const bt = c.battleTotals || c.totals;   // ⚔️ รวมพาสซีฟ (ทำงานตอนสู้)
+                            STAT_KEYS.forEach(k => { out[k] = parseFloat(bt[k]) || 0; });
                             out._fromBuild = true;
                             return out;
                         }
@@ -26949,6 +26952,17 @@
 
         // คำนวณสเตตัสสุทธิ = base + (ออฟหลัก/รอง 4 ชิ้น) + โบนัสเซต
         function hbCompute(){ return hbComputeFrom(heroBuildState); }
+        /** ⚔️ โบนัสพาสซีฟที่ทำงานตอนเข้าต่อสู้ — แสดงแยกจากสเตตัสสุทธิ */
+        function hbBattlePassiveHTML(c){
+            if (!c || !c.battleTotals) return '';
+            const r1 = v => Math.round((parseFloat(v)||0)*10)/10;
+            const items = BUILD_SHOW.map(o => {
+                const d = r1((c.battleTotals[o[0]]||0) - (c.totals[o[0]]||0));
+                return d ? `<span class="px-2 py-0.5 rounded-full bg-amber-900/20 border border-amber-700/40 text-amber-200">${o[1]} ${d > 0 ? '+' : ''}${d}${o[2] ? '%' : ''}</span>` : '';
+            }).filter(Boolean);
+            if (!items.length) return '';
+            return `<div class="mt-3 pt-3 border-t border-gray-800"><div class="text-[11px] font-bold text-amber-300 mb-1.5">⚔️ เพิ่มเมื่อเข้าต่อสู้ <span class="text-gray-500 font-normal">(พาสซีฟ — ไม่รวมในสเตตัสด้านบน)</span></div><div class="flex flex-wrap gap-1 text-[11px]">${items.join('')}</div></div>`;
+        }
 
         /**
          * คำนวณสเตตัสรวมของ "บิ้วหนึ่งก้อน" (สเตตฐาน + ดาว + เซต + ออฟหลัก/รอง + ของรัก)
@@ -27020,10 +27034,10 @@
             const pot = hbCleanPotential(b.potential);
             add('atkFlat', HB_POTENTIAL.atk[pot.atk]); add('hpFlat', HB_POTENTIAL.hp[pot.hp]); add('defFlat', HB_POTENTIAL.def[pot.def]);
             const extra = Object.keys(extraMap).map(k => extraMap[k]);
-            // num = base + ดาว + พาสซีฟ (ค่าที่ไม่ขึ้นกับอุปกรณ์) · pure = base บริสุทธิ์ (ฐานของ % อุปกรณ์)
-            const num = k => (parseFloat(base[k]) || 0) + (growth[k] || 0) + (passive[k] || 0);
+            // ⚔️ พาสซีฟทำงานตอนเข้าต่อสู้เท่านั้น (เหมือนในเกม) → totals = สเตตที่หน้าจอ (ไม่รวมพาสซีฟ) · battleTotals = ตอนสู้ (เครื่องจำลองใช้)
+            // num = base + ดาว (+ พาสซีฟ) (ค่าที่ไม่ขึ้นกับอุปกรณ์) · pure = base บริสุทธิ์ (ฐานของ % อุปกรณ์)
             const pure = k => parseFloat(base[k]) || 0;
-            const totals = {
+            const mkTotals = withP => { const num = k => (parseFloat(base[k]) || 0) + (growth[k] || 0) + (withP ? (passive[k] || 0) : 0); return {
                 atk: Math.round(num('atk') + pure('atk')*(acc.atkPct||0)/100 + (acc.atkFlat||0)),
                 def: Math.round(num('def') + pure('def')*(acc.defPct||0)/100 + (acc.defFlat||0)),
                 hp:  Math.round(num('hp')  + pure('hp')*(acc.hpPct||0)/100  + (acc.hpFlat||0)),
@@ -27035,22 +27049,23 @@
                 block: num('block') + (acc.block||0),
                 resist: num('resist') + (acc.resist||0),
                 dmgRed: num('dmgRed') + (acc.dmgRed||0)
-            };
-            // 📈 พาสซีฟแบบ "+X ทุก Y ของสเตต" — ใช้สเตตรวมอุปกรณ์แล้ว (เช่น บล็อก +3% ทุก 150 DEF สูงสุด 33%)
+            }; };
+            const totals = mkTotals(false), battleTotals = mkTotals(true);
+            // 📈 พาสซีฟแบบ "+X ทุก Y ของสเตต" — ใช้สเตตรวมอุปกรณ์แล้ว (เช่น บล็อก +3% ทุก 150 DEF สูงสุด 33%) · ตอนสู้เท่านั้น
             const pe = hero && hero.skillData && hero.skillData.p && hero.skillData.p.effects;
             if (Array.isArray(pe)) {
-                const snap = Object.assign({}, totals);
+                const snap = Object.assign({}, battleTotals);
                 pe.forEach(eff => {
                     if (!hbIsPassiveStatEff(eff) || !hbScaleSpec(eff)) return;
                     const k = hbPassiveEffKey(eff);
-                    if (!k || totals[k] === undefined) return;
+                    if (!k || battleTotals[k] === undefined) return;
                     const amt = hbScaledPassiveAmt(eff, snap, statOpts.skillUpP, parseInt(b.blueStars) || 0);
                     if (!amt) return;
-                    totals[k] = ['atk','def','hp'].includes(k) ? Math.round(totals[k] + amt) : totals[k] + amt;
+                    battleTotals[k] = ['atk','def','hp'].includes(k) ? Math.round(battleTotals[k] + amt) : battleTotals[k] + amt;
                     passive[k] = (passive[k] || 0) + amt;
                 });
             }
-            return { hero, base, growth, passive, totals, effects, extra, set };
+            return { hero, base, growth, passive, totals, battleTotals, effects, extra, set };
         }
 
         // การ์ดอุปกรณ์ 1 ชิ้น (idx 0,1 = หน้า, 2,3 = หลัง)
@@ -27125,7 +27140,7 @@
                 const k = o[0], label = o[1], pct = o[2];
                 const r1 = v => Math.round((parseFloat(v)||0)*10)/10;
                 const b = r1(c.base[k]);    // ซ้าย = base ของฮีโร่อย่างเดียว
-                const t = r1(c.totals[k]);  // ขวา = รวมทุกอย่าง (ดาว + พาสซีฟ + อุปกรณ์)
+                const t = r1(c.totals[k]);  // ขวา = ดาว + อุปกรณ์ (พาสซีฟทำงานตอนสู้ → แยกไว้ใต้ตาราง)
                 const up = t > b, suf = pct ? '%' : '';
                 return `<div class="flex items-center justify-between px-3 py-1.5 rounded bg-black/20 border border-gray-800">
                     <span class="text-xs text-gray-400">${label}</span>
@@ -27159,7 +27174,7 @@
 
             const statsPanel = `<div class="bg-[#111827] border border-gray-700 rounded-2xl p-4">
                 <div class="text-sm font-black text-blue-400 mb-3">📊 สเตตัสสุทธิ <span class="text-[10px] text-gray-500 font-normal">(base → รวมอุปกรณ์)</span></div>
-                <div class="space-y-1.5">${statRows}${extraRows}</div>
+                <div class="space-y-1.5">${statRows}${extraRows}</div>${hbBattlePassiveHTML(c)}
             </div>`;
 
             // แผงสกิล — กดไอคอนเพื่อดูรายละเอียดสกิล (รวมเอฟเฟกต์สเตตัส)
