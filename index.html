@@ -14373,35 +14373,26 @@
             return out;
         }
         /**
-         * คำอธิบายสถานะ "ตามสกิลนี้" — ตัวเลขในคลังสกิลจดมาจากฮีโร่ตัวแรกที่ใช้สถานะนั้น อาจไม่ตรงกับสกิลที่ดูอยู่
-         * • ข้อความแบบ "ชื่อ N% (ผลอัปเกรด...)" ประโยคเดียว + ตัวเลขไม่ตรงกับค่าในสกิล → เขียนใหม่จากค่าของสกิลนี้
-         * • ข้อความกลไกยาว → ใช้ข้อความเดิม + ป้ายเงื่อนไขปลดล็อก/ระยะเวลาของสกิลนี้
+         * คำอธิบายสถานะ "ตามสกิลนี้" — อธิบายความสามารถอย่างเดียว (ไม่ใส่ระยะเวลา/ข้ามขีดจำกัด)
+         * ตัวเลขในคลังสกิลจดมาจากฮีโร่ตัวแรกที่ใช้สถานะนั้น → ข้อความแบบ "ชื่อ N%" ที่ตัวเลขไม่ตรงกับสกิลนี้ เขียนใหม่จากค่าของสกิลนี้
          */
         function hbvStatusText(it, effs) {
-            const raw = String(it.rawText || '').replace(/<br\s*\/?>/gi, '\n').trim();
+            const raw = String(it.rawText || '').replace(/<br\s*\/?>/gi, '\n')
+                .replace(/\s*\[(?:ตลอดเวลา|ต่อเนื่อง[^\]]*|ถูกโจมตี[^\]]*)\]/g, '')   // ระยะเวลา
+                .replace(/\s*\((?:ผล)?ข้ามขีดจำกัด[^)]*\)/g, '').trim();           // ผลข้ามขีดจำกัด
             const num = v => parseFloat(v) || 0;
-            const e = (effs || []).find(x => num(x.val) || num(x.green_val) || num(x.c2_val) || num(x.c6_val)) || (effs || [])[0] || {};
+            const e = (effs || []).find(x => num(x.val) || num(x.green_val) || num(x.c2_val) || num(x.c6_val)) || {};
             const v = { base: num(e.val), up: num(e.green_val), c2: num(e.c2_val), c6: num(e.c6_val) };
-            // ปลดล็อกเมื่อไร (Rate ช่องปกติ = 0 แต่ช่องอัปสกิล/C2/C6 มีค่า)
-            const any = (effs || []).find(x => !num(x.rate) && (num(x.green_rate) || num(x.c2_rate) || num(x.c6_rate))) || null;
-            const unlock = any ? (num(any.green_rate) ? 'ได้หลังอัปเกรดสกิล' : num(any.c2_rate) ? 'ได้ตอนข้ามขีดจำกัด 2' : 'ได้ตอนข้ามขีดจำกัด 6') : '';
-            const d = (effs || []).find(x => x.durType || num(x.turn)) || {};
-            const dur = d.durType === 'perm' ? '[ตลอดเวลา]' : d.durType === 'hits' ? `[ถูกโจมตี ${num(d.turn) || 1} ครั้ง]` : num(d.turn) ? `[ต่อเนื่อง ${num(d.turn)} เทิร์น]` : '';
-            const chips = [unlock && '⭐ ' + unlock, dur].filter(Boolean);
-            const simple = /^([^\d\n]+?)\s*[\d.,]+%\s*(\([^)]*\))?\s*(\[[^\]]*\])?\s*$/.exec(raw);
+            const simple = /^([^\d\n]+?)\s*[\d.,]+%\s*(\([^)]*\))?\s*$/.exec(raw);
             const vals = [v.base, v.up, v.c2, v.c6].filter(Boolean);
             if (simple && vals.length) {
-                const inRaw = (raw.match(/[\d.]+(?=%)/g) || []).map(parseFloat);
-                if (!vals.every(x => inRaw.includes(x))) {
+                const inRaw = (String(it.rawText || '').match(/[\d.]+(?=%)/g) || []).map(parseFloat);   // เทียบกับข้อความเต็ม (รวมค่าข้ามขีดจำกัด)
+                if (!vals.some(x => inRaw.includes(x))) {
                     const main = v.base || v.up || v.c2 || v.c6;
-                    const ex = [];
-                    if (v.up && v.up !== main) ex.push('ผลอัปเกรดสกิล เป็น ' + v.up + '%');
-                    if (v.c2 && v.c2 !== main) ex.push('ข้ามขีดจำกัด 2 : ' + v.c2 + '%');
-                    if (v.c6 && v.c6 !== main) ex.push('ข้ามขีดจำกัด 6 : ' + v.c6 + '%');
-                    return { text: simple[1].trim() + ' ' + main + '%' + (ex.length ? ' (' + ex.join(', ') + ')' : '') + (dur ? ' ' + dur : ''), chips: unlock ? ['⭐ ' + unlock] : [] };
+                    return { text: simple[1].trim() + ' ' + main + '%' + (v.up && v.up !== main ? ' (ผลอัปเกรดสกิล เป็น ' + v.up + '%)' : ''), chips: [] };
                 }
             }
-            return { text: raw, chips: raw.includes(dur) ? chips.filter(c => c !== dur) : chips };
+            return { text: raw, chips: [] };
         }
         /** ข้อความสกิล → แบบในเกม: บรรทัดที่เป็นหัวข้อเป้าหมาย (ศัตรู…/ตนเอง/พันธมิตร…) กลายเป็นแถบหัวข้อ · ดึงเกจปลุกพลังออกไปเป็นป้าย */
         function hbvGameSkillText(raw) {
@@ -14434,8 +14425,8 @@
             if (!m || m.parentNode !== box) { if (m) m.remove(); m = document.createElement('div'); m.id = 'hbv-skill-dlg'; box.appendChild(m); }
             m.className = 'fixed inset-0 z-[200] bg-black/70 flex items-start md:items-center justify-center p-3 sm:p-5 overflow-y-auto';
             m.onclick = ev => { if (ev.target === m || ev.target.dataset.close) m.style.display = 'none'; };
-            m.innerHTML = `<div data-close="1" class="w-full max-w-5xl flex flex-col md:flex-row-reverse items-stretch md:items-start gap-4 my-auto">
-                <div class="gsk-card flex-1 min-w-0 p-4">
+            m.innerHTML = `<div data-close="1" class="w-full max-w-5xl flex flex-col md:flex-row-reverse items-stretch md:items-start md:justify-center gap-4 my-auto">
+                <div class="gsk-card w-full md:w-[668px] md:flex-none min-w-0 p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="gsk-ico ${k === 'aw' ? 'aw' : ''}">${img ? `<img src="${img}" class="w-full h-full object-cover">` : `<span class="text-xs text-gray-400 font-bold flex items-center justify-center h-full">${k.toUpperCase()}</span>`}</div>
                         <div class="min-w-0 flex-1 pt-1">
@@ -14446,7 +14437,7 @@
                         ${badge}
                         <button type="button" onclick="document.getElementById('hbv-skill-dlg').style.display='none'" class="w-9 h-9 rounded-full bg-zinc-200 hover:bg-red-500 text-zinc-600 hover:text-white font-bold flex-shrink-0">✕</button>
                     </div>
-                    <div class="gsk-body max-h-[60vh] overflow-y-auto custom-scroll">${g.html.trim() || '<span class="italic text-zinc-500">ยังไม่มีคำอธิบายสกิล</span>'}</div>
+                    <div class="gsk-body min-h-[35vh] max-h-[60vh] overflow-y-auto custom-scroll">${g.html.trim() || '<span class="italic text-zinc-500">ยังไม่มีคำอธิบายสกิล</span>'}</div>
                 </div>
                 ${sts.length ? `<div class="md:w-[340px] flex-shrink-0 space-y-3 md:max-h-[85vh] md:overflow-y-auto custom-scroll">${stHtml}</div>` : ''}
             </div>`;
