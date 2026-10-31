@@ -4570,7 +4570,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.1.0';
+        const APP_VERSION = '1.1.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -12710,6 +12710,13 @@
         }
         function castleCompSelectCastle(id) { castleCompSelCastle = id; renderCastleComp(); }
         function castleCompToggleOnlyFilled() { castleCompOnlyFilled = !castleCompOnlyFilled; renderCastleComp(); }
+        const castleCompHeroSel = new Set();   // 🦸 ฮีโร่ที่เลือกกรอง (โหมดทีละปราสาท) — เปลี่ยนปราสาทแล้วยังค้างไว้
+        function castleCompToggleHero(id) {
+            id = String(id);
+            if (castleCompHeroSel.has(id)) castleCompHeroSel.delete(id); else castleCompHeroSel.add(id);
+            renderCastleComp();
+        }
+        function castleCompClearHeroSel() { castleCompHeroSel.clear(); renderCastleComp(); }
         /** − / + ทีละ 1 — อัปเดตเฉพาะการ์ดนั้น (ไม่วาดใหม่ทั้งหน้า หน้าไม่กระโดด) */
         function castleCompStep(csId, cpId, d) {
             castleCompSetCount(csId, cpId, Math.max(0, castleCompGetCount(csId, cpId) + d));
@@ -12737,7 +12744,24 @@
                 </button>`;
             }).join('');
             if (!cs) return `<div class="text-sm text-gray-500">ยังไม่มีปราสาท</div>`;
-            const list = comps.filter(cp => !castleCompOnlyFilled || castleCompGetCount(cs.id, cp.id) > 0);
+            // 🦸 กรองจากฮีโร่: คอมพ์ต้องมีฮีโร่ที่เลือก "ครบทุกตัว"
+            const heroIds = cp => castleCompSlots(cp).map(sl => String(sl.id)).filter(Boolean);
+            const sel = [...castleCompHeroSel];
+            const list = comps.filter(cp => (!castleCompOnlyFilled || castleCompGetCount(cs.id, cp.id) > 0)
+                && (!sel.length || sel.every(id => heroIds(cp).includes(id))));
+            // แถบรูปฮีโร่ทุกตัวในคอมพ์ — เรียงตามจำนวนคอมพ์ที่มีตัวนั้น (มากก่อน)
+            const freq = new Map();
+            comps.forEach(cp => [...new Set(heroIds(cp))].forEach(id => freq.set(id, (freq.get(id) || 0) + 1)));
+            const heroChips = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => {
+                const h = heroesDB.find(x => String(x.id) === id);
+                const on = castleCompHeroSel.has(id);
+                const nm = h ? h.name : id;
+                return `<button type="button" onclick="castleCompToggleHero('${ccEsc(id)}')" title="${ccEsc(nm)} · อยู่ใน ${n} คอมพ์"
+                    class="relative w-10 h-10 rounded-lg overflow-hidden border-2 flex-shrink-0 transition ${on ? 'border-amber-400 ring-2 ring-amber-400/60' : 'border-gray-700 opacity-70 hover:opacity-100 hover:border-gray-500'}">
+                    ${h && h.img ? `<img src="${h.img}" alt="" class="w-full h-full object-cover">` : `<span class="text-[8px] text-gray-400 leading-tight">${ccEsc(nm)}</span>`}
+                    <span class="absolute bottom-0 right-0 bg-black/75 text-[9px] text-amber-300 font-black px-1 rounded-tl">${n}</span>
+                </button>`;
+            }).join('');
             const cards = list.map(cp => {
                 const n = castleCompGetCount(cs.id, cp.id);
                 const slots = castleCompSlots(cp).map(sl => {
@@ -12766,9 +12790,17 @@
                         <input type="checkbox" ${castleCompOnlyFilled ? 'checked' : ''} onchange="castleCompToggleOnlyFilled()" class="w-4 h-4 accent-amber-500"> แสดงเฉพาะคอมพ์ที่ใส่จำนวนแล้ว
                     </label>
                 </div>
+                ${heroChips ? `<div class="mb-3 bg-[#0f131a] border border-gray-800 rounded-2xl p-2.5">
+                    <div class="flex flex-wrap items-center gap-2 mb-2 text-[11px] font-bold">
+                        <span class="text-gray-300">🦸 กรองจากฮีโร่</span>
+                        <span class="text-gray-500 font-normal">${sel.length ? `เลือก ${sel.length} ตัว · เจอ ${list.length} คอมพ์ (ต้องมีครบทุกตัวที่เลือก)` : 'กดรูปเพื่อดูเฉพาะคอมพ์ที่มีฮีโร่ตัวนั้น'}</span>
+                        ${sel.length ? `<button type="button" onclick="castleCompClearHeroSel()" class="text-gray-400 hover:text-white underline">ล้าง</button>` : ''}
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">${heroChips}</div>
+                </div>` : ''}
                 <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));">
-                    ${cards || (castleCompOnlyFilled ? '<div class="col-span-full text-xs text-gray-500 italic py-6 text-center">ปราสาทนี้ยังไม่ได้ใส่จำนวนคอมพ์</div>' : '')}
-                    ${castleCompOnlyFilled ? '' : addCard}
+                    ${cards || ((castleCompOnlyFilled || sel.length) ? `<div class="col-span-full text-xs text-gray-500 italic py-6 text-center">${sel.length ? 'ไม่มีคอมพ์ที่มีฮีโร่ที่เลือกครบ' : 'ปราสาทนี้ยังไม่ได้ใส่จำนวนคอมพ์'}</div>` : '')}
+                    ${(castleCompOnlyFilled || sel.length) ? '' : addCard}
                 </div>`;
         }
 
