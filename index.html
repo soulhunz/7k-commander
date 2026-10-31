@@ -1909,6 +1909,10 @@
         .cc-hero-slot.sm { width: 33px; height: 33px; border-radius: 7px; font-size: 13px; }
         .cc-hero-slot.lg { width: 56px; height: 56px; border-radius: 10px; }
         .cc-hero-slot.xl { width: 64px; height: 64px; border-radius: 11px; }
+        .cc-table .cc-castle-w { width: 200px; min-width: 200px; max-width: 200px; }   /* 🏰 คอลัมน์ชื่อปราสาท (หน้านับคอมพ์) */
+        /* หน้านับคอมพ์: ตารางเต็มกรอบ ("รวม" ชิดขวาสุด) — ที่ว่างที่เหลือให้ช่องว่างก่อน "+ เพิ่มคอมพ์" ไม่ใช่คอลัมน์ชื่อปราสาท (200) */
+        .cc-table.cc-table-admin .cc-admin-fill { width: 100%; padding: 0; }
+        .cc-table.cc-table-admin th.cc-castle-w { padding: 8px 12px; }   /* ช่องติ๊ก/ชื่อปราสาท ไม่ชิดขอบ (.cc-table th ตั้ง padding 0 ทับ .cc-pad) */
         /* ⚔️ หน้าไม้ชน — รูปใหญ่ให้เห็นชัด (ทีมชน 84 · บ้าน 64) · จอเล็กย่อลงให้พอดี */
         .mai-team .cc-hero-slot { width: 84px; height: 84px; border-radius: 12px; }
         .mai-house .cc-hero-slot { width: 64px; height: 64px; border-radius: 10px; }
@@ -3496,7 +3500,7 @@
             <header class="p-4 md:p-6 border-b border-gray-800 bg-[#111827] flex flex-wrap justify-between items-center gap-3 shadow-lg flex-shrink-0">
                 <div>
                     <h2 class="text-2xl md:text-3xl font-black text-amber-500 uppercase tracking-tighter flex items-center gap-3"><span>🏰</span> นับคอมพ์ปราสาท</h2>
-                    <p class="text-xs text-gray-500 mt-1">กด + ในตารางเพื่อเพิ่มปราสาท (แถว) และคอมพ์ 3 ตัว (คอลัมน์) แล้วกรอกจำนวนที่เจอ — <span class="text-gray-400">บันทึกอัตโนมัติ</span></p>
+                    <p class="text-xs text-gray-500 mt-1">ปราสาทมีให้ครบ 9 หลัง (นอก-1–5 · ใน-1–3 · หลัก) · กด + เพิ่มคอมพ์ (คอลัมน์) แล้วกรอกจำนวนที่เจอ · ☑ หน้าชื่อปราสาท = แสดงในหน้า Share — <span class="text-gray-400">บันทึกอัตโนมัติ</span></p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button onclick="castleCompCreateTable()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-lg shadow-amber-900/30">🧱 สร้างตาราง</button>
@@ -10519,7 +10523,7 @@
                     }
 
                     // ป้ายข้อมูลโครงสร้าง (schema v2) สำหรับให้คน/AI อ่าน
-                    const TRIGGER_LABELS = { on_apply:'⏱ ทันทีที่ร่าย', on_hit_dealt:'⚔️ เมื่อตีโดน', on_hit_taken:'🛡️ เมื่อถูกตี', on_removed:'💢 เมื่อปลดสถานะ', on_death:'💀 เมื่อตาย', turn_start:'▶️ ต้นเทิร์น', turn_end:'⏹ ท้ายเทิร์น', on_crit:'🔥 เมื่อคริ', on_kill:'☠️ เมื่อสังหาร', passive:'♾️ ติดตัว' };
+                    const TRIGGER_LABELS = { on_apply:'⏱ ทันทีที่ร่าย', on_hit_dealt:'⚔️ เมื่อตีโดน', on_hit_taken:'🛡️ เมื่อถูกตี', on_removed:'💢 เมื่อปลดสถานะ', on_death:'💀 เมื่อตาย', turn_start:'▶️ ต้นเทิร์น', turn_end:'⏹ ท้ายเทิร์น', on_crit:'🔥 เมื่อคริ', on_weak:'🎯 เมื่อโจมตีจุดอ่อน', on_kill:'☠️ เมื่อสังหาร', passive:'♾️ ติดตัว' };
                     const TARGET_LABELS = { enemy_single:'ศัตรูเดี่ยว', enemy_all:'ศัตรูทั้งหมด', enemy_random:'สุ่มศัตรู', self:'ตัวเอง', ally_single:'พวกเดี่ยว', ally_all:'พวกทั้งหมด' };
                     const CAP_SUFFIX = { pct_atk:'% ATK', pct_def:'% DEF', pct_maxhp:'% maxHP', flat:'' };
                     const v2chip = (txt, cls) => ` <span class="text-[9px] px-1 rounded ml-1 ${cls||'bg-black/30 text-gray-300'}">${txt}</span>`;
@@ -12195,7 +12199,7 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <label class="block" title="เอฟเฟกต์นี้ทำงานตอนไหน เช่น เมื่อถูกตี / เมื่อสถานะถูกปลด / เมื่อตาย"><span class="text-[9px] text-cyan-400 font-bold uppercase">Trigger — เกิดเมื่อ ❓</span>
                                 <select class="eff-trigger w-full bg-[#1a202c] border border-gray-600 rounded text-xs text-white py-1 px-1 outline-none">
-                                    ${o('','— ไม่ระบุ —',eff.trigger)}${o('on_apply','ทันทีที่ร่าย',eff.trigger)}${o('on_hit_dealt','เมื่อเราตีโดน',eff.trigger)}${o('on_hit_taken','เมื่อถูกตี',eff.trigger)}${o('on_removed','เมื่อสถานะถูกปลด',eff.trigger)}${o('on_death','เมื่อตาย',eff.trigger)}${o('on_revive','เมื่อคืนชีพ',eff.trigger)}${o('turn_start','ต้นเทิร์น',eff.trigger)}${o('turn_end','ท้ายเทิร์น',eff.trigger)}${o('on_crit','เมื่อคริ',eff.trigger)}${o('on_kill','เมื่อสังหาร',eff.trigger)}${o('passive','ติดตัวตลอด',eff.trigger)}
+                                    ${o('','— ไม่ระบุ —',eff.trigger)}${o('on_apply','ทันทีที่ร่าย',eff.trigger)}${o('on_hit_dealt','เมื่อเราตีโดน',eff.trigger)}${o('on_hit_taken','เมื่อถูกตี',eff.trigger)}${o('on_removed','เมื่อสถานะถูกปลด',eff.trigger)}${o('on_death','เมื่อตาย',eff.trigger)}${o('on_revive','เมื่อคืนชีพ',eff.trigger)}${o('turn_start','ต้นเทิร์น',eff.trigger)}${o('turn_end','ท้ายเทิร์น',eff.trigger)}${o('on_crit','เมื่อคริ',eff.trigger)}${o('on_weak','เมื่อโจมตีจุดอ่อน',eff.trigger)}${o('on_kill','เมื่อสังหาร',eff.trigger)}${o('passive','ติดตัวตลอด',eff.trigger)}
                                 </select></label>
                                 <label class="block"><span class="text-[9px] text-indigo-300 font-bold uppercase">⚔️ จำนวนเป้าของผลนี้</span>
                                 <input type="number" min="0" class="eff-targets w-full bg-[#1a202c] border border-indigo-700/60 rounded text-xs text-white py-1 px-2 outline-none"
@@ -12592,6 +12596,58 @@
         const ccEsc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const ccUid = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+        // 🏰 ปราสาทชุดตายตัว (เรียงตามนี้เสมอ) — ติ๊กเปิดเฉพาะหลังที่ใช้ในรอบนั้น · ปิดแล้วตัวเลขที่กรอกไว้ไม่หาย
+        const CC_FIXED_CASTLES = ['นอก-1', 'นอก-2', 'นอก-3', 'นอก-4', 'นอก-5', 'ใน-1', 'ใน-2', 'ใน-3', 'หลัก'];
+        /** เติมปราสาทชุดตายตัวให้ครบ · ตัดแถวว่างไม่มีชื่อ/ไม่มีตัวเลข · เรียงตามชุดตายตัว แล้วตามด้วยหลังอื่นจากข้อมูลเก่า
+         *  on = ติ๊กแสดงในหน้า Share · หลังที่เติมใหม่ใช้ค่า newOn (นำเข้า CSV = ไม่ติ๊ก เพราะไม่ได้อยู่ในไฟล์) */
+        function castleCompEnsureFixed(newOn) {
+            const db = castleCompDB;
+            if (!db || !db.created) return;
+            const hasCount = c => Object.values((db.counts && db.counts[c.id]) || {}).some(v => (parseInt(v) || 0) > 0);
+            db.castles = db.castles.filter(c => String(c.name || '').trim() || hasCount(c));
+            CC_FIXED_CASTLES.forEach(n => { if (!db.castles.some(c => String(c.name || '').trim() === n)) db.castles.push({ id: ccUid('CS'), name: n, on: newOn !== false }); });
+            db.castles.forEach(c => { if (c.on === undefined) c.on = true; });   // ข้อมูลเดิม/นำเข้า = เปิดไว้
+            const idx = c => { const i = CC_FIXED_CASTLES.indexOf(String(c.name || '').trim()); return i < 0 ? 999 : i; };
+            db.castles.sort((a, b) => idx(a) - idx(b));
+        }
+        /** ปราสาทที่เปิดใช้ — ตาราง / สรุป / CSV / บันทึกขึ้น server ใช้ชุดนี้ */
+        function castleCompActive() { return ((castleCompDB && castleCompDB.castles) || []).filter(c => c.on); }
+        function castleCompToggleCastle(id) {
+            castleCompLoad();
+            const cs = castleCompDB.castles.find(c => c.id === id);
+            if (!cs) return;
+            cs.on = !cs.on;
+            castleCompSave();
+            renderCastleComp();
+        }
+        function castleCompSetAllCastles(on) {
+            castleCompLoad();
+            castleCompDB.castles.forEach(c => { c.on = !!on; });
+            castleCompSave();
+            renderCastleComp();
+        }
+        /** แถบติ๊กเปิดปราสาท — แบ่งกลุ่ม นอก / ใน / หลัก (+ หลังอื่นจากข้อมูลเก่า) */
+        function castleCompToggleBarHTML() {
+            const all = castleCompDB.castles;
+            const chip = c => `<button type="button" onclick="castleCompToggleCastle('${c.id}')" title="${c.on ? 'ปิด' : 'เปิด'}ปราสาทนี้"
+                    class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${c.on ? 'bg-amber-600 text-white border-amber-400 shadow' : 'bg-[#0d1117] text-gray-500 border-gray-700 hover:text-white hover:border-gray-500'}">${c.on ? '☑' : '☐'} ${ccEsc(c.name || 'ไม่มีชื่อ')}</button>`;
+            const group = (label, list) => list.length ? `<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-bold text-gray-500 w-10">${label}</span>${list.map(chip).join('')}</div>` : '';
+            const nm = c => String(c.name || '').trim();
+            const outer = all.filter(c => /^นอก-/.test(nm(c))), inner = all.filter(c => /^ใน-/.test(nm(c))), main = all.filter(c => nm(c) === 'หลัก');
+            const others = all.filter(c => !CC_FIXED_CASTLES.includes(nm(c)));
+            const nOn = all.filter(c => c.on).length;
+            return `<div class="mb-4 bg-[#111827] border border-gray-800 rounded-2xl p-3 flex flex-col gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm font-black text-amber-400">🏰 ปราสาทที่ใช้</span>
+                    <span class="text-[11px] text-gray-500">เปิดอยู่ ${nOn}/${all.length} หลัง · ติ๊กเฉพาะหลังที่ใช้ในรอบนี้ (ปิดแล้วตัวเลขไม่หาย)</span>
+                    <span class="flex-1"></span>
+                    <button type="button" onclick="castleCompSetAllCastles(true)" class="text-[11px] text-gray-400 hover:text-white underline">เปิดทั้งหมด</button>
+                    <button type="button" onclick="castleCompSetAllCastles(false)" class="text-[11px] text-gray-400 hover:text-white underline">ปิดทั้งหมด</button>
+                </div>
+                ${group('นอก', outer)}${group('ใน', inner)}${group('หลัก', main)}${group('อื่นๆ', others)}
+            </div>`;
+        }
+
         function castleCompDefaults() {
             return { created: false, castles: [], comps: [], counts: {}, picks: {}, picksV: CASTLE_COMP_PICKS_V, heroQuota: 0 };
         }
@@ -12605,7 +12661,7 @@
                     castleCompDB = {
                         // ข้อมูลเก่าที่บันทึกไว้ก่อนมีปุ่ม "สร้างตาราง" → ถือว่าสร้างแล้ว
                         created: (parsed.created === true) || parsed.castles.length > 0 || parsed.comps.length > 0,
-                        castles: parsed.castles.filter(c => c && c.id).map(c => ({ id: String(c.id), name: String(c.name || '') })),
+                        castles: parsed.castles.filter(c => c && c.id).map(c => ({ id: String(c.id), name: String(c.name || ''), on: c.on === undefined ? undefined : !!c.on })),
                         comps: parsed.comps.filter(c => c && c.id).map(c => {
                             let heroes = Array.isArray(c.heroes) ? c.heroes.slice(0, CASTLE_COMP_MAX) : [];
                             if (!heroes.length) heroes = new Array(CASTLE_COMP_SLOTS).fill(null);
@@ -12623,6 +12679,7 @@
                     };
                     // ต้องมี castles/counts ก่อน ถึงจะแปลงข้อมูล picks รูปแบบเก่าได้
                     castleCompDB.picks = castleCompNormalizePicks(parsed.picks, parsed.picksV);
+                    castleCompEnsureFixed();
                 } else {
                     castleCompDB = castleCompDefaults();
                 }
@@ -12748,7 +12805,7 @@
             const box = document.getElementById('castle-comp-body');
             if (!box) return;
 
-            const { castles, comps } = castleCompDB;
+            const comps = castleCompDB.comps, castles = castleCompDB.castles;   // 🏰 หน้านับคอมพ์แสดงทุกหลัง (ติ๊ก = ส่งไปหน้า Share)
 
             // ยังไม่ได้กด "สร้างตาราง"
             if (!castleCompDB.created) {
@@ -12802,18 +12859,18 @@
                 return `
                     <tr>
                         <td class="cc-idx">${ri + 1}</td>
-                        <th class="cc-sticky-col cc-pad text-left">
+                        <th class="cc-sticky-col cc-castle-w cc-pad text-left">
                             <div class="flex items-center gap-1">
-                                <span class="text-base">🏰</span>
-                                <input type="text" value="${ccEsc(cs.name)}" placeholder="ชื่อปราสาท..."
-                                    oninput="castleCompRenameRow('${cs.id}', this.value)"
-                                    class="flex-1 min-w-0 bg-transparent border border-transparent hover:border-gray-700 focus:border-amber-500 focus:bg-[#0d1117] rounded-lg px-2 py-1.5 text-sm font-bold text-white outline-none transition">
-                                <button onclick="castleCompRemoveRow('${cs.id}')" title="ลบปราสาทนี้"
-                                    class="text-gray-600 hover:text-red-400 transition text-xs font-bold px-1">✕</button>
+                                <input type="checkbox" ${cs.on ? 'checked' : ''} onchange="castleCompToggleCastle('${cs.id}')" title="ติ๊ก = แสดงในหน้า Share (ตอนบันทึก / ส่งออก CSV)"
+                                    class="w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0">
+                                <span class="text-base ${cs.on ? '' : 'opacity-40 grayscale'}">🏰</span>
+                                <span class="flex-1 min-w-0 truncate px-2 py-1.5 text-sm font-bold ${cs.on ? 'text-white' : 'text-gray-500'}" title="${cs.on ? 'แสดงในหน้า Share' : 'ไม่แสดงในหน้า Share'}">${ccEsc(cs.name)}</span>
+                                ${CC_FIXED_CASTLES.includes(String(cs.name || '').trim()) ? '' : `<button onclick="castleCompRemoveRow('${cs.id}')" title="ลบปราสาทนี้ (จากข้อมูลเก่า)"
+                                    class="text-gray-600 hover:text-red-400 transition text-xs font-bold px-1">✕</button>`}
                             </div>
                         </th>
                         ${cells}
-                        <td class="cc-add-col"></td>
+                        <td class="cc-admin-fill"></td><td class="cc-add-col"></td>
                         <td class="cc-total-col cc-total-sticky bg-[#121826]">
                             <span id="cc-row-total-${cs.id}" class="text-amber-400 font-black text-sm">0</span>
                         </td>
@@ -12827,14 +12884,22 @@
 
             box.innerHTML = `
                 <div id="cc-topbar"></div>
+                <!-- 🏰 ติ๊กแสดงในหน้า Share อยู่ที่ช่องชื่อปราสาทแต่ละแถว (castleCompToggleBarHTML เลิกใช้) -->
                 <div class="w-full cc-scroll-x border border-gray-700 rounded-xl bg-[#0b0e14] shadow-2xl">
-                    <table class="cc-table text-sm">
+                    <table class="cc-table cc-table-admin text-sm">
                         <thead>
                             <tr>
                                 <th class="cc-idx"></th>
-                                <th class="cc-sticky-col cc-pad text-left text-xs font-black text-gray-400 uppercase tracking-wider">ปราสาท \\ คอมพ์</th>
+                                <th class="cc-sticky-col cc-castle-w cc-pad text-left text-xs font-black text-gray-400 uppercase tracking-wider">
+                                    <div class="flex items-center gap-1">
+                                        <input type="checkbox" ${castles.length && castles.every(c => c.on) ? 'checked' : ''} onchange="castleCompSetAllCastles(this.checked)" title="ติ๊ก/ยกเลิกทุกหลัง (แสดงในหน้า Share)"
+                                            class="w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0">
+                                        <span class="truncate">ปราสาท \\ คอมพ์</span>
+                                    </div>
+                                    <div class="text-[9px] font-bold normal-case tracking-normal text-gray-500 mt-0.5">☑ = แสดงในหน้า Share (${castles.filter(c => c.on).length}/${castles.length})</div>
+                                </th>
                                 ${headCells}
-                                <th class="cc-add-col align-middle" style="padding:8px">
+                                <th class="cc-admin-fill"></th><th class="cc-add-col align-middle" style="padding:8px">
                                     <button type="button" class="cc-add-btn" onclick="castleCompOpenAddDialog()"
                                         title="เลือกจากรูปแบบศัตรู หรือทีมบุก (ATK) ที่แชร์">＋ เพิ่มคอมพ์</button>
                                 </th>
@@ -12842,21 +12907,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${bodyRows}
-                            <tr>
-                                <td class="cc-idx">+</td>
-                                <th class="cc-sticky-col" style="padding:6px">
-                                    <button type="button" class="cc-add-btn" onclick="castleCompAddRow()">＋ เพิ่มปราสาท</button>
-                                </th>
+                            ${bodyRows || `<tr>
+                                <td class="cc-idx"></td>
+                                <th class="cc-sticky-col cc-castle-w cc-pad text-left text-xs font-bold text-gray-500">ยังไม่ได้เปิดปราสาท — ติ๊กด้านบน</th>
                                 ${comps.length ? `<td colspan="${comps.length}"></td>` : ''}
-                                <td class="cc-add-col"></td>
+                                <td class="cc-admin-fill"></td><td class="cc-add-col"></td>
                                 <td class="cc-total-col cc-total-sticky"></td>
-                            </tr>
+                            </tr>`}
                             <tr>
                                 <td class="cc-idx" style="background:#1b2433"></td>
-                                <th class="cc-sticky-col cc-pad text-left text-xs font-black text-amber-500/90 uppercase tracking-wider" style="background:#1b2433">รวมทุกปราสาท</th>
+                                <th class="cc-sticky-col cc-castle-w cc-pad text-left text-xs font-black text-amber-500/90 uppercase tracking-wider" style="background:#1b2433">รวมทุกปราสาท</th>
                                 ${footCells}
-                                <td class="cc-add-col" style="background:#121826"></td>
+                                <td class="cc-admin-fill" style="background:#121826"></td><td class="cc-add-col" style="background:#121826"></td>
                                 <td class="cc-total-col cc-total-sticky" style="background:#182031">
                                     <span id="cc-grand-total" class="text-amber-400 font-black text-sm">0</span>
                                 </td>
@@ -12904,7 +12966,7 @@
         function castleCompRenderHeader(total) {
             const box = document.getElementById('cc-topbar');
             if (!box || !castleCompDB) return;
-            const { castles, comps } = castleCompDB;
+            const comps = castleCompDB.comps, castles = castleCompDB.castles;   // 🏰 หน้านับคอมพ์แสดงทุกหลัง (ติ๊ก = ส่งไปหน้า Share)
 
             // ช่องที่กรอกจำนวนแล้วแต่ยังไม่เลือกฮีโร่
             let noPlan = 0;
@@ -12940,7 +13002,7 @@
             const box = document.getElementById('cc-summary');
             if (!box) return;
 
-            const { castles, comps } = castleCompDB;
+            const comps = castleCompDB.comps, castles = castleCompDB.castles;   // 🏰 หน้านับคอมพ์แสดงทุกหลัง (ติ๊ก = ส่งไปหน้า Share)
             if (!comps.length) { box.innerHTML = ''; return; }
 
             // เรียงจากมากไปน้อย
@@ -13058,7 +13120,7 @@
             const box = document.getElementById('cc-hero-cost');
             if (!box) return;
 
-            const { castles, comps } = castleCompDB;
+            const comps = castleCompDB.comps, castles = castleCompDB.castles;   // 🏰 หน้านับคอมพ์แสดงทุกหลัง (ติ๊ก = ส่งไปหน้า Share)
 
             // รวบรวม: ฮีโร่ 1 ตัว → จ่ายกี่ครั้ง (จำนวนหลังของคอมพ์นั้นในปราสาทที่เลือกเขาไว้) + ไปจ่ายที่ไหนบ้าง
             const usage = new Map(); // heroId → { times, comps:Set, slots:[{castle, comp, n}] }
@@ -13156,7 +13218,7 @@
             const box = document.getElementById('cc-castle-sum');
             if (!box) return;
 
-            const { castles, comps } = castleCompDB;
+            const comps = castleCompDB.comps, castles = castleCompDB.castles;   // 🏰 หน้านับคอมพ์แสดงทุกหลัง (ติ๊ก = ส่งไปหน้า Share)
             if (!castles.length || !comps.length) { box.innerHTML = ''; return; }
 
             // รวบรวมต่อปราสาท: คอมพ์ที่ต้องตี · ฮีโร่ที่วางไว้ · ช่องที่ยังไม่วางฮีโร่
@@ -13323,6 +13385,7 @@
             }
             castleCompDB = castleCompDefaults();
             castleCompDB.created = true;
+            castleCompEnsureFixed();
             castleCompExpandedIds.clear();
             castleCompExpandedHeroes.clear();
             castleCompExpandedCastles.clear();
@@ -13501,7 +13564,7 @@
         /** ตารางปัจจุบัน → ข้อความ CSV (null = ยังไม่มีข้อมูล) — ใช้ทั้งปุ่มส่งออกและปุ่มบันทึกขึ้น server */
         function castleCompBuildCsv() {
             castleCompLoad();
-            const { castles, comps } = castleCompDB;
+            const comps = castleCompDB.comps, castles = castleCompActive();   // 🏰 ส่งออก/บันทึกขึ้น server เฉพาะหลังที่ติ๊กแสดงในหน้า Share
             if (!castles.length && !comps.length) return null;
 
             const L = [];
@@ -13553,6 +13616,8 @@
         }
 
         function castleCompExportCsv() {
+            castleCompLoad();
+            if (castleCompDB.created && !castleCompActive().length) return alert('ยังไม่ได้ติ๊กปราสาทที่จะแสดงในหน้า Share — ติ๊กช่องหน้าชื่อปราสาทก่อน');
             const csv = castleCompBuildCsv();
             if (!csv) return alert('ยังไม่มีข้อมูลให้ส่งออก');
             // BOM — กัน Excel อ่านภาษาไทยเป็นตัวประหลาด
@@ -13684,6 +13749,7 @@
                 picks: picks,
                 picksV: CASTLE_COMP_PICKS_V
             };
+            castleCompEnsureFixed(false);   // หลังในไฟล์ = ติ๊กแสดงในหน้า Share · หลังชุดตายตัวที่ไม่มีในไฟล์ = ไม่ติ๊ก
             castleCompExpandedIds.clear();
             castleCompExpandedHeroes.clear();
             castleCompExpandedCastles.clear();
@@ -13724,6 +13790,8 @@
 
         /** ☁️ บันทึกตารางขึ้น server (1 กิลด์ 1 ตาราง — ทับของเดิม) ให้ลิงก์หน้าดูโหลดได้เลย */
         async function castleCompSaveCloud() {
+            castleCompLoad();
+            if (castleCompDB.created && !castleCompActive().length) return alert('ยังไม่ได้ติ๊กปราสาทที่จะแสดงในหน้า Share — ติ๊กช่องหน้าชื่อปราสาทก่อน');
             const csv = castleCompBuildCsv();
             if (!csv) return alert('ยังไม่มีข้อมูลให้บันทึก');
             if (!CURRENT_USER || !CURRENT_USER.token) return alert('ต้องเข้าสู่ระบบก่อนถึงบันทึกขึ้น server ได้');
@@ -24318,7 +24386,7 @@
             if (!eff) return false;
             if (eff.type === 'stat') return true;
             if (eff.type !== 'buff') return false;
-            if (['on_hit_dealt','on_hit_taken','on_removed','on_death','on_revive','turn_start','turn_end','on_crit','on_kill'].includes(eff.trigger)) return false; // ได้ตอนเกิดเหตุการณ์
+            if (['on_hit_dealt','on_hit_taken','on_removed','on_death','on_revive','turn_start','turn_end','on_crit','on_weak','on_kill'].includes(eff.trigger)) return false; // ได้ตอนเกิดเหตุการณ์
             const always = eff.trigger === 'passive' || eff.durType === 'perm';
             const onSelf = !eff.target || eff.target === 'self' || eff.target === 'ally_all';
             return always && onSelf && !String(eff.cond || '').trim();
@@ -24828,6 +24896,7 @@
         function simStatKeyFromName(nameRaw) {
             const name = String(nameRaw || '').toLowerCase();
             if (/^ลดทอน/.test(name)) return 'dmgRed';
+            if (/เพิ่มปริมาณความเสียหาย/.test(name)) return null;   // ตัวคูณดาเมจ ไม่ใช่สเตต ("…การโจมตี 3 เป้าหมาย" ไม่ใช่ ATK)
             if (/ป้องกันตามสัดส่วน/.test(name)) return 'def';  // "เพิ่มพลังป้องกันตามสัดส่วน HP" = เพิ่ม DEF
             if (/โจมตีตามสัดส่วน/.test(name)) return 'atk';
             if (/อัตราบล็อก/.test(name)) return 'block';   // "เพิ่มอัตราบล็อกตามสัดส่วน HP" ไม่ใช่ HP
@@ -25102,10 +25171,11 @@
         const SIM_TRIGGER_LABELS = {
             on_apply: 'ทันทีที่ร่าย', on_hit_dealt: 'เมื่อเราตีโดน', on_hit_taken: 'เมื่อถูกตี',
             on_removed: 'เมื่อสถานะถูกปลด', on_death: 'เมื่อตาย', on_revive: 'เมื่อคืนชีพ', turn_start: 'ต้นเทิร์น',
-            turn_end: 'ท้ายเทิร์น', on_crit: 'เมื่อคริ', on_kill: 'เมื่อสังหาร', passive: 'ติดตัวตลอด'
+            turn_end: 'ท้ายเทิร์น', on_crit: 'เมื่อคริ', on_weak: 'เมื่อโจมตีจุดอ่อน', on_kill: 'เมื่อสังหาร', passive: 'ติดตัวตลอด'
         };
         /** Trigger ที่ "ไม่ทำงานทันทีตอนกดสกิล" — ต้องรอเหตุการณ์ก่อน */
-        const SIM_REACTIVE_TRIGGERS = ['on_hit_dealt', 'on_hit_taken', 'on_removed', 'on_death', 'on_revive', 'turn_start', 'turn_end', 'on_crit', 'on_kill'];
+        const SIM_ACTIVE_SKILL_KEYS = ['n', 's1', 's2', 'aw', 'fn', 'fs1', 'fs2'];   // สกิลกดใช้ (ไม่รวมพาสซีฟ)
+        const SIM_REACTIVE_TRIGGERS = ['on_hit_dealt', 'on_hit_taken', 'on_removed', 'on_death', 'on_revive', 'turn_start', 'turn_end', 'on_crit', 'on_weak', 'on_kill'];
 
         /**
          * แปลงเลข Value ตามช่อง "Value คืออะไร" → ตัวเลขจริง
@@ -25234,6 +25304,8 @@
             try {
                 list.forEach(h => {
                     if (!simEffUnlocked(h.eff, cfg) || !simCondOk(h.eff, u, null, extra)) return;   // ยังไม่ปลดล็อก / ไม่เข้าเงื่อนไขทีม — ไม่นับ ไม่ทำงาน
+                    // 🎯 คริ/จุดอ่อน: เอฟเฟกต์ของสกิลกดใช้ ทำงานเฉพาะตอนสกิลนั้นตี · ของพาสซีฟทำงานทุกการโจมตี
+                    if (extra && extra.skillKey && h.skill && SIM_ACTIVE_SKILL_KEYS.includes(h.skill.key) && String(h.skill.key).replace(/^f/, '') !== String(extra.skillKey).replace(/^f/, '')) return;
                     const every = simEveryN(h.eff, when);
                     if (every > 1) { h.count = (h.count || 0) + 1; if (h.count % every) return; }   // ทำงานทุก N ครั้ง
                     const pick = (extra && extra.target && extra.target.hp > 0) ? extra.target : (foes.length ? foes[0] : null);
@@ -25754,7 +25826,7 @@
                 raw += stat * (pct / 100);
             });
             const hitCount = Math.max(1, skill.hits);   // raw = ดาเมจต่อ "หนึ่งครั้ง" — ทอยแยกทีละครั้งข้างล่าง
-            let dealtTotal = 0, anyCrit = false, anyKill = false;
+            let dealtTotal = 0, anyCrit = false, anyWeak = false, anyKill = false;
 
             if (raw > 0) {
                 const hitTargets = simTargetList(def, foeList, skill.targets || 1);
@@ -25780,6 +25852,7 @@
                         att, { lifesteal: att.lifesteal || 0, pierce: hf.pierce, hits: hitCount });
                     dealtTotal += dealt;
                     if (nCrit) anyCrit = true;
+                    if (nWeak) anyWeak = true;   // 🎯 โจมตีจุดอ่อนอย่างน้อย 1 ครั้ง
                     if (tg.hp <= 0) anyKill = true;
                 });
             } else {
@@ -25795,7 +25868,8 @@
             // 3) เหตุการณ์หลังออกสกิล
             if (att.hp > 0) {
                 if (dealtTotal > 0) simFireHooks(att, 'on_hit_dealt', { target: def, damage: dealtTotal, flank: !!uo.flank });
-                if (anyCrit) simFireHooks(att, 'on_crit', { target: def, damage: dealtTotal });
+                if (anyCrit) simFireHooks(att, 'on_crit', { target: def, damage: dealtTotal, skillKey: skill && skill.key });
+                if (anyWeak) simFireHooks(att, 'on_weak', { target: def, damage: dealtTotal, skillKey: skill && skill.key });
                 if (anyKill) simFireHooks(att, 'on_kill', { target: def, damage: dealtTotal });
             }
 
