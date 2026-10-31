@@ -30740,7 +30740,46 @@
             }
         }
 
+        /**
+         * 💾 บันทึกทีมศัตรูที่เปิดแก้อยู่ — ส่ง "แถวเดียว" (saveOneEnemyPattern: เพิ่ม/เขียนทับเฉพาะแถวตัวเอง)
+         *    เดิมส่งทุกทีมของกิลด์ (server หาแถว+เขียนทีละทีม) แล้วโหลด getAllData ทั้งระบบใหม่ → ช้ามาก
+         *    ตอนนี้อ่านผลจาก server ได้จริง (ไม่ใช่ no-cors) + อัปเดตรายการในเครื่องเอง ไม่ต้องโหลดใหม่
+         */
         async function saveEnemyPatterns(closeModalAfter) {
+            const p = currentPatternIdx !== -1 ? enemyPatternsDB[currentPatternIdx] : null;
+            if (!p) return saveEnemyPatternsAll(closeModalAfter);   // ไม่มีทีมที่เปิดแก้ → ทางเดิม (ส่งทั้งหมด)
+            showLoading('💾 กำลังบันทึกทีมศัตรู...');
+            try {
+                if (p._isNew) delete p._isNew; // กัน _isNew หลุดขึ้น server
+                normalizePatternPets(p);
+                p.name = genEnemyPatternName(p);
+                if (!p.guild_name) p.guild_name = CURRENT_USER?.guild_name || CURRENT_USER?.guildId || 'all';
+                const res = await postJson({ action: 'saveOneEnemyPattern', pattern: p }, { timeout: 45000, retries: 2 });
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'server ตอบไม่สำเร็จ');
+
+                // อัปเดตรายการในเครื่อง (ข้อมูลดิบทั้งหมด + แคช) แทนการโหลดทั้งระบบใหม่
+                if (Array.isArray(allEnemyPatternsDB)) {
+                    const i = allEnemyPatternsDB.findIndex(x => x && String(x.id) === String(p.id));
+                    if (i >= 0) allEnemyPatternsDB[i] = p; else allEnemyPatternsDB.push(p);
+                }
+                try { localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB || enemyPatternsDB)); } catch (e) {}
+
+                if (closeModalAfter) {
+                    currentPatternIdx = -1;
+                    const modal = document.getElementById('enemyPatternModal');
+                    if (modal) modal.style.display = 'none';
+                }
+                if (typeof renderEnemyPatternGrid === 'function') renderEnemyPatternGrid();
+                hideLoading();
+                alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว!");
+            } catch (e) {
+                hideLoading();
+                alert("❌ บันทึกไม่สำเร็จ: " + e.message + "\n\n(ข้อมูลยังอยู่ในหน้านี้ — ลองกดบันทึกอีกครั้ง)");
+            }
+        }
+
+        // ทางเดิม: ส่งทีมศัตรูทั้งหมดของกิลด์ แล้วโหลดใหม่จาก server (ใช้เมื่อไม่มีทีมที่เปิดแก้อยู่)
+        async function saveEnemyPatternsAll(closeModalAfter) {
 
             showLoading("Saving to Cloud...");
             try {
