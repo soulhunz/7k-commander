@@ -13565,7 +13565,7 @@
         function castleCompBuildCsv() {
             castleCompLoad();
             const comps = castleCompDB.comps, castles = castleCompActive();   // 🏰 ส่งออก/บันทึกขึ้น server เฉพาะหลังที่ติ๊กแสดงในหน้า Share
-            if (!castles.length && !comps.length) return null;
+            // ไม่ติ๊ก/ล้างตาราง ก็ยังสร้างได้ — บันทึกตารางว่างขึ้น server = เคลียร์หน้า Share
 
             const L = [];
             L.push(ccCsvRow([CC_CSV_TAG, CC_CSV_VER, 'ส่งออกจากหน้า นับคอมพ์ปราสาท', 'quota=' + (castleCompDB.heroQuota || 0)]));
@@ -13616,8 +13616,6 @@
         }
 
         function castleCompExportCsv() {
-            castleCompLoad();
-            if (castleCompDB.created && !castleCompActive().length) return alert('ยังไม่ได้ติ๊กปราสาทที่จะแสดงในหน้า Share — ติ๊กช่องหน้าชื่อปราสาทก่อน');
             const csv = castleCompBuildCsv();
             if (!csv) return alert('ยังไม่มีข้อมูลให้ส่งออก');
             // BOM — กัน Excel อ่านภาษาไทยเป็นตัวประหลาด
@@ -13689,7 +13687,7 @@
             const qm = String(raw[0] || '').match(/quota=(\d+)/);
             const heroQuota = qm ? parseInt(qm[1], 10) : 0;
 
-            if (!castlesRaw.length || !compsRaw.length) throw new Error('ไฟล์ไม่มีส่วน #CASTLES หรือ #COMPS');
+            // ไม่มีปราสาท/คอมพ์ = ตารางว่าง (บันทึกตอนล้างตารางหรือไม่ได้ติ๊ก) — อ่านได้ ไม่ถือว่าผิด
 
             const castles = castlesRaw.filter(r => r[0]).map(r => ({ id: ccUid('CS'), name: r[1] || '' }));
             const compNames = {};
@@ -13701,7 +13699,7 @@
                 return cp;
             }).filter(c => c.heroes.length);
 
-            if (!castles.length || !comps.length) throw new Error('ไม่พบปราสาทหรือคอมพ์ในไฟล์');
+            // (ว่างได้)
 
             // #COUNTS อ่านตามลำดับแถว/คอลัมน์ (ช่องแรกของแต่ละแถวคือชื่อปราสาท ข้าม)
             const counts = {};
@@ -13790,8 +13788,6 @@
 
         /** ☁️ บันทึกตารางขึ้น server (1 กิลด์ 1 ตาราง — ทับของเดิม) ให้ลิงก์หน้าดูโหลดได้เลย */
         async function castleCompSaveCloud() {
-            castleCompLoad();
-            if (castleCompDB.created && !castleCompActive().length) return alert('ยังไม่ได้ติ๊กปราสาทที่จะแสดงในหน้า Share — ติ๊กช่องหน้าชื่อปราสาทก่อน');
             const csv = castleCompBuildCsv();
             if (!csv) return alert('ยังไม่มีข้อมูลให้บันทึก');
             if (!CURRENT_USER || !CURRENT_USER.token) return alert('ต้องเข้าสู่ระบบก่อนถึงบันทึกขึ้น server ได้');
@@ -14901,6 +14897,16 @@
             }
 
             const { castles, comps } = ccView;
+            // ตารางว่าง (แอดมินล้างตาราง / ไม่ได้ติ๊กปราสาทให้แสดง) — บอกเฉยๆ ไม่ใช่ error
+            if (!castles.length || !comps.length) {
+                box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">${head}
+                    <div class="flex flex-col items-center justify-center text-center py-24 px-6 border-2 border-dashed border-gray-800 rounded-3xl bg-[#0f131a]">
+                        <div class="text-6xl mb-4 opacity-40">🏰</div>
+                        <h3 class="text-lg font-bold text-gray-300 mb-2">ยังไม่มีปราสาทที่แสดง</h3>
+                        <p class="text-xs text-gray-500 max-w-sm leading-relaxed">${!castles.length ? 'กิลด์ยังไม่ได้เลือกปราสาทที่จะแสดงในรอบนี้' : 'กิลด์ยังไม่ได้เพิ่มคอมพ์ในตาราง'} — รอแอดมินบันทึกตารางใหม่</p>
+                    </div></div>`;
+                return;
+            }
             const cnt = (csId, cpId) => (ccView.counts[csId] && ccView.counts[csId][cpId]) || 0;
             const colTotal = comps.map(cp => castles.reduce((s, cs) => s + cnt(cs.id, cp.id), 0));
             const grand = colTotal.reduce((a, b) => a + b, 0);
