@@ -1912,7 +1912,9 @@
         .cc-table .cc-castle-w { width: 200px; min-width: 200px; max-width: 200px; }   /* 🏰 คอลัมน์ชื่อปราสาท (หน้านับคอมพ์) */
         /* หน้านับคอมพ์: ตารางเต็มกรอบ ("รวม" ชิดขวาสุด) — ที่ว่างที่เหลือให้ช่องว่างก่อน "+ เพิ่มคอมพ์" ไม่ใช่คอลัมน์ชื่อปราสาท (200) */
         .cc-table.cc-table-admin .cc-admin-fill { width: 100%; padding: 0; }
-        .cc-table.cc-table-admin th.cc-castle-w { padding: 8px 12px; }   /* ช่องติ๊ก/ชื่อปราสาท ไม่ชิดขอบ (.cc-table th ตั้ง padding 0 ทับ .cc-pad) */
+        .cc-table.cc-table-admin th.cc-castle-w { padding: 8px 12px; }
+        /* 🏰 โหมดทีละปราสาท: การ์ดที่ใส่จำนวนแล้ว = ขอบ/พื้นส้ม */
+        .cc-card.cc-card-on { border-color: #f59e0b; background: #1f1a10; box-shadow: 0 0 0 1px rgba(245,158,11,.35); }   /* ช่องติ๊ก/ชื่อปราสาท ไม่ชิดขอบ (.cc-table th ตั้ง padding 0 ทับ .cc-pad) */
         /* ⚔️ หน้าไม้ชน — รูปใหญ่ให้เห็นชัด (ทีมชน 84 · บ้าน 64) · จอเล็กย่อลงให้พอดี */
         .mai-team .cc-hero-slot { width: 84px; height: 84px; border-radius: 12px; }
         .mai-house .cc-hero-slot { width: 64px; height: 64px; border-radius: 10px; }
@@ -4568,7 +4570,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.0.0';
+        const APP_VERSION = '1.1.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -12690,6 +12692,86 @@
             </div>`;
         }
 
+        // ---------- 🏰 โหมดทีละปราสาท ----------
+        let castleCompView = (function () { try { return localStorage.getItem('cc_admin_view') || 'table'; } catch (e) { return 'table'; } })();
+        let castleCompSelCastle = null;       // id ปราสาทที่เลือกอยู่
+        let castleCompOnlyFilled = false;     // แสดงเฉพาะคอมพ์ที่ใส่จำนวนแล้ว
+        function castleCompSetView(v) {
+            castleCompView = v;
+            try { localStorage.setItem('cc_admin_view', v); } catch (e) {}
+            renderCastleComp();
+        }
+        function castleCompViewTabsHTML() {
+            const tab = (k, label) => `<button type="button" onclick="castleCompSetView('${k}')" class="px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap ${castleCompView === k ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
+            return `<div class="inline-flex gap-1 p-1 mb-4 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">${tab('table', '📊 ตาราง')}${tab('castle', '🏰 ทีละปราสาท')}</div>`;
+        }
+        function castleCompCastleTotal(csId) {
+            return castleCompDB.comps.reduce((s, cp) => s + castleCompGetCount(csId, cp.id), 0);
+        }
+        function castleCompSelectCastle(id) { castleCompSelCastle = id; renderCastleComp(); }
+        function castleCompToggleOnlyFilled() { castleCompOnlyFilled = !castleCompOnlyFilled; renderCastleComp(); }
+        /** − / + ทีละ 1 — อัปเดตเฉพาะการ์ดนั้น (ไม่วาดใหม่ทั้งหน้า หน้าไม่กระโดด) */
+        function castleCompStep(csId, cpId, d) {
+            castleCompSetCount(csId, cpId, Math.max(0, castleCompGetCount(csId, cpId) + d));
+            castleCompCardSync(csId, cpId, true);
+        }
+        function castleCompCardSync(csId, cpId, setInput) {
+            const n = castleCompGetCount(csId, cpId);
+            const inp = document.getElementById('ccq-' + cpId);
+            if (inp && setInput) inp.value = n || '';
+            const card = document.getElementById('ccc-' + cpId);
+            if (card) card.classList.toggle('cc-card-on', n > 0);
+            const badge = document.getElementById('ccb-' + csId);
+            if (badge) { const t = castleCompCastleTotal(csId); badge.textContent = t; badge.classList.toggle('opacity-40', !t); }
+        }
+        function castleCompByCastleHTML() {
+            const castles = castleCompDB.castles, comps = castleCompDB.comps;
+            let cs = castles.find(c => c.id === castleCompSelCastle) || castles[0];
+            castleCompSelCastle = cs ? cs.id : null;
+            const chips = castles.map(c => {
+                const t = castleCompCastleTotal(c.id), on = cs && c.id === cs.id;
+                return `<button type="button" onclick="castleCompSelectCastle('${c.id}')" title="${c.on ? 'แสดงในหน้า Share' : 'ไม่แสดงในหน้า Share'}"
+                    class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black border transition ${on ? 'bg-amber-600 text-white border-amber-400 shadow-lg' : 'bg-[#0d1117] border-gray-700 hover:border-gray-500 ' + (c.on ? 'text-gray-200' : 'text-gray-500')}">
+                    🏰 ${ccEsc(c.name || 'ไม่มีชื่อ')}
+                    <span id="ccb-${c.id}" class="min-w-[20px] text-center px-1.5 rounded-full text-[10px] ${on ? 'bg-black/30' : 'bg-gray-800 text-amber-300'} ${t ? '' : 'opacity-40'}">${t}</span>
+                </button>`;
+            }).join('');
+            if (!cs) return `<div class="text-sm text-gray-500">ยังไม่มีปราสาท</div>`;
+            const list = comps.filter(cp => !castleCompOnlyFilled || castleCompGetCount(cs.id, cp.id) > 0);
+            const cards = list.map(cp => {
+                const n = castleCompGetCount(cs.id, cp.id);
+                const slots = castleCompSlots(cp).map(sl => {
+                    const h = heroesDB.find(x => String(x.id) === String(sl.id));
+                    if (!h) return `<div class="cc-hero-slot empty">·</div>`;
+                    const awk = !!(sl.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    return `<div class="cc-hero-slot${awk ? ' awk' : ''}" title="${ccEsc(h.name)}"><img src="${awk ? h.img2 : h.img}" alt="" class="w-full h-full object-cover"></div>`;
+                }).join('');
+                return `<div id="ccc-${cp.id}" class="cc-card ${n > 0 ? 'cc-card-on' : ''} bg-[#111827] border border-gray-700 rounded-2xl p-3 flex flex-col gap-2">
+                    <div class="text-[11px] font-bold text-gray-400 truncate" title="${ccEsc(castleCompName(cp))}">${ccEsc(castleCompName(cp))}</div>
+                    <div class="flex items-center justify-center gap-1.5">${slots}</div>
+                    <div class="flex items-center justify-center gap-2 mt-1">
+                        <button type="button" onclick="castleCompStep('${cs.id}','${cp.id}',-1)" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-gray-600 text-white text-lg font-black">−</button>
+                        <input id="ccq-${cp.id}" type="number" min="0" step="1" inputmode="numeric" value="${n || ''}" placeholder="0"
+                            oninput="castleCompSetCount('${cs.id}','${cp.id}',this.value,this); castleCompCardSync('${cs.id}','${cp.id}')"
+                            class="w-16 h-9 text-center bg-[#0d1117] border border-gray-600 focus:border-amber-500 rounded-xl text-white font-black outline-none">
+                        <button type="button" onclick="castleCompStep('${cs.id}','${cp.id}',1)" class="w-9 h-9 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-lg font-black">+</button>
+                    </div>
+                </div>`;
+            }).join('');
+            const addCard = `<button type="button" onclick="castleCompOpenAddDialog()" class="border-2 border-dashed border-gray-700 hover:border-amber-500/60 rounded-2xl p-3 min-h-[150px] flex items-center justify-center text-sm font-bold text-gray-500 hover:text-amber-300 transition">＋ เพิ่มคอมพ์</button>`;
+            return `<div class="flex flex-wrap gap-1.5 mb-3">${chips}</div>
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <div class="text-sm font-black text-white">🏰 ${ccEsc(cs.name || '')} <span class="text-[11px] font-normal text-gray-500">รวม ${castleCompCastleTotal(cs.id)} หลัง${cs.on ? '' : ' · ไม่แสดงในหน้า Share'}</span></div>
+                    <label class="flex items-center gap-2 text-[11px] text-gray-400 font-bold cursor-pointer select-none">
+                        <input type="checkbox" ${castleCompOnlyFilled ? 'checked' : ''} onchange="castleCompToggleOnlyFilled()" class="w-4 h-4 accent-amber-500"> แสดงเฉพาะคอมพ์ที่ใส่จำนวนแล้ว
+                    </label>
+                </div>
+                <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));">
+                    ${cards || (castleCompOnlyFilled ? '<div class="col-span-full text-xs text-gray-500 italic py-6 text-center">ปราสาทนี้ยังไม่ได้ใส่จำนวนคอมพ์</div>' : '')}
+                    ${castleCompOnlyFilled ? '' : addCard}
+                </div>`;
+        }
+
         function castleCompDefaults() {
             return { created: false, castles: [], comps: [], counts: {}, picks: {}, picksV: CASTLE_COMP_PICKS_V, heroQuota: 0 };
         }
@@ -12861,6 +12943,13 @@
                 return;
             }
 
+            // 🏰 โหมดทีละปราสาท — เลือกปราสาทแล้วใส่จำนวนคอมพ์เป็นการ์ด (คอมพ์เยอะ ตารางลายตา)
+            if (castleCompView === 'castle') {
+                box.innerHTML = `<div id="cc-topbar"></div>${castleCompViewTabsHTML()}${castleCompByCastleHTML()}`;   // สรุปจำนวนต่อคอมพ์ อยู่โหมดตารางเท่านั้น
+                castleCompRecalcTotals();
+                return;
+            }
+
             // --- หัวตาราง: 1 คอลัมน์ = 1 คอมพ์ (ฮีโร่ 3 ตัว) · ปุ่ม ✕ อยู่มุมขวาบนของหัวคอลัมน์ ---
             const headCells = comps.map(comp => {
                 const slotList = castleCompSlots(comp);
@@ -12926,6 +13015,7 @@
 
             box.innerHTML = `
                 <div id="cc-topbar"></div>
+                ${castleCompViewTabsHTML()}
                 <!-- 🏰 ติ๊กแสดงในหน้า Share อยู่ที่ช่องชื่อปราสาทแต่ละแถว (castleCompToggleBarHTML เลิกใช้) -->
                 <div class="w-full cc-scroll-x border border-gray-700 rounded-xl bg-[#0b0e14] shadow-2xl">
                     <table class="cc-table cc-table-admin text-sm">
