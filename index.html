@@ -4670,7 +4670,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.4.0';
+        const APP_VERSION = '1.5.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -19321,7 +19321,7 @@
     };
     let btStream = null, btVideo = null, btTimer = null, btBusy = false;
     let bt = null;   // เซสชันปัจจุบัน
-    function btNew() { return { teams: null, names: {}, result: null, turns: [], used: [], ticks: [], events: [], portBase: [0, 0, 0, 0, 0, 0], portDark: [0, 0, 0, 0, 0, 0], dead: [false, false, false, false, false, false], slotHeroes: [null, null, null, null, null, null], stats: { ally: null, enemy: null }, lastTurn: -1, lastIcons: null, endSeen: false }; }
+    function btNew() { return { teams: null, names: {}, result: null, turns: [], used: [], ticks: [], events: [], acts: [], act: null, icSt: null, cutRun: 0, cutT0: null, pendTurn: null, pendN: 0, portBase: [0, 0, 0, 0, 0, 0], portDark: [0, 0, 0, 0, 0, 0], dead: [false, false, false, false, false, false], slotHeroes: [null, null, null, null, null, null], stats: { ally: null, enemy: null }, lastTurn: -1, lastIcons: null, endSeen: false }; }
     // 🎞️ อัดวิดีโอระหว่างจับหน้าจอ → หยุดแล้ววิเคราะห์ละเอียดทีละ 0.25 วินาที
     let btRec = null, btRecChunks = [], btRecT0 = 0, btRecDur = 0, btRecBlob = null, btVidUrl = null, btVidName = '', btAna = null, btCurTime = null, btQuiet = false, btPlayer = null;
     const BT_PORT_X = [0.2296, 0.3194, 0.4097, 0.5402, 0.6315, 0.7229], BT_PORT_Y = 0.8651, BT_PORT_W = 0.0313, BT_PORT_H = 0.0558;   // รูปฮีโร่แถวล่าง 6 ตัว (ซ้าย 3 · ขวา 3)
@@ -19341,6 +19341,35 @@
             if (dark && bt.portDark[i] >= 2 && !bt.dead[i]) { bt.dead[i] = true; bt.events.push({ type: 'dead', slot: i, turn, time: btCurTime, tick: bt.ticks.length - 1 }); }
             if (!dark && bt.portDark[i] <= -2 && bt.dead[i]) { bt.dead[i] = false; bt.events.push({ type: 'revive', slot: i, turn, time: btCurTime, tick: bt.ticks.length - 1 }); }
         });
+    }
+    /** หน้าจอสู้ที่เห็นแถบเครื่องมือครบ (กล่องเวลาด้านบนชัด) — ฉากสกิลใหญ่เต็มจอจะไม่ผ่าน */
+    function btUiOk(cv) {
+        const W = cv.width, H = cv.height;
+        const d = cv.getContext('2d', { willReadFrequently: true }).getImageData(Math.round(0.44 * W), Math.round(0.02 * H), Math.round(0.12 * W), Math.round(0.06 * H)).data;
+        let s = 0, sat = 0, wh = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) { const R = d[i], G = d[i + 1], B = d[i + 2], l = (R + G + B) / 3, sa = Math.max(R, G, B) - Math.min(R, G, B); s += l; sat += sa; if (l > 215 && sa < 30) wh++; n++; }
+        s /= n; sat /= n; wh /= n;
+        return s > 55 && s < 100 && sat < 40 && wh > 0.06;
+    }
+    /** ปุ่มสกิล 6 ตัว × (บน, ล่าง): cd = มีเลขนับถอยหลังสีขาว (ติดคูลดาวน์) · lum = ความสว่าง */
+    function btIconStates(cv) {
+        const W = cv.width, H = cv.height, g = cv.getContext('2d', { willReadFrequently: true });
+        return BT_SLOT_ICON_X.map(x => BT_R.skillY.map(y => {
+            const d = g.getImageData(Math.round((x + 0.003) * W), Math.round((y + 0.005) * H), Math.round(BT_R.skillW * W), Math.round(BT_R.skillH * H)).data;
+            let s = 0, wh = 0, sat = 0, n = 0;
+            for (let i = 0; i < d.length; i += 4) { const R = d[i], G = d[i + 1], B = d[i + 2], l = (R + G + B) / 3, sa = Math.max(R, G, B) - Math.min(R, G, B); s += l; sat += sa; if (l > 215 && sa < 30) wh++; n++; }
+            s /= n; sat /= n; wh /= n;
+            // c = ติดคูลดาวน์ (ไอคอนเทาหม่น + เลขขาว) · r = พร้อมใช้ (สีสด / ไม่มีเลข) · null = ไม่แน่ใจ (ไม่นับ)
+            return { lum: s, sat, cd: wh > 0.02 && sat < 25, st: wh > 0.02 && sat < 25 ? 'c' : (sat >= 30 || wh <= 0.005) ? 'r' : null };
+        }));
+    }
+    /** ปิดเทิร์นที่กำลังดู → สรุปว่าฝั่งไหนลงมือ · ใช้สกิลหรือตีธรรมดา */
+    function btCloseAct() {
+        const a = bt.act; if (!a) return;
+        a.sideKey = a.sL > a.sR ? 'L' : a.sR > a.sL ? 'R' : null;
+        const sk = bt.used.filter(u => u.actTurn === a.turn && (u.hero < 3 ? 'L' : 'R') === a.sideKey);
+        a.kind = sk.length || a.cut ? 'skill' : 'normal';
+        bt.acts.push(a); bt.act = null;
     }
     function btFmtTime(t) { if (t == null || !isFinite(t)) return ''; t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
     // ---------- ระบุฮีโร่จากไอคอนสกิล (รูปสกิลในเกม = รูปในคลังสกิล) ----------
@@ -19374,12 +19403,15 @@
         return btIconCandsP;
     }
     /** ฮีโร่ทั้ง 6 ช่องแถวล่าง (ซ้าย 3 · ขวา 3) — เก็บผลที่คะแนนดีที่สุดข้ามเฟรม */
-    async function btIdentifySlots(cv) {
+    async function btIdentifySlots(cv, ic) {
         const cands = await btIconCands(); if (!cands.length) return;
+        if (!bt.slotVotes) bt.slotVotes = [{}, {}, {}, {}, {}, {}];
         const W = cv.width, H = cv.height, iw = BT_R.skillW * W * 1.1, ih = BT_R.skillH * H * 1.15;
         for (let si = 0; si < 6; si++) {
             const dark = si >= 3, x = BT_SLOT_ICON_X[si] * W;
             const vars = y => { const v = []; for (const dx of [-3, 0, 3]) for (const dy of [-3, 0, 3]) v.push(btIconSig(cv, x + 4 + dx, y + 4 + dy, iw, ih)); return v; };
+            const okTop = !ic || (ic[si][0].st === 'r' && ic[si][0].lum < 150), okBot = !ic || (ic[si][1].st === 'r' && ic[si][1].lum < 150);
+            if (!okTop && !okBot) continue;
             const vTop = vars(BT_R.skillY[0] * H), vBot = vars(BT_R.skillY[1] * H);
             const team = bt.teams && bt.teams[si < 3 ? 0 : 1];
             const allow = team ? new Set(team.slots.filter(s => s && s.id).map(s => String(s.id))) : null;
@@ -19391,10 +19423,16 @@
                 const key = c.id + (c.aw ? '*' : '');
                 (best[key] = best[key] || { id: c.id, aw: c.aw, s1: 9, s2: 9 })[c.k] = Math.min(best[key][c.k], d);
             });
-            const arr = Object.values(best).map(b => ({ id: b.id, aw: b.aw, score: b.s1 + b.s2 })).sort((a, b) => a.score - b.score);
+            const arr = Object.values(best).map(b => ({ id: b.id, aw: b.aw, score: (okBot ? b.s1 : 0) + (okTop ? b.s2 : 0) })).sort((a, b) => a.score - b.score);
             if (!arr.length) continue;
             const cur = bt.slotHeroes[si];
-            if (!cur || (!cur.locked && arr[0].score < cur.score)) bt.slotHeroes[si] = arr[0];
+            if (cur && cur.locked) continue;
+            if (!ic) { if (!cur || arr[0].score < cur.score) bt.slotHeroes[si] = arr[0]; continue; }
+            // โหวต: ตัวที่ชนะบ่อยสุดในหลายภาพ
+            const key = arr[0].id + (arr[0].aw ? '*' : ''), vv = bt.slotVotes[si];
+            vv[key] = vv[key] || { id: arr[0].id, aw: arr[0].aw, n: 0, score: arr[0].score }; vv[key].n += okTop && okBot ? 2 : 1; vv[key].score = Math.min(vv[key].score, arr[0].score);
+            const top = Object.values(vv).sort((a, b) => b.n - a.n || a.score - b.score)[0];
+            bt.slotHeroes[si] = { id: top.id, aw: top.aw, score: top.score };
         }
     }
     function btFrac(cv, r) { return [r[0] * cv.width, r[1] * cv.height, r[2] * cv.width, r[3] * cv.height]; }
@@ -19481,6 +19519,8 @@
             pc.getContext('2d').drawImage(cv, BT_R.statPort[0] * W, (y - 0.02) * H, BT_R.statPort[1] * W, 0.1 * H, 0, 0, 120, 70);
             rows.push({ dmg: v[0], taken: v[1], heal: v[2], img: pc.toDataURL('image/jpeg', 0.7), heroId: null });
         }
+        const prev = bt.stats[side];
+        if (prev && prev.length === rows.length) rows.forEach((r, i) => { ['dmg', 'taken', 'heal'].forEach(k => { r[k] = Math.max(r[k] || 0, prev[i][k] || 0); }); if (prev[i].heroId) { r.heroId = prev[i].heroId; r.aw = prev[i].aw; } });
         bt.stats[side] = rows;
         btMatchStatHeroes(side);
     }
@@ -19514,20 +19554,57 @@
             await wcEnsureCands();
             const rd = wcReadFrame(cv, true);
             if (rd.ok) { const key = wcTeamKey(rd); if (!bt.teams || bt.teamKey !== key) { if (bt.teams && bt.turns.length) bt = btNew(); bt.teams = rd.rows; bt.teamKey = key; } }
-        } else if (c.kind === 'battle') {
+        } else if (c.kind === 'battle' && btUiOk(cv)) {
             const b = await btReadBattle(cv); if (!b) return c.kind;
+            // เลขเทิร์นอ่านพลาดได้ (เช่น 24 → 248) — รับเฉพาะที่เพิ่มขึ้นทีละ 1–2 หรืออ่านได้ค่าเดิมติดกันหลายภาพ
+            if (bt.lastTurn >= 0 && (b.turn == null || b.turn < bt.lastTurn || b.turn > bt.lastTurn + 2)) {
+                if (b.turn != null && b.turn === bt.pendTurn) bt.pendN++; else { bt.pendTurn = b.turn; bt.pendN = 1; }
+                if (!(b.turn != null && b.turn > bt.lastTurn && b.turn < bt.lastTurn + 15 && bt.pendN >= 4)) b.turn = bt.lastTurn;
+            } else if (b.turn == null) b.turn = Math.max(0, bt.lastTurn);
+            // เพิ่งจบฉากสกิลใหญ่ (หน้าจอไม่มีแถบเครื่องมือ ≥ 2 ภาพ)
+            if (bt.cutRun >= 2 && bt.act) { bt.act.cut = true; bt.act.cutTime = bt.cutT0; }
+            bt.cutRun = 0;
             if (!bt.names.L) btReadNames(cv).then(btRender);
-            if (!bt.slotHeroes.every(Boolean) || bt.ticks.length < 3) await btIdentifySlots(cv);   // ระบุฮีโร่ช่วงแรก (ไอคอนยังสีสดครบ)
+            if (bt.ticks.length < 80 && bt.ticks.length % 2 === 0) await btIdentifySlots(cv, btIconStates(cv));   // ระบุฮีโร่จาก 40 ภาพแรก (โหวต)
             bt.ticks.push({ turn: b.turn, hpL: b.hpL, hpR: b.hpR, time: btCurTime });
             btTrackDeaths(cv, b.turn);
-            if (b.turn !== bt.lastTurn && b.turn >= bt.lastTurn) { bt.turns.push({ turn: b.turn, hpL: b.hpL, hpR: b.hpR }); bt.lastTurn = b.turn; }
+            if (b.turn !== bt.lastTurn && b.turn >= bt.lastTurn) {
+                btCloseAct();
+                bt.turns.push({ turn: b.turn, hpL: b.hpL, hpR: b.hpR }); bt.lastTurn = b.turn;
+                bt.act = { turn: b.turn, time: btCurTime, tick: bt.ticks.length - 1, sL: 0, sR: 0, cut: false };
+            }
             else if (bt.turns.length) { const t = bt.turns[bt.turns.length - 1]; t.hpL = b.hpL; t.hpR = b.hpR; }
-            // สกิลที่เพิ่งใช้: ไอคอนเปลี่ยนจาก "ใช้ได้" → "สีเทา"
-            if (bt.lastIcons) b.icons.forEach((hero, hi) => hero.forEach((ok, si) => { if (bt.lastIcons[hi][si] && !ok && !bt.dead[hi] && !(bt.portDark[hi] > 0)) bt.used.push({ turn: b.turn, hero: hi, skill: si, tick: bt.ticks.length - 1, time: btCurTime }); }));
-            bt.lastIcons = b.icons;
+            // ฝั่งที่กำลังลงมือ: แถบสกิลฝั่งนั้นสว่างขึ้น
+            const ic = btIconStates(cv);
+            const lumL = (ic[0][0].lum + ic[0][1].lum + ic[1][0].lum + ic[1][1].lum + ic[2][0].lum + ic[2][1].lum) / 6;
+            const lumR = (ic[3][0].lum + ic[3][1].lum + ic[4][0].lum + ic[4][1].lum + ic[5][0].lum + ic[5][1].lum) / 6;
+            if (bt.act) { if (lumL > 60 && lumL > lumR + 15) bt.act.sL++; else if (lumR > 60 && lumR > lumL + 15) bt.act.sR++; }
+            // สกิลที่เพิ่งใช้: ปุ่มเปลี่ยนจาก "พร้อม" → "มีเลขคูลดาวน์" (ต้องเห็นติดกัน 2 ภาพ · ข้ามตอนแถบกระพริบขาว / ตัวที่ตาย)
+            if (!bt.icSt) bt.icSt = ic.map(r => r.map(() => ({ stable: null, cand: null, n: 0 })));
+            ic.forEach((row, hi) => row.forEach((x, si) => {
+                const flash = (hi < 3 ? lumL : lumR) > 150;
+                if (flash || bt.dead[hi] || bt.portDark[hi] > 0) return;
+                const st = bt.icSt[hi][si], cur = x.st; if (!cur) return;
+                if (st.cand === cur) st.n++; else { st.cand = cur; st.n = 1; }
+                if (st.n >= (cur === 'r' ? 4 : 2) && st.stable !== cur) {
+                    if (st.stable === 'r' && cur === 'c') {
+                        // ใส่ให้เทิร์นของฝั่งนั้น (เลขคูลดาวน์อาจขึ้นหลังเปลี่ยนเทิร์นแล้ว)
+                        const side = hi < 3 ? 'L' : 'R', a = bt.act, prev = bt.acts[bt.acts.length - 1];
+                        const sideOf = q => q ? (q.sL > q.sR ? 'L' : q.sR > q.sL ? 'R' : null) : null;
+                        let at = a ? a.turn : b.turn;
+                        if (a && sideOf(a) && sideOf(a) !== side && prev && sideOf(prev) === side) { at = prev.turn; prev.kind = 'skill'; }
+                        bt.used.push({ turn: at, actTurn: at, hero: hi, skill: si, tick: bt.ticks.length - 1, time: btCurTime });
+                    }
+                    st.stable = cur;
+                }
+            }));
+        } else if (c.kind !== 'end' && c.kind !== 'stats' && c.kind !== 'popup' && bt.lastTurn >= 0 && !bt.endSeen) {
+            if (!bt.cutRun) bt.cutT0 = btCurTime;
+            bt.cutRun++;
         } else if (c.kind === 'end') {
-            if (!bt.endSeen) {
-                bt.endSeen = true;
+            bt.endRun = (bt.endRun || 0) + 1;   // หน้าจบต้องเห็นติดกันหลายภาพ (ภาพเปลี่ยนฉากอาจหน้าตาคล้าย)
+            if (!bt.endSeen && (bt.endRun >= 3 || btCurTime == null)) {
+                bt.endSeen = true; btCloseAct();
                 const o = await wcOcrInit();
                 if (o) {
                     const t = (await o.tha.recognize(btBin(cv, ...btFrac(cv, BT_R.endText), 1, (R, G, B) => (R + G + B) / 3 > 150))).data.text;
@@ -19535,9 +19612,10 @@
                 }
                 if (!bt.result && bt.turns.length) { const t = bt.turns[bt.turns.length - 1]; bt.result = t.hpL > t.hpR ? 'win' : 'lose'; }
             }
-        } else if (c.kind === 'stats') {
+        } else if (c.kind === 'stats' && (bt.endSeen || bt.lastTurn < 0)) {
             await btReadStats(cv, c.side);
         }
+        if (c.kind !== 'end') bt.endRun = 0;
         if (!btQuiet) btRender();
         return c.kind;
     }
@@ -19672,6 +19750,8 @@
                 for (let t = 0; t <= dur && !btAna.cancel; t += 0.25) { await seek(t); await grab(t); }
             }
         } finally {
+            // จบวิดีโอ: ปิดเทิร์นสุดท้าย · ไม่เห็นหน้าจบ → เดาผลจาก HP สุดท้าย
+            if (bt) { btCloseAct(); const lt = bt.turns[bt.turns.length - 1]; if (!bt.result && lt && (lt.hpL <= 3 || lt.hpR <= 3)) bt.result = lt.hpL > lt.hpR ? 'win' : 'lose'; }
             btQuiet = false; btAna = null; btCurTime = null; v.pause(); v.remove(); v.removeAttribute('src'); v.load(); btRender();
         }
     }
@@ -19690,7 +19770,7 @@
             myFormation: win.formation, enemyFormation: lose.formation, myHeroes: team(win), enemyHeroes: team(lose),
             myPet: null, enemyPet: null, skillQueue: [], result: 'Win',
             wcWinnerRole: leftWon ? 'atk' : 'def', wcAtkName: bt.names.L || '', wcDefName: bt.names.R || '',
-            btAnalysis: { turns: bt.turns.length ? bt.turns[bt.turns.length - 1].turn : null, hp: bt.turns, used: bt.used, events: bt.events || [], stats: bt.stats && { ally: (bt.stats.ally || []).map(({ img, ...x }) => x), enemy: (bt.stats.enemy || []).map(({ img, ...x }) => x) }, guilds: { L: bt.names.gL || '', R: bt.names.gR || '' } }
+            btAnalysis: { turns: bt.turns.length ? bt.turns[bt.turns.length - 1].turn : null, hp: bt.turns, used: bt.used, events: bt.events || [], acts: (bt.acts || []).map(a => ({ turn: a.turn, side: a.sideKey, kind: a.kind, cut: !!a.cut, time: a.time })), stats: bt.stats && { ally: (bt.stats.ally || []).map(({ img, ...x }) => x), enemy: (bt.stats.enemy || []).map(({ img, ...x }) => x) }, guilds: { L: bt.names.gL || '', R: bt.names.gR || '' } }
         });
         btClose(); openRecorder(); renderRecorderRows();
         showToast('📥 ส่งเข้าหน้าบันทึกแล้ว — กด 💾 บันทึกทั้งหมด', 'success');
@@ -19710,7 +19790,8 @@
         const before = s.ticks[Math.max(0, u.tick - 1)];
         const after = (u.time != null && s.ticks[u.tick] && s.ticks[u.tick].time != null) ? s.ticks.filter((t, i) => i >= u.tick && t.time <= u.time + 3) : s.ticks.slice(u.tick, u.tick + 3);
         if (!before || !after.length) return null;
-        return { enemy: Math.max(0, before.hpR - Math.min(...after.map(t => t.hpR))), self: Math.min(...after.map(t => t.hpL)) - before.hpL };
+        const ek = u.hero >= 3 ? 'hpL' : 'hpR', sk = u.hero >= 3 ? 'hpR' : 'hpL';
+        return { enemy: Math.max(0, before[ek] - Math.min(...after.map(t => t[ek]))), self: Math.min(...after.map(t => t[sk])) - before[sk] };
     }
     /** สรุปการต่อสู้เป็นข้อความ */
     function btInsights(s) {
@@ -19730,8 +19811,14 @@
             out.push(`🎬 เปิดเกมด้วย ${hero0 ? hero0.name + ' — ' + (skillNameOf(hero0, u0.skill ? 's1' : 's2') || (u0.skill ? 'S1' : 'S2')) : 'ตัวที่ ' + (u0.hero + 1)} (เทิร์น ${u0.turn})`);
             let best = null; s.used.forEach(u => { const fx = btSkillImpact(s, u); if (fx && (!best || fx.enemy > best.fx.enemy)) best = { u, fx }; });
             if (best && best.fx.enemy > 0) { const sh = s.slotHeroes[best.u.hero], hb = sh && heroesDB.find(x => String(x.id) === String(sh.id)); out.push(`💥 สกิลที่กด HP ศัตรูได้มากสุด: ${hb ? hb.name + ' — ' + (skillNameOf(hb, best.u.skill ? 's1' : 's2') || (best.u.skill ? 'S1' : 'S2')) : 'ตัวที่ ' + (best.u.hero + 1)} (−${best.fx.enemy}% เทิร์น ${best.u.turn})`); }
-            const cnt = [0, 0, 0]; s.used.forEach(u => cnt[u.hero]++);
-            out.push('🔁 จำนวนครั้งที่ใช้สกิล: ' + cnt.map((c, i) => nm(s.slotHeroes[i] && s.slotHeroes[i].id, i) + ' ' + c).join(' · '));
+            const cnt = [0, 0, 0, 0, 0, 0]; s.used.forEach(u => cnt[u.hero]++);
+            out.push('🔁 ใช้สกิล (ซ้าย): ' + cnt.slice(0, 3).map((c, i) => nm(s.slotHeroes[i] && s.slotHeroes[i].id, i) + ' ' + c).join(' · '));
+            out.push('🔁 ใช้สกิล (ขวา): ' + cnt.slice(3).map((c, i) => nm(s.slotHeroes[i + 3] && s.slotHeroes[i + 3].id, i) + ' ' + c).join(' · '));
+        }
+        const acts = (s.acts || []).filter(a => a.sideKey);
+        if (acts.length) {
+            const c = (sd, k) => acts.filter(a => a.sideKey === sd && a.kind === k).length;
+            out.push(`⚔️ ซ้ายลงมือ ${c('L', 'skill') + c('L', 'normal')} ครั้ง (สกิล ${c('L', 'skill')} · ตีธรรมดา ${c('L', 'normal')}) · ขวาลงมือ ${c('R', 'skill') + c('R', 'normal')} ครั้ง (สกิล ${c('R', 'skill')} · ตีธรรมดา ${c('R', 'normal')})`);
         }
         // จากตารางสถิติ
         const sideTxt = (rows, label) => {
@@ -19794,10 +19881,19 @@
         const hpChart = s.turns.length ? `<div class="flex items-end gap-1 h-24 overflow-x-auto pb-1">${s.turns.map(t => `<div class="flex flex-col items-center gap-0.5 flex-shrink-0" title="เทิร์น ${t.turn} · ซ้าย ${t.hpL}% · ขวา ${t.hpR}%">
                 <div class="flex items-end gap-0.5 h-16"><div class="w-2 bg-sky-500 rounded-t" style="height:${Math.max(2, t.hpL)}%"></div><div class="w-2 bg-red-500 rounded-t" style="height:${Math.max(2, t.hpR)}%"></div></div>
                 <span class="text-[9px] text-gray-500">${t.turn}</span></div>`).join('')}</div>` : '<div class="text-xs text-gray-600 italic">ยังไม่มีข้อมูลเทิร์น</div>';
-        const evAll = [...s.used.map(u => ({ k: 'skill', u, turn: u.turn, time: u.time, tick: u.tick })), ...(s.events || []).map(e => ({ k: e.type, e, turn: e.turn, time: e.time, tick: e.tick }))].sort((a, b) => (a.tick - b.tick) || (a.k === 'skill' ? -1 : 1));
+        const actRows = [...(s.acts || []), ...(s.act ? [s.act] : [])].filter(a => (a.sideKey || (a.sL > a.sR ? 'L' : a.sR > a.sL ? 'R' : null)) && !s.used.some(u => u.actTurn === a.turn && (u.hero < 3 ? 'L' : 'R') === (a.sideKey || (a.sL > a.sR ? 'L' : 'R'))));
+        const evAll = [...s.used.map(u => ({ k: 'skill', u, turn: u.turn, time: u.time, tick: u.tick })), ...actRows.map(a => ({ k: 'act', a, turn: a.turn, time: a.time, tick: a.tick })), ...(s.events || []).map(e => ({ k: e.type, e, turn: e.turn, time: e.time, tick: e.tick }))].sort((a, b) => (a.turn - b.turn) || (a.tick - b.tick) || (a.k === 'skill' ? -1 : 1));
         const tChip = (turn, time) => time != null && btPlayer ? `<button onclick="btSeek(${time})" class="text-[10px] text-cyan-300 hover:text-white w-14 flex-shrink-0 text-left leading-tight" title="ข้ามไปดูในวิดีโอ">▶ ${btFmtTime(time)}<br><span class="text-gray-500">T${turn}</span></button>` : `<span class="text-[10px] text-gray-500 w-9 flex-shrink-0">T${turn}</span>`;
         const evHTML = evAll.map(x => {
             if (x.k === 'skill') return null;
+            if (x.k === 'act') {
+                const a = x.a, sd = a.sideKey || (a.sL > a.sR ? 'L' : 'R'), col = sd === 'L' ? 'text-sky-300' : 'text-red-300';
+                return `<div class="flex items-center gap-2 py-1 border-b border-gray-800/60">
+                    ${tChip(a.turn, a.time)}
+                    <div class="w-8 h-8 rounded-lg bg-gray-800/70 flex items-center justify-center text-base">${a.cut ? '🎬' : '🗡️'}</div>
+                    <div class="min-w-0 flex-1"><div class="text-xs font-bold ${a.cut ? 'text-amber-300' : 'text-gray-300'}">${a.cut ? 'ใช้สกิลใหญ่ (มีฉากพิเศษ)' : 'ตีธรรมดา'}</div><div class="text-[10px] ${col}">ฝั่ง${sd === 'L' ? 'ซ้าย' : 'ขวา'}</div></div>
+                </div>`;
+            }
             const e = x.e, sh = s.slotHeroes[e.slot], hero = sh && heroesDB.find(h => String(h.id) === String(sh.id));
             const side = e.slot < 3 ? 'ซ้าย' : 'ขวา', col = e.slot < 3 ? 'text-sky-300' : 'text-red-300';
             return `<div class="flex items-center gap-2 py-1 border-b border-gray-800/60 ${e.type === 'dead' ? 'bg-red-950/20' : 'bg-emerald-950/20'}">
@@ -19817,7 +19913,7 @@
                     ${tChip(u.turn, u.time)}
                     ${hero ? `<img src="${sh.aw && hero.img2 ? hero.img2 : hero.img}" class="w-8 h-8 rounded-lg object-cover border border-gray-700">` : `<div class="w-8 h-8 rounded-lg bg-gray-800 text-[10px] text-gray-400 flex items-center justify-center">#${u.hero + 1}</div>`}
                     ${icon ? `<img src="${icon}" class="w-8 h-8 rounded object-cover border border-gray-700">` : ''}
-                    <div class="min-w-0 flex-1"><div class="text-xs text-white font-bold truncate">${ccEsc(sname)}</div><div class="text-[10px] text-gray-500 truncate">${ccEsc(hero ? hero.name : 'ตัวที่ ' + (u.hero + 1))} · ${key.toUpperCase()}</div></div>
+                    <div class="min-w-0 flex-1"><div class="text-xs text-white font-bold truncate">${ccEsc(sname)}</div><div class="text-[10px] truncate ${u.hero < 3 ? 'text-sky-300' : 'text-red-300'}">${ccEsc(hero ? hero.name : 'ตัวที่ ' + (u.hero % 3 + 1))} · ${key.toUpperCase()} · ฝั่ง${u.hero < 3 ? 'ซ้าย' : 'ขวา'}</div></div>
                     ${fx ? `<span class="text-[10px] font-bold ${fx.enemy > 0 ? 'text-rose-300' : 'text-gray-500'} whitespace-nowrap" title="HP ศัตรูก่อน → หลังใช้สกิล (ประมาณ)">ศัตรู −${fx.enemy}%</span>` : ''}
                 </div>`;
             }).join('') : '<div class="text-xs text-gray-600 italic">ยังไม่เห็นการใช้สกิล / ตาย</div>';
@@ -19867,7 +19963,7 @@
                         ${insights.length ? insights.map(t => `<div class="text-xs text-gray-200 leading-relaxed">${t}</div>`).join('') : '<div class="text-xs text-gray-600 italic">ยังมีข้อมูลไม่พอ — ดูการต่อสู้จนจบ แล้วเปิดสถิติทั้ง 2 แท็บ</div>'}
                     </div>
                     <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col gap-1">
-                        <div class="text-[11px] font-black text-gray-400 mb-1">📜 ไทม์ไลน์ <span class="font-normal text-gray-600">· ⚡ สกิลฝั่งซ้าย · 💀 ตาย / ✨ ฟื้น ทั้งสองฝั่ง · ศัตรู −% = HP ที่ลดลงหลังใช้ (ประมาณ)${btPlayer ? ' · กด ▶ เวลา = ดูในวิดีโอ' : ''}</span></div>${usedHTML}
+                        <div class="text-[11px] font-black text-gray-400 mb-1">📜 ไทม์ไลน์ <span class="font-normal text-gray-600">· ทีละเทิร์น ทั้งสองฝั่ง: ⚡ สกิล · 🎬 สกิลใหญ่ · 🗡️ ตีธรรมดา · 💀 ตาย / ✨ ฟื้น · ศัตรู −% = HP ที่ลดลงหลังใช้ (ประมาณ)${btPlayer ? ' · กด ▶ เวลา = ดูในวิดีโอ' : ''}</span></div>${usedHTML}
                     </div>
                     <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col gap-3">
                         <div class="text-[11px] font-black text-gray-400">📊 สถิติการต่อสู้</div>
