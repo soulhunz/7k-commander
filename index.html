@@ -4670,7 +4670,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.5.0';
+        const APP_VERSION = '1.6.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -19363,12 +19363,53 @@
             return { lum: s, sat, cd: wh > 0.02 && sat < 25, st: wh > 0.02 && sat < 25 ? 'c' : (sat >= 30 || wh <= 0.005) ? 'r' : null };
         }));
     }
+    /** 📋 แถวลำดับความเร็วด้านซ้าย (ตีธรรมดาเรียงตามนี้) → ช่องฮีโร่ 0–5 ตามลำดับ
+     *  เทียบสีหน้าในแถว กับรูปตัวละครแถวล่างในภาพเดียวกัน · แต่ละตัวอยู่ในแถวได้ครั้งเดียว (จับคู่แบบไม่ซ้ำ) */
+    const BT_Q = { x: 0.0234, w: 0.0286, y0: 0.1824, dy: 0.0565, fy: 0.0046, fh: 0.0417, sx: 0.0156, sw: 0.0042, sy: 0.0139, sh: 0.0231 };
+    const BT_FACE_X = [0.2370, 0.3307, 0.4219, 0.5495, 0.6406, 0.7318], BT_FACE = { w: 0.0365, y: 0.8472, h: 0.0741 };
+    function btChromaSig(cv, x, y, w, h) {
+        const N = 6, c = document.createElement('canvas'); c.width = N; c.height = N;
+        const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(cv, x, y, w, h, 0, 0, N, N);
+        const d = g.getImageData(0, 0, N, N).data, a = [];
+        for (let i = 0; i < d.length; i += 4) { const S = d[i] + d[i + 1] + d[i + 2] + 1; a.push(d[i] / S, d[i + 1] / S, (d[i] + d[i + 1] + d[i + 2]) / 765); }
+        return a;
+    }
+    function btReadQueue(cv) {
+        const W = cv.width, H = cv.height, g = cv.getContext('2d', { willReadFrequently: true });
+        const refs = BT_FACE_X.map(x => btChromaSig(cv, (x - BT_FACE.w / 2) * W, BT_FACE.y * H, BT_FACE.w * W, BT_FACE.h * H));
+        const items = [];
+        for (let k = 0; k < 6; k++) {
+            const y0 = (BT_Q.y0 + BT_Q.dy * k) * H;
+            const d = g.getImageData(Math.round(BT_Q.sx * W), Math.round(y0 + BT_Q.sy * H), Math.max(1, Math.round(BT_Q.sw * W)), Math.max(1, Math.round(BT_Q.sh * H))).data;
+            let R = 0, B = 0, n = 0; for (let i = 0; i < d.length; i += 4) { R += d[i]; B += d[i + 2]; n++; } R /= n; B /= n;
+            const side = R > B + 20 ? 'R' : B > R + 20 ? 'L' : null;   // พื้นแดง = ศัตรู(ขวา) · พื้นน้ำเงิน = ฝั่งเรา(ซ้าย)
+            if (!side) { items.push(null); continue; }
+            items.push({ k, side, sig: btChromaSig(cv, BT_Q.x * W, y0 + BT_Q.fy * H, BT_Q.w * W, BT_Q.fh * H) });
+        }
+        const dist = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s; };
+        const order = new Array(6).fill(null);
+        for (const side of ['L', 'R']) {
+            const its = items.filter(x => x && x.side === side).slice(0, 3);
+            const slots = (side === 'L' ? [0, 1, 2] : [3, 4, 5]).filter(i => !bt.dead[i]);
+            if (!its.length || its.length > slots.length) continue;
+            // ลองทุกแบบจับคู่ (สูงสุด 3! = 6 แบบ) เลือกแบบที่ต่างน้อยสุดรวม
+            let best = null;
+            const perm = (arr, k, used, acc, cost) => {
+                if (k === its.length) { if (!best || cost < best.cost) best = { cost, acc: acc.slice() }; return; }
+                arr.forEach(s => { if (used.has(s)) return; used.add(s); acc.push(s); perm(arr, k + 1, used, acc, cost + dist(its[k].sig, refs[s])); acc.pop(); used.delete(s); });
+            };
+            perm(slots, 0, new Set(), [], 0);
+            if (best) its.forEach((it, i) => { order[it.k] = best.acc[i]; });
+        }
+        return order;   // order[ตำแหน่งในแถว] = ช่องฮีโร่ (0–2 ซ้าย · 3–5 ขวา)
+    }
     /** ปิดเทิร์นที่กำลังดู → สรุปว่าฝั่งไหนลงมือ · ใช้สกิลหรือตีธรรมดา */
     function btCloseAct() {
         const a = bt.act; if (!a) return;
         a.sideKey = a.sL > a.sR ? 'L' : a.sR > a.sL ? 'R' : null;
         const sk = bt.used.filter(u => u.actTurn === a.turn && (u.hero < 3 ? 'L' : 'R') === a.sideKey);
         a.kind = sk.length || a.cut ? 'skill' : 'normal';
+        if (a.qv) { const c = Object.entries(a.qv).filter(([s]) => (+s < 3 ? 'L' : 'R') === a.sideKey).sort((x, y) => y[1] - x[1])[0]; if (c) a.actor = +c[0]; }
         bt.acts.push(a); bt.act = null;
     }
     function btFmtTime(t) { if (t == null || !isFinite(t)) return ''; t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
@@ -19579,6 +19620,13 @@
             const lumL = (ic[0][0].lum + ic[0][1].lum + ic[1][0].lum + ic[1][1].lum + ic[2][0].lum + ic[2][1].lum) / 6;
             const lumR = (ic[3][0].lum + ic[3][1].lum + ic[4][0].lum + ic[4][1].lum + ic[5][0].lum + ic[5][1].lum) / 6;
             if (bt.act) { if (lumL > 60 && lumL > lumR + 15) bt.act.sL++; else if (lumR > 60 && lumR > lumL + 15) bt.act.sR++; }
+            if (bt.act && (bt.act.qn || 0) < 4) {
+                const q = btReadQueue(cv); bt.act.qn = (bt.act.qn || 0) + 1; bt.act.qv = bt.act.qv || {};
+                // ตัวแรกในแถวของแต่ละฝั่ง (เผื่อฝั่งที่ลงมือไม่ใช่ตัวบนสุด)
+                const firstL = q.find(s => s != null && s < 3), firstR = q.find(s => s != null && s >= 3);
+                [firstL, firstR].forEach(s => { if (s != null) bt.act.qv[s] = (bt.act.qv[s] || 0) + 1; });
+                bt.act.q = q;
+            }
             // สกิลที่เพิ่งใช้: ปุ่มเปลี่ยนจาก "พร้อม" → "มีเลขคูลดาวน์" (ต้องเห็นติดกัน 2 ภาพ · ข้ามตอนแถบกระพริบขาว / ตัวที่ตาย)
             if (!bt.icSt) bt.icSt = ic.map(r => r.map(() => ({ stable: null, cand: null, n: 0 })));
             ic.forEach((row, hi) => row.forEach((x, si) => {
@@ -19770,7 +19818,7 @@
             myFormation: win.formation, enemyFormation: lose.formation, myHeroes: team(win), enemyHeroes: team(lose),
             myPet: null, enemyPet: null, skillQueue: [], result: 'Win',
             wcWinnerRole: leftWon ? 'atk' : 'def', wcAtkName: bt.names.L || '', wcDefName: bt.names.R || '',
-            btAnalysis: { turns: bt.turns.length ? bt.turns[bt.turns.length - 1].turn : null, hp: bt.turns, used: bt.used, events: bt.events || [], acts: (bt.acts || []).map(a => ({ turn: a.turn, side: a.sideKey, kind: a.kind, cut: !!a.cut, time: a.time })), stats: bt.stats && { ally: (bt.stats.ally || []).map(({ img, ...x }) => x), enemy: (bt.stats.enemy || []).map(({ img, ...x }) => x) }, guilds: { L: bt.names.gL || '', R: bt.names.gR || '' } }
+            btAnalysis: { turns: bt.turns.length ? bt.turns[bt.turns.length - 1].turn : null, hp: bt.turns, used: bt.used, events: bt.events || [], acts: (bt.acts || []).map(a => ({ turn: a.turn, side: a.sideKey, kind: a.kind, cut: !!a.cut, time: a.time, actor: a.actor != null ? a.actor : null })), stats: bt.stats && { ally: (bt.stats.ally || []).map(({ img, ...x }) => x), enemy: (bt.stats.enemy || []).map(({ img, ...x }) => x) }, guilds: { L: bt.names.gL || '', R: bt.names.gR || '' } }
         });
         btClose(); openRecorder(); renderRecorderRows();
         showToast('📥 ส่งเข้าหน้าบันทึกแล้ว — กด 💾 บันทึกทั้งหมด', 'success');
@@ -19888,10 +19936,12 @@
             if (x.k === 'skill') return null;
             if (x.k === 'act') {
                 const a = x.a, sd = a.sideKey || (a.sL > a.sR ? 'L' : 'R'), col = sd === 'L' ? 'text-sky-300' : 'text-red-300';
+                const ash = a.actor != null ? s.slotHeroes[a.actor] : null, ahero = ash && heroesDB.find(hh => String(hh.id) === String(ash.id));
                 return `<div class="flex items-center gap-2 py-1 border-b border-gray-800/60">
                     ${tChip(a.turn, a.time)}
+                    ${ahero && !a.cut ? `<img src="${ash.aw && ahero.img2 ? ahero.img2 : ahero.img}" class="w-8 h-8 rounded-lg object-cover border border-gray-700">` : ''}
                     <div class="w-8 h-8 rounded-lg bg-gray-800/70 flex items-center justify-center text-base">${a.cut ? '🎬' : '🗡️'}</div>
-                    <div class="min-w-0 flex-1"><div class="text-xs font-bold ${a.cut ? 'text-amber-300' : 'text-gray-300'}">${a.cut ? 'ใช้สกิลใหญ่ (มีฉากพิเศษ)' : 'ตีธรรมดา'}</div><div class="text-[10px] ${col}">ฝั่ง${sd === 'L' ? 'ซ้าย' : 'ขวา'}</div></div>
+                    <div class="min-w-0 flex-1"><div class="text-xs font-bold ${a.cut ? 'text-amber-300' : 'text-gray-300'}">${a.cut ? 'ใช้สกิลใหญ่ (มีฉากพิเศษ)' : 'ตีธรรมดา'}</div><div class="text-[10px] truncate ${col}">${ahero && !a.cut ? ccEsc(ahero.name) + ' · ' : ''}ฝั่ง${sd === 'L' ? 'ซ้าย' : 'ขวา'}</div></div>
                 </div>`;
             }
             const e = x.e, sh = s.slotHeroes[e.slot], hero = sh && heroesDB.find(h => String(h.id) === String(sh.id));
