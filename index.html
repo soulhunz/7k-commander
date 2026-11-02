@@ -4670,7 +4670,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.3.0';
+        const APP_VERSION = '1.4.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -19321,7 +19321,28 @@
     };
     let btStream = null, btVideo = null, btTimer = null, btBusy = false;
     let bt = null;   // เซสชันปัจจุบัน
-    function btNew() { return { teams: null, names: {}, result: null, turns: [], used: [], ticks: [], slotHeroes: [null, null, null, null, null, null], stats: { ally: null, enemy: null }, lastTurn: -1, lastIcons: null, endSeen: false }; }
+    function btNew() { return { teams: null, names: {}, result: null, turns: [], used: [], ticks: [], events: [], portBase: [0, 0, 0, 0, 0, 0], portDark: [0, 0, 0, 0, 0, 0], dead: [false, false, false, false, false, false], slotHeroes: [null, null, null, null, null, null], stats: { ally: null, enemy: null }, lastTurn: -1, lastIcons: null, endSeen: false }; }
+    // 🎞️ อัดวิดีโอระหว่างจับหน้าจอ → หยุดแล้ววิเคราะห์ละเอียดทีละ 0.25 วินาที
+    let btRec = null, btRecChunks = [], btRecT0 = 0, btRecDur = 0, btRecBlob = null, btVidUrl = null, btVidName = '', btAna = null, btCurTime = null, btQuiet = false, btPlayer = null;
+    const BT_PORT_X = [0.2296, 0.3194, 0.4097, 0.5402, 0.6315, 0.7229], BT_PORT_Y = 0.8651, BT_PORT_W = 0.0313, BT_PORT_H = 0.0558;   // รูปฮีโร่แถวล่าง 6 ตัว (ซ้าย 3 · ขวา 3)
+    function btTinySig(cv, r) { const c = document.createElement('canvas'); c.width = 12; c.height = 6; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(cv, ...r, 0, 0, 12, 6); const d = g.getImageData(0, 0, 12, 6).data, a = []; for (let i = 0; i < d.length; i += 4) a.push((d[i] + d[i + 1] + d[i + 2]) / 3); return a; }
+    let btTurnCache = null;   // เลขเทิร์นไม่เปลี่ยน = ไม่ต้องอ่านตัวเลขซ้ำ (เร็วขึ้นมากตอนไล่วิดีโอ)
+    /** 💀 ตาย/ฟื้น: รูปฮีโร่แถวล่างมืดลงชัดเจน (เทียบกับตอนสว่างสุดที่เคยเห็น) · ต้องเห็นติดกัน 2 ภาพ */
+    function btTrackDeaths(cv, turn) {
+        const W = cv.width, H = cv.height;
+        const pm = BT_PORT_X.map(x => btStat(cv, x * W, BT_PORT_Y * H, BT_PORT_W * W, BT_PORT_H * H).mean);
+        const darkAll = pm.every((v, i) => bt.portBase[i] && v < bt.portBase[i] * 0.65);
+        if (darkAll) return;   // ทั้งจอมืด = เปลี่ยนฉาก ไม่ใช่ตาย
+        pm.forEach((v, i) => {
+            if (v > bt.portBase[i]) bt.portBase[i] = v;
+            if (bt.portBase[i] < 60) return;
+            const dark = v < bt.portBase[i] * 0.65;
+            bt.portDark[i] = dark ? Math.max(1, bt.portDark[i] + 1) : Math.min(-1, bt.portDark[i] - 1);
+            if (dark && bt.portDark[i] >= 2 && !bt.dead[i]) { bt.dead[i] = true; bt.events.push({ type: 'dead', slot: i, turn, time: btCurTime, tick: bt.ticks.length - 1 }); }
+            if (!dark && bt.portDark[i] <= -2 && bt.dead[i]) { bt.dead[i] = false; bt.events.push({ type: 'revive', slot: i, turn, time: btCurTime, tick: bt.ticks.length - 1 }); }
+        });
+    }
+    function btFmtTime(t) { if (t == null || !isFinite(t)) return ''; t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
     // ---------- ระบุฮีโร่จากไอคอนสกิล (รูปสกิลในเกม = รูปในคลังสกิล) ----------
     //   ในเกม: ไอคอนบน = s2 · ไอคอนล่าง = s1 — ใช้ทั้งคู่ให้คะแนนรวม · เห็นหน้าเล่นซ้ำแล้ว = เลือกเฉพาะ 3 ตัวของทีมฝั่งนั้น
     const BT_SLOT_ICON_X = [0.2625, 0.3523, 0.4436, 0.5767, 0.6681, 0.7578];
@@ -19437,7 +19458,10 @@
     }
     async function btReadBattle(cv) {
         const dg = await btDigits(); if (!dg) return null;
-        const turn = btNum((await dg.recognize(btBin(cv, ...btFrac(cv, BT_R.turn), 3, (R, G, B) => (R + G + B) / 3 > 200))).data.text);
+        const sig = btTinySig(cv, btFrac(cv, BT_R.turn));
+        let turn;
+        if (btTurnCache && btTurnCache.sig.reduce((a, v, i) => a + Math.abs(v - sig[i]), 0) / sig.length < 5) turn = btTurnCache.turn;
+        else { turn = btNum((await dg.recognize(btBin(cv, ...btFrac(cv, BT_R.turn), 3, (R, G, B) => (R + G + B) / 3 > 200))).data.text); btTurnCache = { sig, turn }; }
         return { turn, hpL: btBar(cv, BT_R.hpL, true), hpR: btBar(cv, BT_R.hpR, false), icons: btIcons(cv) };
     }
     async function btReadNames(cv) {
@@ -19494,11 +19518,12 @@
             const b = await btReadBattle(cv); if (!b) return c.kind;
             if (!bt.names.L) btReadNames(cv).then(btRender);
             if (!bt.slotHeroes.every(Boolean) || bt.ticks.length < 3) await btIdentifySlots(cv);   // ระบุฮีโร่ช่วงแรก (ไอคอนยังสีสดครบ)
-            bt.ticks.push({ turn: b.turn, hpL: b.hpL, hpR: b.hpR });
+            bt.ticks.push({ turn: b.turn, hpL: b.hpL, hpR: b.hpR, time: btCurTime });
+            btTrackDeaths(cv, b.turn);
             if (b.turn !== bt.lastTurn && b.turn >= bt.lastTurn) { bt.turns.push({ turn: b.turn, hpL: b.hpL, hpR: b.hpR }); bt.lastTurn = b.turn; }
             else if (bt.turns.length) { const t = bt.turns[bt.turns.length - 1]; t.hpL = b.hpL; t.hpR = b.hpR; }
             // สกิลที่เพิ่งใช้: ไอคอนเปลี่ยนจาก "ใช้ได้" → "สีเทา"
-            if (bt.lastIcons) b.icons.forEach((hero, hi) => hero.forEach((ok, si) => { if (bt.lastIcons[hi][si] && !ok) bt.used.push({ turn: b.turn, hero: hi, skill: si, tick: bt.ticks.length - 1 }); }));
+            if (bt.lastIcons) b.icons.forEach((hero, hi) => hero.forEach((ok, si) => { if (bt.lastIcons[hi][si] && !ok && !bt.dead[hi] && !(bt.portDark[hi] > 0)) bt.used.push({ turn: b.turn, hero: hi, skill: si, tick: bt.ticks.length - 1, time: btCurTime }); }));
             bt.lastIcons = b.icons;
         } else if (c.kind === 'end') {
             if (!bt.endSeen) {
@@ -19513,15 +19538,30 @@
         } else if (c.kind === 'stats') {
             await btReadStats(cv, c.side);
         }
-        btRender();
+        if (!btQuiet) btRender();
         return c.kind;
     }
 
     // ---------- จับหน้าจอ / เลือกรูป ----------
     async function btStartCapture() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return alert('เบราว์เซอร์นี้จับหน้าจอไม่ได้ — ใช้ Chrome / Edge บนคอม');
-        try { btStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 }, audio: false }); } catch (e) { return; }
+        try { btStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false }); } catch (e) { return; }
         btVideo = document.createElement('video'); btVideo.muted = true; btVideo.srcObject = btStream; await btVideo.play();
+        // 🎞️ อัดวิดีโอเก็บไว้ในเครื่อง (ไม่ส่งขึ้นเซิร์ฟเวอร์) — กดหยุดแล้ววิเคราะห์ละเอียดต่อทันที
+        btSetVideo(null, null, '');
+        btRecChunks = []; btRec = null;
+        try {
+            const mt = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+            btRec = new MediaRecorder(btStream, mt ? { mimeType: mt, videoBitsPerSecond: 4e6 } : undefined);
+            btRec.ondataavailable = e => { if (e.data && e.data.size) btRecChunks.push(e.data); };
+            btRec.onstop = () => {
+                btRecDur = (performance.now() - btRecT0) / 1000;
+                const blob = new Blob(btRecChunks, { type: (btRec && btRec.mimeType) || 'video/webm' }); btRecChunks = []; btRec = null;
+                if (blob.size) { btSetVideo(URL.createObjectURL(blob), blob, 'battle-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + '.webm'); btAnalyzeVideo(); }
+                else btRender();
+            };
+            btRecT0 = performance.now(); btRec.start(1000);
+        } catch (e) { btRec = null; }
         btStream.getVideoTracks()[0].addEventListener('ended', btStopCapture);
         btDigits(); wcEnsureCands();
         btTimer = setInterval(async () => {
@@ -19529,6 +19569,7 @@
             try {
                 const cv = document.createElement('canvas'); cv.width = btVideo.videoWidth; cv.height = btVideo.videoHeight;
                 cv.getContext('2d', { willReadFrequently: true }).drawImage(btVideo, 0, 0);
+                btCurTime = btRec ? (performance.now() - btRecT0) / 1000 : null;
                 const k = await btProcess(cv);
                 const el = document.getElementById('bt-status');
                 if (el) el.textContent = '[' + cv.width + '×' + cv.height + '] ' + { popup: '📋 เห็นหน้าเล่นซ้ำ — อ่านทีมแล้ว กด "ตกลง" ในเกมเพื่อเริ่มดู', battle: '⚔️ กำลังดูการต่อสู้ · เทิร์น ' + (bt.lastTurn >= 0 ? bt.lastTurn : '-'), end: '🏁 จบแล้ว — กดปุ่ม "สถิติการต่อสู้" ในเกม แล้วเปิดทั้งแท็บพันธมิตรและศัตรู', stats: '📊 อ่านสถิติแล้ว', other: '👀 รอ…' }[k] || '';   // ขนาดภาพที่จับได้ — ไว้เช็คว่าจับทั้งหน้าต่างเกมพอดีไหม
@@ -19536,7 +19577,7 @@
         }, 900);
         btRender();
     }
-    function btStopCapture() { if (btTimer) clearInterval(btTimer); btTimer = null; if (btStream) btStream.getTracks().forEach(t => t.stop()); btStream = null; btVideo = null; btRender(); }
+    function btStopCapture() { if (btRec && btRec.state !== 'inactive') { try { btRec.stop(); } catch (e) {} } if (btTimer) clearInterval(btTimer); btTimer = null; if (btStream) btStream.getTracks().forEach(t => t.stop()); btStream = null; btVideo = null; btRender(); }
     function btPickFiles() {
         const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
         inp.onchange = async () => {
@@ -19551,6 +19592,88 @@
             } finally { hideLoading(); }
         };
         inp.click();
+    }
+    function btSetVideo(url, blob, name) {
+        if (btVidUrl && btVidUrl !== url) { try { URL.revokeObjectURL(btVidUrl); } catch (e) {} }
+        btVidUrl = url; btRecBlob = blob; btVidName = name || '';
+        btPlayer = null;
+        if (url) { btPlayer = document.createElement('video'); btPlayer.src = url; btPlayer.controls = true; btPlayer.muted = true; btPlayer.preload = 'metadata'; btPlayer.className = 'w-full max-h-[50vh] rounded-lg bg-black'; }
+    }
+    function btPickVideo() {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'video/*';
+        inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; btRecDur = 0; btSetVideo(URL.createObjectURL(f), null, f.name); btAnalyzeVideo(); };
+        inp.click();
+    }
+    function btDownloadVideo() {
+        if (!btVidUrl || !btRecBlob) return;
+        const a = document.createElement('a'); a.href = btVidUrl; a.download = btVidName || 'battle.webm'; document.body.appendChild(a); a.click(); a.remove();
+    }
+    function btSeek(t) {
+        if (!btPlayer || t == null) return;
+        try { btPlayer.currentTime = Math.max(0, t - 1); btPlayer.play().catch(() => {}); } catch (e) {}
+        const box = document.getElementById('bt-player-slot'); if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    function btCancelAnalyze() { if (btAna) btAna.cancel = true; }
+    /** 🔍 ไล่วิดีโอทีละ 0.25 วินาที — ละเอียดกว่าจับสด (วินาทีละครั้ง) */
+    async function btAnalyzeVideo() {
+        if (!btVidUrl || btAna) return;
+        const v = document.createElement('video'); v.muted = true; v.preload = 'auto'; v.src = btVidUrl;
+        try { await new Promise((ok, no) => { v.onloadedmetadata = ok; v.onerror = () => no(new Error('เปิดวิดีโอไม่ได้')); }); }
+        catch (e) { alert('🎬 ' + e.message); return; }
+        // วิดีโอที่อัดจากเบราว์เซอร์มักไม่บอกความยาว — กระโดดไปท้ายสุดเพื่อให้รู้ความยาว
+        if (!isFinite(v.duration) || !v.duration) {
+            await new Promise(ok => { const f = () => { if (isFinite(v.duration) && v.duration) { v.removeEventListener('durationchange', f); ok(); } }; v.addEventListener('durationchange', f); v.currentTime = 1e7; setTimeout(ok, 5000); });
+        }
+        const dur = isFinite(v.duration) && v.duration ? v.duration : btRecDur;
+        if (!dur) { alert('🎬 อ่านความยาววิดีโอไม่ได้'); return; }
+        const seek = t => new Promise(ok => { let done = false; const f = () => { if (done) return; done = true; v.removeEventListener('seeked', f); ok(); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(f, 4000); });
+        // เริ่มใหม่ แต่คงฮีโร่ที่เลือกเองไว้
+        const keepSlots = bt ? bt.slotHeroes.map(x => x && x.locked ? x : null) : null;
+        bt = btNew(); if (keepSlots) bt.slotHeroes = keepSlots.map((x, i) => x || bt.slotHeroes[i]);
+        btTurnCache = null;
+        btAna = { cancel: false, t: 0, dur };
+        btDigits(); await wcEnsureCands();
+        const cv = document.createElement('canvas');
+        let lastPaint = 0;
+        btQuiet = true; btRender();
+        const grab = async t => {
+            if (!v.videoWidth) return;
+            if (cv.width !== v.videoWidth) { cv.width = v.videoWidth; cv.height = v.videoHeight; }
+            cv.getContext('2d', { willReadFrequently: true }).drawImage(v, 0, 0);
+            btCurTime = t; btAna.t = t;
+            await btProcess(cv);
+            if (performance.now() - lastPaint > 1500) { lastPaint = performance.now(); btRender(); }
+            else { const el = document.getElementById('bt-status'); if (el) el.textContent = '🔍 กำลังวิเคราะห์วิดีโอ ' + Math.round(t / dur * 100) + '% (' + btFmtTime(t) + ' / ' + btFmtTime(dur) + ')'; }
+        };
+        try {
+            if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+                // ▶ เล่นต่อเนื่อง (เร็ว 4 เท่า) แล้วหยุดอ่านทุก 0.25 วินาที — ไม่ต้องเลื่อนหาตำแหน่ง (วิดีโอที่อัดจากเว็บเลื่อนหาช้ามาก)
+                v.style.cssText = 'position:fixed;left:-10000px;top:0;width:320px;height:180px;opacity:0;pointer-events:none';
+                document.body.appendChild(v);
+                if (v.currentTime > 0) await seek(0);
+                v.playbackRate = 4;
+                let nextT = 0;
+                while (!btAna.cancel) {
+                    const ft = await new Promise(ok => {
+                        let done = false, idle = null;
+                        const fin = x => { if (done) return; done = true; clearTimeout(idle); v.removeEventListener('ended', onEnd); ok(x); };
+                        const onEnd = () => fin(null);
+                        const arm = () => { clearTimeout(idle); idle = setTimeout(onEnd, 10000); };   // ไม่มีภาพใหม่ 10 วินาที = จบ
+                        const cb = (now, meta) => { if (done) return; arm(); if (meta.mediaTime >= nextT) { v.pause(); fin(meta.mediaTime); } else v.requestVideoFrameCallback(cb); };
+                        v.addEventListener('ended', onEnd); arm();
+                        v.requestVideoFrameCallback(cb);
+                        v.play().catch(onEnd);
+                    });
+                    if (ft == null) break;
+                    await grab(ft);
+                    nextT = ft + 0.25;
+                }
+            } else {
+                for (let t = 0; t <= dur && !btAna.cancel; t += 0.25) { await seek(t); await grab(t); }
+            }
+        } finally {
+            btQuiet = false; btAna = null; btCurTime = null; v.pause(); v.remove(); v.removeAttribute('src'); v.load(); btRender();
+        }
     }
     function btReset() { if (bt && (bt.turns.length || bt.stats.ally) && !confirm('ล้างผลวิเคราะห์ไม้นี้?')) return; bt = btNew(); btRender(); }
 
@@ -19567,7 +19690,7 @@
             myFormation: win.formation, enemyFormation: lose.formation, myHeroes: team(win), enemyHeroes: team(lose),
             myPet: null, enemyPet: null, skillQueue: [], result: 'Win',
             wcWinnerRole: leftWon ? 'atk' : 'def', wcAtkName: bt.names.L || '', wcDefName: bt.names.R || '',
-            btAnalysis: { turns: bt.turns.length ? bt.turns[bt.turns.length - 1].turn : null, hp: bt.turns, used: bt.used, stats: bt.stats && { ally: (bt.stats.ally || []).map(({ img, ...x }) => x), enemy: (bt.stats.enemy || []).map(({ img, ...x }) => x) }, guilds: { L: bt.names.gL || '', R: bt.names.gR || '' } }
+            btAnalysis: { turns: bt.turns.length ? bt.turns[bt.turns.length - 1].turn : null, hp: bt.turns, used: bt.used, events: bt.events || [], stats: bt.stats && { ally: (bt.stats.ally || []).map(({ img, ...x }) => x), enemy: (bt.stats.enemy || []).map(({ img, ...x }) => x) }, guilds: { L: bt.names.gL || '', R: bt.names.gR || '' } }
         });
         btClose(); openRecorder(); renderRecorderRows();
         showToast('📥 ส่งเข้าหน้าบันทึกแล้ว — กด 💾 บันทึกทั้งหมด', 'success');
@@ -19579,12 +19702,13 @@
         if (!m) { m = document.createElement('div'); m.id = 'bt-modal'; m.className = 'fixed inset-0 z-[560] flex bg-black/80'; document.body.appendChild(m); }
         m.style.display = 'flex'; if (!bt) bt = btNew(); btRender(); wcOcrInit(); btDigits(); btIconCands();
     }
-    function btClose() { const m = document.getElementById('bt-modal'); if (m) m.style.display = 'none'; }
+    function btClose() { const m = document.getElementById('bt-modal'); if (m) m.style.display = 'none'; if (btPlayer) btPlayer.pause(); }
     function btSetResult(r) { bt.result = bt.result === r ? null : r; btRender(); }
     /** ผลของสกิลต่อ HP (ประมาณ): HP ศัตรูก่อนใช้ → ต่ำสุดใน 3 เฟรมถัดไป */
     function btSkillImpact(s, u) {
         if (u.tick == null || !s.ticks.length) return null;
-        const before = s.ticks[Math.max(0, u.tick - 1)], after = s.ticks.slice(u.tick, u.tick + 3);
+        const before = s.ticks[Math.max(0, u.tick - 1)];
+        const after = (u.time != null && s.ticks[u.tick] && s.ticks[u.tick].time != null) ? s.ticks.filter((t, i) => i >= u.tick && t.time <= u.time + 3) : s.ticks.slice(u.tick, u.tick + 3);
         if (!before || !after.length) return null;
         return { enemy: Math.max(0, before.hpR - Math.min(...after.map(t => t.hpR))), self: Math.min(...after.map(t => t.hpL)) - before.hpL };
     }
@@ -19670,20 +19794,33 @@
         const hpChart = s.turns.length ? `<div class="flex items-end gap-1 h-24 overflow-x-auto pb-1">${s.turns.map(t => `<div class="flex flex-col items-center gap-0.5 flex-shrink-0" title="เทิร์น ${t.turn} · ซ้าย ${t.hpL}% · ขวา ${t.hpR}%">
                 <div class="flex items-end gap-0.5 h-16"><div class="w-2 bg-sky-500 rounded-t" style="height:${Math.max(2, t.hpL)}%"></div><div class="w-2 bg-red-500 rounded-t" style="height:${Math.max(2, t.hpR)}%"></div></div>
                 <span class="text-[9px] text-gray-500">${t.turn}</span></div>`).join('')}</div>` : '<div class="text-xs text-gray-600 italic">ยังไม่มีข้อมูลเทิร์น</div>';
-        const usedHTML = s.used.length ? s.used.map(u => {
+        const evAll = [...s.used.map(u => ({ k: 'skill', u, turn: u.turn, time: u.time, tick: u.tick })), ...(s.events || []).map(e => ({ k: e.type, e, turn: e.turn, time: e.time, tick: e.tick }))].sort((a, b) => (a.tick - b.tick) || (a.k === 'skill' ? -1 : 1));
+        const tChip = (turn, time) => time != null && btPlayer ? `<button onclick="btSeek(${time})" class="text-[10px] text-cyan-300 hover:text-white w-14 flex-shrink-0 text-left leading-tight" title="ข้ามไปดูในวิดีโอ">▶ ${btFmtTime(time)}<br><span class="text-gray-500">T${turn}</span></button>` : `<span class="text-[10px] text-gray-500 w-9 flex-shrink-0">T${turn}</span>`;
+        const evHTML = evAll.map(x => {
+            if (x.k === 'skill') return null;
+            const e = x.e, sh = s.slotHeroes[e.slot], hero = sh && heroesDB.find(h => String(h.id) === String(sh.id));
+            const side = e.slot < 3 ? 'ซ้าย' : 'ขวา', col = e.slot < 3 ? 'text-sky-300' : 'text-red-300';
+            return `<div class="flex items-center gap-2 py-1 border-b border-gray-800/60 ${e.type === 'dead' ? 'bg-red-950/20' : 'bg-emerald-950/20'}">
+                ${tChip(e.turn, e.time)}
+                ${hero ? `<img src="${sh.aw && hero.img2 ? hero.img2 : hero.img}" class="w-8 h-8 rounded-lg object-cover border border-gray-700 ${e.type === 'dead' ? 'grayscale' : ''}">` : `<div class="w-8 h-8 rounded-lg bg-gray-800 text-[10px] text-gray-400 flex items-center justify-center">#${e.slot % 3 + 1}</div>`}
+                <span class="text-lg">${e.type === 'dead' ? '💀' : '✨'}</span>
+                <div class="min-w-0 flex-1"><div class="text-xs font-bold ${e.type === 'dead' ? 'text-red-300' : 'text-emerald-300'}">${e.type === 'dead' ? 'ตาย' : 'ฟื้นคืนชีพ'}</div><div class="text-[10px] truncate ${col}">${ccEsc(hero ? hero.name : 'ตัวที่ ' + (e.slot % 3 + 1))} · ฝั่ง${side}</div></div>
+            </div>`;
+        });
+        const usedHTML = evAll.length ? evAll.map((x, xi) => { if (x.k !== 'skill') return evHTML[xi]; const u = x.u;
                 const sh = s.slotHeroes[u.hero], hero = sh && heroesDB.find(x => String(x.id) === String(sh.id));
                 const key = u.skill ? 's1' : 's2';   // ไอคอนบน = s2 · ล่าง = s1
                 const icon = hero ? skillIconOf(hero, key, sh.aw) : '';
                 const sname = hero ? (skillNameOf(hero, key) || key.toUpperCase()) : ('สกิล' + (u.skill ? 'ล่าง' : 'บน'));
                 const fx = btSkillImpact(s, u);
                 return `<div class="flex items-center gap-2 py-1 border-b border-gray-800/60">
-                    <span class="text-[10px] text-gray-500 w-9 flex-shrink-0">T${u.turn}</span>
+                    ${tChip(u.turn, u.time)}
                     ${hero ? `<img src="${sh.aw && hero.img2 ? hero.img2 : hero.img}" class="w-8 h-8 rounded-lg object-cover border border-gray-700">` : `<div class="w-8 h-8 rounded-lg bg-gray-800 text-[10px] text-gray-400 flex items-center justify-center">#${u.hero + 1}</div>`}
                     ${icon ? `<img src="${icon}" class="w-8 h-8 rounded object-cover border border-gray-700">` : ''}
                     <div class="min-w-0 flex-1"><div class="text-xs text-white font-bold truncate">${ccEsc(sname)}</div><div class="text-[10px] text-gray-500 truncate">${ccEsc(hero ? hero.name : 'ตัวที่ ' + (u.hero + 1))} · ${key.toUpperCase()}</div></div>
                     ${fx ? `<span class="text-[10px] font-bold ${fx.enemy > 0 ? 'text-rose-300' : 'text-gray-500'} whitespace-nowrap" title="HP ศัตรูก่อน → หลังใช้สกิล (ประมาณ)">ศัตรู −${fx.enemy}%</span>` : ''}
                 </div>`;
-            }).join('') : '<div class="text-xs text-gray-600 italic">ยังไม่เห็นการใช้สกิล</div>';
+            }).join('') : '<div class="text-xs text-gray-600 italic">ยังไม่เห็นการใช้สกิล / ตาย</div>';
         const insights = btInsights(s);
         const statTable = (rows, side) => {
             if (!rows) return `<div class="text-xs text-gray-600 italic">ยังไม่ได้เปิดแท็บ${side === 'ally' ? 'พันธมิตร' : 'ศัตรู'}</div>`;
@@ -19700,13 +19837,18 @@
                     <button onclick="btClose()" class="absolute top-2 right-2 sm:top-3 sm:right-3 w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
                 </div>
                 <div class="p-3 sm:p-4 border-b border-gray-800 flex flex-wrap items-center gap-2">
-                    ${live ? `<button onclick="btStopCapture()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-black">⏹ หยุดจับหน้าจอ</button>` : `<button onclick="btStartCapture()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg text-xs font-black">🎥 เริ่มจับหน้าจอ</button>`}
-                    <button onclick="btPickFiles()" class="bg-[#1f2937] hover:bg-[#2d3748] text-gray-200 px-3 py-2 rounded-lg text-xs font-bold border border-gray-700">📂 เลือกรูปแคป</button>
-                    <span id="bt-status" class="text-[11px] text-gray-400">${live ? '👀 รอ…' : 'ขั้นตอน: เปิดหน้าเล่นซ้ำ (อ่านทีม) → ตกลง ดูจนจบ → เปิด "สถิติการต่อสู้" ทั้ง 2 แท็บ'}</span>
+                    ${live ? `<button onclick="btStopCapture()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-black">⏹ หยุด + วิเคราะห์</button>` : btAna ? '' : `<button onclick="btStartCapture()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg text-xs font-black">🎥 เริ่มจับหน้าจอ</button>`}
+                    ${live || btAna ? '' : `<button onclick="btPickFiles()" class="bg-[#1f2937] hover:bg-[#2d3748] text-gray-200 px-3 py-2 rounded-lg text-xs font-bold border border-gray-700">📂 เลือกรูปแคป</button>
+                    <button onclick="btPickVideo()" class="bg-[#1f2937] hover:bg-[#2d3748] text-gray-200 px-3 py-2 rounded-lg text-xs font-bold border border-gray-700">🎞️ เลือกวิดีโอ</button>`}
+                    ${btAna ? `<button onclick="btCancelAnalyze()" class="bg-red-700 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-bold">✕ หยุดวิเคราะห์</button>` : ''}
+                    ${!live && !btAna && btVidUrl ? `<button onclick="btAnalyzeVideo()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-black">🔍 วิเคราะห์วิดีโอใหม่</button>` : ''}
+                    ${!live && btRecBlob ? `<button onclick="btDownloadVideo()" class="bg-[#1f2937] hover:bg-[#2d3748] text-gray-200 px-3 py-2 rounded-lg text-xs font-bold border border-gray-700" title="เก็บวิดีโอไว้ในเครื่อง">💾 ดาวน์โหลดวิดีโอ</button>` : ''}
+                    <span id="bt-status" class="text-[11px] text-gray-400">${btAna ? '🔍 กำลังวิเคราะห์วิดีโอ ' + Math.round(btAna.t / btAna.dur * 100) + '% (' + btFmtTime(btAna.t) + ' / ' + btFmtTime(btAna.dur) + ')' : live ? (btRec ? '🔴 กำลังอัดวิดีโอ · ' : '') + '👀 รอ…' : 'ขั้นตอน: เริ่มจับหน้าจอ → เปิดหน้าเล่นซ้ำ (อ่านทีม) → ตกลง ดูจนจบ (ความเร็ว x1) → เปิด "สถิติการต่อสู้" ทั้ง 2 แท็บ → กดหยุด = วิเคราะห์วิดีโอละเอียดให้อัตโนมัติ'}</span>
                     <div class="ml-auto flex gap-2"><button onclick="btReset()" class="text-[11px] text-gray-400 hover:text-red-300 px-2">ล้าง / ไม้ใหม่</button>
                         <button onclick="btSave()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-black">📥 ส่งเข้าบันทึก</button></div>
                 </div>
                 <div id="bt-body" class="p-3 sm:p-4 overflow-y-auto min-h-0 flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3 content-start">
+                    ${btPlayer ? `<div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col gap-2 lg:col-span-2"><div class="text-[11px] font-black text-gray-400">🎞️ วิดีโอ <span class="font-normal text-gray-600 break-all">${ccEsc(btVidName)} · อยู่ในเครื่องนี้เท่านั้น (ปิดหน้าเว็บแล้วหาย — กด 💾 ถ้าอยากเก็บ)</span></div><div id="bt-player-slot"></div></div>` : ''}
                     <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col gap-2">
                         <div class="text-[11px] font-black text-gray-400">👥 ทีม · ผล</div>
                         <div class="text-sm text-white font-bold">${ccEsc(s.names.L || 'ฝั่งซ้าย')} <span class="text-purple-300 text-xs">${ccEsc(s.names.gL || '')}</span> <span class="text-gray-500 mx-1">vs</span> ${ccEsc(s.names.R || 'ฝั่งขวา')} <span class="text-purple-300 text-xs">${ccEsc(s.names.gR || '')}</span></div>
@@ -19725,7 +19867,7 @@
                         ${insights.length ? insights.map(t => `<div class="text-xs text-gray-200 leading-relaxed">${t}</div>`).join('') : '<div class="text-xs text-gray-600 italic">ยังมีข้อมูลไม่พอ — ดูการต่อสู้จนจบ แล้วเปิดสถิติทั้ง 2 แท็บ</div>'}
                     </div>
                     <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col gap-1">
-                        <div class="text-[11px] font-black text-gray-400 mb-1">⚡ สกิลที่ฝั่งซ้ายใช้ (ตามเทิร์น) <span class="font-normal text-gray-600">· ศัตรู −% = HP ศัตรูที่ลดลงหลังใช้ (ประมาณ)</span></div>${usedHTML}
+                        <div class="text-[11px] font-black text-gray-400 mb-1">📜 ไทม์ไลน์ <span class="font-normal text-gray-600">· ⚡ สกิลฝั่งซ้าย · 💀 ตาย / ✨ ฟื้น ทั้งสองฝั่ง · ศัตรู −% = HP ที่ลดลงหลังใช้ (ประมาณ)${btPlayer ? ' · กด ▶ เวลา = ดูในวิดีโอ' : ''}</span></div>${usedHTML}
                     </div>
                     <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col gap-3">
                         <div class="text-[11px] font-black text-gray-400">📊 สถิติการต่อสู้</div>
@@ -19734,6 +19876,7 @@
                     </div>
                 </div>
             </div>`;
+        const ps = document.getElementById('bt-player-slot'); if (ps && btPlayer) ps.appendChild(btPlayer);   // ใช้ตัวเล่นเดิม — ไม่เริ่มใหม่ทุกครั้งที่วาด
         const nb = document.getElementById('bt-body'); if (nb) nb.scrollTop = keep;
     }
 
