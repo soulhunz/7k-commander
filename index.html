@@ -4670,7 +4670,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.7.1';
+        const APP_VERSION = '1.7.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14430,6 +14430,7 @@
             mergePublicMasterData(null, null);
             const guild = decodeGuildParam(appUrlParams().get('g')) || 'all';
             ccPendingComp = appUrlParams().get('cc') || null;
+            ccPendingTeam = ccPendingComp ? (appUrlParams().get('t') || null) : null;
             ccPendingSs = ccPendingComp ? (appUrlParams().get('ss') || null) : null;
             ccViewTeams = ccViewerAttackTeams(loadCachedSharedTeams() || [], guild);
             if (!SCRIPT_URL) { ccViewerRender(); return; }
@@ -15355,7 +15356,7 @@
         function ccCompKey(cp) { return cp.heroes.map((id, i) => id + (cp.awk && cp.awk[i] ? 'a' : '')).join('.'); }
 
         // 🔗 ลิงก์ตรงไปคอมพ์: ?mode=castle-view ... &cc=คีย์ (&ss=SS ถ้ากำลังดูตาราง SS เก่า)
-        let ccPendingComp = null, ccPendingSs = null;
+        let ccPendingComp = null, ccPendingSs = null, ccPendingTeam = null;
         function ccViewerCompLinkUrl() {
             const L = publicLinkBase(), p = appUrlParams();
             let q = '?mode=castle-view';
@@ -15363,6 +15364,7 @@
             if (!p.get('g')) q += '&g=' + encodeURIComponent(btoa(encodeURIComponent(ccViewGuild || 'all')));
             q += L.srv || (p.get('s') ? '&s=' + encodeURIComponent(p.get('s')) : '');
             q += '&cc=' + encodeURIComponent(ccViewDetailKey);
+            if (window.pubCurTeamId) q += '&t=' + encodeURIComponent(window.pubCurTeamId);
             if (ccView && ccView.seasonId) q += '&ss=' + encodeURIComponent(ccView.seasonId);
             return L.base + q;
         }
@@ -15384,11 +15386,12 @@
                 ccPendingComp = null; showToast('⚠️ คอมพ์ในลิงก์ยังไม่มีทีมแก้', 'error'); return;
             }
             ccPendingComp = null;
-            ccViewerOpenCounter(cp.id);
+            const tid = ccPendingTeam; ccPendingTeam = null;
+            ccViewerOpenCounter(cp.id, tid);
         }
 
         /** เปิดหน้ารายละเอียดทีม counter (ตัวเดียวกับแกลเลอรี) แทนหน้าดู */
-        function ccViewerOpenCounter(compId) {
+        function ccViewerOpenCounter(compId, teamId) {
             const cp = ccView && ccView.comps.find(c => c.id === compId);
             const list = cp ? ccViewerCounters(cp) : [];
             if (!list.length) return;
@@ -15399,7 +15402,8 @@
             main.style.display = '';
             main.classList.remove('hidden');
             ccViewDetailOpen = true;
-            renderPublicTeamDisplay(list[0].team, list.map(x => x.team), list[0].enemyName);
+            const pick = (teamId && list.find(x => String(x.team.id) === String(teamId))) || list[0];
+            renderPublicTeamDisplay(pick.team, list.map(x => x.team), pick.enemyName || list[0].enemyName);
             main.scrollTop = 0;
             window.scrollTo(0, 0);
         }
@@ -31996,6 +32000,10 @@
         }
 
         function renderPublicTeamDisplay(currentTeamData, allCounterTeams = [], targetName = '') {
+            window.pubCurTeamId = currentTeamData && currentTeamData.id != null ? String(currentTeamData.id) : '';
+            // 🔗 ปุ่มคัดลอกลิงก์ — มาจากหน้า Share คอมพ์ปราสาท = ลิงก์คอมพ์ + ทีมที่เลือก · มาจากแกลเลอรี = ลิงก์ทีม
+            const pubLinkBtn = (ccViewDetailOpen && ccViewDetailKey) || (isPublicView && window.pubCurTeamId)
+                ? `<button onclick="${ccViewDetailOpen && ccViewDetailKey ? 'ccViewerCopyCompLink()' : `copyGalleryTeamLink('${window.pubCurTeamId.replace(/[^\w-]/g, '')}')`}" title="คัดลอกลิงก์ทีมที่เลือกอยู่ — คนที่กดจะเปิดมาที่ทีมนี้เลย" class="h-9 px-3 inline-flex items-center justify-center gap-1.5 bg-cyan-700/30 hover:bg-cyan-600/40 text-cyan-200 rounded-xl transition text-xs font-black border border-cyan-600/50 shadow whitespace-nowrap flex-shrink-0">🔗 คัดลอกลิงก์</button>` : '';
             console.log('🔍 renderPublicTeamDisplay called with', allCounterTeams.length, 'teams');
             console.log('🔍 Teams:', allCounterTeams.map(t => t.name + '(' + t.guild_name + ')').join(', '));
             
@@ -32139,8 +32147,7 @@
                     <div class="p-4 md:px-4 md:py-3 flex justify-between items-center bg-[#111827] border-b border-gray-800 shrink-0 shadow-md">
                         <div class="flex items-center gap-2 sm:gap-4 min-w-0">
                             <button onclick="if (!ccViewerCloseCounter()) loadSharedGallery()" class="w-10 h-10 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition text-lg border border-gray-700 shadow">❮</button>
-                            ${!ccViewDetailOpen && isPublicView && currentTeamData && currentTeamData.id ? `<button onclick="copyGalleryTeamLink('${String(currentTeamData.id).replace(/[^\w-]/g, '')}')" title="คัดลอกลิงก์ทีมนี้ — คนที่กดจะเปิดมาที่ทีมนี้เลย" class="h-10 px-3 flex items-center justify-center gap-1.5 bg-cyan-700/30 hover:bg-cyan-600/40 text-cyan-200 rounded-xl transition text-xs font-black border border-cyan-600/50 shadow whitespace-nowrap flex-shrink-0">🔗<span class="hidden sm:inline">คัดลอกลิงก์</span></button>` : ''}
-                            ${ccViewDetailOpen && ccViewDetailKey ? `<button onclick="ccViewerCopyCompLink()" title="คัดลอกลิงก์คอมพ์นี้ — คนที่กดจะเปิดมาที่คอมพ์นี้เลย" class="h-10 px-3 flex items-center justify-center gap-1.5 bg-cyan-700/30 hover:bg-cyan-600/40 text-cyan-200 rounded-xl transition text-xs font-black border border-cyan-600/50 shadow whitespace-nowrap flex-shrink-0">🔗<span class="hidden sm:inline">คัดลอกลิงก์</span></button>` : ''}
+                            ${hideCounterSection ? pubLinkBtn : ''}
                             <div>
                                 <div class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">${hideCounterSection ? 'SELECTED TEAM' : 'TARGET ENEMY'}</div>
                                 <div class="text-white font-black text-2xl md:text-3xl leading-none uppercase tracking-tighter truncate max-w-[200px] md:max-w-md" title="${hideCounterSection ? teamName : targetName}">${hideCounterSection ? teamName : targetName}</div>
@@ -32200,8 +32207,9 @@
 
                             <div class="lg:col-span-9 space-y-6">
                                 ${hideCounterSection ? '' : `
-                                <div class="flex items-center justify-between px-2">
-                                    <h3 class="text-xl font-bold text-white"><span class="text-gray-500 text-sm mr-2">SELECTED:</span>${teamName}</h3>
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-2">
+                                    <h3 class="text-xl font-bold text-white min-w-0"><span class="text-gray-500 text-sm mr-2">SELECTED:</span>${teamName}</h3>
+                                    ${pubLinkBtn}
                                 </div>
                                 `}
                                 <div class="mx-2 bg-[#111827] border border-gray-700 rounded-2xl p-4 shadow-lg">
