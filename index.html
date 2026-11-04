@@ -12870,14 +12870,22 @@
             const sel = [...castleCompHeroSel];
             const list = comps.filter(cp => (!castleCompOnlyFilled || castleCompGetCount(cs.id, cp.id) > 0)
                 && heroFilterMatch(sel, heroIds(cp)));
-            // แถบรูปฮีโร่ทุกตัวในคอมพ์ — เรียงตามจำนวนคอมพ์ที่มีตัวนั้น (มากก่อน)
+            // แถบรูปฮีโร่ทุกตัวในคอมพ์ — ตัวเลข = จำนวนตัวละคร (ทีมของคอมพ์ที่มีตัวนั้น รวมทุกปราสาท) · เรียงมากก่อน
             const freq = new Map();
-            comps.forEach(cp => [...new Set(heroIds(cp))].forEach(id => freq.set(id, (freq.get(id) || 0) + 1)));
-            const heroChips = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([id, n]) => {
+            comps.forEach(cp => {
+                const teams = castles.reduce((s, c) => s + (castleCompGetCount(c.id, cp.id) || 0), 0);
+                [...new Set(heroIds(cp))].forEach(id => {
+                    const f = freq.get(id) || { n: 0, comps: 0 };
+                    f.n += teams; f.comps++;
+                    freq.set(id, f);
+                });
+            });
+            const heroChips = [...freq.entries()].sort((a, b) => b[1].n - a[1].n || b[1].comps - a[1].comps).map(([id, f]) => {
+                const n = f.n;
                 const h = heroesDB.find(x => String(x.id) === id);
                 const on = castleCompHeroSel.has(id);
                 const nm = h ? h.name : id;
-                return `<button type="button" onclick="castleCompToggleHero('${ccEsc(id)}')" title="${ccEsc(nm)} · อยู่ใน ${n} คอมพ์"
+                return `<button type="button" onclick="castleCompToggleHero('${ccEsc(id)}')" title="${ccEsc(nm)} · ${n} ตัว · อยู่ใน ${f.comps} คอมพ์"
                     class="relative w-[62px] h-[62px] rounded-lg overflow-hidden border-2 flex-shrink-0 transition ${on ? 'border-amber-400 ring-2 ring-amber-400/60' : 'border-gray-700 opacity-70 hover:opacity-100 hover:border-gray-500'}">
                     ${h && h.img ? `<img src="${h.img}" alt="" class="w-full h-full object-cover">` : `<span class="text-[8px] text-gray-400 leading-tight">${ccEsc(nm)}</span>`}
                     <span class="absolute bottom-0 right-0 bg-black/75 text-[10px] text-amber-300 font-black px-1 rounded-tl">${n}</span>
@@ -15423,13 +15431,16 @@
             const map = new Map();
             ccView.comps.forEach(cp => {
                 const names = String(ccView.compNames[cp.id] || '').split(' · ');
+                // จำนวนตัวละคร = จำนวนทีมของคอมพ์นี้ทุกปราสาท (1 ทีม = ตัวนี้ 1 ตัว)
+                const teams = ccView.castles.reduce((s, cs) => s + ((ccView.counts[cs.id] && ccView.counts[cs.id][cp.id]) || 0), 0);
                 cp.heroes.forEach((id, i) => {
                     const k = String(id);
                     if (!map.has(k)) {
                         const h = heroesDB.find(x => String(x.id) === k);
-                        map.set(k, { id: k, h, name: h ? h.name : (names[i] || k), comps: 0 });
+                        map.set(k, { id: k, h, name: h ? h.name : (names[i] || k), comps: 0, units: 0 });
                     }
                     map.get(k).comps++;
+                    map.get(k).units += teams;
                 });
             });
             const all = [...map.values()];
@@ -15595,15 +15606,15 @@
         /** ปุ่ม 🦸 เลือกตัวละคร + ป้ายฮีโร่ที่เลือก + ล้าง — แท็บคอมพ์วางขวาแถว TYPE · แท็บอื่นอยู่แถวแท็บ */
         /** 🦸 แถบกรองจากฮีโร่ — รูปทุกตัวในคอมพ์ เรียงตามจำนวนคอมพ์ที่มีตัวนั้น (มากก่อน) · กดได้หลายตัว */
         function ccHeroPickerHTML() {
-            const list = ccViewerHeroList().slice().sort((a, b) => b.comps - a.comps);
+            const list = ccViewerHeroList().slice().sort((a, b) => b.units - a.units || b.comps - a.comps);
             if (!list.length) return '';
             const n = ccViewSel.size ? ccView.comps.filter(ccViewerCompMatch).length : 0;
             const chips = list.map(x => {
                 const on = ccViewSel.has(x.id);
-                return `<button type="button" onclick="ccViewerToggleHero('${ccEsc(x.id)}')" title="${ccEsc(x.name)} · อยู่ใน ${x.comps} คอมพ์"
+                return `<button type="button" onclick="ccViewerToggleHero('${ccEsc(x.id)}')" title="${ccEsc(x.name)} · ${x.units} ตัว · อยู่ใน ${x.comps} คอมพ์"
                     class="relative w-[62px] h-[62px] rounded-lg overflow-hidden border-2 flex-shrink-0 transition ${on ? 'border-amber-400 ring-2 ring-amber-400/60' : 'border-gray-700 opacity-70 hover:opacity-100 hover:border-gray-500'}">
                     ${x.h && x.h.img ? `<img src="${x.h.img}" alt="" class="w-full h-full object-cover">` : `<span class="text-[8px] text-gray-400 leading-tight">${ccEsc(x.name)}</span>`}
-                    <span class="absolute bottom-0 right-0 bg-black/75 text-[10px] text-amber-300 font-black px-1 rounded-tl">${x.comps}</span>
+                    <span class="absolute bottom-0 right-0 bg-black/75 text-[10px] text-amber-300 font-black px-1 rounded-tl">${x.units}</span>
                 </button>`;
             }).join('');
             return `<div class="w-full bg-[#0f131a] border border-gray-800 rounded-2xl p-2.5">
