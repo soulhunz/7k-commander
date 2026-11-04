@@ -4670,7 +4670,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.7.2';
+        const APP_VERSION = '1.7.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15414,6 +15414,7 @@
             ccViewDetailOpen = false;
             document.getElementById('main-content').style.display = 'none';
             document.getElementById('cc-viewer').style.display = '';
+            pubSyncUrl();
             return true;
         }
 
@@ -16476,6 +16477,7 @@
             main.style.display = '';
             main.classList.remove('hidden');
             ccViewDetailOpen = true;
+            ccViewDetailKey = '';   // หน้าไม้ชนไม่ใช่คอมพ์ปราสาท — ปุ่มลิงก์ใช้ลิงก์ทีมแทน
             const en = (t.data.enemyTeams || []).find(Boolean);
             const sig = ccCompSig(maiTeamHeroes(t).map(x => x.id));   // ไม้เดียวกัน = ทุกทีมที่ใช้ตัวชุดนี้
             renderPublicTeamDisplay(t, ccViewTeams.filter(x => ccCompSig(maiTeamHeroes(x).map(y => y.id)) === sig), enName != null ? enName : (en ? (en.name || '') : ''));
@@ -30876,6 +30878,10 @@
             const urlParams = appUrlParams();
             const encodedGuild = urlParams.get('g');
             const urlGuild = decodeGuildParam(encodedGuild);
+            // 🔗 กลับมาหน้าแกลเลอรี → แถบที่อยู่ต้องเป็นลิงก์แกลเลอรี (ไม่มี teamId) — รีเฟรชแล้วอยู่หน้าแกลเลอรี
+            if (isPublicView && new URLSearchParams(window.location.search).get('teamId')) {
+                try { window.history.pushState({ page: 'gallery' }, '', '?' + galleryShareQuery().slice(1)); } catch (e) {}
+            }
 
             console.log("🔍 encodedGuild:", encodedGuild);
             console.log("🔍 urlGuild:", urlGuild);
@@ -31746,6 +31752,8 @@
         window.onpopstate = function(event) {
             if(event.state && event.state.page === 'detail') {
                 loadSharedTeamView(event.state.id, true);
+            } else if (event.state && event.state.page === 'gallery') {
+                loadSharedGallery();
             } else {
                 // ถ้า Back กลับมาหน้าแรกหรือหน้า Gallery
                 const urlParams = appUrlParams();
@@ -31890,6 +31898,27 @@
             copyTextToClipboard(L.base + q, '🔗 คัดลอกลิงก์ทีมนี้แล้ว — คนที่กดลิงก์จะเปิดมาที่ทีมนี้เลย');
         }
 
+        /** 🔗 แถบที่อยู่ = หน้าที่กำลังดู (รีเฟรชแล้วอยู่หน้าเดิม)
+         *  • หน้าคอมพ์จากหน้า Share ปราสาท: &cc=คอมพ์ &t=ทีมที่เลือก (ปิดคอมพ์ = เอาออก)
+         *  • หน้าทีมในแกลเลอรี: เลือกทีมแก้ตัวอื่น → เปลี่ยน teamId ตาม */
+        function pubSyncUrl() {
+            if (!isPublicView) return;
+            try {
+                const p = new URLSearchParams(window.location.search);
+                if (ccViewDetailOpen && ccViewDetailKey) {
+                    p.set('cc', ccViewDetailKey);
+                    if (window.pubCurTeamId) p.set('t', window.pubCurTeamId); else p.delete('t');
+                    if (ccView && ccView.seasonId) p.set('ss', ccView.seasonId); else p.delete('ss');
+                } else if (p.get('mode') === 'castle-view') {
+                    p.delete('cc'); p.delete('t'); p.delete('ss');
+                } else if (p.get('teamId') && window.pubCurTeamId && p.get('teamId') !== window.pubCurTeamId) {
+                    p.set('teamId', window.pubCurTeamId);
+                } else return;
+                const next = '?' + p.toString();
+                if (next !== window.location.search) window.history.replaceState(window.history.state, '', next);
+            } catch (e) {}
+        }
+
         // ฟังก์ชันช่วยอัปเดต URL (แยกออกมาใช้ร่วมกัน)
         function updateUrl(id) {
             // 🔗 เก็บ k/g/s ไว้ครบ — คนชอบก๊อปลิงก์จากแถบที่อยู่หน้านี้ไปส่งต่อ
@@ -32001,6 +32030,7 @@
 
         function renderPublicTeamDisplay(currentTeamData, allCounterTeams = [], targetName = '') {
             window.pubCurTeamId = currentTeamData && currentTeamData.id != null ? String(currentTeamData.id) : '';
+            pubSyncUrl();
             // 🔗 ปุ่มคัดลอกลิงก์ — มาจากหน้า Share คอมพ์ปราสาท = ลิงก์คอมพ์ + ทีมที่เลือก · มาจากแกลเลอรี = ลิงก์ทีม
             const pubLinkBtn = (ccViewDetailOpen && ccViewDetailKey) || (isPublicView && window.pubCurTeamId)
                 ? `<button onclick="${ccViewDetailOpen && ccViewDetailKey ? 'ccViewerCopyCompLink()' : `copyGalleryTeamLink('${window.pubCurTeamId.replace(/[^\w-]/g, '')}')`}" title="คัดลอกลิงก์ทีมที่เลือกอยู่ — คนที่กดจะเปิดมาที่ทีมนี้เลย" class="h-9 px-3 inline-flex items-center justify-center gap-1.5 bg-cyan-700/30 hover:bg-cyan-600/40 text-cyan-200 rounded-xl transition text-xs font-black border border-cyan-600/50 shadow whitespace-nowrap flex-shrink-0">🔗 คัดลอกลิงก์</button>` : '';
