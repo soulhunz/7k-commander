@@ -15250,10 +15250,11 @@
             // ไม่มี SS / โหลดไม่ได้ — ยังโชว์ช่องไว้ให้รู้ว่ามีฟีเจอร์นี้ (กดไม่ได้)
             if (!ccViewSeasons.length) return `<span class="flex items-center gap-1.5 bg-[#0d1117] border border-gray-800 rounded-xl px-3 py-2 text-[11px] font-bold text-gray-500" title="${ccEsc(ccViewSeasonsErr)}">📚 SS <span class="text-gray-600 font-normal">${ccViewSeasonsErr ? 'โหลดรายการไม่ได้' : 'ยังไม่มี SS ที่เก็บไว้'}</span></span>`;
             const cur = ccView && ccView.seasonId ? ccView.seasonId : (ccView && !ccView.fromCloud ? '__file' : '');
-            const opt = (v, t) => `<option value="${ccEsc(v)}" ${v === cur ? 'selected' : ''}>${ccEsc(t)}</option>`;
+            // select พื้นใส → popup ของเบราว์เซอร์เป็นพื้นขาว ตัวหนังสือขาวจนมองไม่เห็น — ใส่สีให้ option เอง
+            const opt = (v, t) => `<option value="${ccEsc(v)}" ${v === cur ? 'selected' : ''} style="background:#161b22;color:#e5e7eb">${ccEsc(t)}</option>`;
             return `<label class="flex items-center gap-1.5 bg-[#0d1117] border ${cur && cur !== '__file' ? 'border-violet-500/70' : 'border-gray-700'} rounded-xl pl-3 pr-1 py-1 text-[11px] font-bold text-gray-400">
                     📚 SS
-                    <select onchange="ccViewerPickSeason(this.value)" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer max-w-[190px] py-1">
+                    <select onchange="ccViewerPickSeason(this.value)" style="color-scheme:dark" class="bg-transparent text-white text-xs font-bold outline-none cursor-pointer max-w-[190px] py-1">
                         ${opt('', '☁️ ตารางปัจจุบัน')}
                         ${cur === '__file' ? opt('__file', '📄 ไฟล์ที่เปิดเอง') : ''}
                         ${ccViewSeasons.map(s => opt(s.id, s.label + (ccSsDate(s.savedAt) ? ' · ' + ccSsDate(s.savedAt) : ''))).join('')}
