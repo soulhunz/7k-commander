@@ -4675,7 +4675,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.8.1';
+        const APP_VERSION = '1.8.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -36328,6 +36328,7 @@
         if (g && g.name) {
             try { url += `&g=${encodeURIComponent(btoa(encodeURIComponent(g.name)))}`; } catch (e) {}
         }
+        if (g && g.id != null && String(g.id) !== '') url += '&gid=' + encodeURIComponent(String(g.id));
         return url + (L.srv || '');
     }
 
@@ -36912,6 +36913,7 @@
         } catch (e) {}
         const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
         const g = appUrlParams().get('g') || '';
+        const gid = appUrlParams().get('gid') || '';
         // ฝากเลขสุ่มไว้ 2 ที่: แท็บนี้ + ทุกแท็บของเว็บนี้ (กันกรณี Discord เปิดกลับมาในแท็บใหม่)
         const savedState = JSON.stringify({ n: nonce, act: act, g: g, at: Date.now() });
         try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, savedState); } catch (e) {}
@@ -36920,7 +36922,7 @@
         if (act === 'link') saveRosterPortalSession(rosterAuthCode);
         const q = new URLSearchParams({
             client_id: rosterDiscordClientId, response_type: 'code', scope: 'identify',
-            redirect_uri: rosterDiscordRedirectUri(), state: act + '.' + nonce + '.' + g, prompt: 'none'
+            redirect_uri: rosterDiscordRedirectUri(), state: act + '.' + nonce + '.' + g + (gid ? '~' + encodeURIComponent(gid) : ''), prompt: 'none'
         });
         const url = 'https://discord.com/oauth2/authorize?' + q.toString();
         try { (window.top || window).location.href = url; } catch (e) { window.open(url, '_blank'); }
@@ -36940,8 +36942,10 @@
             if (ls && (!saved || ls.n === m[2])) saved = ls;   // แท็บใหม่ = ไม่มีในแท็บนี้ → ใช้ของที่ฝากไว้ทุกแท็บ
         } catch (e) {}
         if (saved && Date.now() - (saved.at || 0) > 15 * 60 * 1000) saved = null;   // เกิน 15 นาที = หมดอายุ
-        const g = m[3] || (saved && saved.g) || '';
-        try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '')); } catch (e) {}
+        const rest = m[3] || '', tilde = rest.indexOf('~');
+        const g = (tilde >= 0 ? rest.slice(0, tilde) : rest) || (saved && saved.g) || '';
+        let gid = ''; try { gid = tilde >= 0 ? decodeURIComponent(rest.slice(tilde + 1)) : ''; } catch (e) {}
+        try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
         // กันลิงก์ปลอม: เลขสุ่มที่ฝากไว้ต้องตรงกัน
         //    • เจอแต่ไม่ตรง = ลิงก์ไม่ได้มาจากการกดในเครื่องนี้ → ปฏิเสธ
         //    • หาไม่เจอเลย (ล้างข้อมูลเว็บ / เบราว์เซอร์ไม่ให้เก็บ) → ให้เข้าได้ แต่ "ผูกบัญชี" ไม่ได้ (ต้องรู้ว่าเป็นใคร)
@@ -36965,14 +36969,15 @@
             showLoading('🎮 กำลังเข้าด้วย Discord...');
             let r = null;
             const joinGuild = (typeof mlUrlGuildName === 'function') ? mlUrlGuildName() : '';
-            try { r = await postJson({ action: 'discordRosterLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), join: !!joinGuild, guild: joinGuild }, { timeout: 60000, retries: 1 }); }
+            const joinGid = appUrlParams().get('gid') || '';
+            try { r = await postJson({ action: 'discordRosterLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), join: !!(joinGuild || joinGid), guild: joinGuild, guildId: joinGid }, { timeout: 60000, retries: 1 }); }
             catch (e) { r = { status: 'error', message: e.message || String(e) }; }
             hideLoading();
             if (r && r.status === 'success' && r.accessCode) {
                 await rosterLoginWithCode(r.accessCode);
                 if (r.joined && currentRosterTarget) {
                     rosterDiscordStatus = { code: normalizeMemberCode(r.accessCode), linked: true, name: r.discordName || '' };
-                    setTimeout(() => alert('🎉 ยินดีต้อนรับเข้ากิลด์ ' + (r.guild_name || '') + '\nชื่อในกิลด์: "' + (r.name || '') + '" (แก้ได้ที่เมนู ข้อมูลส่วนตัว)\n\nเริ่มเพิ่มตัวละคร / สัตว์เลี้ยง / แหวน ที่มีได้เลย · ครั้งหน้ากดปุ่ม Discord เข้าได้ทันที'), 300);
+                    setTimeout(() => alert('🎉 ยินดีต้อนรับเข้ากิลด์ ' + ((r.guild_name && r.guild_name !== r.guild_id) ? r.guild_name : (joinGuild || r.guild_name || '')) + '\nชื่อในกิลด์: "' + (r.name || '') + '" (แก้ได้ที่เมนู ข้อมูลส่วนตัว)\n\nเริ่มเพิ่มตัวละคร / สัตว์เลี้ยง / แหวน ที่มีได้เลย · ครั้งหน้ากดปุ่ม Discord เข้าได้ทันที'), 300);
                 }
                 return;
             }
