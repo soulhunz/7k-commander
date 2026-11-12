@@ -3969,10 +3969,15 @@
                 <div class="text-4xl mb-3">🏰</div>
                 <h1 class="text-2xl font-bold text-white mb-1">Guild Member Portal</h1>
                 <div id="roster-login-guild" class="hidden mb-3 inline-flex items-center gap-1.5 bg-blue-900/30 border border-blue-700/50 text-blue-300 text-sm font-bold px-3 py-1.5 rounded-lg"></div>
-                <p class="text-xs text-gray-400 mb-6">กรอกรหัสที่หัวหน้ากิลด์แจ้งให้ (ตั้งเองได้ เช่น 001, player01)</p>
-                <input type="text" id="roster-code-input" onkeyup="if(event.key==='Enter')verifyRosterCode()" class="w-full bg-[#0d1117] border border-gray-600 text-white p-4 rounded-xl text-center text-xl mb-4 focus:border-blue-500 outline-none font-mono" placeholder="รหัสสมาชิก">
-                <button onclick="verifyRosterCode()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold shadow-lg mb-3">เข้าสู่ระบบ</button>
-                <p class="text-[10px] text-gray-500">ใช้ลิงก์เดียวกันทุกคน — แต่ละคนกรอกรหัสของตัวเอง</p>
+                <p class="text-xs text-gray-400 mb-5">กดปุ่มด้านล่าง → ยืนยันใน Discord → เข้าระบบได้เลย<br><span class="text-gray-500">ครั้งแรกระบบเพิ่มชื่อเข้ากิลด์ให้อัตโนมัติ</span></p>
+                <div id="roster-discord-box" class="hidden">
+                    <button onclick="rosterDiscordStart('login')" class="w-full text-white py-3.5 rounded-xl font-bold shadow-lg mb-3 flex items-center justify-center gap-2 transition hover:brightness-110 text-base" style="background:#5865F2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.7.2 18.2a19.7 19.7 0 0 0 6 3l1.3-2.1a12.8 12.8 0 0 1-2-1l.5-.4a14 14 0 0 0 12 0l.5.4a12.7 12.7 0 0 1-2 1l1.3 2.1a19.6 19.6 0 0 0 6-3c.5-5.2-.9-9.8-3.5-13.8ZM8.3 15.5c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4Zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4Z"/></svg>
+                        เข้าด้วย Discord
+                    </button>
+                </div>
+                <p id="roster-discord-status" class="text-xs text-gray-500 mb-3">⏳ กำลังเตรียมปุ่ม Discord…</p>
+                <p class="text-[10px] text-gray-500">ใช้ลิงก์เดียวกันทุกคน — แต่ละคนเข้าด้วยบัญชี Discord ของตัวเอง</p>
             </div>
         </div>
 
@@ -3986,7 +3991,7 @@
                         <p id="roster-member-guild" class="text-[10px] text-gray-500 truncate mt-0.5">...</p>
                     </div>
                 </div>
-                <button type="button" onclick="switchRosterMemberCode()" class="shrink-0 text-gray-400 hover:text-white text-[11px] font-bold px-2 py-1.5 rounded-lg border border-gray-700/80 hover:border-gray-500 bg-[#0d1117]/80 transition whitespace-nowrap">← เปลี่ยนรหัสสมาชิก</button>
+                <button type="button" onclick="switchRosterMemberCode()" class="shrink-0 text-gray-400 hover:text-white text-[11px] font-bold px-2 py-1.5 rounded-lg border border-gray-700/80 hover:border-gray-500 bg-[#0d1117]/80 transition whitespace-nowrap">ออกจากระบบ</button>
             </header>
 
             <div id="roster-nav-backdrop" class="roster-nav-backdrop" onclick="closeRosterMobileNav()" aria-hidden="true"></div>
@@ -4212,7 +4217,7 @@
                             <button type="button" onclick="copyMemberPortalLink()" class="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition" title="ลิงก์เดียว — สมาชิกกรอกรหัสเอง">
                                 🔗 คัดลอกลิงก์สมาชิก
                             </button>
-                            <button id="btn-add-guild-member" onclick="openGuildMemberModal()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition hover:scale-105">
+                            <button id="btn-add-guild-member" onclick="openGuildMemberModal()" style="display:none!important" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition hover:scale-105">
                                 <span>+</span> เพิ่มสมาชิก
                             </button>
                         </div>
@@ -4222,7 +4227,7 @@
                                     <tr>
                                         <th class="p-4 w-16 text-center bg-[#111827]">#</th>
                                         <th class="p-4">Member Name</th>
-                                        <th class="p-4 w-40">รหัสสมาชิก</th>
+                                        <th class="p-4 w-48">Discord</th>
                                         <th class="p-4 w-44 text-right bg-[#111827]">Actions</th>
                                     </tr>
                                 </thead>
@@ -4251,7 +4256,7 @@
                         <input type="text" id="gm-name-input" class="w-full bg-[#161b22] border border-gray-600 rounded p-3 text-white outline-none focus:border-blue-500 font-bold" placeholder="ระบุชื่อสมาชิก...">
                     </div>
 
-                    <div class="input-group mt-1">
+                    <div class="input-group mt-1 hidden">   <!-- 🎮 ลูกกิลเข้าด้วย Discord อย่างเดียว — ไม่ใช้รหัสแล้ว (เก็บไว้ภายในเท่านั้น) -->
                         <label class="text-green-400 text-xs font-bold uppercase">รหัสสมาชิก (ตั้งเองได้)</label>
                         <input type="text" id="gm-access-code" oninput="updateMemberRosterLinkPreview()" class="w-full bg-[#0b0e14] border border-gray-600 rounded p-2 text-yellow-400 font-mono text-center outline-none text-sm mt-1" placeholder="อย่างน้อย 6 ตัว เช่น somchai42, gw-player07">
                         <p class="text-[10px] text-gray-500 mt-1">สมาชิกใช้รหัสนี้กรอกในหน้าลิงก์สมาชิก (แยกจากลิงก์)</p>
@@ -4670,7 +4675,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.7.3';
+        const APP_VERSION = '1.8.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -5054,7 +5059,8 @@
                 pet_list: mem.pet_list || [],
                 ring_list: mem.ring_list || [],
                 teams: Array.isArray(mem.teams) ? mem.teams : [],
-                inventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0
+                inventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0,
+                discordName: mem.discordName || ''   // 🎮 ผูก Discord แล้ว (server ใส่มาให้ — แสดงอย่างเดียว ไม่ส่งกลับ)
             };
         }
 
@@ -5177,7 +5183,7 @@
                 ? normalizeMemberCode(rosterAuthCode)
                 : normalizeMemberCode(mem.accessCode || '');
             if (isRosterSave && !authCode) {
-                throw new Error('ยังไม่ได้เข้าสู่ระบบลูกกิล — กรอกรหัสสมาชิกอีกครั้ง');
+                throw new Error('ยังไม่ได้เข้าสู่ระบบลูกกิล — ออกจากระบบแล้วเข้าด้วย Discord ใหม่');
             }
 
             const response = await fetch(SCRIPT_URL, {
@@ -6246,6 +6252,9 @@
                 return;
             }
 
+            // 🎮 กลับมาจาก Discord → เก็บรหัสครั้งเดียวไว้ แล้วเปลี่ยนลิงก์เป็นหน้าลงทะเบียนลูกกิล
+            const discordCb = rosterDiscordTakeCallback();
+
             // 1. อ่าน URL Parameters
             const urlParams = appUrlParams();
             // ⚙️ ไม่ได้เปิดผ่าน Apps Script (เช่น GitHub Pages) → URL มาจาก localStorage
@@ -6276,7 +6285,9 @@
                     console.error('Roster load failed:', e);
                 } finally {
                     hideLoading();
-                    tryRestoreRosterPortalSession().then(function(restored) {
+                    rosterDiscordLoadConfig();
+                    if (discordCb) rosterDiscordFinish(discordCb);
+                    else tryRestoreRosterPortalSession().then(function(restored) {
                         if (!restored) revealRosterLoginView();
                     });
                 }
@@ -23876,8 +23887,12 @@
             const accessCode = normalizeMemberCode(codeInput.value);
 
             if (!name) return alert("กรุณากรอกชื่อสมาชิก");
-            if (!accessCode) return alert("กรุณาตั้งรหัสสมาชิก");
-            if (accessCode.length < ROSTER_CODE_MIN_LEN) {
+            if (!accessCode || accessCode.length < ROSTER_CODE_MIN_LEN) {
+                // 🎮 ไม่มีรหัสให้ตั้งแล้ว — สร้างรหัสภายในแบบสุ่มให้เอง
+                codeInput.value = 'm_' + Array.from(crypto.getRandomValues(new Uint8Array(6))).map(x => 'abcdefghjkmnpqrstuvwxyz23456789'[x % 31]).join('');
+                return saveGuildMember();
+            }
+            if (false) {
                 return alert("❌ รหัสสมาชิกต้องยาวอย่างน้อย " + ROSTER_CODE_MIN_LEN + " ตัวอักษร\n\nรหัสสั้นอย่าง 001 เดาได้ในไม่กี่ครั้ง ใครเดาได้จะเข้าดู/แก้ข้อมูลของลูกกิลคนนั้นได้");
             }
 
@@ -24162,7 +24177,7 @@
                 btnAddMem.style.display = 'none';
             } else {
                 countSpan.className = "text-green-400 font-bold ml-1";
-                btnAddMem.style.display = 'flex';
+                btnAddMem.style.display = 'none';   // 🎮 ลูกกิลสมัครเองด้วย Discord ผ่านลิงก์สมาชิก — ไม่ต้องกดเพิ่มสมาชิก
             }
             renderGuildMembersTable();
         }
@@ -24181,11 +24196,10 @@
             empty.classList.add('hidden');
 
             guildMembersDB.forEach((mem, idx) => {
-                const code = mem.accessCode ? normalizeMemberCode(mem.accessCode) : '';
-                const codeCell = code
-                    ? `<span class="font-mono text-yellow-400 text-xs font-bold">${code}</span>
-                       <button onclick="copyMemberCodeByIndex(${idx})" class="block mt-1 text-[10px] text-gray-400 hover:text-white font-bold">📋 คัดลอกรหัส</button>`
-                    : `<span class="text-gray-500 text-xs italic">ยังไม่มีรหัส</span>`;
+                // 🎮 ลูกกิลเข้าด้วย Discord อย่างเดียว — โชว์บัญชีที่เชื่อมไว้ (ไม่โชว์รหัสอีกแล้ว)
+                const codeCell = mem.discordName
+                    ? `<span class="text-xs font-bold" style="color:#a5b4fc">🎮 ${String(mem.discordName).replace(/[<>&"]/g, '')}</span>`
+                    : `<span class="text-gray-500 text-xs italic">ยังไม่ได้เชื่อม Discord</span>`;
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1f2937] transition group">
                         <td class="p-4 text-center text-gray-500 font-mono font-bold">${idx + 1}</td>
@@ -31102,6 +31116,7 @@
             if (memberSession) {
                 return `<button onclick="memberLogout()" title="ออกจากระบบลูกกิล" class="bg-emerald-700/80 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-emerald-500/50 shadow-lg">👤 ${mlEsc(memberSession.name||'ลูกกิล')} <span class="text-emerald-200/80">· ฮีโร่ ${memberSession.heroIds.size}</span> <span class="opacity-70">✕</span></button>`;
             }
+            return ''; // 🎮 (ปิด) ลูกกิลเข้าด้วย Discord ที่หน้าลงทะเบียน (?mode=roster) เท่านั้น — ไม่มีรหัสให้กรอกที่นี่แล้ว
             return `<button onclick="openMemberLogin()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-blue-500/50 shadow-lg">🔑 เข้าสู่ระบบลูกกิล</button>`;
         }
         function memberRefreshGallery(){ try { if (typeof switchGalleryTab === 'function') switchGalleryTab(currentGalleryTab); } catch(e){} }
@@ -36304,14 +36319,16 @@
     }
 
     function buildMemberRosterUrl() {
-        const baseUrl = publicShareBaseUrl();
-        let url = `${baseUrl}?mode=roster`;
+        // 🔗 ชี้หน้าเว็บ GitHub Pages + แนบ URL server ใน s= (แบบเดียวกับลิงก์แกลเลอรี/Share)
+        //    เดิมใช้ลิงก์ Apps Script (/exec) — ช้า + เปิดใน iframe ของ Google · ปุ่ม Discord ก็ส่งกลับมาที่ GitHub Pages อยู่แล้ว
+        const L = publicLinkBase();
+        let url = `${L.base}?mode=roster`;
         // 🟢 ผูกลิงก์กับกิลด์ที่เลือกอยู่ (g= = ชื่อกิลด์ที่เข้ารหัส base64) → portal ล็อกกิลด์ให้ลูกกิลอัตโนมัติ
         const g = activeGuildForLink();
         if (g && g.name) {
             try { url += `&g=${encodeURIComponent(btoa(encodeURIComponent(g.name)))}`; } catch (e) {}
         }
-        return url;
+        return url + (L.srv || '');
     }
 
     function updateMemberRosterLinkPreview() {
@@ -36338,8 +36355,8 @@
         const g = activeGuildForLink();
         const gName = g ? (g.name || g.id) : '';
         const msg = gName
-            ? `✅ คัดลอกลิงก์กิลด์ "${gName}" แล้ว — ส่งให้เฉพาะลูกกิลกิลด์นี้ แล้วแจ้งรหัสสมาชิกแยกทางแชท`
-            : '✅ คัดลอกลิงก์หน้ากรอกรหัสแล้ว — แจ้งรหัสสมาชิกแยกทางแชท';
+            ? `✅ คัดลอกลิงก์กิลด์ "${gName}" แล้ว — ส่งให้เฉพาะลูกกิลกิลด์นี้ — กดเข้าด้วย Discord ได้เลย ครั้งแรกระบบเพิ่มเข้ากิลด์ให้เอง`
+            : '⚠️ คัดลอกลิงก์แล้ว แต่ยังไม่ได้เลือกกิลด์ — ลิงก์ที่ไม่มีกิลด์ สมัครเข้ากิลด์ด้วย Discord ไม่ได้';
         copyTextToClipboard(buildMemberRosterUrl(), msg);
     }
 
@@ -36818,7 +36835,10 @@
     async function verifyRosterCode() {
         const code = normalizeMemberCode(document.getElementById('roster-code-input')?.value);
         if (!code) return alert('กรุณากรอกรหัสสมาชิก');
+        return rosterLoginWithCode(code);
+    }
 
+    async function rosterLoginWithCode(code) {
         showLoading('กำลังตรวจรหัส...');
         const foundTarget = await findMemberByAccessCodeRemote(code);
         hideLoading();
@@ -36835,6 +36855,160 @@
         } finally {
             hideLoading();
         }
+    }
+
+    // =========================================================
+    // 🎮 เข้าหน้าลงทะเบียนลูกกิลด้วย Discord
+    //    • ปุ่มโชว์เมื่อ server ตั้งค่า Discord แล้ว (discordConfig คืน clientId)
+    //    • ไป Discord → กลับมาหน้านี้พร้อม ?code= → server แลกกับ Discord (รหัสลับอยู่ฝั่ง server เท่านั้น)
+    //    • ผูก = ต้องเข้าด้วยรหัสสมาชิกก่อน (รู้ว่าเป็นใคร) · เข้า = Discord ที่ผูกแล้ว → server คืนรหัสสมาชิก
+    // =========================================================
+    let rosterDiscordClientId = null;          // null = ยังไม่รู้ · '' = ยังไม่เปิดใช้
+    let rosterDiscordStatus = null;            // { code, linked, name } ของคนที่เข้าอยู่
+    const ROSTER_DISCORD_STATE_KEY = '7k_discord_oauth_state';
+
+    /** ลิงก์ที่ Discord ส่งกลับมา — ต้องตรงกับที่ตั้งใน Discord Developer Portal ทุกตัวอักษร */
+    function rosterDiscordRedirectUri() {
+        const here = window.location.href.split(/[?#]/)[0];
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(here)) return here;
+        return PUBLIC_PAGES_URL;
+    }
+    async function rosterDiscordLoadConfig() {
+        if (!SCRIPT_URL) return;
+        try {
+            const r = await postJson({ action: 'discordConfig' }, { timeout: 30000, retries: 2 });
+            rosterDiscordClientId = (r && r.status === 'success' && r.clientId) ? String(r.clientId) : '';
+        } catch (e) { rosterDiscordClientId = ''; }
+        const box = document.getElementById('roster-discord-box');
+        if (box) box.classList.toggle('hidden', !rosterDiscordClientId);
+        const stEl = document.getElementById('roster-discord-status');
+        if (stEl) {
+            stEl.textContent = rosterDiscordClientId ? '' : '⚠️ ระบบยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์';
+            stEl.classList.toggle('hidden', !!rosterDiscordClientId);
+        }
+        if (currentRosterTarget && rosterActiveTab === 'profile') renderPublicRosterProfile();
+    }
+    /** act: 'login' (เข้า) | 'link' (ผูกกับสมาชิกที่เข้าอยู่) */
+    function rosterDiscordStart(act) {
+        if (!rosterDiscordClientId) return alert('ยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์');
+        if (act === 'link' && !normalizeMemberCode(rosterAuthCode)) return alert('เข้าด้วยรหัสสมาชิกก่อน แล้วค่อยผูก Discord');
+        const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
+        const g = appUrlParams().get('g') || '';
+        try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, JSON.stringify({ n: nonce, act: act, g: g, at: Date.now() })); } catch (e) {}
+        // ผูก: รหัสที่ใช้เข้าอยู่ตอนนี้ (เก็บในเครื่อง — ไม่ใส่ในลิงก์ไป Discord)
+        if (act === 'link') saveRosterPortalSession(rosterAuthCode);
+        const q = new URLSearchParams({
+            client_id: rosterDiscordClientId, response_type: 'code', scope: 'identify',
+            redirect_uri: rosterDiscordRedirectUri(), state: act + '.' + nonce + '.' + g, prompt: 'none'
+        });
+        const url = 'https://discord.com/oauth2/authorize?' + q.toString();
+        try { (window.top || window).location.href = url; } catch (e) { window.open(url, '_blank'); }
+    }
+    /** ตอนเปิดหน้า: มี ?code=&state= จาก Discord → คืน { code, act, error } แล้วเปลี่ยนลิงก์เป็นหน้าลงทะเบียน */
+    function rosterDiscordTakeCallback() {
+        let p;
+        try { p = new URLSearchParams(window.location.search); } catch (e) { return null; }
+        const state = p.get('state') || '';
+        const m = state.match(/^(login|link)\.([0-9a-f]{24})\.(.*)$/);
+        if (!m || (!p.get('code') && !p.get('error'))) return null;
+        let saved = null;
+        try { saved = JSON.parse(sessionStorage.getItem(ROSTER_DISCORD_STATE_KEY) || 'null'); sessionStorage.removeItem(ROSTER_DISCORD_STATE_KEY); } catch (e) {}
+        const g = m[3] || (saved && saved.g) || '';
+        try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '')); } catch (e) {}
+        // กันลิงก์ปลอม: ต้องเป็นคำขอที่เริ่มจากเครื่องนี้ (เลขสุ่มตรงกัน)
+        if (!saved || saved.n !== m[2]) return { act: m[1], error: 'mismatch' };
+        if (p.get('error')) return { act: m[1], error: p.get('error') };
+        return { act: m[1], code: p.get('code') };
+    }
+    async function rosterDiscordFinish(cb) {
+        const showLogin = () => { revealRosterLoginView(); };
+        if (cb.error) {
+            const msg = cb.error === 'access_denied' ? 'ยกเลิกการเข้าด้วย Discord แล้ว'
+                : cb.error === 'mismatch' ? 'ลิงก์จาก Discord ไม่ตรงกับที่ขอจากเครื่องนี้ — กดปุ่ม Discord ใหม่อีกครั้ง'
+                : 'Discord ตอบกลับไม่สำเร็จ (' + cb.error + ')';
+            if (cb.act === 'link') { const ok = await tryRestoreRosterPortalSession(); if (!ok) showLogin(); }
+            else showLogin();
+            setTimeout(() => alert('🎮 ' + msg), 200);
+            return;
+        }
+        if (cb.act === 'login') {
+            showLoading('🎮 กำลังเข้าด้วย Discord...');
+            let r = null;
+            const joinGuild = (typeof mlUrlGuildName === 'function') ? mlUrlGuildName() : '';
+            try { r = await postJson({ action: 'discordRosterLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), join: !!joinGuild, guild: joinGuild }, { timeout: 60000, retries: 1 }); }
+            catch (e) { r = { status: 'error', message: e.message || String(e) }; }
+            hideLoading();
+            if (r && r.status === 'success' && r.accessCode) {
+                await rosterLoginWithCode(r.accessCode);
+                if (r.joined && currentRosterTarget) {
+                    rosterDiscordStatus = { code: normalizeMemberCode(r.accessCode), linked: true, name: r.discordName || '' };
+                    setTimeout(() => alert('🎉 ยินดีต้อนรับเข้ากิลด์ ' + (r.guild_name || '') + '\nชื่อในกิลด์: "' + (r.name || '') + '" (แก้ได้ที่เมนู ข้อมูลส่วนตัว)\n\nเริ่มเพิ่มตัวละคร / สัตว์เลี้ยง / แหวน ที่มีได้เลย · ครั้งหน้ากดปุ่ม Discord เข้าได้ทันที'), 300);
+                }
+                return;
+            }
+            showLogin();
+            const who = r && r.discordName ? ' (' + r.discordName + ')' : '';
+            setTimeout(() => alert(r && r.status === 'not_linked'
+                ? '🎮 บัญชี Discord นี้' + who + ' ยังไม่มีชื่อในกิลด์' + (r.message ? '\n' + r.message : '') + '\n\nเปิดจากลิงก์สมาชิกที่หัวหน้ากิลด์ส่งให้ แล้วกดปุ่ม Discord อีกครั้ง'
+                : '❌ เข้าด้วย Discord ไม่สำเร็จ\n\n' + ((r && r.message) || 'ลองใหม่อีกครั้ง')), 200);
+            return;
+        }
+        // ผูกบัญชี: เปิดหน้าของสมาชิกคนเดิมก่อน แล้วผูก
+        const code = loadRosterPortalSessionCode();
+        const restored = code ? await tryRestoreRosterPortalSession() : false;
+        if (!restored) { showLogin(); setTimeout(() => alert('กดปุ่ม "เข้าด้วย Discord" ใหม่อีกครั้ง'), 200); return; }
+        showLoading('🎮 กำลังผูก Discord...');
+        let r = null;
+        try { r = await postJson({ action: 'discordRosterLink', code: cb.code, redirectUri: rosterDiscordRedirectUri(), accessCode: rosterAuthCode }, { timeout: 60000, retries: 1 }); }
+        catch (e) { r = { status: 'error', message: e.message || String(e) }; }
+        hideLoading();
+        if (r && r.status === 'success') {
+            rosterDiscordStatus = { code: normalizeMemberCode(rosterAuthCode), linked: true, name: r.discordName || '' };
+            setRosterTab('profile');
+            if (typeof showToast === 'function') showToast('🎮 ผูก Discord แล้ว' + (r.discordName ? ' — ' + r.discordName : '') + ' · ครั้งหน้ากดปุ่ม Discord เข้าได้เลย', 'success');
+        } else {
+            setRosterTab('profile');
+            setTimeout(() => alert('❌ ผูก Discord ไม่สำเร็จ\n\n' + ((r && r.message) || 'ลองใหม่อีกครั้ง')), 200);
+        }
+    }
+    async function rosterDiscordLoadStatus() {
+        const code = normalizeMemberCode(rosterAuthCode);
+        if (!code || !rosterDiscordClientId) return;
+        try {
+            const r = await postJson({ action: 'discordRosterStatus', accessCode: code }, { timeout: 30000, retries: 2 });
+            rosterDiscordStatus = { code: code, linked: !!(r && r.linked), name: (r && r.discordName) || '', err: !(r && r.status === 'success') };
+        } catch (e) { rosterDiscordStatus = { code: code, linked: false, name: '', err: true }; }
+        if (rosterActiveTab === 'profile') renderPublicRosterProfile();
+    }
+    async function rosterDiscordUnlink() {
+        if (!confirm('ยกเลิกการผูก Discord?\n\nหลังยกเลิก ต้องเข้าด้วยรหัสสมาชิก')) return;
+        showLoading('กำลังยกเลิก...');
+        try {
+            const r = await postJson({ action: 'discordRosterUnlink', accessCode: rosterAuthCode }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            rosterDiscordStatus = { code: normalizeMemberCode(rosterAuthCode), linked: false, name: '' };
+        } catch (e) { alert('❌ ' + (e.message || e)); }
+        finally { hideLoading(); }
+        renderPublicRosterProfile();
+    }
+    /** กล่อง Discord ในหน้าข้อมูลส่วนตัว */
+    function rosterDiscordProfileHTML() {
+        if (!rosterDiscordClientId) return '';
+        const code = normalizeMemberCode(rosterAuthCode);
+        const st = rosterDiscordStatus && rosterDiscordStatus.code === code ? rosterDiscordStatus : null;
+        if (!st) setTimeout(rosterDiscordLoadStatus, 0);
+        const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const body = !st ? '<span class="text-xs text-gray-500">กำลังเช็ค…</span>'
+            : st.linked
+                ? '<span class="text-xs text-emerald-300 font-bold">✅ ' + (st.name ? esc(st.name) : 'เชื่อมแล้ว') + '</span>'
+                // สมาชิกเก่าที่แอดมินเพิ่มไว้ (ยังไม่เคยผูก) — ผูกได้ครั้งเดียวตรงนี้
+                : '<span class="text-xs text-gray-400">ยังไม่ได้เชื่อมบัญชี</span>' +
+                  '<button type="button" onclick="rosterDiscordStart(\'link\')" class="ml-auto text-white text-xs font-bold px-3 py-2 rounded-lg hover:brightness-110" style="background:#5865F2">🎮 เชื่อม Discord</button>';
+        return '<div class="bg-[#0d1117]/60 border border-indigo-800/50 rounded-lg px-3 py-2.5 mb-4">' +
+                '<div class="text-[10px] font-bold text-indigo-300 uppercase tracking-wider mb-2">🎮 บัญชี Discord ที่ใช้เข้าระบบ</div>' +
+                '<div class="flex flex-wrap items-center gap-2">' + body + '</div>' +
+                '' +
+            '</div>';
     }
 
     /**
@@ -37764,7 +37938,7 @@
             '<div class="roster-profile-card-head">' +
                 '<div class="min-w-0">' +
                     '<h3 class="text-xl font-bold text-gray-100 flex items-center gap-2"><span>🪪</span> ข้อมูลส่วนตัว</h3>' +
-                    '<p class="text-xs text-gray-400 mt-1">แก้ไขชื่อและรหัสสมาชิกได้ — ใช้รหัสนี้เข้าสู่ระบบ</p>' +
+                    '<p class="text-xs text-gray-400 mt-1">แก้ไขชื่อที่ใช้ในกิลด์ได้</p>' +
                 '</div>' +
                 '<div class="roster-profile-guild-badge shrink-0" title="ชื่อกิลด์ (แก้ไขไม่ได้)">' +
                     '<div class="label">กิลด์</div>' +
@@ -37774,9 +37948,7 @@
             '<div class="space-y-3 mb-4">' +
                 '<label class="block"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">ชื่อในกิลด์</span>' +
                 '<input type="text" id="roster-profile-name" value="' + safeName + '" class="mt-1 w-full bg-[#0d1117] border border-gray-600 text-white px-3 py-2.5 rounded-lg text-sm outline-none focus:border-blue-500" placeholder="ชื่อที่ใช้ในกิลด์" autocomplete="name"></label>' +
-                '<label class="block"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">รหัสสมาชิก</span>' +
-                '<input type="text" id="roster-profile-code" value="' + safeCode + '" class="mt-1 w-full bg-[#0d1117] border border-gray-600 text-amber-200 font-mono px-3 py-2.5 rounded-lg text-sm outline-none focus:border-amber-500" placeholder="เช่น 001, player01" autocomplete="off" autocapitalize="off"></label>' +
-                '<p class="text-[10px] text-gray-500 leading-relaxed">เปลี่ยนรหัสแล้วต้องใช้รหัสใหม่เมื่อเข้าสู่ระบบครั้งถัดไป</p>' +
+                '<input type="hidden" id="roster-profile-code" value="' + safeCode + '">' +   // รหัสภายใน (ไม่ให้เห็น/แก้) — เข้าด้วย Discord อย่างเดียว
             '</div>' +
             '<div class="bg-[#0d1117]/60 border border-gray-800 rounded-lg px-3 py-2.5 mb-4">' +
                 '<div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">สรุปข้อมูลในระบบ</div>' +
@@ -37787,6 +37959,7 @@
                 '</div>' +
                 '<div class="text-[10px] text-gray-500 mt-2">อัปเดตล่าสุด: ' + updatedText + '</div>' +
             '</div>' +
+            rosterDiscordProfileHTML() +
             '<button type="button" onclick="saveRosterProfile()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-1.5 transition active:scale-95 border border-emerald-500/30"><span>💾</span> บันทึกข้อมูลส่วนตัว</button>';
     }
 
@@ -37797,8 +37970,8 @@
         const trimmedName = String(nameInput.value || '').trim();
         const trimmedCode = normalizeMemberCode(codeInput.value);
         if (!trimmedName) return alert('กรุณากรอกชื่อในกิลด์');
-        if (!trimmedCode) return alert('กรุณากรอกรหัสสมาชิก');
-        if (trimmedCode.length < ROSTER_CODE_MIN_LEN) {
+        if (!trimmedCode) return alert('ไม่พบข้อมูลการเข้าระบบ — ออกจากระบบแล้วเข้าด้วย Discord ใหม่');
+        if (false && trimmedCode.length < ROSTER_CODE_MIN_LEN) {   // (ปิด) เดิมให้ลูกกิลตั้งรหัสเอง
             return alert('รหัสสมาชิกต้องยาวอย่างน้อย ' + ROSTER_CODE_MIN_LEN + ' ตัวอักษร\n\nรหัสสั้นเดาง่าย ใครเดาได้จะเข้าดู/แก้ข้อมูลของคุณได้');
         }
         const { g, m } = currentRosterTarget;
