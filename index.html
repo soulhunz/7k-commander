@@ -48,6 +48,7 @@
 
         /* Guild Member Portal — เต็มจอ */
         html.roster-mode, body.roster-mode { height: 100%; overflow: hidden; }
+        body.officer-mode .admin-only, body.officer-mode #sidebar-floating-btn { display: none !important; }
         body.roster-mode > main {
             position: fixed !important;
             inset: 0 !important;
@@ -3892,7 +3893,9 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
                     <button type="button" id="member-roster-notify-all-btn" onclick="guildNotifyMembers()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="แท็กทุกคนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง ในห้อง Discord ของกิลด์">🔔 แจ้งเตือนทั้งหมด</button>
+                    <button type="button" onclick="bulkPickTeamOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="เลือกทีม 3v3 แล้วให้ลูกกิลหลายคนพร้อมกัน">📌 ให้ทีมหลายคน</button>
                     <button type="button" onclick="suggestOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="ระบบเช็คตัวละคร/แหวนของลูกกิลทุกคน แล้วแนะนำว่าใครตั้งทีมไหนได้">🤖 แนะนำทีม</button>
+                    <button type="button" id="member-roster-officer-btn" onclick="officerAdminOpen()" class="admin-only bg-[#0d1117] border border-indigo-700/70 hover:border-indigo-400 text-indigo-200 px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="ลิงก์ให้ผู้ช่วยหัวหน้าเข้าด้วย Discord มาดูข้อมูลลูกกิลและตั้งทีมให้ลูกกิลได้">🛡️ ลิงก์ผู้ช่วย</button>
                     <div class="flex items-center gap-2 min-w-0"><label class="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">กิลด์</label>
                     <select id="member-roster-guild-select" onchange="selectMemberRosterGuild(this.value)" class="bg-[#0d1117] border border-gray-600 rounded-lg px-3 py-2 text-xs text-blue-300 font-bold outline-none focus:border-blue-500 min-w-[140px] max-w-full"></select></div>
                 </div>
@@ -4694,7 +4697,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.11.0';
+        const APP_VERSION = '1.12.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -4946,6 +4949,7 @@
          *    ใช้แบบ: body: JSON.stringify(withAuth({ action: 'purge3v3Team', id: x }))
          */
         function withAuth(body) {
+            if (typeof OFFICER_SESSION !== 'undefined' && OFFICER_SESSION && OFFICER_SESSION.token) return Object.assign({}, body || {}, { _token: OFFICER_SESSION.token });   // 🛡️ ลิงก์ผู้ช่วยหัวหน้า
             if (typeof SHARE_LINK_SERVER !== 'undefined' && SHARE_LINK_SERVER) return body || {}; // server มาจากลิงก์แชร์ → ไม่ส่ง token
             const t =(typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) ? CURRENT_USER.token : '';
             return t ? Object.assign({}, body || {}, { _token: t }) : (body || {});
@@ -6292,6 +6296,10 @@
 
             // 🟢 1. ซ่อน UI หลัก (แทนการลบทิ้ง เพื่อเก็บ Loading ไว้)
 
+            if (mode === 'officer') {   // 🛡️ ลิงก์ผู้ช่วยหัวหน้า
+                await officerBoot(discordCb);
+                return;
+            }
             if (mode === 'roster') {
                 isRosterPortalMode = true;
                 applyRosterFullscreenShell();
@@ -6436,7 +6444,7 @@
             const urlParams = appUrlParams();
             if (urlParams.get('mode') === 'apply') {
                 switchView('application-form');
-            } else if (urlParams.get('mode') === 'roster' || isRosterPortalMode) {
+            } else if (urlParams.get('mode') === 'roster' || urlParams.get('mode') === 'officer' || isRosterPortalMode) {
                 return;
             } else {
                 // 🔗 เปิดมาจากลิงก์แชร์บิ้ว (?build=CODE) → โหลดบิ้วแล้วเข้าหน้าบิ้วเลย
@@ -24141,6 +24149,7 @@
             const g = guildsDB[activeGuildIndex]; if (!g) return;
             if (guildWebhookSet === null) await guildWebhookLoadStatus();
             if (!guildWebhookSet.has(String(g.id))) {
+                if (typeof isOfficerMode === 'function' && isOfficerMode()) return alert('หัวหน้ากิลด์ยังไม่ได้ตั้งห้อง Discord สำหรับแจ้งเตือนของกิลด์นี้');
                 if (confirm('กิลด์ "' + g.name + '" ยังไม่ได้ตั้งห้อง Discord สำหรับแจ้งเตือน\n\nตั้งค่าตอนนี้เลยไหม?')) await guildWebhookSetup();
                 if (!guildWebhookSet || !guildWebhookSet.has(String(g.id))) return;
             }
@@ -37159,7 +37168,7 @@
         let p;
         try { p = new URLSearchParams(window.location.search); } catch (e) { return null; }
         const state = p.get('state') || '';
-        const m = state.match(/^(login|link|enter)\.([0-9a-f]{24})\.(.*)$/);
+        const m = state.match(/^(login|link|enter|officer)\.([0-9a-f]{24})\.(.*)$/);
         if (!m || (!p.get('code') && !p.get('error'))) return null;
         let saved = null;
         try { saved = JSON.parse(sessionStorage.getItem(ROSTER_DISCORD_STATE_KEY) || 'null'); sessionStorage.removeItem(ROSTER_DISCORD_STATE_KEY); } catch (e) {}
@@ -37172,7 +37181,7 @@
         const rest = m[3] || '', tilde = rest.indexOf('~');
         const g = (tilde >= 0 ? rest.slice(0, tilde) : rest) || (saved && saved.g) || '';
         let gid = ''; try { gid = tilde >= 0 ? decodeURIComponent(rest.slice(tilde + 1)) : ''; } catch (e) {}
-        try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (m[1] === 'enter' ? '&nojoin=1' : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
+        try { window.history.replaceState({}, '', window.location.pathname + '?mode=' + (m[1] === 'officer' ? 'officer' : 'roster') + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (m[1] === 'enter' ? '&nojoin=1' : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
         // กันลิงก์ปลอม: เลขสุ่มที่ฝากไว้ต้องตรงกัน
         //    • เจอแต่ไม่ตรง = ลิงก์ไม่ได้มาจากการกดในเครื่องนี้ → ปฏิเสธ
         //    • หาไม่เจอเลย (ล้างข้อมูลเว็บ / เบราว์เซอร์ไม่ให้เก็บ) → ให้เข้าได้ แต่ "ผูกบัญชี" ไม่ได้ (ต้องรู้ว่าเป็นใคร)
@@ -38535,6 +38544,7 @@
             return String(mem.name || '').toLowerCase().includes(memberRosterListFilter);
         });
         if (countEl) countEl.textContent = `${filtered.length} / ${30}`;
+        if (typeof officerBadgeRefresh === 'function') officerBadgeRefresh();
         const naBtn = document.getElementById('member-roster-notify-all-btn');
         if (naBtn) {   // 🔔 แจ้งเตือนทั้งหมด = คนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง
             const nMiss = members.filter(m => typeof guildNotifyMissing === 'function' && guildNotifyMissing(m)).length;
@@ -38763,7 +38773,7 @@
                     <span class="text-white text-sm font-bold truncate flex-1">${mtEsc(team.name || 'ทีม')}</span>
                 </div>
                 <div class="flex gap-2 justify-center">${thumbs(team)}</div>
-                <div class="flex flex-wrap gap-1 mt-2.5 justify-end">
+                <div class="admin-only flex flex-wrap gap-1 mt-2.5 justify-end">
                     ${iconBtn(`toggleMemberTeamShare('${team.id}')`, team.isShared ? '🌎' : '🔒', team.isShared ? 'แชร์อยู่' : 'ไม่แชร์')}
                     ${iconBtn(`renameMemberTeam('${team.id}')`, '✎', 'เปลี่ยนชื่อ')}
                     ${iconBtn(`openMemberTeamEditor('${team.id}')`, '⚙️ แก้ไข', 'แก้ตัวละคร/สแตท', 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500')}
@@ -38791,7 +38801,7 @@
             ${own.length + refIds.length ? '' : '<div class="text-center text-gray-500 text-sm py-6">ยังไม่มีทีม — เพิ่มจากทีม 3v3 หรือสร้างใหม่</div>'}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
                 <button type="button" onclick="memberAssignOpenPicker(-1)" title="ผูกกับทีม 3v3 ตัวจริง — แก้ทีมในหน้า 3v3 แล้วลูกกิลเห็นของใหม่" class="border-2 border-dashed border-indigo-700/70 hover:border-indigo-400 hover:bg-indigo-900/20 text-indigo-300 rounded-2xl px-5 py-4 flex items-center justify-center gap-2 transition"><span class="text-lg">📋</span><span class="text-sm font-bold">เพิ่มจากทีม 3v3</span></button>
-                <button type="button" onclick="createMemberTeam()" class="border-2 border-dashed border-gray-700 hover:border-blue-500 hover:bg-blue-900/10 text-gray-400 hover:text-blue-300 rounded-2xl px-5 py-4 flex items-center justify-center gap-2 transition"><span class="text-lg">＋</span><span class="text-sm font-bold">สร้างทีมใหม่</span></button>
+                <button type="button" onclick="createMemberTeam()" class="admin-only border-2 border-dashed border-gray-700 hover:border-blue-500 hover:bg-blue-900/10 text-gray-400 hover:text-blue-300 rounded-2xl px-5 py-4 flex items-center justify-center gap-2 transition"><span class="text-lg">＋</span><span class="text-sm font-bold">สร้างทีมใหม่</span></button>
             </div>`;
     }
 
@@ -39179,6 +39189,265 @@
         (g.members || []).forEach(m => { const sel = suggestPicked && suggestPicked.get(String(m.id)); if (!sel || !sel.size) return; const list = memberAssignedIds(m); const add = [...sel].filter(x => !list.includes(x)); if (add.length) changes.push({ mem: m, list: list.concat(add) }); });
         if (!changes.length) return alert('ยังไม่ได้เลือกทีม');
         if (await bulkAssignSaveMany(g, changes, '🤖 ให้ทีมแล้ว ' + changes.length + ' คน')) document.getElementById('suggest-dlg').style.display = 'none';
+    }
+
+    // =========================================================
+    // 🛡️ ลิงก์ผู้ช่วยหัวหน้า (?mode=officer&gid=&g=) — เข้าด้วย Discord เฉพาะคนที่หัวหน้าอนุมัติ
+    //    ทำได้: ดูข้อมูลลูกกิล · เช็คแหวน · ตั้งทีมจาก 3v3 · แนะนำทีม · แจ้งเตือน (เฉพาะกิลด์ของลิงก์)
+    //    เซิร์ฟเวอร์คุมสิทธิ์จริง — หน้านี้แค่ซ่อนปุ่มที่ใช้ไม่ได้ (admin-only)
+    // =========================================================
+    const OFFICER_SESSION_KEY = '7k_officer_session_v1';
+    let OFFICER_SESSION = null;
+    function isOfficerMode() { return document.body.classList.contains('officer-mode'); }
+    function officerUrlGid() { try { return appUrlParams().get('gid') || ''; } catch (e) { return ''; } }
+    function officerLoadSession() { try { return JSON.parse(localStorage.getItem(OFFICER_SESSION_KEY) || 'null'); } catch (e) { return null; } }
+    function officerSaveSession(s) { try { localStorage.setItem(OFFICER_SESSION_KEY, JSON.stringify(s)); } catch (e) {} }
+    function officerClearSession() { OFFICER_SESSION = null; try { localStorage.removeItem(OFFICER_SESSION_KEY); } catch (e) {} }
+    function officerSessionMatchesUrl(s) {
+        if (!s || !s.token) return false;
+        const gid = officerUrlGid();
+        if (gid) return String(s.gid) === String(gid);
+        const gn = (typeof mlUrlGuildName === 'function') ? mlUrlGuildName() : '';
+        return !!gn && String(s.gname || '').toLowerCase() === gn.toLowerCase();
+    }
+    /** ลิงก์ผู้ช่วยของกิลด์ (GitHub Pages + s= server แบบเดียวกับลิงก์ลูกกิล) */
+    function officerLinkFor(g) {
+        const L = publicLinkBase();
+        let url = `${L.base}?mode=officer&gid=${encodeURIComponent(String(g.id))}`;
+        try { url += `&g=${encodeURIComponent(btoa(encodeURIComponent(g.name || '')))}`; } catch (e) {}
+        return url + (L.srv || '');
+    }
+    async function officerBoot(cb) {
+        document.body.classList.add('officer-mode');
+        applyRosterFullscreenShell();
+        prepareRosterLoginHidden();
+        showLoading('🛡️ กำลังโหลด...');
+        try { await fetchRosterBootstrap(); } catch (e) { console.error('officer bootstrap', e); }
+        finally { hideLoading(); }
+        rosterDiscordLoadConfig();
+        if (cb) return officerFinish(cb);
+        const s = officerLoadSession();
+        if (officerSessionMatchesUrl(s)) { OFFICER_SESSION = s; await officerLoadData(); return; }   // ไม่สำเร็จ = officerLoadData โชว์หน้าเข้าพร้อมเหตุผลแล้ว
+        officerShowLogin();
+    }
+    function officerShowLogin(info) {
+        const I = info || {};
+        document.querySelectorAll('main > div').forEach(el => { if (el.id !== 'sidebar-floating-btn') { el.classList.add('hidden'); el.classList.remove('tab-active'); } });
+        let v = document.getElementById('view-officer-login');
+        if (!v) { v = document.createElement('div'); v.id = 'view-officer-login'; document.querySelector('main').appendChild(v); }
+        const gname = (typeof mlUrlGuildName === 'function' && mlUrlGuildName()) || (I.pending && I.pending.guild_name) || '';
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const P = I.pending;
+        const av = P && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(P.discordAvatar) : '';
+        v.className = 'flex-1 flex items-center justify-center p-4 overflow-y-auto bg-[#0b0e14]';
+        v.style.cssText = 'position:absolute;inset:0;';
+        v.innerHTML = `<div class="w-full max-w-md bg-[#161b22] border border-gray-700 rounded-2xl p-6 shadow-2xl text-center">
+            <div class="text-4xl mb-2">🛡️</div>
+            <h1 class="text-xl font-black text-white">ผู้ช่วยหัวหน้ากิลด์</h1>
+            ${gname ? `<div class="text-indigo-300 font-bold mt-1">กิลด์ ${E(gname)}</div>` : ''}
+            <p class="text-xs text-gray-400 mt-3 leading-relaxed">ดูข้อมูลลูกกิล · เช็คแหวน · ตั้งทีมให้ลูกกิล · แจ้งเตือน<br>เข้าได้เฉพาะบัญชี Discord ที่หัวหน้ากิลด์อนุมัติ</p>
+            ${P ? `<div class="mt-4 p-3 rounded-xl bg-amber-900/20 border border-amber-700/50 text-left flex items-center gap-3">
+                    ${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full shrink-0" alt="">` : '<span class="text-2xl">⏳</span>'}
+                    <div class="min-w-0"><div class="text-sm font-bold text-amber-200 truncate">${E(P.discordName || '')}</div>
+                    <div class="text-[11px] text-amber-100/80 leading-snug">ส่งคำขอแล้ว — รอหัวหน้ากิลด์อนุมัติ<br>อนุมัติแล้วกดปุ่มด้านล่างอีกครั้ง</div></div></div>` : ''}
+            ${I.error ? `<div class="mt-4 p-3 rounded-xl bg-red-900/20 border border-red-800/60 text-sm text-red-200">${E(I.error)}</div>` : ''}
+            <button type="button" onclick="officerDiscordStart()" class="mt-5 w-full py-3 rounded-xl font-black text-white shadow-lg transition hover:brightness-110" style="background:#5865F2">🎮 เข้าด้วย Discord</button>
+        </div>`;
+        v.classList.remove('hidden');
+    }
+    async function officerDiscordStart() {
+        if (!rosterDiscordClientId) await rosterDiscordLoadConfig();
+        if (!rosterDiscordClientId) return alert('ยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์');
+        // Discord ส่งกลับไปที่ GitHub Pages เสมอ — เปิดจากเว็บอื่น ต้องย้ายไปหน้านั้นก่อน (เลขสุ่มจะได้อยู่ที่เดียวกัน)
+        try {
+            const back = new URL(rosterDiscordRedirectUri());
+            if (window.location.origin !== back.origin) { (window.top || window).location.href = back.origin + back.pathname + window.location.search; return; }
+        } catch (e) {}
+        const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
+        const g = appUrlParams().get('g') || '', gid = officerUrlGid();
+        const saved = JSON.stringify({ n: nonce, act: 'officer', g: g, at: Date.now() });
+        try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
+        try { localStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
+        const q = new URLSearchParams({
+            client_id: rosterDiscordClientId, response_type: 'code', scope: 'identify',
+            redirect_uri: rosterDiscordRedirectUri(), state: 'officer.' + nonce + '.' + g + (gid ? '~' + encodeURIComponent(gid) : ''), prompt: 'none'
+        });
+        const url = 'https://discord.com/oauth2/authorize?' + q.toString();
+        try { (window.top || window).location.href = url; } catch (e) { window.open(url, '_blank'); }
+    }
+    async function officerFinish(cb) {
+        if (cb.error || cb.act !== 'officer') {
+            const msg = cb.error === 'access_denied' ? 'ยกเลิกการเข้าด้วย Discord แล้ว'
+                : cb.error === 'mismatch' ? 'ลิงก์จาก Discord ไม่ตรงกับที่ขอจากเครื่องนี้ — กดปุ่มใหม่อีกครั้ง'
+                : cb.error ? 'Discord ตอบกลับไม่สำเร็จ (' + cb.error + ')' : '';
+            return officerShowLogin({ error: msg });
+        }
+        showLoading('🎮 กำลังตรวจสิทธิ์ผู้ช่วย...');
+        let r = null;
+        try { r = await postJson({ action: 'officerLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), guild: (typeof mlUrlGuildName === 'function' ? mlUrlGuildName() : ''), guildId: officerUrlGid() }, { timeout: 60000, retries: 1 }); }
+        catch (e) { r = { status: 'error', message: e.message || String(e) }; }
+        hideLoading();
+        if (r && r.status === 'success' && r.token) {
+            OFFICER_SESSION = { token: r.token, gid: r.guild_id, gname: r.guild_name, name: r.discordName || '', avatar: r.discordAvatar || '', at: Date.now() };
+            officerSaveSession(OFFICER_SESSION);
+            if (await officerLoadData()) return;
+            return;
+        }
+        if (r && r.status === 'pending') return officerShowLogin({ pending: r });
+        officerShowLogin({ error: (r && r.message) || 'เข้าไม่สำเร็จ' });
+    }
+    async function officerLoadData() {
+        showLoading('🛡️ กำลังโหลดข้อมูลลูกกิล...');
+        let r = null;
+        try { r = await postJson({ action: 'officerRosterData' }, { timeout: 60000, retries: 2 }); }
+        catch (e) { r = { status: 'error', message: e.message || String(e) }; }
+        finally { hideLoading(); }
+        if (!r || r.status !== 'success' || !r.guild) {
+            if (r && (r.code === 'officer_revoked' || r.code === 'forbidden')) officerClearSession();
+            officerShowLogin({ error: (r && r.message) || 'โหลดข้อมูลไม่สำเร็จ' });
+            return false;
+        }
+        const g = r.guild;
+        guildsDB = [{ id: String(g.id), name: g.name || String(g.id), type: g.type || 'sub', members: Array.isArray(g.members) ? g.members : [] }];
+        activeGuildIndex = 0;
+        guildMembersDB = guildsDB[0].members;
+        allTeams3v3DB = Array.isArray(r.teams) ? r.teams : [];
+        teams3v3DB = [...allTeams3v3DB];
+        document.getElementById('view-officer-login')?.classList.add('hidden');
+        memberRosterBrowseIdx = -1;
+        switchView('member-roster');
+        officerApplyHeader();
+        return true;
+    }
+    function officerApplyHeader() {
+        const head = document.querySelector('#view-member-roster header');
+        if (!head || !OFFICER_SESSION) return;
+        let b = document.getElementById('officer-badge');
+        if (!b) { b = document.createElement('div'); b.id = 'officer-badge'; head.insertBefore(b, head.children[1] || null); }
+        const av = typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(OFFICER_SESSION.avatar) : '';
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        b.className = 'flex items-center gap-2 bg-[#0d1117] border border-indigo-700/60 rounded-lg pl-1.5 pr-1 py-1 min-w-0';
+        b.innerHTML = `${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-7 h-7 rounded-full shrink-0" alt="">` : '<span>🛡️</span>'}
+            <span class="text-xs text-indigo-200 font-bold truncate max-w-[140px]">🛡️ ${E(OFFICER_SESSION.name || 'ผู้ช่วย')}</span>
+            <button type="button" onclick="officerLogout()" class="text-[11px] px-2 py-1 rounded-md bg-gray-800 text-gray-300 hover:text-white shrink-0">ออก</button>`;
+    }
+    function officerLogout() {
+        if (!confirm('ออกจากหน้าผู้ช่วยหัวหน้า?')) return;
+        officerClearSession();
+        guildsDB = []; guildMembersDB = []; allTeams3v3DB = []; teams3v3DB = [];
+        officerShowLogin();
+    }
+
+    // ---------- แอดมิน: จัดการรายชื่อผู้ช่วย ----------
+    let officerAdminList = [];
+    async function officerAdminOpen() {
+        const g = guildsDB[activeGuildIndex]; if (!g) return alert('เลือกกิลด์ก่อน');
+        officerAdminList = null; officerAdminRender();
+        try {
+            const r = await postJson({ action: 'getRosterOfficers', guild_id: String(g.id) }, { timeout: 30000, retries: 2 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+            officerAdminList = r.officers || [];
+        } catch (e) { officerAdminList = []; officerAdminErr = e.message || String(e); }
+        officerAdminRender();
+        officerBadgeUpdate(g, officerAdminList);
+    }
+    let officerAdminErr = '';
+    function officerAdminRender() {
+        const g = guildsDB[activeGuildIndex] || {};
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const link = officerLinkFor(g);
+        const list = officerAdminList;
+        const av = o => { const a = typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(o.avatar) : ''; return a ? `<img src="${a}" referrerpolicy="no-referrer" class="w-9 h-9 rounded-full shrink-0" alt="">` : '<span class="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center shrink-0">👤</span>'; };
+        const row = (o, btns) => `<div class="flex items-center gap-3 p-2 rounded-xl bg-[#0d1117] border border-gray-800">${av(o)}
+            <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${E(o.name || 'Discord')}</div><div class="text-[10px] text-gray-500 font-mono truncate">${E(o.discord_id)}</div></div>${btns}</div>`;
+        const btn = (on, label, cls) => `<button type="button" onclick="${on}" class="px-2.5 py-1.5 rounded-lg text-xs font-bold shrink-0 ${cls}">${label}</button>`;
+        let body;
+        if (list === null) body = '<div class="text-center text-gray-400 text-sm py-8">⏳ กำลังโหลด...</div>';
+        else {
+            const pend = list.filter(o => o.status === 'pending'), appr = list.filter(o => o.status === 'approved');
+            const apprIds = new Set(appr.map(o => String(o.discord_id)));
+            const cand = (g.members || []).filter(m => m && m.discordId && !apprIds.has(String(m.discordId)));
+            const id = s => String(s).replace(/[^0-9]/g, '');
+            body = `${officerAdminErr ? `<div class="p-2 rounded-lg bg-red-900/20 text-red-300 text-xs mb-3">${E(officerAdminErr)}</div>` : ''}
+                <div class="text-xs font-bold text-amber-300 mb-1.5">⏳ คำขอเข้า (${pend.length})</div>
+                <div class="space-y-1.5 mb-4">${pend.map(o => row(o, btn(`officerAdminSet('${id(o.discord_id)}','approved')`, '✅ อนุมัติ', 'bg-emerald-600 hover:bg-emerald-500 text-white') + btn(`officerAdminSet('${id(o.discord_id)}','remove')`, '✕', 'bg-gray-800 text-gray-300 hover:text-white'))).join('') || '<div class="text-[11px] text-gray-600">ไม่มีคำขอ — ให้ผู้ช่วยเปิดลิงก์แล้วกดเข้าด้วย Discord ก่อน</div>'}</div>
+                <div class="text-xs font-bold text-emerald-300 mb-1.5">🛡️ ผู้ช่วยที่เข้าได้ (${appr.length})</div>
+                <div class="space-y-1.5 mb-4">${appr.map(o => row(o, btn(`officerAdminSet('${id(o.discord_id)}','remove')`, 'ถอนสิทธิ์', 'bg-[#161b22] text-red-300 border border-red-900/60 hover:bg-red-900/40'))).join('') || '<div class="text-[11px] text-gray-600">ยังไม่มี</div>'}</div>
+                ${cand.length ? `<div class="text-xs font-bold text-gray-300 mb-1.5">➕ เพิ่มจากลูกกิลที่เชื่อม Discord แล้ว</div>
+                <div class="flex gap-2"><select id="officer-add-select" style="color-scheme:dark" class="flex-1 min-w-0 bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-2 text-sm">${cand.map(m => `<option value="${id(m.discordId)}" data-name="${E(m.discordName || m.name)}" data-avatar="${E(m.discordAvatar || '')}">${E(m.name)}${m.discordName && m.discordName !== m.name ? ' (' + E(m.discordName) + ')' : ''}</option>`).join('')}</select>
+                ${btn('officerAdminAddFromSelect()', '➕ เพิ่ม', 'bg-indigo-600 hover:bg-indigo-500 text-white')}</div>` : ''}`;
+        }
+        bulkModalShell('officer-admin-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex items-start gap-3 shrink-0">
+                <div class="min-w-0 flex-1"><h3 class="text-white font-bold">🛡️ ลิงก์ผู้ช่วยหัวหน้า · ${E(g.name || '')}</h3>
+                <p class="text-[11px] text-gray-400 mt-1 leading-snug">ผู้ช่วยเปิดลิงก์ → เข้าด้วย Discord → ดูข้อมูลลูกกิล เช็คแหวน ตั้งทีมจาก 3v3 แจ้งเตือนได้ (เฉพาะกิลด์นี้)<br>แก้/ลบทีม 3v3 ลบสมาชิก และหน้าอื่นของระบบ เข้าไม่ได้</p></div>
+                <button onclick="document.getElementById('officer-admin-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+            </div>
+            <div class="p-4 border-b border-gray-800 shrink-0">
+                <div class="flex gap-2"><input readonly value="${E(link)}" onclick="this.select()" class="flex-1 min-w-0 bg-[#0d1117] border border-gray-700 text-gray-300 rounded-lg px-2 py-2 text-xs font-mono">
+                <button type="button" onclick="officerAdminCopy()" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0">📋 คัดลอก</button></div>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 min-h-0">${body}</div>
+        </div>`);
+    }
+    function officerAdminCopy() {
+        const link = officerLinkFor(guildsDB[activeGuildIndex] || {});
+        const done = () => { if (typeof showToast === 'function') showToast('📋 คัดลอกลิงก์ผู้ช่วยแล้ว', 'success'); };
+        try { navigator.clipboard.writeText(link).then(done, () => prompt('คัดลอกลิงก์นี้:', link)); } catch (e) { prompt('คัดลอกลิงก์นี้:', link); }
+    }
+    function officerAdminAddFromSelect() {
+        const sel = document.getElementById('officer-add-select'); if (!sel || !sel.value) return;
+        const op = sel.options[sel.selectedIndex];
+        officerAdminSet(sel.value, 'approved', op.getAttribute('data-name') || '', op.getAttribute('data-avatar') || '');
+    }
+    async function officerAdminSet(did, status, name, avatar) {
+        const g = guildsDB[activeGuildIndex]; if (!g) return;
+        const o = (officerAdminList || []).find(x => String(x.discord_id) === String(did));
+        if (status === 'remove' && !confirm((o && o.status === 'approved' ? 'ถอนสิทธิ์ผู้ช่วย "' : 'ปฏิเสธคำขอของ "') + ((o && o.name) || did) + '" ?')) return;
+        showLoading(status === 'remove' ? 'กำลังลบ...' : '🛡️ กำลังอนุมัติ...');
+        try {
+            const r = await postJson({ action: 'setRosterOfficer', guild_id: String(g.id), discord_id: String(did), status: status, name: name || (o && o.name) || '', avatar: avatar || (o && o.avatar) || '' }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+        } catch (e) { hideLoading(); return alert('❌ ' + (e.message || e)); }
+        hideLoading();
+        officerAdminErr = '';
+        await officerAdminOpen();
+    }
+    // จำนวนคำขอที่รออนุมัติ → ตัวเลขบนปุ่ม 🛡️ (โหลดไม่เกินนาทีละครั้งต่อกิลด์)
+    const officerBadgeAt = {};
+    function officerBadgeUpdate(g, list) {
+        const btn = document.getElementById('member-roster-officer-btn'); if (!btn || !g) return;
+        const n = (list || []).filter(o => o.status === 'pending').length;
+        btn.innerHTML = '🛡️ ลิงก์ผู้ช่วย' + (n ? ` <span class="bg-red-600 text-white rounded-full px-1.5">${n}</span>` : '');
+    }
+    async function officerBadgeRefresh() {
+        if (isOfficerMode() || !(typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token)) return;
+        const g = guildsDB[activeGuildIndex]; if (!g) return;
+        const k = String(g.id);
+        if (officerBadgeAt[k] && Date.now() - officerBadgeAt[k].at < 60000) return officerBadgeUpdate(g, officerBadgeAt[k].list);
+        officerBadgeAt[k] = { at: Date.now(), list: [] };
+        try {
+            const r = await postJson({ action: 'getRosterOfficers', guild_id: k }, { timeout: 30000, retries: 1 });
+            if (r && r.status === 'success') officerBadgeAt[k].list = r.officers || [];
+        } catch (e) {}
+        if (guildsDB[activeGuildIndex] && String(guildsDB[activeGuildIndex].id) === k) officerBadgeUpdate(g, officerBadgeAt[k].list);
+    }
+
+    // ---------- 📌 เลือกทีม แล้วให้หลายคน (ใช้ได้ทั้งแอดมินและผู้ช่วย) ----------
+    let bulkPickType = 'all';
+    function bulkPickTeamOpen() {
+        const teams = (teams3v3DB || []).filter(t => t && !t.deleted && !(t.owner && t.owner.memberId) && (t.slots || []).some(s => s && s.id))
+            .filter(t => bulkPickType === 'all' || (bulkPickType === 'Defense' ? t.teamType === 'Defense' : t.teamType !== 'Defense'));
+        const tab = (k, label) => `<button type="button" onclick="bulkPickType='${k}';bulkPickTeamOpen()" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-white ${bulkPickType === k ? 'bg-indigo-600' : ''}">${label}</button>`;
+        const cards = teams.map(t => `<button type="button" onclick="document.getElementById('bulk-pick-dlg').style.display='none';bulkAssignGuildIdx=activeGuildIndex;bulkAssignOpen('${String(t.id).replace(/'/g, '')}')" class="text-left p-3 rounded-xl border border-gray-800 bg-[#0d1117] hover:border-indigo-500 transition">
+                <div class="flex items-center gap-1.5 mb-2 min-w-0"><span class="text-[10px] text-gray-500 shrink-0">${t.teamType === 'Defense' ? '🛡️' : '⚔️'}</span><span class="text-sm font-bold text-white truncate">${mtEsc(t.name || 'ทีม')}</span></div>
+                <div class="flex gap-1">${teamThumbsSmall(t, 40)}</div></button>`).join('') || '<div class="text-center text-gray-500 text-sm py-8 col-span-full">ยังไม่มีทีม 3v3</div>';
+        bulkModalShell('bulk-pick-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex items-center gap-2 shrink-0"><div class="min-w-0"><h3 class="text-white font-bold">📌 ให้ทีมกับลูกกิลหลายคน</h3><p class="text-[11px] text-gray-400">เลือกทีม 3v3 แล้วติ๊กลูกกิลที่จะให้ · เห็นว่าใครตัวครบ/แหวนครบ</p></div>
+                <button onclick="document.getElementById('bulk-pick-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button></div>
+            <div class="p-3 border-b border-gray-800 flex flex-wrap gap-2 shrink-0">${tab('all', 'ทั้งหมด')}${tab('Attack', '⚔️ บุก')}${tab('Defense', '🛡️ รับ')}</div>
+            <div class="p-3 overflow-y-auto flex-1 min-h-0 grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))">${cards}</div>
+        </div>`);
     }
 
     function createMemberTeam(slotIdx) {
