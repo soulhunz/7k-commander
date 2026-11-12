@@ -3896,7 +3896,7 @@
                     <button type="button" onclick="bulkPickTeamOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="เลือกทีม 3v3 แล้วให้ลูกกิลหลายคนพร้อมกัน">📌 ให้ทีมหลายคน</button>
                     <button type="button" onclick="suggestOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="ระบบเช็คตัวละคร/แหวนของลูกกิลทุกคน แล้วแนะนำว่าใครตั้งทีมไหนได้">🤖 แนะนำทีม</button>
                     <button type="button" id="member-roster-officer-btn" onclick="officerAdminOpen()" class="admin-only bg-[#0d1117] border border-indigo-700/70 hover:border-indigo-400 text-indigo-200 px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="ลิงก์ให้ผู้ช่วยหัวหน้าเข้าด้วย Discord มาดูข้อมูลลูกกิลและตั้งทีมให้ลูกกิลได้">🛡️ ลิงก์ผู้ช่วย</button>
-                    <div class="flex items-center gap-2 min-w-0"><label class="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">กิลด์</label>
+                    <div class="admin-only flex items-center gap-2 min-w-0"><label class="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">กิลด์</label>
                     <select id="member-roster-guild-select" onchange="selectMemberRosterGuild(this.value)" class="bg-[#0d1117] border border-gray-600 rounded-lg px-3 py-2 text-xs text-blue-300 font-bold outline-none focus:border-blue-500 min-w-[140px] max-w-full"></select></div>
                 </div>
             </header>
@@ -4697,7 +4697,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.13.0';
+        const APP_VERSION = '1.13.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -4811,13 +4811,19 @@
 
         /** 🔐 token หมดอายุ / ถูกเตะออก → ล้าง session แล้วกลับไปหน้า login */
         let _sessionExpiredShown = false;
+        // 🛡️ ลิงก์ผู้ช่วย (?mode=officer / กลับจาก Discord แบบ officer) เก็บการเข้าระบบแยก — ไม่ใช้/ไม่ทับบัญชีปกติในเครื่องเดียวกัน
+        const OFFICER_SESSION_STORE = '7k_officer_session_v2';
+        const USER_SESSION_KEY = (() => {
+            try { const p = new URLSearchParams(window.location.search); return (p.get('mode') === 'officer' || /^officer\./.test(p.get('state') || '')) ? OFFICER_SESSION_STORE : '7k_user_session'; }
+            catch (e) { return '7k_user_session'; }
+        })();
         function handleSessionExpired(msg) {
             if (_sessionExpiredShown) return;
             _sessionExpiredShown = true;
             // ยังไม่เคย login → ไม่ต้องเตือน/รีโหลด (กัน reload วนไม่จบ)
             var hadSession = false;
-            try { hadSession = !!localStorage.getItem('7k_user_session'); } catch (e) {}
-            try { localStorage.removeItem('7k_user_session'); } catch (e) {}
+            try { hadSession = !!localStorage.getItem(USER_SESSION_KEY); } catch (e) {}
+            try { localStorage.removeItem(USER_SESSION_KEY); } catch (e) {}
             CURRENT_USER = null;
             hideLoading();
             if (!hadSession) return;
@@ -5995,7 +6001,7 @@
             }
 
             // B. เช็ค Session ผู้ใช้เดิม
-            const savedUser = localStorage.getItem('7k_user_session');
+            const savedUser = localStorage.getItem(USER_SESSION_KEY);
             if (savedUser) {
                 console.log("👤 Session Found -> Auto Login");
                 CURRENT_USER = JSON.parse(savedUser);
@@ -6081,7 +6087,7 @@
                     guild_name: user.guild_name || 'all', // 🟢 เพิ่ม: บันทึก guild_name
                     token: user.token || ''               // 🔐 token จาก server — ใช้ยืนยันสิทธิ์ทุกคำสั่ง (อายุ 6 ชม.)
                 };
-                localStorage.setItem('7k_user_session', JSON.stringify(userData));
+                localStorage.setItem(USER_SESSION_KEY, JSON.stringify(userData));
                 CURRENT_USER = userData;
 
                 // 2. ตั้งค่าเมนูตามสิทธิ์ และกรองการเข้าถึง Guild
@@ -6121,7 +6127,7 @@
         }
 
         function logout() {
-            localStorage.removeItem('7k_user_session');
+            localStorage.removeItem(USER_SESSION_KEY);
             location.reload(); // รีโหลดหน้าเว็บเพื่อกลับไปหน้า Login
         }
 
@@ -39222,7 +39228,7 @@
     //    ทำได้: ดูข้อมูลลูกกิล · เช็คแหวน · ตั้งทีมจาก 3v3 · แนะนำทีม · แจ้งเตือน (เฉพาะกิลด์ของลิงก์)
     //    เซิร์ฟเวอร์คุมสิทธิ์จริง — หน้านี้แค่ซ่อนปุ่มที่ใช้ไม่ได้ (admin-only)
     // =========================================================
-    // ผู้ช่วยที่อนุมัติแล้ว = บัญชีผูกกิลด์แบบหนึ่ง (7k_user_session · officer:true) → ใช้เมนู/โหลดข้อมูลแบบเดียวกับบัญชีปกติ
+    // ผู้ช่วยที่อนุมัติแล้ว = บัญชีผูกกิลด์แบบหนึ่ง (เก็บแยกที่ OFFICER_SESSION_STORE · officer:true) → ใช้เมนู/โหลดข้อมูลแบบเดียวกับบัญชีปกติ
     //    เห็นแค่ 4 เมนู · สร้าง/แก้ได้ปกติ · เซิร์ฟเวอร์กรองให้เห็นเฉพาะกิลด์ตัวเอง
     const OFFICER_MENUS = ['nav-team-builder-3v3', 'nav-enemy-manager', 'nav-member-roster', 'nav-castle-comp'];
     function isOfficerMode() { return !!(typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.officer) || document.body.classList.contains('officer-mode'); }
@@ -39248,9 +39254,8 @@
     /** เปิดลิงก์ผู้ช่วย: true = เปิดแอปต่อตามปกติ (มี session แล้ว) · false = จัดการเอง (หน้าเข้า / รับผลจาก Discord) */
     async function officerBoot(cb) {
         document.body.classList.add('officer-mode');
-        let raw = null; try { raw = JSON.parse(localStorage.getItem('7k_user_session') || 'null'); } catch (e) {}
+        let raw = null; try { raw = JSON.parse(localStorage.getItem(OFFICER_SESSION_STORE) || 'null'); } catch (e) {}   // บัญชีปกติที่เข้าค้างไว้ไม่เกี่ยว — ลิงก์นี้เข้าเป็นผู้ช่วยเสมอ
         if (cb) { officerShell(); await officerFinish(cb); return false; }
-        if (raw && !raw.officer) { document.body.classList.remove('officer-mode'); return true; }   // แอดมิน/บัญชีปกติเปิดลิงก์นี้ = เข้าแอปตามปกติ
         if (officerSessionMatchesUrl(raw)) return true;
         officerShell(); officerShowLogin(); return false;
     }
@@ -39315,7 +39320,8 @@
         if (r && r.status === 'success' && r.token) {
             const sess = { username: 'officer:' + (r.discordId || ''), name: r.discordName || 'ผู้ช่วย', role: 'officer', officer: true, permissions: OFFICER_MENUS.slice(),
                 guild_name: r.guild_name || r.guild_id, gid: r.guild_id, token: r.token, avatar: r.discordAvatar || '', srv: SCRIPT_URL || '' };
-            try { localStorage.setItem('7k_user_session', JSON.stringify(sess)); } catch (e) {}
+            try { localStorage.setItem(OFFICER_SESSION_STORE, JSON.stringify(sess)); } catch (e) {}
+            try { localStorage.removeItem('7k_user_session'); } catch (e) {}   // เข้าเป็นผู้ช่วยแล้ว = ออกจากบัญชีปกติที่ค้างไว้ในเครื่องนี้ทันที
             showLoading('🛡️ กำลังเข้าระบบ...');
             window.location.replace(window.location.pathname + officerQuery(r.guild_id, r.guild_name));   // เปิดใหม่ = เข้าแอปแบบบัญชีปกติ
             return;
