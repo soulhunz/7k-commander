@@ -4697,7 +4697,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.13.1';
+        const APP_VERSION = '1.13.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -39066,17 +39066,17 @@
             const rings = (n.rings || []).map((id, j) => {
                 if (!id) return '';
                 const rr = (ringsDB || []).find(x => String(x.id) === String(id)); const on = !off.has(i + ':' + j);
-                return `<button type="button" onclick="bulkRingToggle(${i},${j})" title="${mtEsc(rr ? rr.name : id)} — ${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
+                return `<button type="button" onclick="bulkRingToggle(${i},${j})" title="${mtEsc(rr ? rr.name : id)} — ${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
                     ${rr && rr.img ? `<img src="${rr.img}" class="w-full h-full rounded-full object-cover" alt="">` : '💍'}
-                    ${on ? '<span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] leading-4 text-center font-black">✓</span>' : ''}</button>`;
+                    ${on ? '<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-white text-[9px] sm:text-[10px] leading-[14px] sm:leading-4 text-center font-black">✓</span>' : ''}</button>`;
             }).join('');
             return `<div class="flex flex-col items-center gap-1 min-w-0">
-                <img src="${s.awakened && hh.img2 ? hh.img2 : hh.img}" class="w-14 h-14 sm:w-20 sm:h-20 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" alt="">
+                <img src="${s.awakened && hh.img2 ? hh.img2 : hh.img}" class="w-12 h-12 sm:w-20 sm:h-20 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" alt="">
                 <span class="text-[11px] sm:text-xs font-bold text-gray-200 truncate max-w-full">${mtEsc(hh.name)}</span>
-                <div class="flex flex-wrap justify-center gap-1.5">${rings || '<span class="text-[9px] text-gray-600">ไม่มีแหวน</span>'}</div>
+                <div class="flex flex-wrap justify-center gap-1 sm:gap-1.5">${rings || '<span class="text-[9px] text-gray-600">ไม่มีแหวน</span>'}</div>
             </div>`;
         }).join('');
-        return `<div class="p-3 border-b border-gray-800 shrink-0 bg-[#0d1117]/60 overflow-y-auto" style="max-height:clamp(150px,32vh,340px)">
+        return `<div class="p-3 border-b border-gray-800 shrink-0 bg-[#0d1117]/60">
             <div class="flex items-center gap-2 mb-3 text-[11px]"><span class="text-gray-400">💍 แหวนที่จะเช็ค — กดที่แหวนเพื่อเลือก/ไม่เลือก</span>
                 <button type="button" onclick="bulkRingAll(true)" class="ml-auto px-2 py-0.5 rounded border border-gray-700 text-gray-300 hover:text-white">เช็คทั้งหมด</button>
                 <button type="button" onclick="bulkRingAll(false)" class="px-2 py-0.5 rounded border border-gray-700 text-gray-300 hover:text-white">ไม่เช็คแหวน</button></div>
@@ -39140,7 +39140,8 @@
             </div>
             ${bulkRingPanelHTML(team)}
             <div class="p-3 border-b border-gray-800 flex flex-wrap gap-2 items-center text-xs shrink-0">
-                <select onchange="bulkAssignGuildIdx=+this.value;bulkAssignSel=null;bulkAssignRender()" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5">${guildOpts}</select>
+                ${vis.length > 1 ? `<select onchange="bulkAssignGuildIdx=+this.value;bulkAssignSel=null;bulkAssignRender()" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5">${guildOpts}</select>` : ''}
+                <button type="button" onclick="bulkAssignSelectAll()" class="px-3 py-1.5 rounded-lg font-bold bg-indigo-700/40 text-indigo-100 border border-indigo-600/60 hover:bg-indigo-700/60">☑ เลือกทั้งหมด (${mems.length})</button>
                 <button type="button" onclick="bulkAssignSelectReady(false)" class="px-3 py-1.5 rounded-lg font-bold bg-emerald-700/40 text-emerald-200 border border-emerald-700/60 hover:bg-emerald-700/60">✅ ตัวครบ (${readyN})</button>
                 <button type="button" onclick="bulkAssignSelectReady(true)" class="px-3 py-1.5 rounded-lg font-bold bg-emerald-700/40 text-emerald-200 border border-emerald-700/60 hover:bg-emerald-700/60">💍 ตัว+แหวนครบ (${fullN})</button>
                 <button type="button" onclick="bulkAssignSel=new Set();bulkAssignRender()" class="px-3 py-1.5 rounded-lg font-bold bg-[#0d1117] text-gray-300 border border-gray-700">ล้าง</button>
@@ -39153,6 +39154,7 @@
         </div>`);
     }
     function bulkAssignToggle(key, on) { if (on) bulkAssignSel.add(key); else bulkAssignSel.delete(key); bulkAssignRender(); }
+    function bulkAssignSelectAll() { bulkMembers().forEach(({ key }) => bulkAssignSel.add(key)); bulkAssignRender(); }
     function bulkAssignSelectReady(needRings) {
         const ck = bulkCheckTeam(memberAssignFindTeam(bulkAssignTeamId));
         bulkMembers().forEach(({ m, key }) => { const rd = memberTeamReadiness(m, ck); if (needRings ? rd.full : rd.ready) bulkAssignSel.add(key); });
