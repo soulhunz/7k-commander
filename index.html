@@ -4675,7 +4675,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.8.3';
+        const APP_VERSION = '1.8.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -23977,15 +23977,28 @@
         }
 
         async function deleteGuildMember(index) {
-            if(!confirm(`ยืนยันลบสมาชิก "${guildMembersDB[index].name}" ?\n⚠️ ข้อมูลทีมและการต่อสู้ของสมาชิกคนนี้จะหายไป!`)) return;
+            const mem = guildMembersDB[index];
+            if (!mem) return;
+            if(!confirm(`ยืนยันลบสมาชิก "${mem.name}" ?\n⚠️ ข้อมูลทีมและการต่อสู้ของสมาชิกคนนี้จะหายไป!`)) return;
             guildMembersDB.splice(index, 1);
             
             if(currentView === 'guild-manager') renderGuildManagerView();
             if(currentView === 'my-teams') renderGuildResultMode(); 
             
-            showLoading("Deleting...");
-            await pushData();
-            hideLoading();
+            // ⚡ ลบเฉพาะแถวของคนนี้บนเซิร์ฟเวอร์ (เดิม pushData = บันทึกทั้งระบบ ช้ามาก และไม่ลบแถวจริง)
+            //    เอาออกจากหน้าจอไปแล้ว · เซิร์ฟเวอร์ไม่สำเร็จ = ใส่คืนตำแหน่งเดิม
+            const guild = guildsDB[activeGuildIndex];
+            if (!USE_CLOUD || !SCRIPT_URL || !guild || !mem) return;
+            try {
+                const r = await postJson({ action: 'deleteGuildMember', guild_id: String(guild.id), member_id: String(mem.id != null ? mem.id : ''), accessCode: mem.accessCode || '', name: mem.name || '' }, { timeout: 45000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'เซิร์ฟเวอร์ตอบไม่สำเร็จ');
+                if (typeof showToast === 'function') showToast('🗑️ ลบ "' + (mem.name || '') + '" แล้ว', 'success');
+            } catch (e) {
+                guildMembersDB.splice(Math.min(index, guildMembersDB.length), 0, mem);
+                if(currentView === 'guild-manager') renderGuildManagerView();
+                if(currentView === 'my-teams') renderGuildResultMode();
+                alert('❌ ลบสมาชิกไม่สำเร็จ\n\n' + (e.message || e));
+            }
         }
 
         function filterMainMembers() {
