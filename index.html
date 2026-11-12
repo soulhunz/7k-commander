@@ -4217,6 +4217,11 @@
                             <button type="button" onclick="copyMemberPortalLink()" class="bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition" title="ลิงก์เดียว — สมาชิกกรอกรหัสเอง">
                                 🔗 คัดลอกลิงก์สมาชิก
                             </button>
+                            <div class="flex items-center gap-1.5">
+                                <button type="button" id="gm-notify-btn" onclick="guildNotifyMembers()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition" title="ส่งข้อความเข้าห้อง Discord ของกิลด์ — แท็กคนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง">🔔 แจ้งเตือน</button>
+                                <button type="button" onclick="guildReloadFromServer()" class="bg-[#1f2937] hover:bg-[#2d3748] text-gray-300 border border-gray-700 px-2.5 py-2 rounded-lg text-sm transition" title="โหลดรายชื่อสมาชิกล่าสุดจากเซิร์ฟเวอร์ (ชื่อ/รูป Discord · ข้อมูลที่ลูกกิลลงไว้)">🔄</button>
+                                <button type="button" onclick="guildWebhookSetup()" class="bg-[#1f2937] hover:bg-[#2d3748] text-gray-300 border border-gray-700 px-2.5 py-2 rounded-lg text-sm transition" title="ตั้งค่าห้อง Discord สำหรับแจ้งเตือน (Webhook)">⚙️</button>
+                            </div>
                             <button id="btn-add-guild-member" onclick="openGuildMemberModal()" style="display:none!important" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg flex items-center gap-2 transition hover:scale-105">
                                 <span>+</span> เพิ่มสมาชิก
                             </button>
@@ -4675,7 +4680,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.8.5';
+        const APP_VERSION = '1.9.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -23976,6 +23981,77 @@
             hideLoading();
         }
 
+        // =========================================================
+        // 🔔 แจ้งเตือนลูกกิลที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง → ห้อง Discord ของกิลด์ (Webhook แยกต่อกิลด์)
+        // =========================================================
+        let guildWebhookSet = null;   // null = ยังไม่รู้ · Set(guild_id) ที่ตั้งค่าแล้ว
+        let guildWebhookLoading = null;   // กันยิงซ้ำตอนหน้าวาดใหม่หลายรอบระหว่างรอ
+        async function guildWebhookLoadStatus() {
+            if (guildWebhookLoading) return guildWebhookLoading;
+            guildWebhookLoading = (async () => {
+            try {
+                const r = await postJson({ action: 'getGuildWebhookStatus' }, { timeout: 30000, retries: 2 });
+                guildWebhookSet = new Set((r && r.status === 'success' && r.guilds) || []);
+            } catch (e) { guildWebhookSet = guildWebhookSet || new Set(); }
+            guildNotifyUpdateBtn();
+            })();
+            try { await guildWebhookLoading; } finally { guildWebhookLoading = null; }
+        }
+        function guildNotifyMissing(m) { return !(m.hero_list || []).length || !(m.pet_list || []).length; }
+        function guildNotifyUpdateBtn() {
+            const btn = document.getElementById('gm-notify-btn'); if (!btn) return;
+            const n = (guildMembersDB || []).filter(guildNotifyMissing).length;
+            btn.innerHTML = '🔔 แจ้งเตือน' + (n ? ' <span class="bg-white/25 rounded px-1.5 text-xs">' + n + '</span>' : '');
+            btn.disabled = !n; btn.classList.toggle('opacity-50', !n);
+            btn.title = n ? 'แท็ก ' + n + ' คนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง ในห้อง Discord ของกิลด์' : 'ทุกคนลงข้อมูลครบแล้ว';
+        }
+        async function guildWebhookSetup() {
+            const g = guildsDB[activeGuildIndex]; if (!g) return;
+            const has = guildWebhookSet && guildWebhookSet.has(String(g.id));
+            const url = prompt('🔔 ห้อง Discord สำหรับแจ้งเตือนของกิลด์ "' + g.name + '"' + (has ? ' (ตั้งค่าไว้แล้ว — วางลิงก์ใหม่เพื่อเปลี่ยน · ลบให้ว่างเพื่อปิด)' : '') +
+                '\n\nวิธีเอาลิงก์: Discord → คลิกขวาห้องที่ต้องการ → แก้ไขห้อง → การผสานรวม → Webhooks → Webhook ใหม่ → คัดลอก URL ของ Webhook\n\nวางลิงก์ (https://discord.com/api/webhooks/...):', '');
+            if (url === null) return;
+            if (!url.trim() && !has) return;
+            if (!url.trim() && !confirm('ปิดการแจ้งเตือนของกิลด์ "' + g.name + '" ?')) return;
+            showLoading(url.trim() ? '🔔 กำลังทดสอบส่งข้อความเข้า Discord...' : 'กำลังปิด...');
+            try {
+                const r = await postJson({ action: 'setGuildWebhook', guild_id: String(g.id), guild_name: g.name, url: url.trim() }, { timeout: 45000, retries: 1 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+                guildWebhookSet = guildWebhookSet || new Set();
+                if (url.trim()) guildWebhookSet.add(String(g.id)); else guildWebhookSet.delete(String(g.id));
+                if (typeof showToast === 'function') showToast(url.trim() ? '✅ เชื่อมห้อง Discord แล้ว — ดูข้อความทดสอบในห้องนั้นได้เลย' : 'ปิดการแจ้งเตือนแล้ว', 'success');
+            } catch (e) { alert('❌ ' + (e.message || e)); }
+            finally { hideLoading(); }
+        }
+        /** 🔄 โหลดข้อมูลทั้งหมดใหม่จากเซิร์ฟเวอร์ — ไม่ใช้ของที่จำไว้ในเครื่อง (แก้ชีตด้วยมือแล้วหน้าไม่อัปเดต) */
+        async function guildReloadFromServer() {
+            showLoading('🔄 กำลังโหลดรายชื่อล่าสุด...');
+            try { await fetchCloudData('getAllData', false); guildWebhookSet = null; }
+            catch (e) { alert('❌ โหลดไม่สำเร็จ: ' + (e.message || e)); }
+            finally { hideLoading(); }
+            if (currentView === 'guild-manager' && typeof renderGuildManagerView === 'function') renderGuildManagerView();
+        }
+        /** idx = แจ้งคนเดียว · ไม่ส่ง = ทุกคนที่ยังไม่ลง */
+        async function guildNotifyMembers(idx) {
+            const g = guildsDB[activeGuildIndex]; if (!g) return;
+            if (guildWebhookSet === null) await guildWebhookLoadStatus();
+            if (!guildWebhookSet.has(String(g.id))) {
+                if (confirm('กิลด์ "' + g.name + '" ยังไม่ได้ตั้งห้อง Discord สำหรับแจ้งเตือน\n\nตั้งค่าตอนนี้เลยไหม?')) await guildWebhookSetup();
+                if (!guildWebhookSet || !guildWebhookSet.has(String(g.id))) return;
+            }
+            const list = idx != null ? [guildMembersDB[idx]].filter(Boolean) : guildMembersDB.filter(guildNotifyMissing);
+            if (!list.length) return alert('ทุกคนลงตัวละครและสัตว์เลี้ยงครบแล้ว 👍');
+            const names = list.slice(0, 8).map(m => '• ' + m.name).join('\n') + (list.length > 8 ? '\n… และอีก ' + (list.length - 8) + ' คน' : '');
+            if (!confirm('ส่งแจ้งเตือนเข้าห้อง Discord ของกิลด์ "' + g.name + '" ?\n\n' + names + '\n\n(คนที่เชื่อม Discord แล้วจะถูกแท็ก @ เด้งแจ้งเตือนในมือถือ)')) return;
+            showLoading('🔔 กำลังส่งแจ้งเตือน...');
+            try {
+                const r = await postJson({ action: 'notifyGuildMembers', guild_id: String(g.id), guild_name: g.name, member_ids: idx != null ? list.map(m => String(m.id)) : null, link: buildMemberRosterUrl() }, { timeout: 45000, retries: 1 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+                if (typeof showToast === 'function') showToast(r.sent ? '🔔 ส่งแจ้งเตือน ' + r.sent + ' คนแล้ว' + (r.tagged ? ' (แท็ก @ ' + r.tagged + ' คน)' : '') : (r.message || 'ไม่มีใครต้องแจ้ง'), 'success');
+            } catch (e) { alert('❌ ส่งแจ้งเตือนไม่สำเร็จ\n\n' + (e.message || e)); }
+            finally { hideLoading(); }
+        }
+
         async function deleteGuildMember(index) {
             const mem = guildMembersDB[index];
             if (!mem) return;
@@ -24194,6 +24270,9 @@
                 btnAddMem.style.display = 'none';   // 🎮 ลูกกิลสมัครเองด้วย Discord ผ่านลิงก์สมาชิก — ไม่ต้องกดเพิ่มสมาชิก
             }
             renderGuildMembersTable();
+            // 🔔 ปุ่มแจ้งเตือน: จำนวนคนที่ยังไม่ลง · โหลดสถานะห้อง Discord ครั้งแรก
+            guildNotifyUpdateBtn();
+            if (guildWebhookSet === null && USE_CLOUD && SCRIPT_URL) guildWebhookLoadStatus();
         }
 
         // 5. เปลี่ยนชื่อจาก renderGuildMembersView เดิมเป็น Table ให้เรียกง่ายๆ
@@ -24212,14 +24291,14 @@
             guildMembersDB.forEach((mem, idx) => {
                 // 🎮 ลูกกิลเข้าด้วย Discord อย่างเดียว — โชว์บัญชีที่เชื่อมไว้ (ไม่โชว์รหัสอีกแล้ว)
                 const codeCell = mem.discordName
-                    ? `<span class="inline-flex items-center gap-1.5 text-xs font-bold" style="color:#a5b4fc">${rosterDiscordAvatarSafe(mem.discordAvatar) ? `<img src="${rosterDiscordAvatarSafe(mem.discordAvatar)}" class="w-6 h-6 rounded-full border border-indigo-500/50" alt="" referrerpolicy="no-referrer">` : '🎮'} ${String(mem.discordName).replace(/[<>&"]/g, '')}</span>`
+                    ? `<span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-300" title="Discord: ${String(mem.discordName).replace(/[<>&"]/g, '')}">✅ เชื่อมแล้ว</span>`
                     : `<span class="text-gray-500 text-xs italic">ยังไม่ได้เชื่อม Discord</span>`;
                 // 👤 รูปโปรไฟล์ Discord (ไม่มี = ตัวอักษรแรกของชื่อ)
                 const av = rosterDiscordAvatarSafe(mem.discordAvatar);
                 const safeName = String(mem.name || '').replace(/[<>&"]/g, '');
                 const avatarHTML = av
                     ? `<img src="${av}" class="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 flex-shrink-0" alt="" referrerpolicy="no-referrer">`
-                    : `<div class="w-10 h-10 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">${(safeName.trim()[0] || '?').toUpperCase()}</div>`;
+                    : `<div class="w-10 h-10 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">${(Array.from(safeName.trim().replace(/^[^\p{L}\p{N}]+/u, ''))[0] || '?').toUpperCase()}</div>`;
                 // 📋 ลงข้อมูลแล้วหรือยัง — ตัวละคร / สัตว์เลี้ยง (/ แหวน ถ้ามี)
                 const nH = (mem.hero_list || []).length, nP = (mem.pet_list || []).length, nR = (mem.ring_list || []).length;
                 const chip = (n, icon, label) => n
@@ -24239,6 +24318,7 @@
                         </td>
                         <td class="p-4">${codeCell}</td>
                         <td class="p-4 text-right">
+                            ${(!nH || !nP) ? `<button onclick="guildNotifyMembers(${idx})" title="แจ้งเตือนคนนี้ในห้อง Discord ของกิลด์" class="text-amber-400 hover:text-white border border-amber-800/60 hover:bg-amber-900/40 px-3 py-1.5 rounded text-xs transition mr-1">🔔</button>` : ''}
                             <button onclick="deleteGuildMember(${idx})" title="ลบสมาชิก" class="text-red-500 hover:text-white border border-red-900/50 hover:bg-red-900/50 px-3 py-1.5 rounded text-xs transition">🗑️</button>
                         </td>
                     </tr>
