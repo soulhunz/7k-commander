@@ -3916,11 +3916,17 @@
                     <div id="member-roster-detail" class="hidden flex-1 flex flex-col min-h-0 overflow-hidden">
                         <div class="px-4 md:px-6 py-3 border-b border-gray-800 bg-[#161b22]/90 backdrop-blur shrink-0">
                             <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <h3 id="member-roster-selected-name" class="text-lg font-bold text-white">—</h3>
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div id="member-roster-selected-avatar"></div>
+                                    <div class="min-w-0">
+                                    <h3 id="member-roster-selected-name" class="text-lg font-bold text-white truncate">—</h3>
                                     <p id="member-roster-selected-stats" class="text-[11px] text-gray-400 mt-0.5">—</p>
+                                    </div>
                                 </div>
-                                <div class="text-[10px] text-gray-500 font-mono" id="member-roster-selected-code"></div>
+                                <div class="flex items-center gap-2">
+                                    <div class="text-[10px] text-gray-500" id="member-roster-selected-code"></div>
+                                    <button type="button" id="member-roster-notify-btn" onclick="guildNotifyMembers(memberRosterBrowseIdx)" class="hidden bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow flex items-center gap-1.5 transition" title="แท็กคนนี้ในห้อง Discord ของกิลด์ ให้มาลงตัวละคร/สัตว์เลี้ยง">🔔 แจ้งเตือน</button>
+                                </div>
                             </div>
                         </div>
                         <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 custom-scroll">
@@ -3969,7 +3975,7 @@
                 <div class="text-4xl mb-3">🏰</div>
                 <h1 class="text-2xl font-bold text-white mb-1">Guild Member Portal</h1>
                 <div id="roster-login-guild" class="hidden mb-3 inline-flex items-center gap-1.5 bg-blue-900/30 border border-blue-700/50 text-blue-300 text-sm font-bold px-3 py-1.5 rounded-lg"></div>
-                <p class="text-xs text-gray-400 mb-5">กดปุ่มด้านล่าง → ยืนยันใน Discord → เข้าระบบได้เลย<br><span class="text-gray-500">ครั้งแรกระบบเพิ่มชื่อเข้ากิลด์ให้อัตโนมัติ</span></p>
+                <p id="roster-login-hint" class="text-xs text-gray-400 mb-5">กดปุ่มด้านล่าง → ยืนยันใน Discord → เข้าระบบได้เลย<br><span class="text-gray-500">ครั้งแรกระบบเพิ่มชื่อเข้ากิลด์ให้อัตโนมัติ</span></p>
                 <div id="roster-discord-box" class="hidden">
                     <button onclick="rosterDiscordStart('login')" class="w-full text-white py-3.5 rounded-xl font-bold shadow-lg mb-3 flex items-center justify-center gap-2 transition hover:brightness-110 text-base" style="background:#5865F2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.6 1.3a18.2 18.2 0 0 0-5.6 0L8.6 3a19.5 19.5 0 0 0-4.9 1.5C.6 9.1-.3 13.7.2 18.2a19.7 19.7 0 0 0 6 3l1.3-2.1a12.8 12.8 0 0 1-2-1l.5-.4a14 14 0 0 0 12 0l.5.4a12.7 12.7 0 0 1-2 1l1.3 2.1a19.6 19.6 0 0 0 6-3c.5-5.2-.9-9.8-3.5-13.8ZM8.3 15.5c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4Zm7.4 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4Z"/></svg>
@@ -4014,6 +4020,7 @@
                             <div class="roster-nav-group">
                                 <div class="roster-nav-group-label">🏰 ทีมกิลด์</div>
                                 <div class="roster-nav-group-btns">
+                                    <button type="button" data-roster-tab="my-guild-teams" onclick="setRosterTab('my-guild-teams')" class="roster-tab-btn">📌 ทีมที่หัวหน้าตั้งให้</button>
                                     <button type="button" data-roster-tab="attack-teams" onclick="setRosterTab('attack-teams')" class="roster-tab-btn roster-attack-tab-btn hidden">🎯 ทีมบุก</button>
                                     <button type="button" data-roster-tab="defense-teams" onclick="setRosterTab('defense-teams')" class="roster-tab-btn roster-defense-tab-btn hidden">🛡️ ทีมรับ</button>
                                 </div>
@@ -4094,6 +4101,11 @@
                         <div id="roster-defense-teams-list" class="space-y-3 min-h-[200px]"></div>
                     </div>
 
+                    <div id="roster-panel-my-guild-teams" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-4 md:p-8 shadow-2xl">
+                        <h3 class="text-xl font-bold text-indigo-300 flex items-center gap-2 mb-1"><span>📌</span> ทีมที่หัวหน้าตั้งให้</h3>
+                        <p class="text-xs text-gray-400 mb-5">หัวหน้ากิลด์จัดทีมให้ เลือกตั้งในเกมได้ตามที่ต้องการ · กดที่ทีมเพื่อดูสแตท</p>
+                        <div id="roster-my-guild-teams" class="space-y-4"></div>
+                    </div>
                     <div id="roster-panel-profile" class="roster-panel hidden bg-[#161b22] border border-gray-700 rounded-3xl p-6 md:p-8 shadow-2xl max-w-2xl">
                         <div id="roster-profile-content"></div>
                     </div>
@@ -4680,7 +4692,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.9.0';
+        const APP_VERSION = '1.10.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -5066,7 +5078,8 @@
                 teams: Array.isArray(mem.teams) ? mem.teams : [],
                 inventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0,
                 discordName: mem.discordName || '',   // 🎮 ผูก Discord แล้ว (server ใส่มาให้ — แสดงอย่างเดียว ไม่ส่งกลับ)
-                discordAvatar: mem.discordAvatar || ''
+                discordAvatar: mem.discordAvatar || '',
+                assignedTeamIds: Array.isArray(mem.assignedTeamIds) ? mem.assignedTeamIds.map(x => x ? String(x) : '') : []   // 📌 ทีม 3v3 ที่หัวหน้าเลือกให้ (ตามช่อง)
             };
         }
 
@@ -9598,8 +9611,78 @@
             if (typeof rosterSuppressNextMenuClose === 'function') rosterSuppressNextMenuClose();
         }
 
+        /** 💍 ทีมที่กำลังแก้เป็น "ทีมที่สร้างให้ลูกกิล" → คืน { mem, ids:Set(แหวนที่มี รวมแหวนซ้อน) } · ไม่ใช่ = null */
+        function current3v3MemberRings() {
+            const team = (typeof teams3v3DB !== 'undefined' && typeof current3v3TeamIdx !== 'undefined') ? teams3v3DB[current3v3TeamIdx] : null;
+            const ow = team && team.owner;
+            if (!ow || !ow.memberId) return null;
+            const g = (guildsDB || []).find(x => String(x.id) === String(ow.guildId || ''));
+            const mem = g && (g.members || []).find(m => String(m.id) === String(ow.memberId));
+            if (!mem) return null;
+            const ids = new Set();
+            (mem.ring_list || []).forEach(rr => { if (rr && rr.id) ids.add(String(rr.id)); if (rr && rr.stackId) ids.add(String(rr.stackId)); });
+            return { mem, ids, owner: ow };
+        }
+        /** 💍 แหวนที่ยังว่างของลูกกิล: จำนวนที่มี − ที่ใส่ไปแล้วในทุกทีมของคนนั้น (ไม่นับช่องที่กำลังเลือก)
+         *  kind 'ring' = แหวนหลัก · 'stack' = แหวนซ้อน · คืน Map(id → เหลือกี่วง) */
+        function current3v3MemberRingsLeft(own, kind) {
+            const have = new Map();
+            (own.mem.ring_list || []).forEach(rr => {
+                const id = rr && (kind === 'stack' ? rr.stackId : rr.id);
+                if (id) have.set(String(id), (have.get(String(id)) || 0) + 1);
+            });
+            const editSlot = parseInt(editContext && editContext.p, 10), editRing = parseInt(selectorRingIdx, 10) || 0;
+            const users = new Map();   // id แหวน → [{ heroId, teamName }] ที่ใส่อยู่
+            have.users = users;
+            const seenTeam = new Set();
+            (teams3v3DB || []).forEach((t, ti) => {
+                if (t && t.id != null) { if (seenTeam.has(String(t.id))) return; seenTeam.add(String(t.id)); }   // ทีมซ้ำในรายการ = นับครั้งเดียว
+                if (!t || t.deleted || !t.owner || String(t.owner.memberId) !== String(own.owner.memberId) || String(t.owner.guildId || '') !== String(own.owner.guildId || '')) return;
+                (t.slots || []).forEach((sl, si) => {
+                    const s = sl && sl.id ? normalize3v3Slot(sl) : null; if (!s) return;
+                    const list = kind === 'stack' ? (s.ringStacks || []) : (s.rings || []);
+                    list.forEach((rid, ri) => {
+                        if (!rid) return;
+                        if (ti === current3v3TeamIdx && si === editSlot && ri === editRing) return;   // ช่องที่กำลังเลือกอยู่ = ไม่นับ (เปลี่ยนวงได้)
+                        const k = String(rid); if (have.has(k)) have.set(k, have.get(k) - 1);
+                        if (!users.has(k)) users.set(k, []);
+                        users.get(k).push({ heroId: String(s.id), awakened: !!s.awakened, teamName: t.name || '', sameTeam: ti === current3v3TeamIdx });
+                    });
+                });
+            });
+            return have;
+        }
+        let selectorShowAllRings = false;   // ปุ่ม "แสดงแหวนทั้งหมด" ตอนจัดทีมให้ลูกกิล
+        let selectorUsedRingCards = [];     // แหวนที่ลูกกิลมีแต่ใส่ตัวอื่นครบแล้ว → การ์ดสีเทา กดไม่ได้
+        function toggleSelectorAllRings() {
+            selectorShowAllRings = !selectorShowAllRings;
+            if (editContext) openSelector(editContext.i, editContext.p, editContext.type);
+        }
+        /** แหวนให้เลือกในหน้าจัดทีม: ทีมของลูกกิล = เฉพาะที่คนนั้นมี (ยกเว้นกดแสดงทั้งหมด) */
+        function ringsForTeam3v3Selector(titleBase, kind) {
+            const all = ringsSortedByType();
+            const own = current3v3MemberRings();
+            const titleEl = document.getElementById('selector-title');
+            // หัวข้อยาว (ชื่อลูกกิล + ปุ่มสลับ) → ให้ขึ้นบรรทัดใหม่ได้ · ทีมปกติ = ตัดบรรทัดเดียวแบบเดิม
+            ['truncate', 'sm:whitespace-nowrap', 'sm:shrink-0'].forEach(c => titleEl.classList.toggle(c, !own));
+            if (!own) { titleEl.innerText = titleBase; return all; }
+            const name = own.mem.name || 'ลูกกิล';
+            // เฉพาะที่มี และยังไม่ได้ใส่ให้ตัวละครอื่น (มีหลายวง = ใส่ได้หลายตัว)
+            const left = current3v3MemberRingsLeft(own, kind === 'stack' ? 'stack' : 'ring');
+            const mine = all.filter(x => (left.get(String(x.id)) || 0) > 0);
+            const usedUpRings = all.filter(x => left.has(String(x.id)) && left.get(String(x.id)) <= 0);
+            const usedUp = usedUpRings.length;
+            selectorUsedRingCards = usedUpRings.map(x => ({ ring: x, users: left.users.get(String(x.id)) || [] }));
+            const showAll = selectorShowAllRings || !own.ids.size;
+            if (showAll) selectorUsedRingCards = [];
+            titleEl.innerHTML = `${titleBase} <span class="text-[11px] font-normal ${showAll ? 'text-amber-300' : 'text-emerald-300'}">· ${showAll ? (mine.length ? 'แสดงทั้งหมด' : (own.ids.size ? 'แหวนของ ' + name.replace(/[<>&"]/g, '') + ' ใส่ครบหมดแล้ว — แสดงทั้งหมด' : name.replace(/[<>&"]/g, '') + ' ยังไม่ได้ลงแหวน — แสดงทั้งหมด')) : 'เฉพาะแหวนที่ ' + name.replace(/[<>&"]/g, '') + ' มีและยังว่าง (' + mine.length + ')' + (usedUp ? ' · ใส่ตัวอื่นแล้ว ' + usedUp : '')}</span>` +
+                (own.ids.size ? ` <button type="button" onclick="toggleSelectorAllRings()" class="ml-1 text-[11px] font-bold px-2 py-0.5 rounded border border-gray-600 text-gray-300 hover:text-white">${showAll ? 'เฉพาะที่มี' : 'แสดงทั้งหมด'}</button>` : '');
+            return showAll ? all : mine;
+        }
+
         function openSelector(i, p, type, e) {
             if(e) e.stopPropagation();
+            selectorUsedRingCards = [];
 
             closeT3v3RingContextMenu();
             closeRingSelectorGradeMenu();
@@ -9684,13 +9767,11 @@
                 if (type === 'ring') {
                     selectorActiveCategory = 'All';
                     selectorExcludedIds = [];
-                    document.getElementById('selector-title').innerText = 'เลือกแหวน #' + ((parseInt(selectorRingIdx, 10) || 0) + 1);
-                    selectorCurrentData = ringsSortedByType();
+                    selectorCurrentData = ringsForTeam3v3Selector('เลือกแหวน #' + ((parseInt(selectorRingIdx, 10) || 0) + 1));
                 }
                 else if (type === 'ringStack') {
                     selectorActiveCategory = 'All';
-                    document.getElementById('selector-title').innerText = 'เลือกแหวนซ้อน';
-                    selectorCurrentData = ringsSortedByType();
+                    selectorCurrentData = ringsForTeam3v3Selector('เลือกแหวนซ้อน', 'stack');
                     const team = teams3v3DB[current3v3TeamIdx];
                     const slotIdx = parseInt(p, 10);
                     const ringIdx = parseInt(selectorRingIdx, 10) || 0;
@@ -9954,6 +10035,19 @@
                     </div>`;
                 });
                 grid.insertAdjacentHTML('beforeend', ringHtml);
+                // 🔒 แหวนที่ใส่ตัวอื่นแล้ว — สีเทา กดไม่ได้ + รูป/ชื่อตัวละครที่ใส่อยู่
+                if (selectorUsedRingCards.length) {
+                    const usedHtml = selectorUsedRingCards.filter(u => !lower || String(u.ring.name || '').toLowerCase().includes(lower)).map(u => {
+                        const who = u.users.map(x => { const hh = (heroesDB || []).find(y => String(y.id) === x.heroId); return hh ? { img: x.awakened && hh.img2 ? hh.img2 : hh.img, name: hh.name, team: x.teamName, same: x.sameTeam } : null; }).filter(Boolean);
+                        const tip = who.map(x => x.name + (x.same ? '' : ' (' + x.team + ')')).join(', ');
+                        return `<div class="selector-card grade-${u.ring.grade || 6} flex flex-col items-center justify-center p-1.5 gap-1 relative overflow-hidden" style="cursor:not-allowed" title="ใส่แล้ว: ${safeName(tip)}">
+                            <img src="${u.ring.img || ''}" loading="lazy" class="rounded-full border-2 border-gray-700 object-cover pointer-events-none" style="width:44px;height:44px;filter:grayscale(1);opacity:.5" alt="">
+                            <div class="absolute top-1 right-1 flex -space-x-2">${who.slice(0, 3).map(x => `<img src="${x.img}" class="rounded-full border-2 border-gray-900 object-cover bg-gray-800" style="width:24px;height:24px" alt="">`).join('')}</div>
+                            <span class="text-[9px] text-gray-400 text-center leading-tight w-full truncate px-0.5">🔒 ${safeName(who.map(x => x.name).join(', ') || 'ใส่แล้ว')}</span>
+                        </div>`;
+                    }).join('');
+                    grid.insertAdjacentHTML('beforeend', usedHtml);
+                }
                 updateSelectorRingNote();
                 updateSelectorMultiFooter();
                 return;
@@ -14585,7 +14679,15 @@
             if (!isPublicView) return '';
             const g = decodeGuildParam(appUrlParams().get('g'));
             const ver = `<span class="text-[10px] text-gray-600 font-mono whitespace-nowrap" title="เวอร์ชันโปรแกรม">${appVersionLabel()}</span>`;
-            return g && g.toLowerCase() !== 'all' ? `<span class="text-xs text-gray-500 whitespace-nowrap">🛡️ กิลด์ <b class="text-yellow-500/90">${ccEsc(g)}</b></span>${ver}` : ver;
+            if (!(g && g.toLowerCase() !== 'all')) return ver;
+            // 👤 ทางเข้าหน้าลงทะเบียนลูกกิล (เข้าด้วย Discord) — กิลด์เดียวกับลิงก์ Share
+            let rosterHref = '';
+            try {
+                const L = publicLinkBase(), raw = String(appUrlParams().get('g') || '').replace(/ /g, '+');
+                rosterHref = L.base + '?mode=roster&g=' + encodeURIComponent(raw) + '&nojoin=1' + (L.srv || '');   // nojoin = เข้าได้เฉพาะคนที่สมัครแล้ว (สมัครผ่านลิงก์สมาชิกที่หัวหน้าส่งเท่านั้น)
+            } catch (e) {}
+            const rosterBtn = rosterHref ? `<a href="${rosterHref}" class="px-3 py-1.5 rounded-xl text-xs font-black text-white whitespace-nowrap flex items-center gap-1.5 shadow hover:brightness-110 transition" style="background:#5865F2" title="สำหรับลูกกิลด์ที่ลงทะเบียนแล้ว — เข้าด้วย Discord เพื่อลงตัวละคร / สัตว์เลี้ยง / แหวน และดูทีมที่หัวหน้ากิลด์ตั้งให้">👤 เข้าหน้าลูกกิล</a>` : '';
+            return `${rosterBtn}<span class="text-xs text-gray-500 whitespace-nowrap">🛡️ กิลด์ <b class="text-yellow-500/90">${ccEsc(g)}</b></span>${ver}`;
         }
 
         function switchPublicHub(target) {
@@ -24012,6 +24114,7 @@
                 '\n\nวิธีเอาลิงก์: Discord → คลิกขวาห้องที่ต้องการ → แก้ไขห้อง → การผสานรวม → Webhooks → Webhook ใหม่ → คัดลอก URL ของ Webhook\n\nวางลิงก์ (https://discord.com/api/webhooks/...):', '');
             if (url === null) return;
             if (!url.trim() && !has) return;
+            if (/discord(?:app)?\.com\/channels\//.test(url)) return alert('❌ นี่คือลิงก์ห้อง ไม่ใช่ลิงก์ Webhook\n\nไปที่ แก้ไขห้อง → การผสานรวม → Webhooks → Webhook ใหม่ → กด "คัดลอก URL ของ Webhook"');
             if (!url.trim() && !confirm('ปิดการแจ้งเตือนของกิลด์ "' + g.name + '" ?')) return;
             showLoading(url.trim() ? '🔔 กำลังทดสอบส่งข้อความเข้า Discord...' : 'กำลังปิด...');
             try {
@@ -36903,6 +37006,7 @@
         try {
             const inv = await fetchMemberInventoryFromServer(target.g, target.m);
             if (!inv || inv.status !== 'success') return false;
+            if (Array.isArray(inv.guildTeams)) rosterGuildTeams = inv.guildTeams;
             applyMemberInventoryPatch(target.g, target.m, {
                 hero_list: inv.hero_list || [],
                 pet_list: inv.pet_list || [],
@@ -36918,6 +37022,7 @@
 
     async function openRosterEditorForTarget(target) {
         currentRosterTarget = target;
+        rosterGuildTeams = null;
         const mem = guildsDB[target.g].members[target.m];
         setRosterMemberHeaderName(mem.name);
         setRosterMemberHeaderGuild(target.g);
@@ -37005,6 +37110,8 @@
                 if (rosterDiscordClientId && !currentRosterTarget) setTimeout(() => rosterDiscordStart('login'), 0);
             }
         } catch (e) {}
+        const hintEl = document.getElementById('roster-login-hint');
+        if (hintEl && rosterNoJoin()) hintEl.innerHTML = 'สำหรับลูกกิลด์ที่ลงทะเบียนแล้ว — กดปุ่มด้านล่างเพื่อเข้าด้วย Discord<br><span class="text-gray-500">ยังไม่เคยลงทะเบียน? ขอลิงก์สมัครจากหัวหน้ากิลด์</span>';
         const stEl = document.getElementById('roster-discord-status');
         if (stEl) {
             stEl.textContent = rosterDiscordClientId ? '' : '⚠️ ระบบยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์';
@@ -37017,12 +37124,13 @@
     function rosterDiscordStart(act) {
         if (!rosterDiscordClientId) return alert('ยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์');
         if (act === 'link' && !normalizeMemberCode(rosterAuthCode)) return alert('เข้าด้วยรหัสสมาชิกก่อน แล้วค่อยผูก Discord');
+        if (act === 'login' && rosterNoJoin()) act = 'enter';
         // เปิดหน้านี้ผ่านเว็บอื่น (เช่น ลิงก์ Apps Script) → ย้ายไปหน้า GitHub Pages ก่อน แล้วกด Discord ให้อัตโนมัติ
         //    Discord ส่งกลับมาที่ GitHub Pages เสมอ — เริ่มจากเว็บอื่น เลขสุ่มที่ฝากไว้จะอยู่คนละที่ หาไม่เจอ
         try {
             const back = new URL(rosterDiscordRedirectUri());
-            if (act === 'login' && window.location.origin !== back.origin) {
-                const go = buildMemberRosterUrl() + '&discord=1';
+            if ((act === 'login' || act === 'enter') && window.location.origin !== back.origin) {
+                const go = buildMemberRosterUrl() + (act === 'enter' ? '&nojoin=1' : '') + '&discord=1';
                 try { (window.top || window).location.href = go; } catch (e) { window.open(go, '_blank'); }
                 return;
             }
@@ -37048,7 +37156,7 @@
         let p;
         try { p = new URLSearchParams(window.location.search); } catch (e) { return null; }
         const state = p.get('state') || '';
-        const m = state.match(/^(login|link)\.([0-9a-f]{24})\.(.*)$/);
+        const m = state.match(/^(login|link|enter)\.([0-9a-f]{24})\.(.*)$/);
         if (!m || (!p.get('code') && !p.get('error'))) return null;
         let saved = null;
         try { saved = JSON.parse(sessionStorage.getItem(ROSTER_DISCORD_STATE_KEY) || 'null'); sessionStorage.removeItem(ROSTER_DISCORD_STATE_KEY); } catch (e) {}
@@ -37061,7 +37169,7 @@
         const rest = m[3] || '', tilde = rest.indexOf('~');
         const g = (tilde >= 0 ? rest.slice(0, tilde) : rest) || (saved && saved.g) || '';
         let gid = ''; try { gid = tilde >= 0 ? decodeURIComponent(rest.slice(tilde + 1)) : ''; } catch (e) {}
-        try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
+        try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (m[1] === 'enter' ? '&nojoin=1' : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
         // กันลิงก์ปลอม: เลขสุ่มที่ฝากไว้ต้องตรงกัน
         //    • เจอแต่ไม่ตรง = ลิงก์ไม่ได้มาจากการกดในเครื่องนี้ → ปฏิเสธ
         //    • หาไม่เจอเลย (ล้างข้อมูลเว็บ / เบราว์เซอร์ไม่ให้เก็บ) → ให้เข้าได้ แต่ "ผูกบัญชี" ไม่ได้ (ต้องรู้ว่าเป็นใคร)
@@ -37081,12 +37189,13 @@
             setTimeout(() => alert('🎮 ' + msg), 200);
             return;
         }
-        if (cb.act === 'login') {
+        if (cb.act === 'login' || cb.act === 'enter') {
             showLoading('🎮 กำลังเข้าด้วย Discord...');
             let r = null;
+            const canJoin = cb.act === 'login';   // enter = มาจากปุ่มหน้า Share → เข้าได้เฉพาะคนที่สมัครแล้ว
             const joinGuild = (typeof mlUrlGuildName === 'function') ? mlUrlGuildName() : '';
             const joinGid = appUrlParams().get('gid') || '';
-            try { r = await postJson({ action: 'discordRosterLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), join: !!(joinGuild || joinGid), guild: joinGuild, guildId: joinGid }, { timeout: 60000, retries: 1 }); }
+            try { r = await postJson({ action: 'discordRosterLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), join: canJoin && !!(joinGuild || joinGid), guild: canJoin ? joinGuild : '', guildId: canJoin ? joinGid : '' }, { timeout: 60000, retries: 1 }); }
             catch (e) { r = { status: 'error', message: e.message || String(e) }; }
             hideLoading();
             if (r && r.status === 'success' && r.accessCode) {
@@ -37101,7 +37210,9 @@
             showLogin();
             const who = r && r.discordName ? ' (' + r.discordName + ')' : '';
             setTimeout(() => alert(r && r.status === 'not_linked'
-                ? '🎮 บัญชี Discord นี้' + who + ' ยังไม่มีชื่อในกิลด์' + (r.message ? '\n' + r.message : '') + '\n\nเปิดจากลิงก์สมาชิกที่หัวหน้ากิลด์ส่งให้ แล้วกดปุ่ม Discord อีกครั้ง'
+                ? (cb.act === 'enter'
+                    ? '🎮 บัญชี Discord นี้' + who + ' ยังไม่ได้ลงทะเบียนกับกิลด์' + (r.message ? '\n' + r.message : '') + '\n\nขอลิงก์สมัครจากหัวหน้ากิลด์ แล้วกดเข้าด้วย Discord จากลิงก์นั้นครั้งแรก'
+                    : '🎮 บัญชี Discord นี้' + who + ' ยังไม่มีชื่อในกิลด์' + (r.message ? '\n' + r.message : '') + '\n\nเปิดจากลิงก์สมาชิกที่หัวหน้ากิลด์ส่งให้ แล้วกดปุ่ม Discord อีกครั้ง')
                 : '❌ เข้าด้วย Discord ไม่สำเร็จ\n\n' + ((r && r.message) || 'ลองใหม่อีกครั้ง')), 200);
             return;
         }
@@ -37123,6 +37234,8 @@
             setTimeout(() => alert('❌ ผูก Discord ไม่สำเร็จ\n\n' + ((r && r.message) || 'ลองใหม่อีกครั้ง')), 200);
         }
     }
+    /** เปิดจากปุ่มหน้า Share (nojoin=1) — เข้าได้เฉพาะคนที่สมัครแล้ว */
+    function rosterNoJoin() { try { return appUrlParams().get('nojoin') === '1'; } catch (e) { return false; } }
     function rosterDiscordAvatarSafe(u) { return (u => /^https:\/\/cdn\.discordapp\.com\//.test(String(u || '')) ? String(u) : '')(u); }
     /** รูป Discord ที่หัวหน้า (ไม่มี = 👤) */
     function rosterApplyHeaderAvatar() {
@@ -38052,7 +38165,7 @@
             btn.classList.toggle('active', active);
             btn.classList.toggle('hidden', hidden);
         });
-        ['heroes', 'rings', 'pets', 'attack-teams', 'defense-teams', 'profile'].forEach(key => {
+        ['heroes', 'rings', 'pets', 'my-guild-teams', 'attack-teams', 'defense-teams', 'profile'].forEach(key => {
             const panel = document.getElementById('roster-panel-' + key);
             if (panel) panel.classList.toggle('hidden', rosterActiveTab !== key);
         });
@@ -38063,6 +38176,42 @@
         else if (rosterActiveTab === 'attack-teams') renderPublicRosterAttackTeams();
         else if (rosterActiveTab === 'defense-teams') renderPublicRosterDefenseTeams();
         else if (rosterActiveTab === 'profile') renderPublicRosterProfile();
+        else if (rosterActiveTab === 'my-guild-teams') renderPublicRosterGuildTeams();
+    }
+
+    // 📌 ทีมที่หัวหน้าตั้งให้ (มากับ getMemberInventory → guildTeams) — ดูอย่างเดียว
+    let rosterGuildTeams = null;
+    function rosterMyRingIds() { return ringCountMap(tempOwnedRings || []); }
+    function renderPublicRosterGuildTeams() {
+        const box = document.getElementById('roster-my-guild-teams'); if (!box) return;
+        if (rosterGuildTeams === null) {
+            box.innerHTML = '<div class="text-center text-gray-500 py-12 text-sm">⏳ กำลังโหลด...</div>';
+            if (currentRosterTarget) refreshRosterMemberInventoryFromServer(currentRosterTarget).then(() => { if (rosterActiveTab === 'my-guild-teams') renderPublicRosterGuildTeams(); });
+            return;
+        }
+        if (!rosterGuildTeams.length) {
+            box.innerHTML = rosterEmptyState('📌', 'ยังไม่มีทีมที่หัวหน้าตั้งให้', 'รอหัวหน้ากิลด์กำหนดทีม แล้วกลับมาดูที่นี่');
+            return;
+        }
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const H = id => (heroesDB || []).find(x => String(x.id) === String(id));
+        const P = id => (petsDB || []).find(x => String(x.id) === String(id));
+        const FMT = { basic: 'พื้นฐาน', balanced: 'สมดุล', attack: 'บุก', defense: 'ป้องกัน' };
+        box.innerHTML = '<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))">' + rosterGuildTeams.map((g, i) => {
+            const t = g.team || {}, d = t.data || {}, slots = Array.isArray(d.slots) ? d.slots : [];
+            const thumbs = [0, 1, 2].map(k => {
+                const s = slots[k], hh = s && H(s.id);
+                if (!hh) return '<div class="w-20 h-20 rounded-xl bg-gray-800/60 border border-gray-700"></div>';
+                const img = s.awakened && hh.img2 ? hh.img2 : hh.img;
+                const stars = typeof getStarsHTML === 'function' ? getStarsHTML(parseInt(s.star, 10) || 0, false) : '';
+                return `<div class="relative w-20 h-20 rounded-xl overflow-hidden border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-600'} bg-black shrink-0" title="${E(hh.name)}"><img src="${img}" class="w-full h-full object-cover" alt=""><div class="absolute bottom-0 left-0 right-0 flex justify-center scale-[0.7] origin-bottom">${stars}</div></div>`;
+            }).join('');
+            return `<button type="button" onclick="teamStatsOpen(rosterGuildTeams[${i}].team, rosterMyRingIds(), 'คุณ')" class="text-left bg-[#0d1117]/70 border border-gray-700 hover:border-indigo-400 rounded-2xl p-3 transition">
+                <div class="flex items-center gap-1.5 mb-2.5 min-w-0"><span class="text-white text-sm font-bold truncate flex-1">${E(t.name || 'ทีม')}</span><span class="text-[10px] text-gray-500 shrink-0">${d.teamType === 'Defense' ? '🛡️ รับ' : '⚔️ บุก'}</span></div>
+                <div class="flex gap-2 justify-center">${thumbs}</div>
+                <div class="text-[10px] text-indigo-300 text-center mt-2">กดดูสแตท</div>
+            </button>`;
+        }).join('') + '</div>';
     }
 
     function getCurrentRosterMember() {
@@ -38363,6 +38512,16 @@
         renderMemberRosterMemberList();
     }
 
+    /** 👤 รูปโปรไฟล์สมาชิก: รูป Discord หรือวงกลมตัวอักษรแรกของชื่อ · size = px */
+    function memberAvatarHTML(mem, size) {
+        const px = size || 36;
+        const av = typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(mem && mem.discordAvatar) : '';
+        if (av) return `<img src="${av}" alt="" referrerpolicy="no-referrer" class="rounded-full object-cover border-2 border-indigo-500/50 shrink-0" style="width:${px}px;height:${px}px">`;
+        const nm = String((mem && mem.name) || '').trim().replace(/^[^\p{L}\p{N}]+/u, '');
+        const ch = (Array.from(nm)[0] || '?').toUpperCase().replace(/[<>&"]/g, '');
+        return `<span class="rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-gray-300 font-bold shrink-0" style="width:${px}px;height:${px}px;font-size:${Math.round(px * 0.42)}px">${ch}</span>`;
+    }
+
     function renderMemberRosterMemberList() {
         const listEl = document.getElementById('member-roster-list');
         const countEl = document.getElementById('member-roster-count');
@@ -38381,21 +38540,19 @@
 
         listEl.innerHTML = filtered.map(({ mem, idx }) => {
             const counts = getMemberRosterCounts(mem);
-            const teamCount = typeof countMemberTeams === 'function' ? countMemberTeams(mem) : 0;
+            const teamCount = (typeof countMemberTeams === 'function' ? countMemberTeams(mem) : 0) + (typeof memberAssignedIds === 'function' ? memberAssignedIds(mem).length : 0);
             const active = idx === memberRosterBrowseIdx ? ' active' : '';
             const name = (mem.name || 'ไม่ระบุชื่อ').replace(/"/g, '&quot;');
-            const codeHtml = mem.accessCode
-                ? `<span class="member-roster-list-item-code">· ${mem.accessCode}</span>`
-                : '';
             return `<button type="button" onclick="selectMemberRosterBrowse(${idx})" class="member-roster-list-item${active}">
-                <div class="member-roster-list-item-main">
-                    <span class="member-roster-list-item-name">${name}</span>${codeHtml}
+                <div class="member-roster-list-item-main flex items-center gap-2 min-w-0">
+                    ${memberAvatarHTML(mem, 30)}
+                    <span class="member-roster-list-item-name truncate">${name}</span>
                 </div>
                 <div class="member-roster-list-item-stats">
                     <div style="margin:0px 5px;">⚔️ <b>${counts.heroes}</b></div>
                     <div style="margin:0px 5px;">💍 <b>${counts.rings}</b></div>
                     <div style="margin:0px 5px;">🐾 <b>${counts.pets}</b></div>
-                    <div style="margin:0px 5px;" class="${teamCount === 0 ? 'text-gray-600' : (teamCount >= MEMBER_TEAM_MAX ? 'text-emerald-400' : 'text-blue-400')}">🎖️ <b>${teamCount}</b></div>
+                    <div style="margin:0px 5px;" class="${teamCount === 0 ? 'text-gray-600' : 'text-blue-400'}">🎖️ <b>${teamCount}</b></div>
                 </div>
             </button>`;
         }).join('');
@@ -38419,7 +38576,12 @@
         const counts = getMemberRosterCounts(mem);
         if (nameEl) nameEl.textContent = mem.name || 'ไม่ระบุชื่อ';
         if (statsEl) statsEl.textContent = `ตัวละคร ${counts.heroes} · แหวน ${counts.rings} · สัตว์เลี้ยง ${counts.pets}`;
-        if (codeEl) codeEl.textContent = mem.accessCode ? `รหัส: ${mem.accessCode}` : '';
+        if (codeEl) codeEl.textContent = mem.discordName ? '✅ เชื่อม Discord แล้ว' : 'ยังไม่ได้เชื่อม Discord';   // ไม่โชว์รหัสแล้ว — เข้าด้วย Discord อย่างเดียว
+        const avEl = document.getElementById('member-roster-selected-avatar');
+        if (avEl) avEl.innerHTML = memberAvatarHTML(mem, 44);
+        // 🔔 แจ้งเตือนคนนี้ (ห้อง Discord ของกิลด์ที่ตั้งไว้ในหน้า Guilds & Alliances) — เฉพาะคนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง
+        const nBtn = document.getElementById('member-roster-notify-btn');
+        if (nBtn) nBtn.classList.toggle('hidden', !(typeof guildNotifyMissing === 'function' && guildNotifyMissing(mem)));
 
         renderMemberRosterMemberList();
         renderMemberRosterBrowseContent();
@@ -38462,7 +38624,7 @@
     // 🎖️ จัดทีมลูกกิล (แอดมินจัดให้) — เก็บเป็นทีม 3v3 ปกติ แต่ผูก owner = สมาชิกกิลด์
     //    → ใช้ editor/สแตท/การแชร์ ของระบบ 3v3 ได้ทั้งหมด
     // =========================================================
-    const MEMBER_TEAM_MAX = 5;
+    const MEMBER_TEAM_MAX = 30;   // ทีมที่สร้างให้ลูกกิล — เพิ่มได้เรื่อยๆ (เดิม 5 ช่อง)
     /** สมาชิกที่กำลังเปิดอยู่ = คนที่เลือกในหน้า "ข้อมูลลูกกิล" (แท็บ 🎖️ ทีม) */
     function currentMemberTeamsMember() {
         return (guildMembersDB || [])[memberRosterBrowseIdx] || null;
@@ -38574,43 +38736,221 @@
             }
         }
 
-        wrap.innerHTML = slots.map((team, i) => {
-            if (!team) {
-                return `<button type="button" onclick="createMemberTeam(${i})" class="w-full border-2 border-dashed border-gray-700 hover:border-blue-500 hover:bg-blue-900/10 rounded-2xl p-5 text-gray-500 hover:text-blue-300 transition text-left flex items-center gap-3">
-                    <span class="text-2xl">＋</span>
-                    <span class="text-sm font-bold">สร้างทีม ${i + 1}</span>
-                    <span class="text-[11px] opacity-70 ml-auto">3 ตัวละคร + สแตท</span>
-                </button>`;
-            }
-            const heroCells = [0, 1, 2].map(k => {
-                const s = team.slots && team.slots[k];
-                const isDup = !!(s && s.id && dupIds.includes(String(s.id)));
-                return memberTeamHeroThumb(s, isDup);
-            }).join('');
-            const filled = (team.slots || []).filter(s => s && s.id).length;
-            return `<div class="bg-[#161b22] border ${team.isShared ? 'border-emerald-700/60' : 'border-gray-700'} rounded-2xl p-4 md:p-5 shadow-lg">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div class="flex items-center gap-3 min-w-0">
-                        <span class="bg-blue-900/40 text-blue-300 border border-blue-700/50 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">ทีม ${i + 1}</span>
-                        <span class="text-white font-bold truncate">${mtEsc(team.name || 'ทีม')}</span>
-                        <span class="text-[10px] text-gray-500">${filled}/3 ตัว</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <button onclick="toggleMemberTeamShare('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold border transition ${team.isShared ? 'bg-emerald-700/40 text-emerald-200 border-emerald-600/60' : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white'}">${team.isShared ? '🌎 แชร์อยู่' : '🔒 ไม่แชร์'}</button>
-                        <button onclick="renameMemberTeam('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#0d1117] text-gray-400 border border-gray-700 hover:text-white transition">✎ ชื่อ</button>
-                        <button onclick="openMemberTeamEditor('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white transition">⚙️ แก้ไข/สแตท</button>
-                        <button onclick="deleteMemberTeam('${team.id}')" class="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#0d1117] text-red-400 border border-red-900/60 hover:bg-red-900/40 transition">🗑️</button>
-                    </div>
+        const refIds = memberAssignedIds(mem);
+        const own = slots.filter(Boolean);
+        if (subEl) subEl.textContent = `${mem.name || 'สมาชิก'} · ${own.length + refIds.length} ทีม · เพิ่มได้เรื่อยๆ ลูกกิลเลือกเองว่าจะตั้งทีมไหน · กดทีมเพื่อดูสแตท`;
+        const thumbs = t => [0, 1, 2].map(k => { const s = t && t.slots && t.slots[k]; return memberTeamHeroThumb(s, !!(s && s.id && dupIds.includes(String(s.id)))); }).join('');
+        const iconBtn = (onclick, label, title, cls) => `<button type="button" onclick="event.stopPropagation();${onclick}" title="${title}" class="px-2 py-1 rounded-lg text-[11px] font-bold border transition ${cls || 'bg-[#0d1117] text-gray-300 border-gray-700 hover:text-white'}">${label}</button>`;
+        const ownCards = own.map(team => `<div onclick="teamStatsOpenById('${String(team.id).replace(/'/g, '')}')" class="cursor-pointer bg-[#0d1117] border ${team.isShared ? 'border-emerald-700/60' : 'border-gray-700'} hover:border-blue-400 rounded-2xl p-3 transition">
+                <div class="flex items-center gap-1.5 mb-2.5 min-w-0">
+                    <span class="bg-blue-900/40 text-blue-300 border border-blue-700/50 text-[9px] font-black px-1.5 py-0.5 rounded shrink-0">✏️ สร้างให้</span>
+                    <span class="text-white text-sm font-bold truncate flex-1">${mtEsc(team.name || 'ทีม')}</span>
                 </div>
-                <div class="flex flex-wrap items-start gap-3">${heroCells}</div>
-                ${team.note ? `<p class="text-[11px] text-gray-400 mt-3 italic border-t border-gray-800 pt-2">📝 ${mtEsc(team.note)}</p>` : ''}
+                <div class="flex gap-2 justify-center">${thumbs(team)}</div>
+                <div class="flex flex-wrap gap-1 mt-2.5 justify-end">
+                    ${iconBtn(`toggleMemberTeamShare('${team.id}')`, team.isShared ? '🌎' : '🔒', team.isShared ? 'แชร์อยู่' : 'ไม่แชร์')}
+                    ${iconBtn(`renameMemberTeam('${team.id}')`, '✎', 'เปลี่ยนชื่อ')}
+                    ${iconBtn(`openMemberTeamEditor('${team.id}')`, '⚙️ แก้ไข', 'แก้ตัวละคร/สแตท', 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500')}
+                    ${iconBtn(`deleteMemberTeam('${team.id}')`, '🗑️', 'ลบทีม', 'bg-[#0d1117] text-red-400 border-red-900/60 hover:bg-red-900/40')}
+                </div>
+            </div>`).join('');
+        const memRings = memberRingIdSet(mem);
+        const refCards = refIds.map((id, k) => {
+            const t = memberAssignFindTeam(id);
+            const missR = t ? teamMissingRingCount(t, memRings) : 0;
+            const acts = `<div class="flex flex-wrap gap-1 mt-2.5 justify-end">${iconBtn(`memberAssignOpenPicker(${k})`, '🔁 เปลี่ยน', 'เปลี่ยนเป็นทีมอื่น')}${iconBtn(`memberAssignRemove(${k})`, '✕ เอาออก', 'เอาออก', 'bg-[#0d1117] text-red-400 border-red-900/60 hover:bg-red-900/40')}</div>`;
+            if (!t) return `<div class="bg-[#0d1117] border border-red-900/60 rounded-2xl p-3"><div class="text-sm text-red-300 mb-1">📋 ทีม 3v3 นี้ถูกลบแล้ว / ไม่พบ</div>${acts}</div>`;
+            return `<div onclick="teamStatsOpenById('${String(id).replace(/'/g, '')}')" class="cursor-pointer bg-[#0d1117] border border-indigo-700/60 hover:border-indigo-400 rounded-2xl p-3 transition">
+                <div class="flex items-center gap-1.5 mb-2.5 min-w-0">
+                    <span class="bg-indigo-900/50 text-indigo-200 border border-indigo-600/60 text-[9px] font-black px-1.5 py-0.5 rounded shrink-0">📋 3v3</span>
+                    <span class="text-white text-sm font-bold truncate flex-1">${mtEsc(t.name || 'ทีม')}</span>
+                    <span class="text-[10px] text-gray-500 shrink-0">${t.teamType === 'Defense' ? '🛡️' : '⚔️'}</span>
+                </div>
+                <div class="flex gap-2 justify-center">${thumbs(t)}</div>
+                <div class="text-[10px] text-center mt-2 ${missR ? 'text-red-300' : 'text-emerald-300'}">${missR ? '⚠️ ขาดแหวน ' + missR + ' วง (กดดู)' : '💍 แหวนครบ'}</div>
+                ${acts}
             </div>`;
         }).join('');
+        wrap.innerHTML = `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))">${ownCards}${refCards}</div>
+            ${own.length + refIds.length ? '' : '<div class="text-center text-gray-500 text-sm py-6">ยังไม่มีทีม — เพิ่มจากทีม 3v3 หรือสร้างใหม่</div>'}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                <button type="button" onclick="memberAssignOpenPicker(-1)" title="ผูกกับทีม 3v3 ตัวจริง — แก้ทีมในหน้า 3v3 แล้วลูกกิลเห็นของใหม่" class="border-2 border-dashed border-indigo-700/70 hover:border-indigo-400 hover:bg-indigo-900/20 text-indigo-300 rounded-2xl px-5 py-4 flex items-center justify-center gap-2 transition"><span class="text-lg">📋</span><span class="text-sm font-bold">เพิ่มจากทีม 3v3</span></button>
+                <button type="button" onclick="createMemberTeam()" class="border-2 border-dashed border-gray-700 hover:border-blue-500 hover:bg-blue-900/10 text-gray-400 hover:text-blue-300 rounded-2xl px-5 py-4 flex items-center justify-center gap-2 transition"><span class="text-lg">＋</span><span class="text-sm font-bold">สร้างทีมใหม่</span></button>
+            </div>`;
+    }
+
+    // =========================================================
+    // 📌 ทีมจาก 3v3 ที่หัวหน้าเลือกให้ลูกกิล (อ้างอิงทีมจริง · บันทึกทันทีเฉพาะคนนี้)
+    // =========================================================
+    function memberAssignedIds(mem) {
+        return (mem && Array.isArray(mem.assignedTeamIds)) ? mem.assignedTeamIds.map(x => x ? String(x) : '').filter(Boolean) : [];
+    }
+    function memberAssignFindTeam(id) {
+        return (allTeams3v3DB || []).find(t => t && String(t.id) === String(id) && !t.deleted) || (teams3v3DB || []).find(t => t && String(t.id) === String(id) && !t.deleted) || null;
+    }
+    // ช่อง k ของรายการ (-1 = เพิ่มใหม่ท้ายรายการ)
+    let memberAssignPickSlot = -1, memberAssignPickType = 'all', memberAssignPickQ = '';
+    function memberAssignOpenPicker(k) {
+        memberAssignPickSlot = k;
+        let m = document.getElementById('ma-picker');
+        if (!m) { m = document.createElement('div'); m.id = 'ma-picker'; m.className = 'fixed inset-0 z-[600] flex items-center justify-center bg-black/80 p-3'; m.onclick = e => { if (e.target === m) memberAssignClosePicker(); }; document.body.appendChild(m); }
+        m.style.display = 'flex';
+        memberAssignRenderPicker();
+        setTimeout(() => document.getElementById('ma-picker-q')?.focus(), 50);
+    }
+    function memberAssignClosePicker() { const m = document.getElementById('ma-picker'); if (m) m.style.display = 'none'; }
+    function memberAssignRenderPicker(listOnly) {
+        const m = document.getElementById('ma-picker'); if (!m) return;
+        const mem = currentMemberTeamsMember();
+        const cur = memberAssignedIds(mem);
+        const q = memberAssignPickQ.trim().toLowerCase();
+        const heroName = id => ((heroesDB || []).find(x => String(x.id) === String(id)) || {}).name || '';
+        const teams = (teams3v3DB || []).filter(t => t && !t.deleted && !(t.owner && t.owner.memberId))
+            .filter(t => memberAssignPickType === 'all' || (memberAssignPickType === 'Defense' ? t.teamType === 'Defense' : t.teamType !== 'Defense'))
+            .filter(t => !q || String(t.name || '').toLowerCase().includes(q) || (t.slots || []).some(s => s && heroName(s.id).toLowerCase().includes(q)));
+        const rows = teams.map(t => {
+            const had = cur.indexOf(String(t.id)) >= 0;
+            const missR = teamMissingRingCount(t, memberRingIdSet(mem));
+            const imgs = [0, 1, 2].map(k => { const s = t.slots && t.slots[k]; const hh = s && (heroesDB || []).find(x => String(x.id) === String(s.id)); if (!hh) return '<div class="w-11 h-11 rounded-lg bg-gray-800"></div>'; const img = s.awakened && hh.img2 ? hh.img2 : hh.img; return `<img src="${img}" class="w-11 h-11 rounded-lg object-cover border ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" alt="">`; }).join('');
+            return `<button type="button" onclick="memberAssignPick('${String(t.id).replace(/'/g, '')}')" class="w-full text-left flex items-center gap-3 p-2.5 rounded-xl border ${had ? 'border-indigo-500 bg-indigo-900/30' : 'border-gray-800 hover:border-gray-600 bg-[#0d1117]'} transition">
+                <div class="flex gap-1 shrink-0">${imgs}</div>
+                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${mtEsc(t.name || 'ทีม')}</div><div class="text-[10px] text-gray-500">${t.teamType === 'Defense' ? '🛡️ ทีมรับ' : '⚔️ ทีมบุก'}${had ? ' · <span class="text-indigo-300">✓ ให้แล้ว</span>' : ''} · ${missR ? `<span class="text-red-300">⚠️ ขาดแหวน ${missR}</span>` : '<span class="text-emerald-300">💍 แหวนครบ</span>'}</div></div>
+            </button>`;
+        }).join('') || '<div class="text-center text-gray-500 text-sm py-10">ไม่พบทีม</div>';
+        if (listOnly) { const l = document.getElementById('ma-picker-list'); if (l) l.innerHTML = rows; return; }
+        const tab = (k, label) => `<button type="button" onclick="memberAssignPickType='${k}';memberAssignRenderPicker(true);document.querySelectorAll('#ma-picker [data-mt]').forEach(b=>b.classList.toggle('bg-indigo-600',b.dataset.mt==='${k}'))" data-mt="${k}" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-white ${memberAssignPickType === k ? 'bg-indigo-600' : ''}">${label}</button>`;
+        m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[88vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex items-center gap-2"><h3 class="text-white font-bold">📋 ${memberAssignPickSlot >= 0 ? 'เปลี่ยนทีม' : 'เพิ่มทีมจาก 3v3'} ให้ ${mtEsc(mem ? mem.name : '')}</h3><button onclick="memberAssignClosePicker()" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button></div>
+            <div class="p-3 border-b border-gray-800 flex flex-wrap gap-2 items-center">
+                <input id="ma-picker-q" value="${mtEsc(memberAssignPickQ)}" oninput="memberAssignPickQ=this.value;memberAssignRenderPicker(true)" placeholder="ค้นหาชื่อทีม / ชื่อตัวละคร..." class="flex-1 min-w-[160px] bg-[#0d1117] border border-gray-700 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500">
+                ${tab('all', 'ทั้งหมด')}${tab('Attack', '⚔️ บุก')}${tab('Defense', '🛡️ รับ')}
+            </div>
+            <div id="ma-picker-list" class="p-3 overflow-y-auto flex-1 space-y-2">${rows}</div>
+        </div>`;
+    }
+    function memberAssignPick(teamId) {
+        const mem = currentMemberTeamsMember(); if (!mem) return;
+        const list = memberAssignedIds(mem);
+        const at = list.indexOf(String(teamId));
+        if (memberAssignPickSlot >= 0) {           // เปลี่ยนทีมในตำแหน่งเดิม
+            if (at >= 0 && at !== memberAssignPickSlot) list.splice(at, 1);
+            list[Math.min(memberAssignPickSlot, list.length)] = String(teamId);
+        } else if (at < 0) list.push(String(teamId)); // เพิ่มท้ายรายการ
+        else { memberAssignClosePicker(); if (typeof showToast === 'function') showToast('ทีมนี้ให้ไปแล้ว', 'info'); return; }   // มีแล้ว = ไม่บันทึกซ้ำ
+        memberAssignClosePicker();
+        return memberAssignSave(mem, list.filter(Boolean), '📋 เพิ่มทีมให้ ' + (mem.name || '') + ' แล้ว');
+    }
+    function memberAssignRemove(k) {
+        const mem = currentMemberTeamsMember(); if (!mem) return;
+        const list = memberAssignedIds(mem); list.splice(k, 1);
+        return memberAssignSave(mem, list, 'เอาทีมออกแล้ว');
+    }
+    /** บันทึกทันที — เขียนแถวเดียวของคนนี้ (ชีต MemberAssignments) */
+    async function memberAssignSave(mem, list, okMsg) {
+        const g = guildsDB[activeGuildIndex]; if (!g) return;
+        if (mem.id == null || String(mem.id) === '') return alert('สมาชิกคนนี้ยังไม่มี ID');
+        const prev = mem.assignedTeamIds;
+        mem.assignedTeamIds = list;
+        renderMemberTeamsSlots();
+        if (typeof renderMemberRosterMemberList === 'function') renderMemberRosterMemberList();   // ตัวเลข 🎖️ ในรายชื่อ
+        try {
+            const r = await postJson({ action: 'setMemberAssignedTeams', guild_id: String(g.id), member_id: String(mem.id), team_ids: list }, { timeout: 30000, retries: 2 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            if (typeof showToast === 'function') showToast(okMsg, 'success');
+        } catch (e) {
+            mem.assignedTeamIds = prev; renderMemberTeamsSlots();
+            alert('❌ บันทึกไม่สำเร็จ\n\n' + (e.message || e));
+        }
+    }
+
+    // =========================================================
+    // 📊 ดูสแตททีม (หน้าต่าง) — ใช้ทั้งหน้าแอดมินและหน้าลงทะเบียน
+    //    รับทีมได้ทั้งรูปแบบในเครื่อง (t.slots) และจากเซิร์ฟเวอร์ (t.data.slots)
+    // =========================================================
+    /** 💍 แหวนที่ลูกกิลมี → Map(id → กี่วง) (แหวนหลัก) */
+    function memberRingIdSet(mem) { return ringCountMap((mem && mem.ring_list) || []); }
+    function ringCountMap(list) {
+        const m = new Map();
+        (list || []).forEach(rr => { if (rr && rr.id) m.set(String(rr.id), (m.get(String(rr.id)) || 0) + 1); });
+        return m;
+    }
+    /** แหวนในทีมที่ลูกกิลขาด — นับเป็นวง (ทีมใช้แหวนเดียวกัน 2 ตัว แต่มี 1 วง = ขาด 1) */
+    function teamMissingRingCount(t, ringIds) {
+        const slots = (t && (t.slots || (t.data && t.data.slots))) || [];
+        const left = new Map(ringIds); let miss = 0;
+        slots.forEach(s => { if (!s || !s.id) return; const n = (typeof normalize3v3Slot === 'function') ? normalize3v3Slot(s) : s; (n.rings || []).forEach(id => { if (!id) return; const k = String(id), c = left.get(k) || 0; if (c > 0) left.set(k, c - 1); else miss++; }); });
+        return miss;
+    }
+    function teamStatsOpenById(id) {
+        const t = memberAssignFindTeam(id) || (teams3v3DB || []).find(x => x && String(x.id) === String(id));
+        const mem = typeof currentMemberTeamsMember === 'function' ? currentMemberTeamsMember() : null;
+        if (t) teamStatsOpen(t, mem ? memberRingIdSet(mem) : null, mem ? mem.name : '');
+    }
+    /** ringIds = แหวนที่ลูกกิลมี (ส่งมา = ติด ✅/❌ ที่แหวนแต่ละวง) */
+    function teamStatsOpen(t, ringIds, ownerName) {
+        const d = (t && t.data) ? Object.assign({}, t.data) : (t || {});
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const H = id => (heroesDB || []).find(x => String(x.id) === String(id));
+        const P = id => (petsDB || []).find(x => String(x.id) === String(id));
+        const R = id => (ringsDB || []).find(x => String(x.id) === String(id));
+        const LBL = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ แม่นยำ', resist: '🚫 ต้านทาน' };
+        const PCT = ['cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'];
+        const FMT = { basic: 'พื้นฐาน', balanced: 'สมดุล', attack: 'บุก', defense: 'ป้องกัน' };
+        const slots = Array.isArray(d.slots) ? d.slots : [];
+        const ringLeft = ringIds ? new Map(ringIds) : null;   // ใช้ไปทีละวงตามลำดับตัวละคร
+        const heroCards = [0, 1, 2].map(k => {
+            const s = slots[k], hh = s && H(s.id);
+            if (!hh) return '';
+            const img = s.awakened && hh.img2 ? hh.img2 : hh.img;
+            const stats = Object.keys(s.stats || {}).filter(key => { const v = s.stats[key]; return v !== '' && v != null && String(v) !== '0'; })
+                .map(key => { const v = String(s.stats[key]); return `<div class="flex justify-between gap-2 bg-[#161b22] rounded px-2 py-1"><span class="text-gray-400">${E(LBL[key] || key)}</span><span class="text-amber-300 font-bold">${PCT.includes(key) && /^[\d.]+\+?$/.test(v) ? E(v.replace(/\+$/, '')) + '%' + (/\+$/.test(v) ? '+' : '') : E(v)}</span></div>`; }).join('');
+            const rings = (Array.isArray(s.rings) && s.rings.length ? s.rings : [s.ring]).filter(Boolean).map(id => {
+                const rr = R(id); if (!rr) return '';
+                let has = null;
+                if (ringLeft) { const c = ringLeft.get(String(id)) || 0; has = c > 0; if (has) ringLeft.set(String(id), c - 1); }
+                return `<span class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${has === false ? 'bg-red-950/50 border border-red-800/60' : 'bg-[#161b22]'}" title="${has === false ? 'ไม่มีแหวนวงนี้' : ''}">${rr.img ? `<img src="${rr.img}" class="w-5 h-5 rounded" alt="">` : '💍'}${E(rr.name)}${has === true ? ' ✅' : has === false ? ' <span class="text-red-300 font-bold">❌ ไม่มี</span>' : ''}</span>`;
+            }).join('');
+            const equip = s.equip ? String(s.equip).split('_')[0] : '';
+            return `<div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3">
+                <div class="flex items-center gap-3 mb-2"><img src="${img}" class="w-14 h-14 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-600'}" alt="">
+                    <div class="min-w-0"><div class="text-white font-bold truncate">${E(hh.name)}</div><div class="text-[11px] text-yellow-400">${'★'.repeat(Math.min(6, parseInt(s.star, 10) || 0))}${s.awakened ? ' <span class="text-purple-300">· ตื่น</span>' : ''}</div></div></div>
+                ${stats ? `<div class="grid grid-cols-1 gap-1 text-[11px] mb-2">${stats}</div>` : '<div class="text-[11px] text-gray-600 mb-2">ไม่ได้กำหนดสแตท</div>'}
+                ${rings ? `<div class="text-[10px] text-gray-500 mb-0.5">💍 แหวน</div><div class="flex flex-wrap gap-1 text-[11px] text-gray-200 mb-1.5">${rings}</div>` : ''}
+                ${equip ? `<div class="text-[11px] text-gray-300">🛡️ เซต: ${E(equip)}</div>` : ''}
+                ${s.comment ? `<div class="text-[11px] text-gray-400 italic mt-1">💬 ${E(s.comment)}</div>` : ''}
+            </div>`;
+        }).join('');
+        const pets = (Array.isArray(d.pets) ? d.pets : (d.pet ? [d.pet] : [])).filter(Boolean).map(p => { const pp = P(p.id); return pp ? `<span class="inline-flex items-center gap-1.5 bg-[#0d1117] border border-gray-800 rounded-lg px-2 py-1"><img src="${pp.img}" class="w-7 h-7 rounded object-cover" alt=""><span class="text-[11px] text-gray-300">${E(pp.name)}</span></span>` : ''; }).join('');
+        const queue = (Array.isArray(d.skillQueue) ? d.skillQueue : []).map((q, n) => {
+            const m = String(q).match(/^(\d+)_(UP|DOWN)$/); if (!m) return '';
+            const s = slots[+m[1]], hh = s && H(s.id); if (!hh) return '';
+            const key = m[2] === 'UP' ? 's2' : 's1';
+            const icon = typeof skillIconOf === 'function' ? skillIconOf(hh, key, !!s.awakened) : '';
+            const nm = (typeof skillNameOf === 'function' && skillNameOf(hh, key)) || key.toUpperCase();
+            return `<span class="inline-flex items-center gap-1.5 bg-[#0d1117] border border-gray-800 rounded-lg px-2 py-1"><span class="text-[10px] text-gray-500">${n + 1}</span>${icon ? `<img src="${icon}" class="w-7 h-7 rounded" alt="">` : ''}<span class="leading-tight"><span class="block text-[11px] text-white">${E(nm)}</span><span class="block text-[9px] text-gray-500">${E(hh.name)}</span></span></span>`;
+        }).join('');
+        const fmt = FMT[String(d.formation || '').toLowerCase()] || d.formation || '';
+        let m = document.getElementById('team-stats-dlg');
+        if (!m) { m = document.createElement('div'); m.id = 'team-stats-dlg'; m.className = 'fixed inset-0 z-[650] flex items-center justify-center bg-black/80 p-3'; m.onclick = e => { if (e.target === m) m.style.display = 'none'; }; document.body.appendChild(m); }
+        m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex items-center gap-2 min-w-0">
+                <div class="min-w-0"><h3 class="text-white font-bold truncate">${E((t && t.name) || 'ทีม')}</h3><div class="text-[11px] text-gray-400">${d.teamType === 'Defense' ? '🛡️ ทีมรับ' : '⚔️ ทีมบุก'}${fmt ? ' · การยืน ' + E(fmt) : ''}${ringIds ? (() => { const n = teamMissingRingCount({ slots }, ringIds); return n ? ` · <span class="text-red-300 font-bold">⚠️ ${E(ownerName || 'ลูกกิล')} ขาดแหวน ${n} วง</span>` : ` · <span class="text-emerald-300">💍 แหวนครบ</span>`; })() : ''}</div></div>
+                <button onclick="document.getElementById('team-stats-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">${heroCards || '<div class="text-gray-500 text-sm">ไม่มีตัวละคร</div>'}</div>
+                ${pets ? `<div><div class="text-[11px] text-gray-500 mb-1">🐾 สัตว์เลี้ยง</div><div class="flex flex-wrap gap-1.5">${pets}</div></div>` : ''}
+                ${queue ? `<div><div class="text-[11px] text-gray-500 mb-1">⚡ ลำดับสกิล</div><div class="flex flex-wrap gap-1.5">${queue}</div></div>` : ''}
+                ${d.note ? `<div class="text-[12px] text-gray-300 bg-[#0d1117] border border-gray-800 rounded-lg p-3">📝 ${E(d.note)}</div>` : ''}
+            </div>
+        </div>`;
+        m.style.display = 'flex';
     }
 
     function createMemberTeam(slotIdx) {
         const mem = currentMemberTeamsMember();
         if (!mem) return;
+        if (slotIdx === undefined || slotIdx === null) { slotIdx = getMemberTeamSlots(mem).findIndex(x => !x); if (slotIdx < 0) return alert(`⛔ สมาชิกคนนี้มีครบ ${MEMBER_TEAM_MAX} ทีมแล้ว`); }
         if (mem.id == null || String(mem.id) === '') return alert('สมาชิกคนนี้ยังไม่มี ID — กรุณาบันทึกสมาชิกในหน้า 🏰 กิลด์ ก่อน');
         const slots = getMemberTeamSlots(mem);
         if (slots.filter(Boolean).length >= MEMBER_TEAM_MAX) return alert(`⛔ สมาชิกคนนี้มีครบ ${MEMBER_TEAM_MAX} ทีมแล้ว`);
@@ -38640,7 +38980,7 @@
         };
         teams3v3DB.unshift(newTeam);
         if (!allTeams3v3DB) allTeams3v3DB = [];
-        allTeams3v3DB.unshift(newTeam);
+        if (allTeams3v3DB !== teams3v3DB) allTeams3v3DB.unshift(newTeam);   // บางครั้งเป็นรายการเดียวกัน — เดิมใส่ซ้ำ 2 ครั้ง
         mark3v3Dirty();
         renderMemberRosterMemberList();
         renderMemberTeamsSlots();
