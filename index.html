@@ -3890,9 +3890,11 @@
                     <h2 class="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><span>👥</span> ข้อมูลลูกกิล</h2>
                     <p class="text-xs text-gray-500 mt-1">ดูตัวละคร · แหวน · สัตว์เลี้ยง ที่สมาชิกกรอกผ่านพอร์ทัล</p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-[10px] text-gray-500 font-bold uppercase">กิลด์</label>
-                    <select id="member-roster-guild-select" onchange="selectMemberRosterGuild(this.value)" class="bg-[#0d1117] border border-gray-600 rounded-lg px-3 py-2 text-xs text-blue-300 font-bold outline-none focus:border-blue-500 min-w-[160px]"></select>
+                <div class="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
+                    <button type="button" id="member-roster-notify-all-btn" onclick="guildNotifyMembers()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="แท็กทุกคนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง ในห้อง Discord ของกิลด์">🔔 แจ้งเตือนทั้งหมด</button>
+                    <button type="button" onclick="suggestOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow transition whitespace-nowrap" title="ระบบเช็คตัวละคร/แหวนของลูกกิลทุกคน แล้วแนะนำว่าใครตั้งทีมไหนได้">🤖 แนะนำทีม</button>
+                    <div class="flex items-center gap-2 min-w-0"><label class="text-[10px] text-gray-500 font-bold uppercase whitespace-nowrap">กิลด์</label>
+                    <select id="member-roster-guild-select" onchange="selectMemberRosterGuild(this.value)" class="bg-[#0d1117] border border-gray-600 rounded-lg px-3 py-2 text-xs text-blue-300 font-bold outline-none focus:border-blue-500 min-w-[140px] max-w-full"></select></div>
                 </div>
             </header>
             <div id="roster-split" class="msplit flex flex-1 min-h-0 overflow-hidden">
@@ -4692,7 +4694,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.10.0';
+        const APP_VERSION = '1.11.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -25761,6 +25763,7 @@
                                 <span class="inline-flex items-center gap-1 mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${typeBadge}">${icon} ${typeLabel}</span>
                             </div>
                             <div class="flex items-center gap-1.5 flex-shrink-0">
+                                ${!(team.owner && team.owner.memberId) ? `<button onclick="event.stopPropagation(); bulkAssignOpen('${team.id}')" title="ให้ทีมนี้กับลูกกิล (เลือกได้หลายคน)" class="w-7 h-7 flex items-center justify-center rounded-md bg-black/40 hover:bg-indigo-700 text-gray-300 hover:text-white border border-gray-700 hover:border-indigo-500 text-xs transition">📌</button>` : ''}
                                 <button onclick="event.stopPropagation(); duplicate3v3TeamById('${team.id}')" title="คัดลอกทีมนี้" class="w-7 h-7 flex items-center justify-center rounded-md bg-black/40 hover:bg-emerald-700 text-gray-300 hover:text-white border border-gray-700 hover:border-emerald-500 text-xs transition">📋</button>
                                 <span class="text-[9px] text-gray-400 bg-black/40 px-2 py-1 rounded-md border border-gray-700 font-bold uppercase">${team.formation || 'Basic'}</span>
                             </div>
@@ -38532,6 +38535,13 @@
             return String(mem.name || '').toLowerCase().includes(memberRosterListFilter);
         });
         if (countEl) countEl.textContent = `${filtered.length} / ${30}`;
+        const naBtn = document.getElementById('member-roster-notify-all-btn');
+        if (naBtn) {   // 🔔 แจ้งเตือนทั้งหมด = คนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง
+            const nMiss = members.filter(m => typeof guildNotifyMissing === 'function' && guildNotifyMissing(m)).length;
+            naBtn.innerHTML = '🔔 แจ้งเตือนทั้งหมด' + (nMiss ? ' <span class="bg-white/25 rounded px-1.5">' + nMiss + '</span>' : '');
+            naBtn.disabled = !nMiss; naBtn.classList.toggle('opacity-50', !nMiss);
+            naBtn.title = nMiss ? 'แท็ก ' + nMiss + ' คนที่ยังไม่ลงตัวละคร/สัตว์เลี้ยง ในห้อง Discord ของกิลด์' : 'ทุกคนลงข้อมูลครบแล้ว';
+        }
 
         if (filtered.length === 0) {
             listEl.innerHTML = `<div class="text-center text-gray-600 text-xs py-8 px-2">ไม่พบสมาชิก</div>`;
@@ -38543,15 +38553,18 @@
             const teamCount = (typeof countMemberTeams === 'function' ? countMemberTeams(mem) : 0) + (typeof memberAssignedIds === 'function' ? memberAssignedIds(mem).length : 0);
             const active = idx === memberRosterBrowseIdx ? ' active' : '';
             const name = (mem.name || 'ไม่ระบุชื่อ').replace(/"/g, '&quot;');
+            const warnBadge = '<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-black leading-none ml-0.5" title="ยังไม่ได้ใส่">!</span>';
+            const missTxt = [counts.heroes ? '' : 'ตัวละคร', counts.pets ? '' : 'สัตว์เลี้ยง'].filter(Boolean).join(' / ');
             return `<button type="button" onclick="selectMemberRosterBrowse(${idx})" class="member-roster-list-item${active}">
                 <div class="member-roster-list-item-main flex items-center gap-2 min-w-0">
                     ${memberAvatarHTML(mem, 30)}
                     <span class="member-roster-list-item-name truncate">${name}</span>
+                    ${missTxt ? `<span class="ml-auto shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-600 text-white text-xs font-black" title="ยังไม่ได้ใส่ ${missTxt}">!</span>` : ''}
                 </div>
                 <div class="member-roster-list-item-stats">
-                    <div style="margin:0px 5px;">⚔️ <b>${counts.heroes}</b></div>
+                    <div style="margin:0px 5px;" class="${counts.heroes ? '' : 'text-red-400'}">⚔️ <b>${counts.heroes}</b>${counts.heroes ? '' : warnBadge}</div>
                     <div style="margin:0px 5px;">💍 <b>${counts.rings}</b></div>
-                    <div style="margin:0px 5px;">🐾 <b>${counts.pets}</b></div>
+                    <div style="margin:0px 5px;" class="${counts.pets ? '' : 'text-red-400'}">🐾 <b>${counts.pets}</b>${counts.pets ? '' : warnBadge}</div>
                     <div style="margin:0px 5px;" class="${teamCount === 0 ? 'text-gray-600' : 'text-blue-400'}">🎖️ <b>${teamCount}</b></div>
                 </div>
             </button>`;
@@ -38575,7 +38588,10 @@
         const codeEl = document.getElementById('member-roster-selected-code');
         const counts = getMemberRosterCounts(mem);
         if (nameEl) nameEl.textContent = mem.name || 'ไม่ระบุชื่อ';
-        if (statsEl) statsEl.textContent = `ตัวละคร ${counts.heroes} · แหวน ${counts.rings} · สัตว์เลี้ยง ${counts.pets}`;
+        if (statsEl) {
+            const wb = '<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-black ml-0.5 align-middle">!</span>';
+            statsEl.innerHTML = `<span class="${counts.heroes ? '' : 'text-red-400 font-bold'}">ตัวละคร ${counts.heroes}${counts.heroes ? '' : wb}</span> · แหวน ${counts.rings} · <span class="${counts.pets ? '' : 'text-red-400 font-bold'}">สัตว์เลี้ยง ${counts.pets}${counts.pets ? '' : wb}</span>`;
+        }
         if (codeEl) codeEl.textContent = mem.discordName ? '✅ เชื่อม Discord แล้ว' : 'ยังไม่ได้เชื่อม Discord';   // ไม่โชว์รหัสแล้ว — เข้าด้วย Discord อย่างเดียว
         const avEl = document.getElementById('member-roster-selected-avatar');
         if (avEl) avEl.innerHTML = memberAvatarHTML(mem, 44);
@@ -38945,6 +38961,224 @@
             </div>
         </div>`;
         m.style.display = 'flex';
+    }
+
+    // =========================================================
+    // 📌 ให้ทีมเดียวกับหลายคน · 🤖 แนะนำทีมอัตโนมัติ — บันทึกรวมในคำขอเดียว (setMemberAssignedTeamsMany)
+    // =========================================================
+    /** ลูกกิลคนนี้ตั้งทีมนี้ได้แค่ไหน: ขาดตัวละครกี่ตัว · ยังไม่ตื่นกี่ตัว · ขาดแหวนกี่วง */
+    function memberTeamReadiness(mem, team) {
+        const owned = new Map(((mem && mem.hero_list) || []).map(x => [String(x.id), x]));
+        const slots = ((team && team.slots) || []).filter(s => s && s.id);
+        let missing = 0, notAwk = 0;
+        slots.forEach(s => { const o = owned.get(String(s.id)); if (!o) missing++; else if (s.awakened && !o.awakened) notAwk++; });
+        const ringMiss = teamMissingRingCount(team, memberRingIdSet(mem));
+        const ringTotal = teamMissingRingCount(team, new Map());
+        const ringAll = team && team.__ringAll != null ? team.__ringAll : ringTotal;
+        const ready = slots.length > 0 && missing === 0;
+        return { total: slots.length, missing, notAwk, ringMiss, ringTotal, ringAll, hasHeroes: !!((mem && mem.hero_list) || []).length, hasRings: !!((mem && mem.ring_list) || []).length, ready, full: ready && !ringMiss };
+    }
+    function readinessChips(rd) {
+        const c = [];
+        if (!rd.hasHeroes) c.push('<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">⚔️ ยังไม่ลงตัวละคร</span>');
+        else c.push(rd.missing ? `<span class="px-1.5 py-0.5 rounded bg-red-900/40 text-red-300">❌ ขาดตัวละคร ${rd.missing}</span>` : '<span class="px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300">✅ ตัวครบ</span>');
+        if (rd.hasHeroes && rd.notAwk) c.push(`<span class="px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300">⚠️ ยังไม่ตื่น ${rd.notAwk}</span>`);
+        // 💍 แหวน: มีกี่วงจากที่ทีมใช้ (นับวงซ้ำ)
+        if (!rd.ringTotal) c.push(rd.ringAll ? '<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">💍 ไม่เช็คแหวน</span>' : '<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">💍 ทีมนี้ไม่ใส่แหวน</span>');
+        else if (!rd.hasRings) c.push(`<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">💍 ยังไม่ลงแหวน (ต้องใช้ ${rd.ringTotal})</span>`);
+        else c.push(rd.ringMiss ? `<span class="px-1.5 py-0.5 rounded bg-red-900/40 text-red-300">💍 มี ${rd.ringTotal - rd.ringMiss}/${rd.ringTotal} · ขาด ${rd.ringMiss}</span>` : `<span class="px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300">💍 แหวนครบ ${rd.ringTotal}/${rd.ringTotal}</span>`);
+        return c.join('');
+    }
+    function teamThumbsSmall(team, px) {
+        const sz = px || 32;
+        return [0, 1, 2].map(k => { const s = team && team.slots && team.slots[k]; const hh = s && (heroesDB || []).find(x => String(x.id) === String(s.id)); if (!hh) return `<span class="inline-block rounded bg-gray-800" style="width:${sz}px;height:${sz}px"></span>`; return `<img src="${s.awakened && hh.img2 ? hh.img2 : hh.img}" class="rounded object-cover border ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" style="width:${sz}px;height:${sz}px" alt="">`; }).join('');
+    }
+    function bulkModalShell(id, inner) {
+        let m = document.getElementById(id);
+        if (!m) { m = document.createElement('div'); m.id = id; m.className = 'fixed inset-0 z-[620] flex items-center justify-center bg-black/80 p-3'; m.onclick = e => { if (e.target === m) m.style.display = 'none'; }; document.body.appendChild(m); }
+        m.innerHTML = inner; m.style.display = 'flex'; return m;
+    }
+    /** บันทึกหลายคนทีเดียว · changes = [{ mem, list }] */
+    async function bulkAssignSaveMany(guild, changes, okMsg) {
+        if (!changes.length) return true;
+        showLoading('📌 กำลังบันทึก ' + changes.length + ' คน...');
+        try {
+            const r = await postJson({ action: 'setMemberAssignedTeamsMany', guild_id: String(guild.id), items: changes.map(c => ({ member_id: String(c.mem.id), team_ids: c.list })) }, { timeout: 45000, retries: 2 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            changes.forEach(c => { c.mem.assignedTeamIds = c.list; });
+            if (typeof showToast === 'function') showToast(okMsg, 'success');
+            if (currentView === 'member-roster') { renderMemberRosterMemberList(); if (memberRosterBrowseTab === 'teams') renderMemberTeamsSlots(); }
+            return true;
+        } catch (e) { alert('❌ บันทึกไม่สำเร็จ\n\n' + (e.message || e)); return false; }
+        finally { hideLoading(); }
+    }
+
+    // ---------- 1) ให้ทีมเดียวกับหลายคน ----------
+    let bulkAssignTeamId = null, bulkAssignGuildIdx = -1, bulkAssignSel = null;
+    const bulkRingOff = new Map();   // id ทีม → Set("ช่อง:วง") ที่ไม่เช็ค
+    function bulkRingOffSet(tid) { const k = String(tid); if (!bulkRingOff.has(k)) bulkRingOff.set(k, new Set()); return bulkRingOff.get(k); }
+    /** ทีมฉบับเช็คเฉพาะแหวนที่เลือก (วงที่ปิด = ไม่นับ) */
+    function bulkCheckTeam(team) {
+        const off = bulkRingOffSet(team.id);
+        return Object.assign({}, team, { __ringAll: teamMissingRingCount(team, new Map()), slots: (team.slots || []).map((s, i) => {
+            if (!s || !s.id) return s;
+            const n = normalize3v3Slot(s);
+            return Object.assign({}, n, { ring: null, rings: (n.rings || []).map((id, j) => off.has(i + ':' + j) ? null : id) });
+        }) });
+    }
+    function bulkRingToggle(si, ri) { const off = bulkRingOffSet(bulkAssignTeamId), k = si + ':' + ri; if (off.has(k)) off.delete(k); else off.add(k); bulkAssignRender(); }
+    function bulkRingAll(on) {
+        const off = bulkRingOffSet(bulkAssignTeamId); off.clear();
+        if (!on) { const team = memberAssignFindTeam(bulkAssignTeamId); (team.slots || []).forEach((s, i) => { if (s && s.id) (normalize3v3Slot(s).rings || []).forEach((id, j) => { if (id) off.add(i + ':' + j); }); }); }
+        bulkAssignRender();
+    }
+    /** แถบตัวละคร + แหวนของทีม — กดแหวนเพื่อเลือก/ไม่เลือกเช็ค */
+    function bulkRingPanelHTML(team) {
+        const off = bulkRingOffSet(team.id);
+        const cols = (team.slots || []).map((s, i) => {
+            if (!s || !s.id) return '';
+            const hh = (heroesDB || []).find(x => String(x.id) === String(s.id)); if (!hh) return '';
+            const n = normalize3v3Slot(s);
+            const rings = (n.rings || []).map((id, j) => {
+                if (!id) return '';
+                const rr = (ringsDB || []).find(x => String(x.id) === String(id)); const on = !off.has(i + ':' + j);
+                return `<button type="button" onclick="bulkRingToggle(${i},${j})" title="${mtEsc(rr ? rr.name : id)} — ${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
+                    ${rr && rr.img ? `<img src="${rr.img}" class="w-full h-full rounded-full object-cover" alt="">` : '💍'}
+                    ${on ? '<span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] leading-4 text-center font-black">✓</span>' : ''}</button>`;
+            }).join('');
+            return `<div class="flex flex-col items-center gap-1 min-w-0">
+                <img src="${s.awakened && hh.img2 ? hh.img2 : hh.img}" class="w-14 h-14 sm:w-20 sm:h-20 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" alt="">
+                <span class="text-[11px] sm:text-xs font-bold text-gray-200 truncate max-w-full">${mtEsc(hh.name)}</span>
+                <div class="flex flex-wrap justify-center gap-1.5">${rings || '<span class="text-[9px] text-gray-600">ไม่มีแหวน</span>'}</div>
+            </div>`;
+        }).join('');
+        return `<div class="p-3 border-b border-gray-800 shrink-0 bg-[#0d1117]/60 overflow-y-auto" style="max-height:clamp(150px,32vh,340px)">
+            <div class="flex items-center gap-2 mb-3 text-[11px]"><span class="text-gray-400">💍 แหวนที่จะเช็ค — กดที่แหวนเพื่อเลือก/ไม่เลือก</span>
+                <button type="button" onclick="bulkRingAll(true)" class="ml-auto px-2 py-0.5 rounded border border-gray-700 text-gray-300 hover:text-white">เช็คทั้งหมด</button>
+                <button type="button" onclick="bulkRingAll(false)" class="px-2 py-0.5 rounded border border-gray-700 text-gray-300 hover:text-white">ไม่เช็คแหวน</button></div>
+            <div class="grid grid-cols-3 gap-3">${cols}</div>
+        </div>`;
+    }
+    /** แถวสมาชิก: แหวนที่เช็ค มี ✅ / ไม่มี ❌ */
+    function bulkMemberRingIcons(mem, team) {
+        const left = new Map(memberRingIdSet(mem)); const out = [];
+        (bulkCheckTeam(team).slots || []).forEach(s => { if (!s || !s.id) return; (s.rings || []).forEach(id => {
+            if (!id) return; const k = String(id), c = left.get(k) || 0, has = c > 0; if (has) left.set(k, c - 1);
+            const rr = (ringsDB || []).find(x => String(x.id) === k);
+            out.push(`<span class="relative inline-block w-5 h-5" title="${mtEsc(rr ? rr.name : k)} — ${has ? 'มี' : 'ไม่มี'}">${rr && rr.img ? `<img src="${rr.img}" class="w-5 h-5 rounded-full object-cover ${has ? '' : 'opacity-40 grayscale'}" alt="">` : '💍'}<span class="absolute -bottom-1 -right-1 text-[8px]">${has ? '✅' : '❌'}</span></span>`);
+        }); });
+        return out.length ? `<div class="flex flex-wrap gap-1.5 mt-1">${out.join('')}</div>` : '';
+    }
+    function bulkAssignOpen(teamId) {
+        bulkAssignTeamId = String(teamId);
+        const vis = bulkVisibleGuilds();
+        if (!vis.includes(bulkAssignGuildIdx)) bulkAssignGuildIdx = vis.includes(activeGuildIndex) ? activeGuildIndex : (vis[0] != null ? vis[0] : -1);
+        bulkAssignSel = null;
+        bulkAssignRender();
+    }
+    function bulkVisibleGuilds() { return (typeof getVisibleGuildIndices === 'function' ? getVisibleGuildIndices() : guildsDB.map((_, i) => i)).filter(i => guildsDB[i]); }
+    function bulkAssignRender() {
+        const team = memberAssignFindTeam(bulkAssignTeamId); if (!team) return alert('ไม่พบทีมนี้');
+        const g = guildsDB[bulkAssignGuildIdx] || {}; const mems = (g.members || []).filter(m => m && m.id != null && String(m.id) !== '');
+        if (!bulkAssignSel) bulkAssignSel = new Set(mems.filter(m => memberAssignedIds(m).includes(bulkAssignTeamId)).map(m => String(m.id)));
+        const guildOpts = bulkVisibleGuilds().map(i => `<option value="${i}" ${i === bulkAssignGuildIdx ? 'selected' : ''} style="background:#161b22">${mtEsc(guildsDB[i].name)}</option>`).join('');
+        const ckTeam = bulkCheckTeam(team);
+        const rows = mems.map(m => {
+            const rd = memberTeamReadiness(m, ckTeam), on = bulkAssignSel.has(String(m.id)), had = memberAssignedIds(m).includes(bulkAssignTeamId);
+            return `<label class="flex items-center gap-3 p-2 rounded-xl border ${on ? 'border-indigo-500 bg-indigo-900/20' : 'border-gray-800 bg-[#0d1117]'} cursor-pointer">
+                <input type="checkbox" ${on ? 'checked' : ''} onchange="bulkAssignToggle('${String(m.id).replace(/'/g, '')}', this.checked)" class="w-4 h-4 accent-indigo-500 shrink-0">
+                ${memberAvatarHTML(m, 32)}
+                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${mtEsc(m.name)}${had ? ' <span class="text-[10px] text-indigo-300 font-normal">· ให้แล้ว</span>' : ''}</div>
+                <div class="flex flex-wrap gap-1 mt-0.5 text-[10px]">${readinessChips(rd)}</div>${(m.ring_list || []).length ? bulkMemberRingIcons(m, team) : ''}</div>
+            </label>`;
+        }).join('') || '<div class="text-center text-gray-500 text-sm py-8">กิลด์นี้ยังไม่มีสมาชิก</div>';
+        const readyN = mems.filter(m => memberTeamReadiness(m, ckTeam).ready).length;
+        const fullN = mems.filter(m => memberTeamReadiness(m, ckTeam).full).length;
+        bulkModalShell('bulk-assign-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-xl max-h-[95vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex items-start gap-3 shrink-0">
+                <div class="flex gap-1 shrink-0">${teamThumbsSmall(team, 36)}</div>
+                <div class="min-w-0 flex-1"><div class="text-[11px] text-gray-400">📌 ให้ทีมนี้กับลูกกิล</div><div class="text-white font-bold truncate">${mtEsc(team.name || 'ทีม')}</div></div>
+                <button onclick="document.getElementById('bulk-assign-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+            </div>
+            ${bulkRingPanelHTML(team)}
+            <div class="p-3 border-b border-gray-800 flex flex-wrap gap-2 items-center text-xs shrink-0">
+                <select onchange="bulkAssignGuildIdx=+this.value;bulkAssignSel=null;bulkAssignRender()" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5">${guildOpts}</select>
+                <button type="button" onclick="bulkAssignSelectReady(false)" class="px-3 py-1.5 rounded-lg font-bold bg-emerald-700/40 text-emerald-200 border border-emerald-700/60 hover:bg-emerald-700/60">✅ ตัวครบ (${readyN})</button>
+                <button type="button" onclick="bulkAssignSelectReady(true)" class="px-3 py-1.5 rounded-lg font-bold bg-emerald-700/40 text-emerald-200 border border-emerald-700/60 hover:bg-emerald-700/60">💍 ตัว+แหวนครบ (${fullN})</button>
+                <button type="button" onclick="bulkAssignSel=new Set();bulkAssignRender()" class="px-3 py-1.5 rounded-lg font-bold bg-[#0d1117] text-gray-300 border border-gray-700">ล้าง</button>
+            </div>
+            <div class="p-3 space-y-1.5 overflow-y-auto flex-1 min-h-0">${rows}</div>
+            <div class="p-3 border-t border-gray-800 flex items-center gap-2 shrink-0">
+                <span class="text-[11px] text-gray-400">เลือก ${bulkAssignSel.size} คน</span>
+                <button type="button" onclick="bulkAssignSave()" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black">💾 บันทึก</button>
+            </div>
+        </div>`);
+    }
+    function bulkAssignToggle(mid, on) { if (on) bulkAssignSel.add(mid); else bulkAssignSel.delete(mid); bulkAssignRender(); }
+    function bulkAssignSelectReady(needRings) {
+        const team = memberAssignFindTeam(bulkAssignTeamId); const g = guildsDB[bulkAssignGuildIdx] || {};
+        const ck = bulkCheckTeam(team);
+        (g.members || []).forEach(m => { if (!m || m.id == null) return; const rd = memberTeamReadiness(m, ck); if (needRings ? rd.full : rd.ready) bulkAssignSel.add(String(m.id)); });
+        bulkAssignRender();
+    }
+    async function bulkAssignSave() {
+        const g = guildsDB[bulkAssignGuildIdx]; if (!g) return;
+        const changes = [];
+        (g.members || []).forEach(m => {
+            if (!m || m.id == null || String(m.id) === '') return;
+            const list = memberAssignedIds(m), had = list.includes(bulkAssignTeamId), want = bulkAssignSel.has(String(m.id));
+            if (had === want) return;
+            changes.push({ mem: m, list: want ? list.concat(bulkAssignTeamId) : list.filter(x => x !== bulkAssignTeamId) });
+        });
+        if (!changes.length) { document.getElementById('bulk-assign-dlg').style.display = 'none'; return; }
+        if (await bulkAssignSaveMany(g, changes, '📌 บันทึกทีมให้ ' + changes.length + ' คนแล้ว')) document.getElementById('bulk-assign-dlg').style.display = 'none';
+    }
+
+    // ---------- 2) 🤖 แนะนำทีมอัตโนมัติ ----------
+    let suggestType = 'all', suggestPicked = null;   // suggestPicked: Map(memberId → Set(teamId))
+    function suggestCandidates() {
+        return (teams3v3DB || []).filter(t => t && !t.deleted && !(t.owner && t.owner.memberId) && (t.slots || []).some(s => s && s.id))
+            .filter(t => suggestType === 'all' || (suggestType === 'Defense' ? t.teamType === 'Defense' : t.teamType !== 'Defense'));
+    }
+    function suggestOpen() { suggestPicked = null; suggestRender(); }
+    function suggestRender() {
+        const g = guildsDB[activeGuildIndex] || {}; const mems = (g.members || []).filter(m => m && m.id != null && String(m.id) !== '');
+        const teams = suggestCandidates();
+        const first = !suggestPicked;
+        if (first) suggestPicked = new Map();
+        let pairs = 0;
+        const rows = mems.map(m => {
+            const has = memberAssignedIds(m);
+            const ready = teams.map(t => ({ t, rd: memberTeamReadiness(m, t) })).filter(x => x.rd.ready && !has.includes(String(x.t.id)));
+            if (first) suggestPicked.set(String(m.id), new Set(ready.map(x => String(x.t.id))));
+            const sel = suggestPicked.get(String(m.id)) || new Set();
+            pairs += sel.size;
+            const chips = ready.map(x => { const on = sel.has(String(x.t.id)); return `<button type="button" onclick="suggestToggle('${String(m.id).replace(/'/g, '')}','${String(x.t.id).replace(/'/g, '')}')" class="flex items-center gap-1.5 p-1.5 rounded-lg border text-left ${on ? 'border-indigo-500 bg-indigo-900/30' : 'border-gray-800 bg-[#0d1117] opacity-70'}" title="${mtEsc(x.t.name)}">
+                    <span class="text-xs">${on ? '☑' : '☐'}</span><span class="flex gap-0.5">${teamThumbsSmall(x.t, 26)}</span>
+                    <span class="text-[10px] text-gray-200 max-w-[110px] truncate">${mtEsc(x.t.name)}</span>${x.rd.ringTotal ? (x.rd.ringMiss ? `<span class="text-[9px] text-red-300">💍 ${x.rd.ringTotal - x.rd.ringMiss}/${x.rd.ringTotal}</span>` : `<span class="text-[9px] text-emerald-300">💍 ครบ</span>`) : ''}${x.rd.notAwk ? `<span class="text-[9px] text-amber-300">⚠️ตื่น</span>` : ''}</button>`; }).join('');
+            return `<div class="p-3 rounded-xl border border-gray-800 bg-[#0d1117]">
+                <div class="flex items-center gap-2 mb-2">${memberAvatarHTML(m, 30)}<span class="text-sm font-bold text-white truncate">${mtEsc(m.name)}</span>
+                    <span class="text-[10px] text-gray-500 ml-auto shrink-0">${(m.hero_list || []).length ? 'ตั้งได้ ' + ready.length + ' ทีม' : 'ยังไม่ลงตัวละคร'}${has.length ? ' · มีแล้ว ' + has.length : ''}</span></div>
+                ${chips ? `<div class="flex flex-wrap gap-1.5">${chips}</div>` : `<div class="text-[11px] text-gray-600">${(m.hero_list || []).length ? 'ไม่มีทีมที่ตัวครบ (หรือให้ไปหมดแล้ว)' : '—'}</div>`}
+            </div>`;
+        }).join('') || '<div class="text-center text-gray-500 text-sm py-8">กิลด์นี้ยังไม่มีสมาชิก</div>';
+        const tab = (k, label) => `<button type="button" onclick="suggestType='${k}';suggestPicked=null;suggestRender()" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 text-white ${suggestType === k ? 'bg-indigo-600' : ''}">${label}</button>`;
+        bulkModalShell('suggest-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex items-center gap-2"><div class="min-w-0"><h3 class="text-white font-bold">🤖 แนะนำทีมให้ลูกกิล · ${mtEsc(g.name || '')}</h3><p class="text-[11px] text-gray-400">ทีมที่ลูกกิลมีตัวละครครบ ติ๊กไว้ให้แล้วทุกทีม · 💍 มี/ต้องใช้ (แดง = ขาดแหวน) · ⚠️ตื่น = ยังไม่ตื่น · กดเพื่อเลือก/ไม่เลือก</p></div>
+                <button onclick="document.getElementById('suggest-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button></div>
+            <div class="p-3 border-b border-gray-800 flex flex-wrap gap-2">${tab('all', 'ทั้งหมด')}${tab('Attack', '⚔️ บุก')}${tab('Defense', '🛡️ รับ')}</div>
+            <div class="p-3 overflow-y-auto flex-1 space-y-2">${rows}</div>
+            <div class="p-3 border-t border-gray-800 flex items-center gap-2"><span class="text-[11px] text-gray-400">เลือก ${pairs} ทีม</span>
+                <button type="button" onclick="suggestSave()" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black">💾 ให้ทีมที่เลือก</button></div>
+        </div>`);
+    }
+    function suggestToggle(mid, tid) { const s = suggestPicked.get(mid) || new Set(); if (s.has(tid)) s.delete(tid); else s.add(tid); suggestPicked.set(mid, s); suggestRender(); }
+    async function suggestSave() {
+        const g = guildsDB[activeGuildIndex]; if (!g) return;
+        const changes = [];
+        (g.members || []).forEach(m => { const sel = suggestPicked && suggestPicked.get(String(m.id)); if (!sel || !sel.size) return; const list = memberAssignedIds(m); const add = [...sel].filter(x => !list.includes(x)); if (add.length) changes.push({ mem: m, list: list.concat(add) }); });
+        if (!changes.length) return alert('ยังไม่ได้เลือกทีม');
+        if (await bulkAssignSaveMany(g, changes, '🤖 ให้ทีมแล้ว ' + changes.length + ' คน')) document.getElementById('suggest-dlg').style.display = 'none';
     }
 
     function createMemberTeam(slotIdx) {
