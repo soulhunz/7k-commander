@@ -3985,7 +3985,7 @@
             <header id="roster-portal-header" class="roster-portal-header px-3 py-2 border-b border-gray-800/60 bg-gradient-to-r from-[#161b22] via-[#131920] to-[#0f1419] flex justify-between items-center gap-2 shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.35)] z-[56] relative">
                 <div class="flex items-center gap-2 min-w-0 flex-1">
                     <button type="button" id="roster-nav-toggle" class="roster-nav-toggle" onclick="toggleRosterMobileNav()" aria-label="เปิดเมนู" title="เมนู">☰</button>
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600/30 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-base shrink-0 shadow-inner">👤</div>
+                    <div id="roster-member-avatar" class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600/30 to-indigo-600/10 border border-blue-500/25 flex items-center justify-center text-base shrink-0 shadow-inner overflow-hidden">👤</div>
                     <div class="min-w-0 flex-1">
                         <div id="roster-member-name" class="text-base font-bold text-white truncate leading-tight">...</div>
                         <p id="roster-member-guild" class="text-[10px] text-gray-500 truncate mt-0.5">...</p>
@@ -4675,7 +4675,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.8.2';
+        const APP_VERSION = '1.8.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -5060,7 +5060,8 @@
                 ring_list: mem.ring_list || [],
                 teams: Array.isArray(mem.teams) ? mem.teams : [],
                 inventoryUpdatedAt: parseInt(mem.inventoryUpdatedAt, 10) || 0,
-                discordName: mem.discordName || ''   // 🎮 ผูก Discord แล้ว (server ใส่มาให้ — แสดงอย่างเดียว ไม่ส่งกลับ)
+                discordName: mem.discordName || '',   // 🎮 ผูก Discord แล้ว (server ใส่มาให้ — แสดงอย่างเดียว ไม่ส่งกลับ)
+                discordAvatar: mem.discordAvatar || ''
             };
         }
 
@@ -24198,7 +24199,7 @@
             guildMembersDB.forEach((mem, idx) => {
                 // 🎮 ลูกกิลเข้าด้วย Discord อย่างเดียว — โชว์บัญชีที่เชื่อมไว้ (ไม่โชว์รหัสอีกแล้ว)
                 const codeCell = mem.discordName
-                    ? `<span class="text-xs font-bold" style="color:#a5b4fc">🎮 ${String(mem.discordName).replace(/[<>&"]/g, '')}</span>`
+                    ? `<span class="inline-flex items-center gap-1.5 text-xs font-bold" style="color:#a5b4fc">${rosterDiscordAvatarSafe(mem.discordAvatar) ? `<img src="${rosterDiscordAvatarSafe(mem.discordAvatar)}" class="w-6 h-6 rounded-full border border-indigo-500/50" alt="" referrerpolicy="no-referrer">` : '🎮'} ${String(mem.discordName).replace(/[<>&"]/g, '')}</span>`
                     : `<span class="text-gray-500 text-xs italic">ยังไม่ได้เชื่อม Discord</span>`;
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1f2937] transition group">
@@ -36824,6 +36825,12 @@
             window.history.replaceState({}, '', buildMemberRosterUrl());
         } catch (e) { /* file:// */ }
 
+        // 🎮 รูป/ชื่อ Discord ที่หัวหน้า — รีเฟรช/กลับมาเปิดใหม่ ไม่มีข้อมูล Discord ในเครื่อง → ถามเซิร์ฟเวอร์
+        if (typeof rosterDiscordLoadStatus === 'function') {
+            if (rosterDiscordStatus && rosterDiscordStatus.code === normalizeMemberCode(rosterAuthCode)) rosterApplyHeaderAvatar();
+            else if (rosterDiscordClientId) rosterDiscordLoadStatus();
+        }
+
         if (USE_CLOUD && SCRIPT_URL) {
             const refreshed = await refreshRosterMemberInventoryFromServer(target);
             if (refreshed) {
@@ -36896,6 +36903,7 @@
             stEl.classList.toggle('hidden', !!rosterDiscordClientId);
         }
         if (currentRosterTarget && rosterActiveTab === 'profile') renderPublicRosterProfile();
+        if (currentRosterTarget && rosterDiscordClientId) { if (rosterDiscordStatus && rosterDiscordStatus.code === normalizeMemberCode(rosterAuthCode)) rosterApplyHeaderAvatar(); else rosterDiscordLoadStatus(); }
     }
     /** act: 'login' (เข้า) | 'link' (ผูกกับสมาชิกที่เข้าอยู่) */
     function rosterDiscordStart(act) {
@@ -36974,9 +36982,10 @@
             catch (e) { r = { status: 'error', message: e.message || String(e) }; }
             hideLoading();
             if (r && r.status === 'success' && r.accessCode) {
+                rosterDiscordStatus = { code: normalizeMemberCode(r.accessCode), linked: true, name: r.discordName || '', avatar: r.discordAvatar || '' };
                 await rosterLoginWithCode(r.accessCode);
+                rosterApplyHeaderAvatar();
                 if (r.joined && currentRosterTarget) {
-                    rosterDiscordStatus = { code: normalizeMemberCode(r.accessCode), linked: true, name: r.discordName || '' };
                     setTimeout(() => alert('🎉 ยินดีต้อนรับเข้ากิลด์ ' + ((r.guild_name && r.guild_name !== r.guild_id) ? r.guild_name : (joinGuild || r.guild_name || '')) + '\nชื่อในกิลด์: "' + (r.name || '') + '" (แก้ได้ที่เมนู ข้อมูลส่วนตัว)\n\nเริ่มเพิ่มตัวละคร / สัตว์เลี้ยง / แหวน ที่มีได้เลย · ครั้งหน้ากดปุ่ม Discord เข้าได้ทันที'), 300);
                 }
                 return;
@@ -37006,13 +37015,23 @@
             setTimeout(() => alert('❌ ผูก Discord ไม่สำเร็จ\n\n' + ((r && r.message) || 'ลองใหม่อีกครั้ง')), 200);
         }
     }
+    function rosterDiscordAvatarSafe(u) { return (u => /^https:\/\/cdn\.discordapp\.com\//.test(String(u || '')) ? String(u) : '')(u); }
+    /** รูป Discord ที่หัวหน้า (ไม่มี = 👤) */
+    function rosterApplyHeaderAvatar() {
+        const el = document.getElementById('roster-member-avatar'); if (!el) return;
+        const code = normalizeMemberCode(rosterAuthCode);
+        const st = rosterDiscordStatus && rosterDiscordStatus.code === code ? rosterDiscordStatus : null;
+        const url = st ? rosterDiscordAvatarSafe(st.avatar) : '';
+        el.innerHTML = url ? '<img src="' + url + '" class="w-full h-full object-cover" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.textContent=\'👤\'">' : '👤';
+    }
     async function rosterDiscordLoadStatus() {
         const code = normalizeMemberCode(rosterAuthCode);
         if (!code || !rosterDiscordClientId) return;
         try {
             const r = await postJson({ action: 'discordRosterStatus', accessCode: code }, { timeout: 30000, retries: 2 });
-            rosterDiscordStatus = { code: code, linked: !!(r && r.linked), name: (r && r.discordName) || '', err: !(r && r.status === 'success') };
+            rosterDiscordStatus = { code: code, linked: !!(r && r.linked), name: (r && r.discordName) || '', avatar: (r && r.discordAvatar) || '', err: !(r && r.status === 'success') };
         } catch (e) { rosterDiscordStatus = { code: code, linked: false, name: '', err: true }; }
+        rosterApplyHeaderAvatar();
         if (rosterActiveTab === 'profile') renderPublicRosterProfile();
     }
     async function rosterDiscordUnlink() {
@@ -37035,7 +37054,8 @@
         const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         const body = !st ? '<span class="text-xs text-gray-500">กำลังเช็ค…</span>'
             : st.linked
-                ? '<span class="text-xs text-emerald-300 font-bold">✅ ' + (st.name ? esc(st.name) : 'เชื่อมแล้ว') + '</span>'
+                ? (rosterDiscordAvatarSafe(st.avatar) ? '<img src="' + rosterDiscordAvatarSafe(st.avatar) + '" class="w-8 h-8 rounded-full border border-indigo-500/50" alt="" referrerpolicy="no-referrer">' : '') +
+                  '<span class="text-xs text-emerald-300 font-bold">✅ ' + (st.name ? esc(st.name) : 'เชื่อมแล้ว') + '</span>'
                 // สมาชิกเก่าที่แอดมินเพิ่มไว้ (ยังไม่เคยผูก) — ผูกได้ครั้งเดียวตรงนี้
                 : '<span class="text-xs text-gray-400">ยังไม่ได้เชื่อมบัญชี</span>' +
                   '<button type="button" onclick="rosterDiscordStart(\'link\')" class="ml-auto text-white text-xs font-bold px-3 py-2 rounded-lg hover:brightness-110" style="background:#5865F2">🎮 เชื่อม Discord</button>';
