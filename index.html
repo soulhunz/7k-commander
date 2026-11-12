@@ -4675,7 +4675,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.8.0';
+        const APP_VERSION = '1.8.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -36881,6 +36881,14 @@
         } catch (e) { rosterDiscordClientId = ''; }
         const box = document.getElementById('roster-discord-box');
         if (box) box.classList.toggle('hidden', !rosterDiscordClientId);
+        try {
+            const pp = new URLSearchParams(window.location.search);
+            if (pp.get('discord') === '1') {
+                pp.delete('discord');
+                window.history.replaceState({}, '', window.location.pathname + '?' + pp.toString());
+                if (rosterDiscordClientId && !currentRosterTarget) setTimeout(() => rosterDiscordStart('login'), 0);
+            }
+        } catch (e) {}
         const stEl = document.getElementById('roster-discord-status');
         if (stEl) {
             stEl.textContent = rosterDiscordClientId ? '' : '⚠️ ระบบยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์';
@@ -36892,9 +36900,22 @@
     function rosterDiscordStart(act) {
         if (!rosterDiscordClientId) return alert('ยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์');
         if (act === 'link' && !normalizeMemberCode(rosterAuthCode)) return alert('เข้าด้วยรหัสสมาชิกก่อน แล้วค่อยผูก Discord');
+        // เปิดหน้านี้ผ่านเว็บอื่น (เช่น ลิงก์ Apps Script) → ย้ายไปหน้า GitHub Pages ก่อน แล้วกด Discord ให้อัตโนมัติ
+        //    Discord ส่งกลับมาที่ GitHub Pages เสมอ — เริ่มจากเว็บอื่น เลขสุ่มที่ฝากไว้จะอยู่คนละที่ หาไม่เจอ
+        try {
+            const back = new URL(rosterDiscordRedirectUri());
+            if (act === 'login' && window.location.origin !== back.origin) {
+                const go = buildMemberRosterUrl() + '&discord=1';
+                try { (window.top || window).location.href = go; } catch (e) { window.open(go, '_blank'); }
+                return;
+            }
+        } catch (e) {}
         const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
         const g = appUrlParams().get('g') || '';
-        try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, JSON.stringify({ n: nonce, act: act, g: g, at: Date.now() })); } catch (e) {}
+        // ฝากเลขสุ่มไว้ 2 ที่: แท็บนี้ + ทุกแท็บของเว็บนี้ (กันกรณี Discord เปิดกลับมาในแท็บใหม่)
+        const savedState = JSON.stringify({ n: nonce, act: act, g: g, at: Date.now() });
+        try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, savedState); } catch (e) {}
+        try { localStorage.setItem(ROSTER_DISCORD_STATE_KEY, savedState); } catch (e) {}
         // ผูก: รหัสที่ใช้เข้าอยู่ตอนนี้ (เก็บในเครื่อง — ไม่ใส่ในลิงก์ไป Discord)
         if (act === 'link') saveRosterPortalSession(rosterAuthCode);
         const q = new URLSearchParams({
@@ -36913,10 +36934,19 @@
         if (!m || (!p.get('code') && !p.get('error'))) return null;
         let saved = null;
         try { saved = JSON.parse(sessionStorage.getItem(ROSTER_DISCORD_STATE_KEY) || 'null'); sessionStorage.removeItem(ROSTER_DISCORD_STATE_KEY); } catch (e) {}
+        try {
+            const ls = JSON.parse(localStorage.getItem(ROSTER_DISCORD_STATE_KEY) || 'null');
+            localStorage.removeItem(ROSTER_DISCORD_STATE_KEY);
+            if (ls && (!saved || ls.n === m[2])) saved = ls;   // แท็บใหม่ = ไม่มีในแท็บนี้ → ใช้ของที่ฝากไว้ทุกแท็บ
+        } catch (e) {}
+        if (saved && Date.now() - (saved.at || 0) > 15 * 60 * 1000) saved = null;   // เกิน 15 นาที = หมดอายุ
         const g = m[3] || (saved && saved.g) || '';
         try { window.history.replaceState({}, '', window.location.pathname + '?mode=roster' + (g ? '&g=' + encodeURIComponent(g) : '')); } catch (e) {}
-        // กันลิงก์ปลอม: ต้องเป็นคำขอที่เริ่มจากเครื่องนี้ (เลขสุ่มตรงกัน)
-        if (!saved || saved.n !== m[2]) return { act: m[1], error: 'mismatch' };
+        // กันลิงก์ปลอม: เลขสุ่มที่ฝากไว้ต้องตรงกัน
+        //    • เจอแต่ไม่ตรง = ลิงก์ไม่ได้มาจากการกดในเครื่องนี้ → ปฏิเสธ
+        //    • หาไม่เจอเลย (ล้างข้อมูลเว็บ / เบราว์เซอร์ไม่ให้เก็บ) → ให้เข้าได้ แต่ "ผูกบัญชี" ไม่ได้ (ต้องรู้ว่าเป็นใคร)
+        if (saved && saved.n !== m[2]) return { act: m[1], error: 'mismatch' };
+        if (!saved && m[1] === 'link') return { act: m[1], error: 'mismatch' };
         if (p.get('error')) return { act: m[1], error: p.get('error') };
         return { act: m[1], code: p.get('code') };
     }
