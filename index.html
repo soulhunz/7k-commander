@@ -4675,7 +4675,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.8.4';
+        const APP_VERSION = '1.8.5';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -24214,17 +24214,32 @@
                 const codeCell = mem.discordName
                     ? `<span class="inline-flex items-center gap-1.5 text-xs font-bold" style="color:#a5b4fc">${rosterDiscordAvatarSafe(mem.discordAvatar) ? `<img src="${rosterDiscordAvatarSafe(mem.discordAvatar)}" class="w-6 h-6 rounded-full border border-indigo-500/50" alt="" referrerpolicy="no-referrer">` : '🎮'} ${String(mem.discordName).replace(/[<>&"]/g, '')}</span>`
                     : `<span class="text-gray-500 text-xs italic">ยังไม่ได้เชื่อม Discord</span>`;
+                // 👤 รูปโปรไฟล์ Discord (ไม่มี = ตัวอักษรแรกของชื่อ)
+                const av = rosterDiscordAvatarSafe(mem.discordAvatar);
+                const safeName = String(mem.name || '').replace(/[<>&"]/g, '');
+                const avatarHTML = av
+                    ? `<img src="${av}" class="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/50 flex-shrink-0" alt="" referrerpolicy="no-referrer">`
+                    : `<div class="w-10 h-10 rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">${(safeName.trim()[0] || '?').toUpperCase()}</div>`;
+                // 📋 ลงข้อมูลแล้วหรือยัง — ตัวละคร / สัตว์เลี้ยง (/ แหวน ถ้ามี)
+                const nH = (mem.hero_list || []).length, nP = (mem.pet_list || []).length, nR = (mem.ring_list || []).length;
+                const chip = (n, icon, label) => n
+                    ? `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">${icon} ${label} ${n}</span>`
+                    : `<span class="px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300 border border-amber-700/40">⚠️ ยังไม่ลง${label}</span>`;
                 tbody.innerHTML += `
                     <tr class="hover:bg-[#1f2937] transition group">
                         <td class="p-4 text-center text-gray-500 font-mono font-bold">${idx + 1}</td>
                         <td class="p-4">
-                            <div class="font-bold text-white text-base">${mem.name}</div>
-                            <div class="text-[10px] text-gray-500">ID: ${mem.id || idx}</div>
+                            <div class="flex items-center gap-3 min-w-0">
+                                ${avatarHTML}
+                                <div class="min-w-0">
+                                    <div class="font-bold text-white text-base truncate">${safeName}</div>
+                                    <div class="flex flex-wrap gap-1 mt-1 text-[10px]">${chip(nH, '⚔️', 'ตัวละคร')}${chip(nP, '🐾', 'สัตว์เลี้ยง')}${nR ? chip(nR, '💍', 'แหวน') : ''}</div>
+                                </div>
+                            </div>
                         </td>
                         <td class="p-4">${codeCell}</td>
                         <td class="p-4 text-right">
-                            <button onclick="openGuildMemberModal(${idx})" class="text-blue-400 hover:text-white border border-blue-900/50 hover:bg-blue-900/50 px-3 py-1.5 rounded text-xs transition mr-1">✏️ Edit</button>
-                            <button onclick="deleteGuildMember(${idx})" class="text-red-500 hover:text-white border border-red-900/50 hover:bg-red-900/50 px-3 py-1.5 rounded text-xs transition">🗑️</button>
+                            <button onclick="deleteGuildMember(${idx})" title="ลบสมาชิก" class="text-red-500 hover:text-white border border-red-900/50 hover:bg-red-900/50 px-3 py-1.5 rounded text-xs transition">🗑️</button>
                         </td>
                     </tr>
                 `;
