@@ -143,6 +143,14 @@
         @media (min-width: 768px) {
             .roster-hero-card .star-icon { font-size: 20px; margin: 0 -2px; }
         }
+        /* ⚡ หน้า "ข้อมูลลูกกิล" (แอดมิน) — ตัวละครเป็นร้อย × ดาว 6 ดวง: ตัดเงา/เรืองแสง/อนิเมชันออก เลื่อนลื่น */
+        #view-member-roster *, #view-member-roster *::before, #view-member-roster *::after { transition: none !important; animation: none !important; }
+        #view-member-roster .star-icon, #view-member-roster .star-blue, #view-member-roster .star-red, #view-member-roster .star-yellow { text-shadow: none !important; filter: none !important; }
+        #view-member-roster .roster-hero-card:hover, #view-member-roster .roster-ring-card:hover { transform: none !important; }
+        #view-member-roster .shadow-md, #view-member-roster .shadow-lg, #view-member-roster .shadow-xl, #view-member-roster .shadow-2xl { box-shadow: none !important; }
+        #view-member-roster .backdrop-blur { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+        /* กลุ่มที่ยังไม่เลื่อนมาถึง ยังไม่ต้องวาด */
+        #browse-roster-heroes-grid > * { content-visibility: auto; contain-intrinsic-size: auto 420px; }
         .roster-ring-card {
             overflow: visible;
             -webkit-touch-callout: none;
@@ -3911,7 +3919,7 @@
                     </div>
                     <div id="member-roster-list" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scroll"></div>
                 </aside>
-                <section class="msplit-detail flex-1 flex flex-col min-w-0 overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                <section class="msplit-detail flex-1 flex flex-col min-w-0 overflow-hidden bg-[#0e131b]">
                     <div class="msplit-back-wrap px-3 pt-3 shrink-0"><button type="button" onclick="msplitShow('roster-split', false)" class="msplit-back items-center gap-1.5 mb-0 text-xs font-bold text-blue-300 bg-[#1f2937] border border-gray-700 rounded-lg px-3 py-2">← กลับไปรายชื่อสมาชิก</button></div>
                     <div id="member-roster-empty" class="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
                         <span class="text-5xl mb-4 opacity-30">👤</span>
@@ -4698,7 +4706,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.15.2';
+        const APP_VERSION = '1.15.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -39994,7 +40002,7 @@
             onclick="showBrowseMemberHeroDetail('${heroId}', ${starLevel})"
             title="${safeName} — คลิกดูรายละเอียด">
             <div class="roster-hero-card-inner">
-                <img src="${h.img}" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">
+                <img src="${h.img}" loading="lazy" decoding="async" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" alt="">
                 ${starsHtml}
             </div>
         </div>`;
