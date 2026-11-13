@@ -6375,6 +6375,10 @@
                     await loadSharedGallery();
                     // 🔗 ลิงก์ที่ก๊อปจากแถบที่อยู่ตอนดูทีม (?teamId=...) → เปิดทีมนั้นเลย ไม่ต้องไปหาในแกลเลอรี
                     if (sharedId) { await loadSharedTeamView(sharedId, true); updateUrl(sharedId); }
+                    // 🎮 ลูกกิลเข้าสู่ระบบด้วย Discord (กลับมาจาก Discord / กดจากเว็บอื่นแล้วย้ายมา / login ค้างไว้ → อัปเดตทีม)
+                    if (discordCb && discordCb.act === 'gallery') galleryDiscordFinish(discordCb);
+                    else if (urlParams.get('gdiscord') === '1') galleryDiscordStart();
+                    else galleryMemberRefresh();
                 } catch (e) {
                     // เดิม error ตรงนี้ถูกกลืนเป็น "History API" → หน้าค้างโหลดตลอดไป
                     console.error('loadSharedGallery failed:', e);
@@ -14710,6 +14714,10 @@
                 const L = publicLinkBase(), raw = String(appUrlParams().get('g') || '').replace(/ /g, '+');
                 rosterHref = L.base + '?mode=roster&g=' + encodeURIComponent(raw) + '&nojoin=1' + (L.srv || '');   // nojoin = เข้าได้เฉพาะคนที่สมัครแล้ว (สมัครผ่านลิงก์สมาชิกที่หัวหน้าส่งเท่านั้น)
             } catch (e) {}
+            // 🌍 หน้าแกลเลอรี (ไม่มี mode=) → ปุ่ม 🎮 เข้าสู่ระบบ / ชื่อลูกกิลที่เข้าอยู่ · หน้าอื่นใช้ลิงก์ไปหน้าลูกกิลเหมือนเดิม
+            if (!appUrlParams().get('mode') && typeof galleryMemberHeaderHTML === 'function') {
+                return `${galleryMemberHeaderHTML(rosterHref)}<span class="text-xs text-gray-500 whitespace-nowrap">🛡️ กิลด์ <b class="text-yellow-500/90">${ccEsc(g)}</b></span>${ver}`;
+            }
             const rosterBtn = rosterHref ? `<a href="${rosterHref}" class="px-3 py-1.5 rounded-xl text-xs font-black text-white whitespace-nowrap flex items-center gap-1.5 shadow hover:brightness-110 transition" style="background:#5865F2" title="สำหรับลูกกิลด์ที่ลงทะเบียนแล้ว — เข้าด้วย Discord เพื่อลงตัวละคร / สัตว์เลี้ยง / แหวน และดูทีมที่หัวหน้ากิลด์ตั้งให้">👤 เข้าหน้าลูกกิล</a>` : '';
             return `${rosterBtn}<span class="text-xs text-gray-500 whitespace-nowrap">🛡️ กิลด์ <b class="text-yellow-500/90">${ccEsc(g)}</b></span>${ver}`;
         }
@@ -16367,7 +16375,9 @@
                 <div class="flex flex-wrap justify-start gap-3 mb-6">
                     <div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
                         <button onclick="maiToGallery('Attack')" class="px-6 py-2 rounded-xl transition ${inact} text-xs font-black uppercase">⚔️ Targets</button>
-                        <button onclick="maiToGallery('Defense')" class="px-6 py-2 rounded-xl transition ${inact} text-xs font-black uppercase">🛡️ Defense</button>
+                        ${(restoreMemberSession(), memberSession)
+                            ? `<button onclick="maiToGallery('Defense')" class="px-6 py-2 rounded-xl transition ${inact} text-xs font-black uppercase">🛡️ Defense</button>`
+                            : `<button type="button" disabled title="เข้าสู่ระบบก่อน (หน้าแกลเลอรีทีม → 🎮 เข้าสู่ระบบ)" class="px-6 py-2 rounded-xl text-xs font-black uppercase bg-[#0d1117] text-gray-600 border border-gray-800 opacity-60 cursor-not-allowed">🔒 Defense</button>`}
                     </div>
                     ${maiGalleryTabHTML(true)}
                 </div>`;
@@ -31371,7 +31381,7 @@
                 const s = JSON.parse(raw);
                 if (!s || !s.code) return;
                 const heroIds = new Set((s.heroList||[]).map(h => String(h && h.id != null ? h.id : h)).filter(x=>x && x!=='undefined'));
-                memberSession = { guildId:s.guildId||'', guildName:s.guildName||'', code:s.code, name:s.name||'', memberId:s.memberId||'', heroIds, heroList:s.heroList||[] };
+                memberSession = Object.assign({}, s, { guildId:s.guildId||'', guildName:s.guildName||'', code:s.code, name:s.name||'', memberId:s.memberId||'', heroIds, heroList:s.heroList||[] });
             } catch(e){}
         }
         function openMemberLogin(){
@@ -31428,7 +31438,151 @@
                 }
             } catch(e){ hideLoading(); alert('❌ เชื่อมต่อไม่สำเร็จ'); }
         }
-        function memberLogout(){ memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch(e){} memberRefreshGallery(); }
+        function memberLogout(){
+            if (memberSession && memberSession.discord && !confirm('ออกจากระบบ ' + (memberSession.name || 'ลูกกิล') + '?')) return;
+            memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch(e){}
+            if (currentGalleryTab === 'Defense') currentGalleryTab = 'Attack';
+            memberRefreshGallery();
+        }
+
+        // =========================================================
+        // 🎮 ลูกกิลเข้าสู่ระบบด้วย Discord บนหน้าแกลเลอรี
+        //    Discord ID ต้องผูกกับลูกกิลไว้แล้ว (สมัครผ่านหน้าลงทะเบียน) — ไม่สมัครใหม่จากหน้านี้
+        //    เข้าแล้ว: แท็บ DEFENSE = ทีมที่หัวหน้ากิลด์ตั้งให้ (getMemberInventory → guildTeams)
+        // =========================================================
+        /** เก็บผลจาก getMemberInventory ลง memberSession + เครื่อง */
+        function galleryMemberApply(base, inv) {
+            const heroList = inv.hero_list || [];
+            const s = Object.assign({}, base, {
+                name: inv.name || base.name || '', memberId: inv.member_id || base.memberId || '',
+                heroList, ringList: inv.ring_list || [], guildTeams: inv.guildTeams || [], syncedAt: Date.now()
+            });
+            try { localStorage.setItem('7k_member_session', JSON.stringify(s)); } catch (e) {}
+            memberSession = Object.assign({}, s, { heroIds: new Set(heroList.map(h => String(h && h.id != null ? h.id : h)).filter(x => x && x !== 'undefined')) });
+        }
+        async function galleryMemberFetch(code, guildId) {
+            const j = await postJson({ action: 'getMemberInventory', guild_id: guildId || '', accessCode: code }, { timeout: 45000, retries: 2 });
+            if (!j || j.status !== 'success') throw new Error((j && j.message) || 'ไม่พบสมาชิก');
+            return j;
+        }
+        async function galleryDiscordStart() {
+            if (!rosterDiscordClientId) { showLoading('🎮 กำลังเตรียม Discord...'); await rosterDiscordLoadConfig(); hideLoading(); }
+            if (!rosterDiscordClientId) return alert('ยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์');
+            // Discord ส่งกลับไปที่ GitHub Pages เสมอ — เปิดจากเว็บอื่น ต้องย้ายไปหน้านั้นก่อน (เลขสุ่มจะได้อยู่ที่เดียวกัน)
+            try {
+                const back = new URL(rosterDiscordRedirectUri());
+                if (window.location.origin !== back.origin) { (window.top || window).location.href = back.origin + back.pathname + galleryShareQuery().replace(/^&/, '?') + '&gdiscord=1'; return; }
+            } catch (e) {}
+            const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
+            const g = appUrlParams().get('g') || '';
+            const saved = JSON.stringify({ n: nonce, act: 'gallery', g: g, at: Date.now(), ret: galleryShareQuery().replace(/^&/, '?') });
+            try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
+            try { localStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
+            const q = new URLSearchParams({ client_id: rosterDiscordClientId, response_type: 'code', scope: 'identify', redirect_uri: rosterDiscordRedirectUri(), state: 'gallery.' + nonce + '.' + g, prompt: 'none' });
+            const url = 'https://discord.com/oauth2/authorize?' + q.toString();
+            try { (window.top || window).location.href = url; } catch (e) { window.open(url, '_blank'); }
+        }
+        async function galleryDiscordFinish(cb) {
+            if (cb.error) {
+                const msg = cb.error === 'access_denied' ? 'ยกเลิกการเข้าด้วย Discord แล้ว'
+                    : cb.error === 'mismatch' ? 'ลิงก์จาก Discord ไม่ตรงกับที่ขอจากเครื่องนี้ — กดเข้าสู่ระบบใหม่อีกครั้ง'
+                    : 'Discord ตอบกลับไม่สำเร็จ (' + cb.error + ')';
+                return setTimeout(() => alert('🎮 ' + msg), 200);
+            }
+            showLoading('🎮 กำลังเข้าสู่ระบบด้วย Discord...');
+            try {
+                const r = await postJson({ action: 'discordRosterLogin', code: cb.code, redirectUri: rosterDiscordRedirectUri(), join: false, guild: mlUrlGuildName() }, { timeout: 60000, retries: 1 });
+                if (!r || r.status !== 'success' || !r.accessCode) {
+                    hideLoading();
+                    const who = r && r.discordName ? ' (' + r.discordName + ')' : '';
+                    return alert(r && r.status === 'not_linked'
+                        ? '❌ บัญชี Discord นี้' + who + ' ยังไม่ได้ผูกกับลูกกิล\n\nลงทะเบียนผ่านลิงก์สมาชิกที่หัวหน้ากิลด์ส่งให้ก่อน แล้วค่อยเข้าสู่ระบบอีกครั้ง'
+                        : '❌ เข้าสู่ระบบไม่สำเร็จ: ' + ((r && r.message) || 'server ตอบไม่สำเร็จ'));
+                }
+                const inv = await galleryMemberFetch(r.accessCode, r.guild_id);
+                galleryMemberApply({ discord: true, code: r.accessCode, guildId: r.guild_id || '', guildName: mlUrlGuildName(), name: r.name || '', avatar: r.discordAvatar || '', discordName: r.discordName || '' }, inv);
+                try { saveRosterPortalSession(r.accessCode); } catch (e) {}   // เปิดหน้าลูกกิลต่อได้เลยไม่ต้องเข้าใหม่
+                hideLoading();
+                currentGalleryTab = 'Defense';
+                rerenderGallery();
+                if (typeof showToast === 'function') showToast('🎮 เข้าสู่ระบบแล้ว: ' + (memberSession.name || 'ลูกกิล'), 'success');
+            } catch (e) {
+                hideLoading();
+                alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + (e.message || e));
+            }
+        }
+        /** login ค้างไว้ → ดึงทีม/ฮีโร่/แหวนล่าสุด (หัวหน้าอาจเปลี่ยนทีมที่ตั้งให้) */
+        async function galleryMemberRefresh() {
+            restoreMemberSession();
+            if (!memberSession || !memberSession.code) return;
+            try {
+                const inv = await galleryMemberFetch(memberSession.code, memberSession.guildId);
+                const base = Object.assign({}, memberSession); delete base.heroIds;
+                galleryMemberApply(base, inv);
+                rerenderGallery();
+            } catch (e) {
+                console.warn('gallery: อัปเดตข้อมูลลูกกิลไม่ได้', e);
+                if (/ไม่พบ|denied|forbidden/i.test(String(e && e.message))) { memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch (x) {} rerenderGallery(); }
+            }
+        }
+        /** 🛡️ แท็บ DEFENSE ตอนเข้าสู่ระบบ — ทีมที่หัวหน้ากิลด์ตั้งให้ (กดดูสแตท + แหวนที่ขาด) */
+        function galleryMyTeamsHTML() {
+            const s = memberSession;
+            const list = (s && s.guildTeams) || [];
+            const rings = (s && s.ringList || []).filter(r => r && r.id);
+            const H = id => heroesDB.find(x => String(x.id) === String(id));
+            const cards = list.map((x, i) => {
+                const t = x.team || {}, d = t.data || {};
+                const slots = (Array.isArray(d.slots) ? d.slots : []).filter(sl => sl && sl.id).slice(0, 3);
+                const imgs = slots.map(sl => {
+                    const h = H(sl.id); if (!h) return '<div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gray-800"></div>';
+                    const awk = !!(sl.awakened && h.img2 && h.img2 !== DRIVE_IMG_PREFIX);
+                    const has = s.heroIds.has(String(sl.id));
+                    return `<div class="relative inline-block"><img src="${awk ? h.img2 : h.img}" title="${mlEsc(h.name)}${has ? '' : ' — ยังไม่มี'}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-blue-500'} bg-black object-cover shadow-md ${has ? '' : 'opacity-40 grayscale'}">${getGallerySlotStarsHTML(sl)}</div>`;
+                }).join('');
+                const missH = slots.filter(sl => !s.heroIds.has(String(sl.id))).length;
+                const ringTotal = teamMissingRingCount(d, []), ringMiss = teamMissingRingCount(d, rings);
+                const chip = (cls, txt) => `<span class="px-1.5 py-0.5 rounded ${cls}">${txt}</span>`;
+                const chips = (missH ? chip('bg-red-900/40 text-red-300', '❌ ขาดตัวละคร ' + missH) : chip('bg-emerald-900/40 text-emerald-300', '✅ ตัวครบ'))
+                    + (ringTotal ? (ringMiss ? chip('bg-red-900/40 text-red-300', `💍 ขาด ${ringMiss}/${ringTotal}`) : chip('bg-emerald-900/40 text-emerald-300', `💍 แหวนครบ ${ringTotal}/${ringTotal}`)) : '');
+                return `<div onclick="galleryOpenMyTeam(${i})" class="bg-[#161b22] border border-gray-700 hover:border-blue-500 rounded-2xl p-3 cursor-pointer transition hover:-translate-y-1 shadow-md flex flex-col gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 ${x.source === 'own' ? 'bg-blue-900/50 text-blue-200' : 'bg-indigo-900/50 text-indigo-200'}">${x.source === 'own' ? '🎖️ ทีมของฉัน' : '📋 3v3'}</span>
+                        <h4 class="text-white font-bold text-sm truncate flex-1">${mlEsc(t.name || 'ทีม')}</h4>
+                        <span class="text-[11px] text-gray-500 shrink-0">${d.teamType === 'Defense' ? '🛡️' : '⚔️'}</span>
+                    </div>
+                    <div class="flex justify-center gap-2 bg-black/20 rounded-xl border border-gray-800/50 p-3">${imgs}</div>
+                    <div class="flex flex-wrap gap-1 text-[10px] font-bold">${chips}</div>
+                    ${d.note ? `<div class="text-[12px] text-gray-400 line-clamp-2">${mlEsc(d.note)}</div>` : ''}
+                </div>`;
+            }).join('');
+            const av = s && s.avatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(s.avatar) : '';
+            return `<div class="w-full mb-6 bg-[#111827] border border-blue-800/50 rounded-2xl p-4 shadow-xl">
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    ${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full border-2 border-indigo-500/60" alt="">` : ''}
+                    <div class="min-w-0"><div class="text-base font-black text-white">🛡️ ทีมที่หัวหน้ากิลด์ตั้งให้ ${mlEsc(s.name || '')}</div>
+                    <div class="text-[11px] text-gray-500">${list.length} ทีม · ตัวที่ยังไม่มีเป็นสีเทา · กดการ์ดดูสแตทและแหวนที่ขาด</div></div>
+                </div>
+                ${cards ? `<div class="gallery-card-grid">${cards}</div>` : '<div class="text-center text-gray-500 text-sm py-10 border border-dashed border-gray-800 rounded-xl">หัวหน้ากิลด์ยังไม่ได้ตั้งทีมให้</div>'}
+            </div>`;
+        }
+        function galleryOpenMyTeam(i) {
+            const x = memberSession && (memberSession.guildTeams || [])[i];
+            if (x && x.team) teamStatsOpen(x.team, (memberSession.ringList || []).filter(r => r && r.id), memberSession.name);
+        }
+        /** ปุ่มมุมขวาบนของแกลเลอรี: ยังไม่เข้า = 🎮 เข้าสู่ระบบ · เข้าแล้ว = ชื่อ + ออก */
+        function galleryMemberHeaderHTML(rosterHref) {
+            if (memberSession) {
+                const av = memberSession.avatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(memberSession.avatar) : '';
+                return `<span class="flex items-center gap-2 pl-1 pr-1 py-1 rounded-xl bg-indigo-900/40 border border-indigo-600/50">
+                    ${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-7 h-7 rounded-full" alt="">` : '<span class="pl-1">👤</span>'}
+                    <span class="text-xs font-black text-white max-w-[120px] truncate">${mlEsc(memberSession.name || 'ลูกกิล')}</span>
+                    ${rosterHref ? `<a href="${rosterHref}" title="ลงตัวละคร / สัตว์เลี้ยง / แหวน" class="text-[11px] font-bold text-indigo-200 hover:text-white px-2 py-1 rounded-lg bg-indigo-600/40 hover:bg-indigo-600">หน้าลูกกิล</a>` : ''}
+                    <button onclick="memberLogout()" title="ออกจากระบบ" class="text-gray-400 hover:text-white w-6 h-6 rounded-lg hover:bg-white/10 text-xs">✕</button>
+                </span>`;
+            }
+            return `<button onclick="galleryDiscordStart()" class="px-3 py-1.5 rounded-xl text-xs font-black text-white whitespace-nowrap flex items-center gap-1.5 shadow hover:brightness-110 transition" style="background:#5865F2" title="ลูกกิลที่ผูก Discord ไว้แล้ว — เข้าเพื่อดูทีมที่หัวหน้ากิลด์ตั้งให้ในแท็บ DEFENSE">🎮 เข้าสู่ระบบ</button>`;
+        }
 
         // 🎯 เช็คว่าลูกกิลที่ login จัดทีมนี้ได้ไหม (มีฮีโร่ครบ 3 ตัวไหม)
         function memberTeamHeroIds(team){
@@ -31532,6 +31686,9 @@
             restoreMemberSession(); // 🔁 login ค้าง: กู้ session ลูกกิลก่อน render (โชว์ปุ่ม/ป้ายตามสถานะ)
             // 🗡️ ฟีเจอร์ "วนไม้" ถูกปิดอยู่ — กันกรณีค้างอยู่แท็บนี้ ให้เด้งกลับ Targets
             if (!GALLERY_ROTATION_ENABLED && currentGalleryTab === 'Rotation') currentGalleryTab = 'Attack';
+            // 🛡️ DEFENSE = ทีมที่หัวหน้าตั้งให้ลูกกิล → หน้าสาธารณะต้องเข้าสู่ระบบก่อน
+            const defenseLocked = isPublicView && !memberSession;
+            if (defenseLocked && currentGalleryTab === 'Defense') currentGalleryTab = 'Attack';
             const container = document.getElementById('main-content');
             if (!container) return;
 
@@ -31842,8 +31999,10 @@
                 
                 contentHTML = sectionsHTML || '<div class="text-gray-500 text-center py-20">ไม่มีข้อมูล</div>';
             } else {
-                // 🟢 Normal Mode: แสดงทั้งหมดแบบ grid ธรรมดา
-                contentHTML = `<div class="pb-20 w-full overflow-x-auto">
+                // 🟢 Normal Mode: แสดงทั้งหมดแบบ grid ธรรมดา (ลูกกิลเข้าแล้ว — ทีมของตัวเองอยู่ด้านบน ส่วนนี้ = ทีมรับของกิลด์)
+                const defHead = currentGalleryTab === 'Defense' && memberSession && displayItems.length
+                    ? `<div class="flex items-center gap-3 mb-4 border-b-2 border-gray-800 pb-2"><h2 class="text-sm font-black text-blue-300 uppercase tracking-wider">🛡️ ทีมรับของกิลด์</h2><span class="text-xs text-gray-500">${displayItems.length} ทีม</span></div>` : '';
+                contentHTML = `${defHead}<div class="pb-20 w-full overflow-x-auto">
                     <div class="gallery-card-grid">
                         ${displayItems.map(item => renderCard(item)).join('')}
                     </div>
@@ -31914,12 +32073,15 @@
                         <div class="flex flex-wrap justify-start gap-3 mb-6 shrink-0 w-full">
                             <div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
                                 <button onclick="switchGalleryTab('Attack')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Attack' ? btnActiveRed : btnInactive} text-xs font-black uppercase">⚔️ Targets</button>
-                                <button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>
+                                ${defenseLocked
+                                    ? `<button type="button" disabled title="เข้าสู่ระบบก่อน (ปุ่ม 🎮 เข้าสู่ระบบ มุมขวาบน) — ดูทีมที่หัวหน้ากิลด์ตั้งให้" class="px-6 py-2 rounded-xl text-xs font-black uppercase bg-[#0d1117] text-gray-600 border border-gray-800 opacity-60 cursor-not-allowed">🔒 Defense</button>`
+                                    : `<button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>`}
                                 ${GALLERY_ROTATION_ENABLED ? `<button onclick="switchGalleryTab('Rotation')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Rotation' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : btnInactive} text-xs font-black uppercase">🗡️ วนไม้</button>` : ''}
                                 ${memberSession ? `<button onclick="switchGalleryTab('MyHeroes')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'MyHeroes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">🦸 ฮีโร่ของฉัน</button>` : ''}
                             </div>
                             ${maiGalleryTabHTML(false)}
                         </div>
+                        ${currentGalleryTab === 'Defense' && memberSession ? galleryMyTeamsHTML() : ''}
                         ${memberTeamsPanelHTML}
                         <!-- แถวเดียว: TYPE (ซ้าย) · ค้นหา + กรองจากฮีโร่ (ขวา) -->
                         <div class="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 w-full">
@@ -37182,7 +37344,7 @@
         let p;
         try { p = new URLSearchParams(window.location.search); } catch (e) { return null; }
         const state = p.get('state') || '';
-        const m = state.match(/^(login|link|enter|officer)\.([0-9a-f]{24})\.(.*)$/);
+        const m = state.match(/^(login|link|enter|officer|gallery)\.([0-9a-f]{24})\.(.*)$/);
         if (!m || (!p.get('code') && !p.get('error'))) return null;
         let saved = null;
         try { saved = JSON.parse(sessionStorage.getItem(ROSTER_DISCORD_STATE_KEY) || 'null'); sessionStorage.removeItem(ROSTER_DISCORD_STATE_KEY); } catch (e) {}
@@ -37195,7 +37357,13 @@
         const rest = m[3] || '', tilde = rest.indexOf('~');
         const g = (tilde >= 0 ? rest.slice(0, tilde) : rest) || (saved && saved.g) || '';
         let gid = ''; try { gid = tilde >= 0 ? decodeURIComponent(rest.slice(tilde + 1)) : ''; } catch (e) {}
-        try { window.history.replaceState({}, '', window.location.pathname + '?mode=' + (m[1] === 'officer' ? 'officer' : 'roster') + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (m[1] === 'enter' ? '&nojoin=1' : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
+        // 🌍 เข้าจากหน้าแกลเลอรี → กลับไปลิงก์แกลเลอรีเดิม (k / g / s)
+        if (m[1] === 'gallery') {
+            const ret = (saved && /^\?/.test(saved.ret || '')) ? saved.ret
+                : '?k=' + encodeURIComponent(getDailyKey()) + (g ? '&g=' + encodeURIComponent(g) : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '');
+            try { window.history.replaceState({}, '', window.location.pathname + ret); } catch (e) {}
+        }
+        else try { window.history.replaceState({}, '', window.location.pathname + '?mode=' + (m[1] === 'officer' ? 'officer' : 'roster') + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (m[1] === 'enter' ? '&nojoin=1' : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
         // กันลิงก์ปลอม: เลขสุ่มที่ฝากไว้ต้องตรงกัน
         //    • เจอแต่ไม่ตรง = ลิงก์ไม่ได้มาจากการกดในเครื่องนี้ → ปฏิเสธ
         //    • หาไม่เจอเลย (ล้างข้อมูลเว็บ / เบราว์เซอร์ไม่ให้เก็บ) → ให้เข้าได้ แต่ "ผูกบัญชี" ไม่ได้ (ต้องรู้ว่าเป็นใคร)
