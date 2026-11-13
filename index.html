@@ -4698,7 +4698,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.14.2';
+        const APP_VERSION = '1.14.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -39390,7 +39390,7 @@
                 if (!id) return '';
                 const rr = (ringsDB || []).find(x => String(x.id) === String(id)); const on = !off.has(i + ':' + j);
                 const stId = n.ringStacks && n.ringStacks[j], st = stId ? (ringsDB || []).find(x => String(x.id) === String(stId)) : null;
-                return `<button type="button" onclick="bulkRingToggle(${i},${j})" title="${mtEsc(rr ? rr.name : id)}${st ? ' ซ้อน ' + mtEsc(st.name) + ' (ลูกกิลต้องมีวงที่ซ้อนคู่นี้)' : ''} — ${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
+                return `<button type="button" onclick="bulkRingToggle(${i},${j})" data-tip="${mtEsc(rr ? rr.name : id)}${st ? ' ซ้อน ' + mtEsc(st.name) + ' (ลูกกิลต้องมีวงที่ซ้อนคู่นี้)' : ''}&#10;${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
                     ${rr && rr.img ? `<img src="${rr.img}" class="w-full h-full rounded-full object-cover" alt="">` : '💍'}
                     ${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -left-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-violet-400 object-cover bg-black" alt="">` : ''}
                     ${on ? '<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-white text-[9px] sm:text-[10px] leading-[14px] sm:leading-4 text-center font-black">✓</span>' : ''}</button>`;
@@ -39414,7 +39414,7 @@
         const out = teamRingMatch(bulkCheckTeam(team), memberRingIdSet(mem)).map(r => {
             const rr = R(r.base), st = r.stack ? R(r.stack) : null;
             const nm = (rr ? rr.name : r.base) + (r.stack ? ' ซ้อน ' + (st ? st.name : r.stack) : '');
-            return `<span class="relative inline-block w-5 h-5" title="${mtEsc(nm)} — ${r.has ? 'มี' : 'ไม่มี'}">${rr && rr.img ? `<img src="${rr.img}" class="w-5 h-5 rounded-full object-cover ${r.has ? '' : 'opacity-40 grayscale'}" alt="">` : '💍'}${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -left-1 w-3 h-3 rounded-full border border-violet-400 object-cover ${r.has ? '' : 'opacity-40 grayscale'}" alt="">` : ''}<span class="absolute -bottom-1 -right-1 text-[8px]">${r.has ? '✅' : '❌'}</span></span>`;
+            return `<span class="relative inline-block w-5 h-5" data-tip="${mtEsc(nm)} — ${r.has ? '✅ มี' : '❌ ไม่มี'}">${rr && rr.img ? `<img src="${rr.img}" class="w-5 h-5 rounded-full object-cover ${r.has ? '' : 'opacity-40 grayscale'}" alt="">` : '💍'}${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -left-1 w-3 h-3 rounded-full border border-violet-400 object-cover ${r.has ? '' : 'opacity-40 grayscale'}" alt="">` : ''}<span class="absolute -bottom-1 -right-1 text-[8px]">${r.has ? '✅' : '❌'}</span></span>`;
         });
         return out.length ? `<div class="flex flex-wrap gap-1.5 mt-1">${out.join('')}</div>` : '';
     }
@@ -39431,7 +39431,7 @@
         const items = [...groups.entries()].map(([k, g]) => ({ k, id: g.id, n: g.n, rr: R(g.id), st: g.st ? R(g.st) : null, stId: g.st }))
             .sort((a, b) => (used.has(b.k) - used.has(a.k)) || b.n - a.n);
         return `<div class="text-[11px] text-gray-400 mb-2">💍 แหวนทั้งหมด <b class="text-gray-200">${list.length}</b> วง · ${groups.size} แบบ <span class="text-emerald-300">· กรอบเขียว = ใช้กับทีมนี้</span> <span class="text-violet-300">· รูปเล็กมุมซ้าย = แหวนที่ซ้อน</span></div>
-            <div class="flex flex-wrap gap-2">${items.map(x => `<div class="flex flex-col items-center w-[62px]" title="${mtEsc((x.rr ? x.rr.name : x.id) + (x.stId ? ' ซ้อน ' + (x.st ? x.st.name : x.stId) : ''))}">
+            <div class="flex flex-wrap gap-2">${items.map(x => `<div class="flex flex-col items-center w-[62px] cursor-default" data-tip="${mtEsc((x.rr ? x.rr.name : x.id) + (x.stId ? ' ซ้อน ' + (x.st ? x.st.name : x.stId) : '') + (x.n > 1 ? ' ×' + x.n : '') + (used.has(x.k) ? '\n✅ ใช้กับทีมนี้' : ''))}">
                 <div class="relative w-11 h-11 rounded-full border-2 ${used.has(x.k) ? 'border-emerald-400' : 'border-gray-700'}">
                     ${x.rr && x.rr.img ? `<img src="${x.rr.img}" class="w-full h-full rounded-full object-cover" alt="">` : '<span class="flex w-full h-full items-center justify-center">💍</span>'}
                     ${x.st && x.st.img ? `<img src="${x.st.img}" class="absolute -top-1 -left-1 w-5 h-5 rounded-full border-2 border-violet-400 object-cover bg-black" alt="">` : ''}
@@ -39440,6 +39440,30 @@
                 <span class="text-[9px] text-gray-400 truncate max-w-full mt-1">${mtEsc(x.rr ? x.rr.name : x.id)}</span>
             </div>`).join('')}</div>`;
     }
+    // 💬 tooltip ขึ้นทันที (title ของเบราว์เซอร์หน่วง ~1 วิ) — ใส่ data-tip="..." ที่ element ไหนก็ได้
+    //    ชี้ = ขึ้นทันที · คลิก/แตะ = ขึ้นค้างไว้ (มือถือไม่มี hover) · คลิกที่อื่น/เลื่อนจอ = ปิด
+    (function () {
+        let tip = null;
+        const hide = () => { if (tip) tip.style.display = 'none'; };
+        const tipEl = e => e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+        const show = el => {
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;background:#0d1117;color:#e5e7eb;border:1px solid #4b5563;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.5);white-space:pre-line;line-height:1.35';
+                document.body.appendChild(tip);
+            }
+            tip.textContent = el.getAttribute('data-tip');
+            tip.style.display = 'block';
+            const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+            const x = Math.max(6, Math.min(window.innerWidth - w - 6, r.left + r.width / 2 - w / 2));
+            const y = r.top - h - 6 >= 6 ? r.top - h - 6 : r.bottom + 6;   // บนก่อน ไม่พอค่อยล่าง
+            tip.style.left = x + 'px'; tip.style.top = y + 'px';
+        };
+        document.addEventListener('mouseover', e => { const el = tipEl(e); if (el) show(el); else hide(); });
+        document.addEventListener('mouseout', e => { if (!e.relatedTarget) hide(); });
+        document.addEventListener('scroll', hide, true);
+        document.addEventListener('click', e => { const el = tipEl(e); if (el) setTimeout(() => { if (document.body.contains(el)) show(el); }, 0); else hide(); }, true);
+    })();
     const bulkRingOpenKeys = new Set();   // แถวที่กางดูแหวนอยู่
     function bulkMemberToggleRings(key) { if (bulkRingOpenKeys.has(key)) bulkRingOpenKeys.delete(key); else bulkRingOpenKeys.add(key); bulkAssignRender(); }
     function bulkAssignOpen(teamId) {
