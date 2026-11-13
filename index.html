@@ -4698,7 +4698,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.15.1';
+        const APP_VERSION = '1.15.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -39430,7 +39430,7 @@
                 if (!id) return '';
                 const rr = (ringsDB || []).find(x => String(x.id) === String(id)); const on = !off.has(i + ':' + j);
                 const stId = n.ringStacks && n.ringStacks[j], st = stId ? (ringsDB || []).find(x => String(x.id) === String(stId)) : null;
-                return `<button type="button" onclick="bulkRingToggle(${i},${j})" data-tip="${mtEsc(rr ? rr.name : id)}${st ? ' ซ้อน ' + mtEsc(st.name) + ' (ลูกกิลต้องมีวงที่ซ้อนคู่นี้)' : ''}&#10;${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
+                return `<button type="button" onclick="bulkRingToggle(${i},${j})" data-tip="💍 ${mtEsc(bulkRingTipName(rr, id))}${st ? '&#10;＋ ซ้อน ' + mtEsc(bulkRingTipName(st, st.id)) + '&#10;(ลูกกิลต้องมีวงที่ซ้อนคู่นี้)' : ''}&#10;${on ? 'กำลังเช็ค (กดเพื่อไม่เช็ค)' : 'ไม่เช็ค (กดเพื่อเช็ค)'}" class="relative w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 ${on ? 'border-emerald-400' : 'border-gray-700'}" style="${on ? '' : 'opacity:.35;filter:grayscale(1)'}">
                     ${rr && rr.img ? `<img src="${rr.img}" class="w-full h-full rounded-full object-cover" alt="">` : '💍'}
                     ${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -left-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-violet-400 object-cover bg-black" alt="">` : ''}
                     ${on ? '<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 text-white text-[9px] sm:text-[10px] leading-[14px] sm:leading-4 text-center font-black">✓</span>' : ''}</button>`;
@@ -39453,10 +39453,16 @@
         const R = id => (ringsDB || []).find(x => String(x.id) === id);
         const out = teamRingMatch(bulkCheckTeam(team), memberRingIdSet(mem)).map(r => {
             const rr = R(r.base), st = r.stack ? R(r.stack) : null;
-            const nm = (rr ? rr.name : r.base) + (r.stack ? ' ซ้อน ' + (st ? st.name : r.stack) : '');
+            const nm = '💍 ' + bulkRingTipName(rr, r.base) + (r.stack ? '\n＋ ซ้อน ' + bulkRingTipName(st, r.stack) : '');
             return `<span class="relative inline-block w-5 h-5" data-tip="${mtEsc(nm)} — ${r.has ? '✅ มี' : '❌ ไม่มี'}">${rr && rr.img ? `<img src="${rr.img}" class="w-5 h-5 rounded-full object-cover ${r.has ? '' : 'opacity-40 grayscale'}" alt="">` : '💍'}${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -left-1 w-3 h-3 rounded-full border border-violet-400 object-cover ${r.has ? '' : 'opacity-40 grayscale'}" alt="">` : ''}<span class="absolute -bottom-1 -right-1 text-[8px]">${r.has ? '✅' : '❌'}</span></span>`;
         });
         return out.length ? `<div class="flex flex-wrap gap-1.5 mt-1">${out.join('')}</div>` : '';
+    }
+    /** ชื่อแหวน + ดาว สำหรับ tooltip เช่น "แหวนเกิด ★★★★★★ (6 ดาว)" */
+    function bulkRingTipName(rr, id) {
+        if (!rr) return String(id || '');
+        const g = parseInt(rr.grade, 10) || 0;
+        return rr.name + (g ? ' ' + '★'.repeat(Math.min(6, g)) + ' (' + g + ' ดาว)' : '');
     }
     /** 💍 แหวนทั้งหมดของลูกกิล (กางจากแถว) — วงที่ทีมนี้ใช้ ขึ้นกรอบเขียว */
     function bulkMemberRingsPanel(mem, team) {
@@ -39471,7 +39477,7 @@
         const items = [...groups.entries()].map(([k, g]) => ({ k, id: g.id, n: g.n, rr: R(g.id), st: g.st ? R(g.st) : null, stId: g.st }))
             .sort((a, b) => (used.has(b.k) - used.has(a.k)) || b.n - a.n);
         return `<div class="text-[11px] text-gray-400 mb-2">💍 แหวนทั้งหมด <b class="text-gray-200">${list.length}</b> วง · ${groups.size} แบบ <span class="text-emerald-300">· กรอบเขียว = ใช้กับทีมนี้</span> <span class="text-violet-300">· รูปเล็กมุมซ้าย = แหวนที่ซ้อน</span></div>
-            <div class="flex flex-wrap gap-2">${items.map(x => `<div class="flex flex-col items-center w-[62px] cursor-default" data-tip="${mtEsc((x.rr ? x.rr.name : x.id) + (x.stId ? ' ซ้อน ' + (x.st ? x.st.name : x.stId) : '') + (x.n > 1 ? ' ×' + x.n : '') + (used.has(x.k) ? '\n✅ ใช้กับทีมนี้' : ''))}">
+            <div class="flex flex-wrap gap-2">${items.map(x => `<div class="flex flex-col items-center w-[62px] cursor-default" data-tip="${mtEsc('💍 ' + bulkRingTipName(x.rr, x.id) + (x.stId ? '\n＋ ซ้อน ' + bulkRingTipName(x.st, x.stId) : '') + (x.n > 1 ? '\nมี ' + x.n + ' วง' : '') + (used.has(x.k) ? '\n✅ ใช้กับทีมนี้' : ''))}">
                 <div class="relative w-11 h-11 rounded-full border-2 ${used.has(x.k) ? 'border-emerald-400' : 'border-gray-700'}">
                     ${x.rr && x.rr.img ? `<img src="${x.rr.img}" class="w-full h-full rounded-full object-cover" alt="">` : '<span class="flex w-full h-full items-center justify-center">💍</span>'}
                     ${x.st && x.st.img ? `<img src="${x.st.img}" class="absolute -top-1 -left-1 w-5 h-5 rounded-full border-2 border-violet-400 object-cover bg-black" alt="">` : ''}
