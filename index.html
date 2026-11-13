@@ -14714,8 +14714,8 @@
                 const L = publicLinkBase(), raw = String(appUrlParams().get('g') || '').replace(/ /g, '+');
                 rosterHref = L.base + '?mode=roster&g=' + encodeURIComponent(raw) + '&nojoin=1' + (L.srv || '');   // nojoin = เข้าได้เฉพาะคนที่สมัครแล้ว (สมัครผ่านลิงก์สมาชิกที่หัวหน้าส่งเท่านั้น)
             } catch (e) {}
-            // 🌍 หน้าแกลเลอรี (ไม่มี mode=) → ปุ่ม 🎮 เข้าสู่ระบบ / ชื่อลูกกิลที่เข้าอยู่ · หน้าอื่นใช้ลิงก์ไปหน้าลูกกิลเหมือนเดิม
-            if (!appUrlParams().get('mode') && typeof galleryMemberHeaderHTML === 'function') {
+            // 🎮 ทุกหน้าสาธารณะ: ปุ่มเข้าสู่ระบบ (ลูกกิลที่ผูก Discord) → เข้าแล้วไปแกลเลอรีแท็บ DEFENSE · ลิงก์หน้าลูกกิลอยู่ในป้ายชื่อหลังเข้า
+            if (typeof galleryMemberHeaderHTML === 'function') {
                 return `${galleryMemberHeaderHTML(rosterHref)}<span class="text-xs text-gray-500 whitespace-nowrap">🛡️ กิลด์ <b class="text-yellow-500/90">${ccEsc(g)}</b></span>${ver}`;
             }
             const rosterBtn = rosterHref ? `<a href="${rosterHref}" class="px-3 py-1.5 rounded-xl text-xs font-black text-white whitespace-nowrap flex items-center gap-1.5 shadow hover:brightness-110 transition" style="background:#5865F2" title="สำหรับลูกกิลด์ที่ลงทะเบียนแล้ว — เข้าด้วย Discord เพื่อลงตัวละคร / สัตว์เลี้ยง / แหวน และดูทีมที่หัวหน้ากิลด์ตั้งให้">👤 เข้าหน้าลูกกิล</a>` : '';
@@ -31465,17 +31465,22 @@
             if (!j || j.status !== 'success') throw new Error((j && j.message) || 'ไม่พบสมาชิก');
             return j;
         }
+        /** ลิงก์แกลเลอรีของหน้านี้ (?k=&g=&s=) — เข้าจากหน้าคอมพ์ปราสาท/บิ้ว ก็กลับมาที่แกลเลอรี */
+        function galleryReturnQuery() {
+            const q = galleryShareQuery();
+            return '?' + (appUrlParams().get('k') ? '' : 'k=' + encodeURIComponent(getDailyKey()) + '&') + q.replace(/^&/, '');
+        }
         async function galleryDiscordStart() {
             if (!rosterDiscordClientId) { showLoading('🎮 กำลังเตรียม Discord...'); await rosterDiscordLoadConfig(); hideLoading(); }
             if (!rosterDiscordClientId) return alert('ยังไม่ได้เปิดใช้การเข้าด้วย Discord — แจ้งหัวหน้ากิลด์');
             // Discord ส่งกลับไปที่ GitHub Pages เสมอ — เปิดจากเว็บอื่น ต้องย้ายไปหน้านั้นก่อน (เลขสุ่มจะได้อยู่ที่เดียวกัน)
             try {
                 const back = new URL(rosterDiscordRedirectUri());
-                if (window.location.origin !== back.origin) { (window.top || window).location.href = back.origin + back.pathname + galleryShareQuery().replace(/^&/, '?') + '&gdiscord=1'; return; }
+                if (window.location.origin !== back.origin) { (window.top || window).location.href = back.origin + back.pathname + galleryReturnQuery() + '&gdiscord=1'; return; }
             } catch (e) {}
             const nonce = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
             const g = appUrlParams().get('g') || '';
-            const saved = JSON.stringify({ n: nonce, act: 'gallery', g: g, at: Date.now(), ret: galleryShareQuery().replace(/^&/, '?') });
+            const saved = JSON.stringify({ n: nonce, act: 'gallery', g: g, at: Date.now(), ret: galleryReturnQuery() });
             try { sessionStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
             try { localStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
             const q = new URLSearchParams({ client_id: rosterDiscordClientId, response_type: 'code', scope: 'identify', redirect_uri: rosterDiscordRedirectUri(), state: 'gallery.' + nonce + '.' + g, prompt: 'none' });
@@ -31572,6 +31577,7 @@
         }
         /** ปุ่มมุมขวาบนของแกลเลอรี: ยังไม่เข้า = 🎮 เข้าสู่ระบบ · เข้าแล้ว = ชื่อ + ออก */
         function galleryMemberHeaderHTML(rosterHref) {
+            restoreMemberSession();   // หน้าคอมพ์ปราสาท/บิ้ว เปิดตรง — ยังไม่ได้กู้ session
             if (memberSession) {
                 const av = memberSession.avatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(memberSession.avatar) : '';
                 return `<span class="flex items-center gap-2 pl-1 pr-1 py-1 rounded-xl bg-indigo-900/40 border border-indigo-600/50">
