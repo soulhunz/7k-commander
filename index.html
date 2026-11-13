@@ -4698,7 +4698,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.15.0';
+        const APP_VERSION = '1.15.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -39273,15 +39273,25 @@
                 const rr = id && R(id); if (!rr) return '';
                 const st = ns.ringStacks && ns.ringStacks[j] ? R(ns.ringStacks[j]) : null;
                 const has = ringHas ? !!ringHas.get(k + ':' + j) : null;
-                return `<span class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 ${has === false ? 'bg-red-950/50 border border-red-800/60' : 'bg-[#161b22]'}" title="${has === false ? (st ? 'ไม่มีแหวนวงนี้ที่ซ้อนคู่นี้' : 'ไม่มีแหวนวงนี้') : ''}">${rr.img ? `<img src="${rr.img}" class="w-5 h-5 rounded" alt="">` : '💍'}${E(rr.name)}${st ? ` <span class="text-violet-300">＋ ซ้อน</span>${st.img ? `<img src="${st.img}" class="w-5 h-5 rounded" alt="">` : ''}${E(st.name)}` : ''}${has === true ? ' ✅' : has === false ? ' <span class="text-red-300 font-bold">❌ ไม่มี</span>' : ''}</span>`;
+                // 💍 รูปใหญ่ + ดาว (grade) · แหวนซ้อน = อีกวงต่อท้าย
+                const ringBox = x => `<span class="flex items-center gap-2 min-w-0">
+                    <span class="relative shrink-0 w-11 h-11 rounded-lg border-2 border-amber-500/60 bg-black overflow-hidden">${x.img ? `<img src="${x.img}" class="w-full h-full object-cover" alt="">` : '<span class="flex w-full h-full items-center justify-center">💍</span>'}</span>
+                    <span class="min-w-0 leading-tight"><span class="block text-xs font-bold text-white truncate">${E(x.name)}</span><span class="block text-[11px] font-black text-amber-300">${'★'.repeat(Math.min(6, parseInt(x.grade, 10) || 0)) || '-'} <span class="text-gray-500 font-bold">${parseInt(x.grade, 10) ? parseInt(x.grade, 10) + ' ดาว' : ''}</span></span></span>
+                </span>`;
+                return `<div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg p-2 ${has === false ? 'bg-red-950/50 border border-red-800/60' : 'bg-[#161b22] border border-gray-800'}" title="${has === false ? (st ? 'ไม่มีแหวนวงนี้ที่ซ้อนคู่นี้' : 'ไม่มีแหวนวงนี้') : ''}">
+                    ${ringBox(rr)}${st ? `<span class="text-[11px] font-black text-violet-300 shrink-0">＋ ซ้อน</span>${ringBox(st)}` : ''}${has === true ? '<span class="ml-auto">✅</span>' : has === false ? '<span class="ml-auto text-red-300 text-xs font-bold">❌ ไม่มี</span>' : ''}
+                </div>`;
             }).join('');
-            const equip = s.equip ? String(s.equip).split('_')[0] : '';
+            const eqObj = s.equip ? ((equipSetsDB || []).find(x => String(x.id) === String(s.equip)) || (equipSetsDB || []).find(x => String(x.id) === String(s.equip).split('_')[0]) || null) : null;
+            const equip = s.equip ? (eqObj && eqObj.name) || String(s.equip).split('_')[0] : '';
             return `<div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3">
                 <div class="flex items-center gap-3 mb-2"><img src="${img}" class="w-14 h-14 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-600'}" alt="">
-                    <div class="min-w-0"><div class="text-white font-bold truncate">${E(hh.name)}</div><div class="text-[11px] text-yellow-400">${'★'.repeat(Math.min(6, parseInt(s.star, 10) || 0))}${s.awakened ? ' <span class="text-purple-300">· ตื่น</span>' : ''}</div></div></div>
+                    <div class="min-w-0"><div class="text-white font-bold truncate">${E(hh.name)}</div><div class="text-[11px] text-yellow-400">${'★'.repeat(Math.min(6, parseInt(s.star, 10) || 0))}${s.awakened ? ' <span class="text-purple-300">· Awakening/ปลุกพลัง</span>' : ''}</div></div></div>
                 ${stats ? `<div class="grid grid-cols-1 gap-1 text-[11px] mb-2">${stats}</div>` : '<div class="text-[11px] text-gray-600 mb-2">ไม่ได้กำหนดสแตท</div>'}
-                ${rings ? `<div class="text-[10px] text-gray-500 mb-0.5">💍 แหวน</div><div class="flex flex-wrap gap-1 text-[11px] text-gray-200 mb-1.5">${rings}</div>` : ''}
-                ${equip ? `<div class="text-[11px] text-gray-300">🛡️ เซต: ${E(equip)}</div>` : ''}
+                ${rings ? `<div class="text-[11px] font-bold text-gray-400 mb-1">💍 แหวน</div><div class="flex flex-col gap-1.5 mb-2">${rings}</div>` : ''}
+                ${equip ? `<div class="text-[11px] font-bold text-gray-400 mb-1">🛡️ เซต</div><div class="flex items-center gap-2 rounded-lg p-2 bg-[#161b22] border border-gray-800 mb-1.5">
+                    <span class="shrink-0 w-11 h-11 rounded-lg border-2 border-sky-600/60 bg-black overflow-hidden">${eqObj && eqObj.img ? `<img src="${eqObj.img}" class="w-full h-full object-cover" alt="">` : '<span class="flex w-full h-full items-center justify-center">🛡️</span>'}</span>
+                    <span class="text-xs font-bold text-white">${E(equip)}</span></div>` : ''}
                 ${s.comment ? `<div class="text-[11px] text-gray-400 italic mt-1">💬 ${E(s.comment)}</div>` : ''}
             </div>`;
         }).join('');
