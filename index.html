@@ -6375,10 +6375,11 @@
                     await loadSharedGallery();
                     // 🔗 ลิงก์ที่ก๊อปจากแถบที่อยู่ตอนดูทีม (?teamId=...) → เปิดทีมนั้นเลย ไม่ต้องไปหาในแกลเลอรี
                     if (sharedId) { await loadSharedTeamView(sharedId, true); updateUrl(sharedId); }
-                    // 🎮 ลูกกิลเข้าสู่ระบบด้วย Discord (กลับมาจาก Discord / กดจากเว็บอื่นแล้วย้ายมา / login ค้างไว้ → อัปเดตทีม)
-                    if (discordCb && discordCb.act === 'gallery') galleryDiscordFinish(discordCb);
-                    else if (urlParams.get('gdiscord') === '1') galleryDiscordStart();
-                    else galleryMemberRefresh();
+                    // 🎮 ลูกกิลเข้าสู่ระบบด้วย Discord (กลับมาจาก Discord / กดจากเว็บอื่นแล้วย้ายมา)
+                    //    รอให้เสร็จก่อน — ไม่งั้น finally ด้านล่างปิดหน้าโหลดทั้งที่ยังเข้าสู่ระบบไม่เสร็จ
+                    if (discordCb && discordCb.act === 'gallery') await galleryDiscordFinish(discordCb);
+                    else if (urlParams.get('gdiscord') === '1') await galleryDiscordStart();
+                    //    login ค้างไว้ → ใช้ข้อมูลในเครื่อง · เช็คเวอร์ชันไปพร้อมรอบเช็คแกลเลอรี (galleryMemberSync)
                 } catch (e) {
                     // เดิม error ตรงนี้ถูกกลืนเป็น "History API" → หน้าค้างโหลดตลอดไป
                     console.error('loadSharedGallery failed:', e);
@@ -31212,6 +31213,7 @@
                     // ⚡ อัปเดต cache เฉพาะ category ที่ server ส่งมา (เปลี่ยนแล้ว) แล้ว hydrate DB จาก cache เสมอ
                     // (กัน tab/session ใหม่ที่ DB ในหน่วยความจำว่าง แต่ category นั้นไม่เปลี่ยนเลยไม่ถูกส่งมาซ้ำ)
                     mergePublicMasterData(res.masterData, res.versions);
+                    galleryMemberSync(res.versions);
 
                     // 🟢 2. เก็บข้อมูลลงตัวแปร Cache
                     const hadTeams = Array.isArray(galleryCacheDB) && galleryCacheDB.length > 0;
@@ -31313,14 +31315,8 @@
 
                 const masterChanged = res.masterData && Object.keys(res.masterData).length > 0;
                 const onList = !!document.getElementById('gallery-sync-status'); // อยู่หน้ารวม (ไม่ใช่หน้ารายละเอียดทีม)
-                if ((teamsChanged || masterChanged) && onList) {
-                    // วาดใหม่แต่คงตำแหน่งเลื่อนไว้ — ไม่ให้หน้ากระโดดกลับบนสุดระหว่างดู
-                    //    (กล่องที่เลื่อนจริงต่างกันตามขนาดจอ — จำทั้งกรอบนอกและกล่องใน)
-                    const scrollers = () => [document.scrollingElement, document.getElementById('main-content')].concat(Array.from(document.querySelectorAll('#main-content .custom-scroll')));
-                    const tops = scrollers().map(el => el ? el.scrollTop : 0);
-                    renderGalleryUI(galleryCacheDB, urlGuild);
-                    scrollers().forEach((el, i) => { if (el && tops[i]) el.scrollTop = tops[i]; });
-                }
+                if ((teamsChanged || masterChanged) && onList) galleryRerenderKeepScroll(urlGuild);
+                galleryMemberSync(res.versions);   // 👤 ลูกกิลที่เข้าสู่ระบบ — ดึงของตัวเองเฉพาะตอนเวอร์ชันเปลี่ยน
 
                 if (diff.added || diff.updated) {
                     const parts = [];
@@ -31338,6 +31334,15 @@
             } finally {
                 galleryBgSyncing = false;
             }
+        }
+
+        /** วาดใหม่แต่คงตำแหน่งเลื่อนไว้ — ไม่ให้หน้ากระโดดกลับบนสุดระหว่างดู
+         *  (กล่องที่เลื่อนจริงต่างกันตามขนาดจอ — จำทั้งกรอบนอกและกล่องใน) */
+        function galleryRerenderKeepScroll(urlGuild) {
+            const scrollers = () => [document.scrollingElement, document.getElementById('main-content')].concat(Array.from(document.querySelectorAll('#main-content .custom-scroll')));
+            const tops = scrollers().map(el => el ? el.scrollTop : 0);
+            renderGalleryUI(galleryCacheDB, urlGuild);
+            scrollers().forEach((el, i) => { if (el && tops[i]) el.scrollTop = tops[i]; });
         }
 
         /** แกลเลอรีอยู่บนจอไหม (สลับไปหน้าปราสาทอยู่ = ไม่ต้องเช็ค) */
@@ -31485,6 +31490,7 @@
             try { localStorage.setItem(ROSTER_DISCORD_STATE_KEY, saved); } catch (e) {}
             const q = new URLSearchParams({ client_id: rosterDiscordClientId, response_type: 'code', scope: 'identify', redirect_uri: rosterDiscordRedirectUri(), state: 'gallery.' + nonce + '.' + g, prompt: 'none' });
             const url = 'https://discord.com/oauth2/authorize?' + q.toString();
+            showLoading('🎮 กำลังไปหน้า Discord...');
             try { (window.top || window).location.href = url; } catch (e) { window.open(url, '_blank'); }
         }
         async function galleryDiscordFinish(cb) {
@@ -31505,21 +31511,56 @@
                         : '❌ เข้าสู่ระบบไม่สำเร็จ: ' + ((r && r.message) || 'server ตอบไม่สำเร็จ'));
                 }
                 const inv = await galleryMemberFetch(r.accessCode, r.guild_id);
-                galleryMemberApply({ discord: true, code: r.accessCode, guildId: r.guild_id || '', guildName: mlUrlGuildName(), name: r.name || '', avatar: r.discordAvatar || '', discordName: r.discordName || '' }, inv);
+                let ver = ''; try { ver = galleryMemberVerKey(loadGalleryStaticCache().versions); } catch (e) {}
+                galleryMemberApply({ discord: true, ver, code: r.accessCode, guildId: r.guild_id || '', guildName: mlUrlGuildName(), name: r.name || '', avatar: r.discordAvatar || '', discordName: r.discordName || '' }, inv);
                 try { saveRosterPortalSession(r.accessCode); } catch (e) {}   // เปิดหน้าลูกกิลต่อได้เลยไม่ต้องเข้าใหม่
                 hideLoading();
-                currentGalleryTab = 'Defense';
-                rerenderGallery();
+                rerenderGallery();   // อยู่หน้าเดิม (Targets) — แท็บ DEFENSE กดได้แล้ว
                 if (typeof showToast === 'function') showToast('🎮 เข้าสู่ระบบแล้ว: ' + (memberSession.name || 'ลูกกิล'), 'success');
             } catch (e) {
                 hideLoading();
                 alert('❌ เข้าสู่ระบบไม่สำเร็จ: ' + (e.message || e));
             }
         }
-        /** login ค้างไว้ → ดึงทีม/ฮีโร่/แหวนล่าสุด (หัวหน้าอาจเปลี่ยนทีมที่ตั้งให้) */
+        /** 👤 เบื้องหลัง (ทุกรอบที่แกลเลอรีเช็คของใหม่) — ไม่มีหน้าโหลด · วาดใหม่เฉพาะตอนข้อมูลเปลี่ยนจริง
+         *  ระบบเวอร์ชันเดียวกับแกลเลอรี: ทีม (teams_3v3) + ทีมที่ตั้งให้/ตัวละคร/แหวน (guilds) ไม่เปลี่ยน = ไม่ดึง */
+        let galleryMemberSyncing = false;
+        const galleryMemberVerKey = v => v ? (v.teams_3v3 || 0) + '|' + (v.guilds || 0) : '';
+        async function galleryMemberSync(serverVersions) {
+            restoreMemberSession();
+            if (!memberSession || !memberSession.code || galleryMemberSyncing) return;
+            const ver = galleryMemberVerKey(serverVersions);
+            if (ver && memberSession.ver === ver) return;
+            galleryMemberSyncing = true;
+            try {
+                const sig = s => JSON.stringify([s.name, s.guildTeams, s.heroList, s.ringList]);
+                const before = sig(memberSession), teamsBefore = JSON.stringify(memberSession.guildTeams || []);
+                const inv = await galleryMemberFetch(memberSession.code, memberSession.guildId);
+                if (!memberSession) return;   // ออกจากระบบระหว่างรอ
+                const base = Object.assign({}, memberSession, { ver }); delete base.heroIds;
+                galleryMemberApply(base, inv);
+                if (sig(memberSession) === before) return;
+                if (document.getElementById('gallery-sync-status')) galleryMemberRerender();
+                if (JSON.stringify(memberSession.guildTeams || []) !== teamsBefore && typeof showToast === 'function') showToast('🛡️ หัวหน้ากิลด์อัปเดตทีมที่ตั้งให้คุณแล้ว (แท็บ DEFENSE)', 'success');
+            } catch (e) {
+                console.warn('gallery: อัปเดตข้อมูลลูกกิลไม่ได้', e);
+                if (/ไม่พบ|denied|forbidden/i.test(String(e && e.message))) {
+                    memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch (x) {}
+                    if (currentGalleryTab === 'Defense') currentGalleryTab = 'Attack';
+                    galleryMemberRerender();
+                    if (typeof showToast === 'function') showToast('👤 ออกจากระบบแล้ว — ไม่พบข้อมูลลูกกิลนี้ เข้าสู่ระบบใหม่อีกครั้ง', 'error');
+                }
+            } finally { galleryMemberSyncing = false; }
+        }
+        function galleryMemberRerender() {
+            if (!galleryCacheDB || !document.getElementById('gallery-sync-status')) return;   // อยู่หน้าอื่น — ไว้วาดตอนกลับมา
+            galleryRerenderKeepScroll(decodeGuildParam(appUrlParams().get('g')));
+        }
+        /** ↻ กดเองในกล่องทีม — มีหน้าโหลด */
         async function galleryMemberRefresh() {
             restoreMemberSession();
             if (!memberSession || !memberSession.code) return;
+            showLoading('👤 กำลังโหลดข้อมูลของ ' + (memberSession.name || 'ลูกกิล') + '...');   // ไม่ให้หน้าเด้งเปลี่ยนเองเงียบๆ
             try {
                 const inv = await galleryMemberFetch(memberSession.code, memberSession.guildId);
                 const base = Object.assign({}, memberSession); delete base.heroIds;
@@ -31527,8 +31568,14 @@
                 rerenderGallery();
             } catch (e) {
                 console.warn('gallery: อัปเดตข้อมูลลูกกิลไม่ได้', e);
-                if (/ไม่พบ|denied|forbidden/i.test(String(e && e.message))) { memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch (x) {} rerenderGallery(); }
-            }
+                if (/ไม่พบ|denied|forbidden/i.test(String(e && e.message))) {
+                    memberSession = null; try { localStorage.removeItem('7k_member_session'); } catch (x) {} rerenderGallery();
+                    if (typeof showToast === 'function') showToast('👤 ออกจากระบบแล้ว — ไม่พบข้อมูลลูกกิลนี้ เข้าสู่ระบบใหม่อีกครั้ง', 'error');
+                } else {
+                    rerenderGallery();   // เน็ตหลุด/server ช้า → ใช้ข้อมูลเดิมในเครื่องต่อ
+                    if (typeof showToast === 'function') showToast('⚠️ อัปเดตข้อมูลไม่สำเร็จ — แสดงข้อมูลเดิมในเครื่อง', 'error');
+                }
+            } finally { hideLoading(); }
         }
         /** 🛡️ แท็บ DEFENSE ตอนเข้าสู่ระบบ — ทีมที่หัวหน้ากิลด์ตั้งให้ (กดดูสแตท + แหวนที่ขาด) */
         function galleryMyTeamsHTML() {
@@ -31566,7 +31613,8 @@
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     ${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full border-2 border-indigo-500/60" alt="">` : ''}
                     <div class="min-w-0"><div class="text-base font-black text-white">🛡️ ทีมที่หัวหน้ากิลด์ตั้งให้ ${mlEsc(s.name || '')}</div>
-                    <div class="text-[11px] text-gray-500">${list.length} ทีม · ตัวที่ยังไม่มีเป็นสีเทา · กดการ์ดดูสแตทและแหวนที่ขาด</div></div>
+                    <div class="text-[11px] text-gray-500">${list.length} ทีม · ตัวที่ยังไม่มีเป็นสีเทา · กดการ์ดดูสแตทและแหวนที่ขาด${s.syncedAt ? ' · ข้อมูลเมื่อ ' + new Date(s.syncedAt).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div></div>
+                    <button onclick="galleryMemberRefresh()" title="ดึงทีม / ตัวละคร / แหวนล่าสุด" class="ml-auto bg-[#1f2937] hover:bg-blue-600 text-gray-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700">↻ อัปเดต</button>
                 </div>
                 ${cards ? `<div class="gallery-card-grid">${cards}</div>` : '<div class="text-center text-gray-500 text-sm py-10 border border-dashed border-gray-800 rounded-xl">หัวหน้ากิลด์ยังไม่ได้ตั้งทีมให้</div>'}
             </div>`;
@@ -31694,7 +31742,7 @@
             if (!GALLERY_ROTATION_ENABLED && currentGalleryTab === 'Rotation') currentGalleryTab = 'Attack';
             // 🛡️ DEFENSE = ทีมที่หัวหน้าตั้งให้ลูกกิล → หน้าสาธารณะต้องเข้าสู่ระบบก่อน
             const defenseLocked = isPublicView && !memberSession;
-            if (defenseLocked && currentGalleryTab === 'Defense') currentGalleryTab = 'Attack';
+            if ((defenseLocked && currentGalleryTab === 'Defense') || currentGalleryTab === 'MyHeroes') currentGalleryTab = 'Attack';   // 🦸 ฮีโร่ของฉัน เอาออกแล้ว (ดูที่หน้าลูกกิล)
             const container = document.getElementById('main-content');
             if (!container) return;
 
@@ -32083,7 +32131,6 @@
                                     ? `<button type="button" disabled title="เข้าสู่ระบบก่อน (ปุ่ม 🎮 เข้าสู่ระบบ มุมขวาบน) — ดูทีมที่หัวหน้ากิลด์ตั้งให้" class="px-6 py-2 rounded-xl text-xs font-black uppercase bg-[#0d1117] text-gray-600 border border-gray-800 opacity-60 cursor-not-allowed">🔒 Defense</button>`
                                     : `<button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>`}
                                 ${GALLERY_ROTATION_ENABLED ? `<button onclick="switchGalleryTab('Rotation')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Rotation' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : btnInactive} text-xs font-black uppercase">🗡️ วนไม้</button>` : ''}
-                                ${memberSession ? `<button onclick="switchGalleryTab('MyHeroes')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'MyHeroes' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">🦸 ฮีโร่ของฉัน</button>` : ''}
                             </div>
                             ${maiGalleryTabHTML(false)}
                         </div>
