@@ -4698,7 +4698,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.14.1';
+        const APP_VERSION = '1.14.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -6312,6 +6312,9 @@
                 applyRosterFullscreenShell();
                 prepareRosterLoginHidden();
 
+                // 💾 login ค้างไว้ + มีข้อมูลตัวเองในเครื่อง → เปิดเลย (เช็คเวอร์ชันเบื้องหลัง)
+                if (!discordCb && rosterTryFastRestore()) { rosterDiscordLoadConfig(); return; }
+
                 showLoading("กำลังโหลดข้อมูลกิลด์...");
                 try {
                     // 🔒 เลิกใช้ getAllData — อันนั้นต้อง login และให้ข้อมูลทั้งระบบ
@@ -6881,6 +6884,7 @@
                 throw new Error((res && res.message) || 'โหลดข้อมูลกิลด์ไม่สำเร็จ');
             }
             mergePublicMasterData(res.masterData, res.versions);
+            rosterServerVersions = res.versions || null;   // 💾 แคชข้อมูลลูกกิล — เทียบเวอร์ชันครั้งหน้า
             if (Array.isArray(res.guilds) && res.guilds.length) {
                 guildsDB = res.guilds.map(function (g) {
                     return { id: String(g.id), name: g.name || '', type: g.type || 'sub', members: [] };
@@ -37252,7 +37256,72 @@
         tempOwnedRings = (mem.ring_list || []).map((r, i) => normalizeRosterRingEntry(r, i));
     }
 
-    async function refreshRosterMemberInventoryFromServer(target) {
+    // =========================================================
+    // 💾 แคชข้อมูลของตัวเองในหน้าลูกกิล — เปิดใหม่วาดจากเครื่องทันที ไม่ต้องรอ server
+    //    เช็คเวอร์ชันเบื้องหลัง (teams_3v3 = ทีม · guilds = ทีมที่ตั้งให้/ตัวละคร/แหวน) — เปลี่ยนค่อยโหลดใหม่
+    // =========================================================
+    const ROSTER_MEMBER_CACHE_KEY = '7k_roster_member_cache';
+    var rosterServerVersions = null;   // เวอร์ชันล่าสุดจาก getRosterBootstrap (var: fetchRosterBootstrap อยู่ก่อนบรรทัดนี้)
+    const rosterVerKey = v => v ? (v.teams_3v3 || 0) + '|' + (v.guilds || 0) : '';
+    function rosterCacheLoad() { try { return JSON.parse(localStorage.getItem(ROSTER_MEMBER_CACHE_KEY) || 'null'); } catch (e) { return null; } }
+    function rosterCacheClear() { try { localStorage.removeItem(ROSTER_MEMBER_CACHE_KEY); } catch (e) {} }
+    /** เก็บข้อมูลคนที่เข้าอยู่ — ver ว่าง = ไม่รู้เวอร์ชัน (ครั้งหน้าโหลดใหม่ 1 รอบ) */
+    function rosterCacheSave(ver) {
+        const t = currentRosterTarget, g = t && guildsDB[t.g], mem = g && g.members && g.members[t.m];
+        const code = normalizeMemberCode(rosterAuthCode);
+        if (!mem || !code) return;
+        const c = {
+            code, ver: ver != null ? ver : rosterVerKey(rosterServerVersions), savedAt: Date.now(),
+            guild: { id: String(g.id), name: g.name || '', type: g.type || 'main' },
+            member: { id: String(mem.id), name: mem.name || '' },
+            inv: { hero_list: mem.hero_list || [], pet_list: mem.pet_list || [], ring_list: mem.ring_list || [], inventoryUpdatedAt: mem.inventoryUpdatedAt || 0 },
+            guildTeams: Array.isArray(rosterGuildTeams) ? rosterGuildTeams : null
+        };
+        try { localStorage.setItem(ROSTER_MEMBER_CACHE_KEY, JSON.stringify(c)); } catch (e) { console.warn('rosterCacheSave:', e); }
+    }
+    /** เปิดหน้าลูกกิลจากแคช (login ค้างไว้) — true = เปิดแล้ว · false = ไม่มีแคช ให้ไปทางเดิม */
+    function rosterTryFastRestore() {
+        const code = loadRosterPortalSessionCode();
+        const c = rosterCacheLoad();
+        if (!code || !c || c.code !== code || !c.guild || !c.member || !c.inv) return false;
+        mergePublicMasterData(null, null);   // ข้อมูลกลาง (ฮีโร่/แหวน/สัตว์) จากเครื่อง
+        if (!heroesDB.length) return false;
+        guildsDB = [{ id: c.guild.id, name: c.guild.name, type: c.guild.type || 'main', members: [normalizeMemberRecord({
+            id: c.member.id, name: c.member.name, accessCode: code,
+            hero_list: c.inv.hero_list || [], pet_list: c.inv.pet_list || [], ring_list: c.inv.ring_list || [],
+            inventoryUpdatedAt: c.inv.inventoryUpdatedAt || 0, teams: []
+        })] }];
+        activeGuildIndex = 0;
+        guildMembersDB = guildsDB[0].members;
+        rosterAuthCode = code;
+        openRosterEditorForTarget({ g: 0, m: 0 }, { cachedTeams: c.guildTeams, skipFetch: true });
+        rosterBgCheck(c.ver);
+        return true;
+    }
+    /** เบื้องหลัง: ขอเวอร์ชัน (+ ข้อมูลกลางที่เปลี่ยน) → เวอร์ชันเปลี่ยน = โหลดข้อมูลตัวเองใหม่ */
+    async function rosterBgCheck(cachedVer) {
+        let res = null;
+        try { res = await postJson({ action: 'getRosterBootstrap', versions: loadGalleryStaticCache().versions }, { timeout: 60000, retries: 3 }); }
+        catch (e) { console.warn('roster: เช็คเวอร์ชันไม่ได้ — ใช้ข้อมูลในเครื่อง', e); return; }
+        if (!res || res.status !== 'success') return;
+        const masterChanged = res.masterData && Object.keys(res.masterData).length > 0;
+        mergePublicMasterData(res.masterData, res.versions);
+        rosterServerVersions = res.versions || null;
+        const ver = rosterVerKey(rosterServerVersions);
+        const t = currentRosterTarget;
+        if (!t) return;
+        if (ver && ver === cachedVer) { if (masterChanged) renderPublicRosterUI(); return; }
+        // ⚠️ กำลังแก้อยู่ (ยังไม่บันทึก) = ไม่เขียนทับ — เก็บของใหม่ไว้ใน mem แล้วบอก
+        const editing = rosterTempSnapshot !== rosterTempSig();
+        if (!(await refreshRosterMemberInventoryFromServer(t, ver))) return;
+        if (!editing) { applyRosterTempInventoryFromMember(t); rosterTempSnapshot = rosterTempSig(); }
+        else if (typeof showToast === 'function') showToast('ℹ️ มีข้อมูลใหม่จาก server — บันทึกหรือรีเฟรชเพื่อดู', 'info');
+        renderPublicRosterUI();
+    }
+    let rosterTempSnapshot = '';
+    function rosterTempSig() { try { return JSON.stringify([tempOwnedHeroes, tempOwnedPets.map(p => p && p.id), tempOwnedRings.map(r => r && [r.id, r.stackId])]); } catch (e) { return ''; } }
+
+    async function refreshRosterMemberInventoryFromServer(target, ver) {
         if (!target || !USE_CLOUD || !SCRIPT_URL) return false;
         try {
             const inv = await fetchMemberInventoryFromServer(target.g, target.m);
@@ -37264,6 +37333,7 @@
                 ring_list: inv.ring_list || [],
                 inventoryUpdatedAt: inv.inventoryUpdatedAt || 0
             });
+            rosterCacheSave(ver);
             return true;
         } catch (e) {
             console.warn('refreshRosterMemberInventoryFromServer:', e);
@@ -37271,9 +37341,11 @@
         }
     }
 
-    async function openRosterEditorForTarget(target) {
+    /** opts.skipFetch = เปิดจากแคช (ไม่ถาม server ตอนนี้ — rosterBgCheck เช็คเวอร์ชันให้) · opts.cachedTeams = ทีมกิลด์ในแคช */
+    async function openRosterEditorForTarget(target, opts) {
+        opts = opts || {};
         currentRosterTarget = target;
-        rosterGuildTeams = null;
+        rosterGuildTeams = Array.isArray(opts.cachedTeams) ? opts.cachedTeams : null;
         const mem = guildsDB[target.g].members[target.m];
         setRosterMemberHeaderName(mem.name);
         setRosterMemberHeaderGuild(target.g);
@@ -37295,10 +37367,12 @@
             else if (rosterDiscordClientId) rosterDiscordLoadStatus();
         }
 
-        if (USE_CLOUD && SCRIPT_URL) {
+        rosterTempSnapshot = rosterTempSig();
+        if (USE_CLOUD && SCRIPT_URL && !opts.skipFetch) {
             const refreshed = await refreshRosterMemberInventoryFromServer(target);
             if (refreshed) {
                 applyRosterTempInventoryFromMember(target);
+                rosterTempSnapshot = rosterTempSig();
                 renderPublicRosterUI();
             }
         }
@@ -37566,6 +37640,7 @@
     function switchRosterMemberCode() {
         closeRosterMobileNav();
         clearRosterPortalSession();
+        rosterCacheClear();                 // 💾 ข้อมูลของคนนี้ในเครื่อง
         rosterAuthCode = '';                // 🔐 ล้างตัวยืนยัน
         currentRosterTarget = null;
         rosterActiveTab = '';
@@ -40016,6 +40091,8 @@
                 renderPublicRosterRings();
             }
             if (typeof renderPublicRosterProfile === 'function') renderPublicRosterProfile();
+            rosterCacheSave();                       // 💾 ของในเครื่องตรงกับที่บันทึก (เวอร์ชันเปลี่ยน → เปิดครั้งหน้าเช็คให้อีกรอบ)
+            rosterTempSnapshot = rosterTempSig();
             alert('✅ บันทึก' + label + 'เรียบร้อยแล้ว! รวม ' + count + ' รายการ');
         } catch (e) {
             console.error(e);
