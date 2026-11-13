@@ -4706,7 +4706,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.15.4';
+        const APP_VERSION = '1.15.5';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -39270,17 +39270,19 @@
         const slots = Array.isArray(d.slots) ? d.slots : [];
         // ringIds = วงที่ลูกกิลมี → มี/ไม่มี ต่อแหวนแต่ละวงของทีม (เช็คแหวนซ้อนด้วย)
         const ringHas = ringIds ? new Map(teamRingMatch({ slots }, ringIds).map(r => [r.si + ':' + r.j, r.has])) : null;
-        // 🧱 ตำแหน่งการยืน — ช่อง 0-4 แบบหน้า 3v3 (หน้า/หลัง ตามรูปแบบทีม)
+        // 🧱 ตำแหน่งการยืน — ช่องบนสนาม 0-4 อยู่ที่ slot.pos (ลำดับใน slots = ตัวที่ #1 #2 #3 ไม่ใช่ตำแหน่ง)
         const FMT_FRONT = { basic: [0, 1], balanced: [0, 1, 2], attack: [0], defense: [0, 1, 2, 3] };
         const front = FMT_FRONT[String(d.formation || 'basic').toLowerCase()] || FMT_FRONT.basic;
         const back = [0, 1, 2, 3, 4].filter(k => front.indexOf(k) < 0);
-        const posBadge = k => front.indexOf(k) >= 0
+        const slotPos = (s, i) => (s && s.pos != null && s.pos !== '' && !isNaN(parseInt(s.pos, 10))) ? parseInt(s.pos, 10) : i;
+        const posBadge = p => front.indexOf(p) >= 0
             ? '<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-sky-900/60 text-sky-200 border border-sky-700/60">แถวหน้า</span>'
             : '<span class="text-[10px] font-black px-1.5 py-0.5 rounded bg-rose-900/50 text-rose-200 border border-rose-700/60">แถวหลัง</span>';
-        const posCell = k => {
-            const s = slots[k], hh = s && s.id && H(s.id);
-            if (!hh) return '<div class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border border-dashed border-gray-700 bg-black/30"></div>';
-            return `<img src="${s.awakened && hh.img2 ? hh.img2 : hh.img}" title="${E(hh.name)}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover border-2 ${front.indexOf(k) >= 0 ? 'border-sky-500' : 'border-rose-500'}" alt="">`;
+        const posCell = p => {
+            const i = slots.findIndex((s, j) => s && s.id && slotPos(s, j) === p);
+            const s = slots[i], hh = s && H(s.id);
+            if (!hh) return `<div class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border border-dashed border-gray-700 bg-black/30 flex items-center justify-center text-[11px] font-black text-gray-700">${p + 1}</div>`;
+            return `<div class="relative"><img src="${s.awakened && hh.img2 ? hh.img2 : hh.img}" title="${E(hh.name)}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover border-2 ${front.indexOf(p) >= 0 ? 'border-sky-500' : 'border-rose-500'}" alt=""><span class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[8px] font-black flex items-center justify-center">#${i + 1}</span></div>`;
         };
         const formationMap = `<div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 flex flex-col items-center gap-2">
             <div class="flex items-center gap-2"><span class="w-14 text-right text-[10px] font-black text-rose-300">แถวหลัง</span><div class="flex gap-2">${back.map(posCell).join('')}</div><span class="w-14"></span></div>
@@ -39310,7 +39312,7 @@
             const equip = s.equip ? (eqObj && eqObj.name) || String(s.equip).split('_')[0] : '';
             return `<div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3">
                 <div class="flex items-center gap-3 mb-2"><img src="${img}" class="w-14 h-14 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-gray-600'}" alt="">
-                    <div class="min-w-0"><div class="flex items-center gap-1.5 min-w-0"><span class="text-white font-bold truncate">${E(hh.name)}</span>${posBadge(k)}</div><div class="text-[11px] text-yellow-400">${'★'.repeat(Math.min(6, parseInt(s.star, 10) || 0))}${s.awakened ? ' <span class="text-purple-300">· Awakening/ปลุกพลัง</span>' : ''}</div></div></div>
+                    <div class="min-w-0"><div class="flex items-center gap-1.5 min-w-0"><span class="text-white font-bold truncate">${E(hh.name)}</span>${posBadge(slotPos(s, k))}</div><div class="text-[11px] text-yellow-400">${'★'.repeat(Math.min(6, parseInt(s.star, 10) || 0))}${s.awakened ? ' <span class="text-purple-300">· Awakening/ปลุกพลัง</span>' : ''}</div></div></div>
                 ${stats ? `<div class="grid grid-cols-1 gap-1 text-[11px] mb-2">${stats}</div>` : '<div class="text-[11px] text-gray-600 mb-2">ไม่ได้กำหนดสแตท</div>'}
                 ${rings ? `<div class="text-[11px] font-bold text-gray-400 mb-1">💍 แหวน</div><div class="flex flex-col gap-1.5 mb-2">${rings}</div>` : ''}
                 ${equip ? `<div class="text-[11px] font-bold text-gray-400 mb-1">🛡️ เซต</div><div class="flex items-center gap-2 rounded-lg p-2 bg-[#161b22] border border-gray-800 mb-1.5">
@@ -39320,7 +39322,7 @@
             </div>`;
         }).join('');
         const pets = (Array.isArray(d.pets) ? d.pets : (d.pet ? [d.pet] : [])).filter(Boolean).map(p => { const pp = P(p.id); return pp ? `<span class="inline-flex items-center gap-2.5 bg-[#0d1117] border border-gray-800 rounded-xl px-2.5 py-2"><img src="${pp.img}" class="w-14 h-14 rounded-lg object-cover" alt=""><span class="text-sm font-bold text-gray-200">${E(pp.name)}</span></span>` : ''; }).join('');
-        const queue = (Array.isArray(d.skillQueue) ? d.skillQueue : []).map((q, n) => {
+        const queueHTML = arr => (Array.isArray(arr) ? arr : []).map((q, n) => {
             const m = String(q).match(/^(\d+)_(UP|DOWN)$/); if (!m) return '';
             const s = slots[+m[1]], hh = s && H(s.id); if (!hh) return '';
             const key = m[2] === 'UP' ? 's2' : 's1';
@@ -39328,6 +39330,10 @@
             const nm = (typeof skillNameOf === 'function' && skillNameOf(hh, key)) || key.toUpperCase();
             return `<span class="inline-flex items-center gap-2.5 bg-[#0d1117] border border-gray-800 rounded-xl px-2.5 py-2"><span class="text-xs font-black text-gray-500">${n + 1}</span>${icon ? `<img src="${icon}" class="w-12 h-12 rounded-lg" alt="">` : ''}<span class="leading-tight"><span class="block text-sm font-bold text-white">${E(nm)}</span><span class="block text-[11px] text-gray-400 mt-0.5">${E(hh.name)} · <b class="${m[2] === 'UP' ? 'text-sky-300' : 'text-amber-300'}">${m[2] === 'UP' ? '⬆ บน' : '⬇ ล่าง'}</b></span></span></span>`;
         }).join('');
+        // ⚡ ชุดจองสกิล A (หลัก) + B/C/... (skillQueueAlts) — ทีมเดียวกันกดได้หลายแบบ
+        const plans = [d.skillQueue].concat(Array.isArray(d.skillQueueAlts) ? d.skillQueueAlts : [])
+            .map((arr, pi) => ({ letter: String.fromCharCode(65 + pi), html: queueHTML(arr) })).filter(p => p.html);
+        const queue = plans.map(p => `<div class="flex flex-wrap items-center gap-1.5">${plans.length > 1 ? `<span class="w-7 h-7 shrink-0 rounded-lg bg-amber-900/40 border border-amber-600/60 text-amber-300 text-xs font-black flex items-center justify-center" title="ชุดจองสกิล ${p.letter}">${p.letter}</span>` : ''}${p.html}</div>`).join('');
         const fmt = FMT[String(d.formation || '').toLowerCase()] || d.formation || '';
         let m = document.getElementById('team-stats-dlg');
         if (!m) { m = document.createElement('div'); m.id = 'team-stats-dlg'; m.className = 'fixed inset-0 z-[650] flex items-center justify-center bg-black/80 p-3'; m.onclick = e => { if (e.target === m) m.style.display = 'none'; }; document.body.appendChild(m); }
@@ -39340,7 +39346,7 @@
                 ${heroCards ? `<div><div class="text-[11px] text-gray-500 mb-1">🧱 ตำแหน่งการยืน${fmt ? ' · ' + E(fmt) : ''}</div>${formationMap}</div>` : ''}
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">${heroCards || '<div class="text-gray-500 text-sm">ไม่มีตัวละคร</div>'}</div>
                 ${pets ? `<div><div class="text-[11px] text-gray-500 mb-1">🐾 สัตว์เลี้ยง</div><div class="flex flex-wrap gap-1.5">${pets}</div></div>` : ''}
-                ${queue ? `<div><div class="text-[11px] text-gray-500 mb-1">⚡ ลำดับสกิล</div><div class="flex flex-wrap gap-1.5">${queue}</div></div>` : ''}
+                ${queue ? `<div><div class="text-[11px] text-gray-500 mb-1">⚡ ลำดับสกิล${plans.length > 1 ? ` · ${plans.length} ชุด (A = ชุดหลัก)` : ''}</div><div class="flex flex-col gap-2">${queue}</div></div>` : ''}
                 ${d.note ? `<div class="text-[12px] text-gray-300 bg-[#0d1117] border border-gray-800 rounded-lg p-3">📝 ${E(d.note)}</div>` : ''}
             </div>
         </div>`;
