@@ -3594,6 +3594,7 @@
                         <span class="hidden sm:block text-[9px] text-gray-500 font-black uppercase tracking-wider pl-1">🧱 ตาราง</span>
                         <div class="flex items-center gap-1 bg-[#0d1117] border border-gray-800 rounded-xl p-1">
                             <button onclick="castleCompCreateTable()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-black transition whitespace-nowrap">🧱 สร้างตาราง</button>
+                            <button onclick="warUseLogOpen(warUseCastleGuildIdx())" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-indigo-600" title="ลูกกิลใช้ตัวละคร/แหวนอะไรไปแล้วในวอนี้ (ดูย้อนหลังตาม SS)">📒 บันทึกวอ</button>
                             <button onclick="castleCompClearAll()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600" title="ล้างปราสาท + คอมพ์ + จำนวนทั้งหมด">🗑️ ล้างตาราง</button>
                         </div>
                     </div>
@@ -4706,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.15.5';
+        const APP_VERSION = '1.18.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -13974,6 +13975,9 @@
             castleCompExpandedCastles.clear();
             castleCompSave();
             renderCastleComp();
+            // 📒 ล้างตาราง = วอใหม่ → ถามเริ่มบันทึกการใช้ของลูกกิลรอบใหม่ (ของเดิมเก็บไว้ดูย้อนหลัง)
+            const wuGi = (typeof warUseCastleGuildIdx === 'function') ? warUseCastleGuildIdx() : -1;
+            if (wuGi >= 0 && CURRENT_USER && CURRENT_USER.token) setTimeout(() => warUseNewWar(wuGi), 300);
         }
 
         // =========================================================
@@ -14382,6 +14386,8 @@
                 const inp = document.getElementById('cc-ss-label');
                 if (inp && !overwriteId) inp.value = ccSsNextLabel(ccSsList);
                 showToast('📚 เก็บ "' + s.label + '" แล้ว', 'success');
+                // 📒 ตั้งชื่อวอปัจจุบันตาม SS — บันทึกการใช้ของลูกกิลรอบนี้ = "SS นี้"
+                if (!overwriteId && typeof warUseCastleGuildIdx === 'function') { const wuGi = warUseCastleGuildIdx(); if (wuGi >= 0) warUseSetLabel(String(guildsDB[wuGi].id), s.label); }
             } catch (e) {
                 console.error(e);
                 alert('❌ เก็บ SS ไม่สำเร็จ: ' + (e.message || e));
@@ -19127,6 +19133,110 @@
         }
         g.putImageData(d, 0, 0); return c;
     }
+    // =========================================================
+    // 🏁 ผลแพ้ชนะจากหน้า "สถิติการต่อสู้" (รายการ) — ป้าย WIN / LOSE กลางแถว
+    //    หาตัวอักษร WIN (ทอง) / LOSE (ม่วงอ่อน) จากสี → ใช้ความสูงตัวอักษรเป็นหน่วย อ่านชื่อซ้าย (บุก) / ขวา (รับ)
+    //    แล้วจับคู่กับไม้ที่อ่านจากหน้าเล่นซ้ำด้วยชื่อ → ใส่ผลให้เอง (ไม่แน่ใจ = ไม่ใส่)
+    // =========================================================
+    let wcListRes = [];        // [{ atk, def, castle, res: 'win' | 'lose' }]
+    let wcListBusy = false, wcListLastSig = '', wcListAt = 0;
+    function wcListFind(cv) {
+        const W = cv.width, H = cv.height, sc = Math.min(1, 960 / W);
+        const w = Math.round(W * sc), h = Math.round(H * sc);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(cv, 0, 0, w, h);
+        const d = g.getImageData(0, 0, w, h).data;
+        const kind = (R, G, B) => (R > 200 && G > 150 && B < 160 && R - B > 70) ? 1          // WIN ทอง
+            : (R > 140 && B > R && B - G > 8 && R - G > 3 && (R + G + B) / 3 > 140 && (R + G + B) / 3 < 225) ? 2 : 0;   // LOSE ม่วงอ่อน
+        const lum = (x, y) => { const i = (Math.max(0, Math.min(h - 1, Math.round(y))) * w + Math.max(0, Math.min(w - 1, Math.round(x)))) * 4; return (d[i] + d[i + 1] + d[i + 2]) / 3; };
+        const mask = new Uint8Array(w * h);
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; mask[y * w + x] = kind(d[i], d[i + 1], d[i + 2]); }
+        const out = [];
+        for (const k of [1, 2]) {
+            // แถบแนวนอนที่มีจุดสีนั้น → แยกกลุ่มตามช่องว่างแนวนอน → กลุ่มขนาดแบบตัวอักษร WIN/LOSE
+            const has = y => { let n = 0; for (let x = 0; x < w; x++) if (mask[y * w + x] === k && ++n >= 2) return true; return false; };
+            for (let y = 0; y < h; y++) {
+                if (!has(y)) continue;
+                let y1 = y; while (y1 + 1 < h && has(y1 + 1)) y1++;
+                const col = new Uint16Array(w); for (let yy = y; yy <= y1; yy++) for (let x = 0; x < w; x++) if (mask[yy * w + x] === k) col[x]++;
+                const gap = Math.max(4, Math.round(h * 0.012));
+                for (let x = 0; x < w; x++) {
+                    if (!col[x]) continue;
+                    let x1 = x, last = x; while (x1 + 1 < w && x1 + 1 - last <= gap) { x1++; if (col[x1]) last = x1; }
+                    x1 = last;
+                    let ty0 = y1, ty1 = y, n = 0;
+                    for (let yy = y; yy <= y1; yy++) for (let xx = x; xx <= x1; xx++) if (mask[yy * w + xx] === k) { n++; if (yy < ty0) ty0 = yy; if (yy > ty1) ty1 = yy; }
+                    const bh = ty1 - ty0 + 1, bw = x1 - x + 1;
+                    const cx = (x + x1) / 2, cy = (ty0 + ty1) / 2;
+                    // พื้นเหนือ/ใต้ตัวอักษร = สามเหลี่ยมสีเข้ม (แถวรายการเป็นสีเทาอ่อน)
+                    const dark = [lum(cx, ty0 - bh * 0.6), lum(cx, ty1 + bh * 0.6), lum(x - bh * 0.4, cy), lum(x1 + bh * 0.4, cy)].filter(v => v < 165).length >= 3;
+                    if (bh >= h * 0.012 && bh <= h * 0.06 && bw >= bh * 1.5 && bw <= bh * 5.5 && n >= bw * bh * 0.08 && dark)
+                        out.push({ res: k === 1 ? 'win' : 'lose', cx: cx / sc, cy: cy / sc, u: bh / sc });
+                    x = x1;
+                }
+                y = y1;
+            }
+        }
+        return out.sort((a, b) => a.cy - b.cy);
+    }
+    async function wcListRead(cv) {
+        const cands = wcListFind(cv); if (!cands.length) return 0;
+        const ocr = await wcOcrInit(); if (!ocr) return 0;
+        // เศษขอบรูปติดมา (เช่น '§ / SoloMhen') → เอาคำที่ยาวที่สุด
+        const clean = s => String(s || '').split(/[^A-Za-z0-9฀-๿]+/).filter(t => t.length >= 2).sort((a, b) => b.length - a.length)[0] || '';
+        let n = 0;
+        for (const c of cands) {
+            const u = c.u, X = (a, b) => [Math.max(0, c.cx + a * u), Math.min(cv.width, c.cx + b * u)];
+            const [lx0, lx1] = X(-14, -3.2), [rx0, rx1] = X(3.2, 12.75);
+            try {
+                const a = await ocr.eng.recognize(wcBinarize(cv, lx0, c.cy - 0.9 * u, lx1 - lx0, 1.8 * u, 'dark', 3));
+                const b = await ocr.eng.recognize(wcBinarize(cv, rx0, c.cy + 0.05 * u, rx1 - rx0, 1.35 * u, 'dark', 3));
+                const atk = clean(a.data.text), def = clean(b.data.text);
+                if (!atk) continue;
+                if (!wcListRes.some(x => x.atk === atk && x.def === def && x.res === c.res)) { wcListRes.push({ atk, def, res: c.res }); n++; }
+            } catch (e) { console.warn('warcap: อ่านแถวรายการไม่ได้', e); }
+        }
+        if (n) wcApplyListResults();
+        return n;
+    }
+    function wcNameNorm(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9฀-๿]/g, ''); }
+    function wcNameClose(a, b) {
+        a = wcNameNorm(a); b = wcNameNorm(b); if (!a || !b) return false;
+        if (a === b || (a.length >= 4 && (a.includes(b) || b.includes(a)))) return true;
+        if (a.length >= 4 && b.length >= 4 && a.slice(0, 4) === b.slice(0, 4)) return true;   // ท้ายชื่อขาด/เพี้ยน (JiJal ↔ JiJars)
+        return wcLev(a, b) <= Math.max(1, Math.ceil(Math.min(a.length, b.length) * 0.4));
+    }
+    /** ใส่ผลให้ไม้ที่ยังไม่มีผล — ชื่อบุกต้องตรง · อ่านชื่อรับได้ทั้ง 2 ที่ = ต้องตรงด้วย · เจอทั้ง WIN และ LOSE (ตีซ้ำ) = ไม่ใส่ */
+    function wcApplyListResults() {
+        let changed = 0;
+        wcBattles.forEach(b => {
+            if (b.winner !== null && !b.winnerAuto) return;
+            const an = [b.rows[0].nameRaw, b.rows[0].name], dn = [b.rows[1].nameRaw, b.rows[1].name];
+            const hits = wcListRes.filter(x => an.some(n => wcNameClose(x.atk, n)));
+            const both = hits.filter(x => x.def && dn.some(n => wcNameClose(x.def, n)));
+            // ไม่มีแถวที่ตรงทั้ง 2 ฝั่ง → ใช้ได้เฉพาะแถวที่อ่านชื่อรับไม่ออก (หรือไม้นี้ไม่รู้ชื่อรับ) — กันยืมผลไม้อื่นของคนเดียวกัน
+            const pool = both.length ? both : hits.filter(x => !x.def || !dn.some(n => wcNameNorm(n)));
+            const kinds = [...new Set(pool.map(x => x.res))];
+            if (kinds.length !== 1) return;
+            const w = kinds[0] === 'win' ? 0 : 1;
+            if (b.winner !== w) { b.winner = w; b.winnerAuto = true; changed++; }
+        });
+        if (changed) { wcRender(); showToast('🏁 ใส่ผลแพ้ชนะจากรายการให้ ' + changed + ' ไม้', 'success'); }
+        return changed;
+    }
+    /** ตอนจับหน้าจอ: ไม่ใช่หน้าเล่นซ้ำ → ลองอ่านหน้ารายการ (ภาพเปลี่ยนเท่านั้น · ไม่เกิน 1 ครั้ง/1.5 วิ) */
+    function wcMaybeReadList(cv) {
+        if (wcListBusy || Date.now() - wcListAt < 1500) return;
+        const s = cv.getContext('2d', { willReadFrequently: true }), w = 32, h = 18;
+        const t = document.createElement('canvas'); t.width = w; t.height = h; t.getContext('2d').drawImage(cv, 0, 0, w, h);
+        const d = t.getContext('2d').getImageData(0, 0, w, h).data; let sig = '';
+        for (let i = 0; i < d.length; i += 16) sig += (d[i] >> 5);
+        if (sig === wcListLastSig) return;
+        wcListLastSig = sig; wcListAt = Date.now(); wcListBusy = true;
+        const copy = document.createElement('canvas'); copy.width = cv.width; copy.height = cv.height; copy.getContext('2d').drawImage(cv, 0, 0);
+        wcListRead(copy).then(n => { if (n) wcSetStatus('🏁 อ่านผลจากรายการได้ ' + wcListRes.length + ' แถว'); }).finally(() => { wcListBusy = false; });
+    }
+
     /** อ่านชื่อ + ปราสาท ของแต่ละแถว (ทำทีละไม้ต่อคิว ไม่ให้ค้างตอนจับหน้าจอ) */
     function wcOcrBattle(b, cv) {
         wcOcrQueue = wcOcrQueue.then(async () => {
@@ -19162,6 +19272,7 @@
                     }
                 } catch (e) { console.warn('warcap: อ่านชื่อไม่ได้', e); }
             }
+            if (wcListRes.length) wcApplyListResults();
             wcRender();
         });
         return wcOcrQueue;
@@ -19241,6 +19352,7 @@
         const rd = wcReadFrame(cv, false);
         if (!rd.ok) {
             if (++wcMissN >= 3) { wcPopupOn = false; wcStableVec = null; wcStableN = 0; }
+            wcMaybeReadList(cv);   // 🏁 หน้ารายการสถิติการต่อสู้ → ผล WIN/LOSE
             wcSetStatus('👀 รอหน้า "เล่นซ้ำ" — กด ▶ ในเกม (อ่านแล้ว ' + wcBattles.length + ' ไม้)');
             return;
         }
@@ -19258,10 +19370,24 @@
             wcLastVec = vec;
             if (wcPopupOn && wcSameTeam(team, wcLastTeam)) return;   // ยังเป็นไม้เดิม (ช่องที่ไม่แน่ใจอาจอ่านสลับไปมา — ต่างกันแค่ 1 ช่อง = ไม้เดิม)
             wcPopupOn = true; wcLastTeam = team;
+            // 🔁 เปิดไม้ที่อ่านไว้แล้วซ้ำ (ทีมเดียวกันทั้ง 2 ฝั่ง) → ไม่เพิ่ม · ถ้าตีซ้ำจริง (แพ้แล้วตีใหม่) กดเพิ่มเองได้
+            const dupI = wcBattles.findIndex(b => wcSameTeam(team, wcTeamKey(b)));
+            if (dupI >= 0) { wcDupPending = { cv: cv, full: full }; wcFlashBi = dupI; wcRender(); wcSetStatusDup(dupI); return; }
+            wcDupPending = null;
             if (await wcAddFromCanvas(cv, full)) wcSetStatus('✅ อ่านไม้ที่ ' + wcBattles.length + ' แล้ว — กดยกเลิกในเกม แล้ว ▶ ไม้ถัดไป');
         } finally { wcBusy = false; }
     }
     function wcSetStatus(t) { const el = document.getElementById('wc-status'); if (el) el.textContent = t; }
+    let wcDupPending = null;   // ไม้ที่ซ้ำกับของเดิม (รอให้กดเพิ่มเอง)
+    function wcSetStatusDup(i) {
+        const el = document.getElementById('wc-status'); if (!el) return;
+        el.innerHTML = '🔁 ไม้นี้ซ้ำกับ #' + (i + 1) + ' — ไม่เพิ่ม <button type="button" onclick="wcAddDupAnyway()" class="ml-1 px-2 py-0.5 rounded-md bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold">➕ เพิ่มเป็นไม้ใหม่ (ตีซ้ำจริง)</button>';
+    }
+    async function wcAddDupAnyway() {
+        const d = wcDupPending; if (!d) return;
+        wcDupPending = null;
+        if (await wcAddFromCanvas(d.cv, d.full)) wcSetStatus('✅ เพิ่มไม้ที่ ' + wcBattles.length + ' แล้ว (ตีซ้ำ)');
+    }
 
     // ---------- ตั้งกรอบ (ลากครอบ 2 แถวทีม) ----------
     function wcBeginCalibrate(cv) { wcCalFrame = cv; wcRender(); }
@@ -19316,6 +19442,7 @@
         let bad = 0;
         for (let i = 0; i < list.length; i++) {
             const cv = list[i];
+            if (await wcListRead(cv)) continue;   // 🏁 รูปหน้ารายการ (WIN/LOSE) → เก็บผลไว้จับคู่
             if (!wcCal || wcCal.fw !== cv.width || wcCal.fh !== cv.height) {
                 if (!wcCalibrateFromImageSize(cv)) { hideLoading(); wcPendingCanvases = list.slice(i + 1); wcBeginCalibrate(cv); return; }
             }
@@ -19358,7 +19485,7 @@
         if (slot.sig) { const refs = wcRefsLoad(); refs.push({ kind: wcPick.kind, id: String(id), aw: !!aw, s: slot.sig }); wcRefsSave(refs); }
         wcPick = null; wcRender();
     }
-    function wcSetWinner(bi, w) { const b = wcBattles[bi]; b.winner = b.winner === w ? null : w; wcRender(); }
+    function wcSetWinner(bi, w) { const b = wcBattles[bi]; b.winner = b.winner === w ? null : w; b.winnerAuto = false; wcRender(); }
     function wcRemove(bi) { wcBattles.splice(bi, 1); wcRender(); }
     function wcClearAll() { if (wcBattles.length && !confirm('ล้างไม้ที่อ่านไว้ทั้งหมด ' + wcBattles.length + ' ไม้?')) return; wcBattles = []; wcRender(); }
     function wcResetCal() { wcCal = null; try { localStorage.removeItem(WC_CAL_KEY); } catch (e) {} showToast('ล้างกรอบแล้ว — ครั้งหน้าจะให้ลากกรอบใหม่', 'info'); wcRender(); }
@@ -19386,7 +19513,8 @@
                 myPet: pet(win.pet), enemyPet: pet(lose.pet),
                 skillQueue: [], result: 'Win',
                 wcWinnerRole: b.winner === 0 ? 'atk' : 'def',   // 🎥 แถวบน = ฝ่ายบุก · แถวล่าง = ฝ่ายรับ (เจ้าของปราสาท)
-                wcAtkName: b.rows[0].name || '', wcDefName: b.rows[1].name || '', wcCastle: b.rows[1].castle || b.rows[0].castle || ''
+                wcAtkName: b.rows[0].name || '', wcDefName: b.rows[1].name || '', wcCastle: b.rows[1].castle || b.rows[0].castle || '',
+                wcMemberName: b.wuMemberName || '', wcWarLabel: b.wuWarLabel || '', wcWarId: b.wuWarId || ''   // 📒 บันทึกการใช้แล้ว → ติดชื่อลูกกิล + วอ/SS
             });
         });
         wcBattles = wcBattles.filter(b => b.winner === null);
@@ -19396,13 +19524,37 @@
     }
 
     // ---------- หน้าจอ ----------
-    function warCapOpen() {
+    // 💾 เก็บไม้ที่อ่านไว้ในเครื่อง (IndexedDB) — รีเฟรช/ปิดหน้าแล้วไม่หาย
+    let wcRestored = false, wcSaveT = null;
+    function wcDb() {
+        return new Promise((ok, no) => { try { const r = indexedDB.open('7k_warcap', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
+    }
+    function wcPersist() {
+        if (!wcRestored) return;   // ยังไม่ได้โหลดของเดิม → ห้ามเขียนทับ
+        clearTimeout(wcSaveT);
+        wcSaveT = setTimeout(async () => {
+            try { const db = await wcDb(); const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put({ battles: wcBattles, listRes: wcListRes, at: Date.now() }, 'session'); } catch (e) { console.warn('warcap: เก็บในเครื่องไม่ได้', e); }
+        }, 600);
+    }
+    async function wcRestore() {
+        if (wcRestored) return;
+        try {
+            const db = await wcDb();
+            const v = await new Promise(ok => { const r = db.transaction('kv').objectStore('kv').get('session'); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); });
+            if (v && Array.isArray(v.battles) && v.battles.length && !wcBattles.length) {
+                wcBattles = v.battles; if (Array.isArray(v.listRes)) wcListRes = v.listRes;
+                showToast('💾 กู้ไม้ที่อ่านไว้คืนมา ' + wcBattles.length + ' ไม้', 'success');
+            }
+        } catch (e) { console.warn('warcap: โหลดของเดิมไม่ได้', e); }
+        wcRestored = true;
+    }
+    async function warCapOpen() {
         let m = document.getElementById('wc-modal');
         if (!m) { m = document.createElement('div'); m.id = 'wc-modal'; m.className = 'fixed inset-0 z-[560] flex items-center justify-center bg-black/80 p-2 sm:p-4'; document.body.appendChild(m); }
-        m.style.display = 'flex'; wcRender();
+        m.style.display = 'flex'; await wcRestore(); wcRender();
         wcOcrInit();   // โหลดตัวอ่านชื่อไว้ก่อน (ครั้งแรก ~4 MB)
     }
-    function wcClose() { const m = document.getElementById('wc-modal'); if (m) m.style.display = 'none'; }
+    function wcClose() { const m = document.getElementById('wc-modal'); if (m) m.style.display = 'none'; wcPersist(); }
     function wcHeroThumb(id, aw) {
         const h = heroesDB.find(x => String(x.id) === String(id));
         if (!h) return '<div class="w-full h-full flex items-center justify-center text-xl text-amber-300">❓</div>';
@@ -19414,6 +19566,7 @@
     function wcToggleFull() { wcFull = !wcFull; try { localStorage.setItem('7k_warcap_full', wcFull ? '1' : '0'); } catch (e) {} wcRender(); }
     let wcRenderPending = null;
     function wcRender(opts) {
+        wcPersist();
         const m = document.getElementById('wc-modal'); if (!m || m.style.display === 'none') return;
         // ✋ กำลังพิมพ์ชื่อ/เลือกอยู่ → รอให้เสร็จก่อนค่อยวาดใหม่ (ระหว่างจับหน้าจอ ไม้ใหม่เข้ามาเรื่อยๆ)
         const ae = document.activeElement;
@@ -19463,6 +19616,7 @@
                     <div class="flex-1 min-w-0 flex flex-col gap-1.5">${rowHTML(b.rows[0], 0)}${rowHTML(b.rows[1], 1)}</div>
                     <div class="flex sm:flex-col gap-1.5 flex-shrink-0">
                         <button onclick="wcSetWinner(${bi},0)" class="flex-1 px-3 py-2 rounded-lg text-[11px] font-black border ${b.winner === 0 ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-[#1f2937] text-gray-300 border-gray-700'}">⬆️ บนชนะ</button>
+                        ${b.winnerAuto && b.winner !== null ? '<span class="text-[10px] text-amber-300 font-bold self-center px-1" title="อ่านจากป้าย WIN/LOSE ในหน้ารายการ">🏁 จากรายการ</span>' : ''}
                         <button onclick="wcSetWinner(${bi},1)" class="flex-1 px-3 py-2 rounded-lg text-[11px] font-black border ${b.winner === 1 ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-[#1f2937] text-gray-300 border-gray-700'}">⬇️ ล่างชนะ</button>
                     </div></div>`;
             }).join('');
@@ -19512,11 +19666,12 @@
                     <span id="wc-status" class="text-[11px] text-gray-400 basis-full sm:basis-auto">${live ? '👀 กำลังดูหน้าจอเกม…' : ''}</span>
                     <div class="ml-auto flex gap-2">
                         ${wcBattles.length ? `<button onclick="wcClearAll()" class="text-[11px] text-gray-400 hover:text-red-300 px-2">ล้าง</button>` : ''}
+                        <button onclick="warUseReviewOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-black ${wcBattles.length ? '' : 'opacity-50'}" title="บันทึกว่าลูกกิลใช้ตัวละคร/แหวนอะไรไปแล้วในวอนี้">📒 บันทึกการใช้ของลูกกิล</button>
                         <button onclick="wcSendToRecorder()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-black ${nReady ? '' : 'opacity-50'}">📥 ส่งเข้าบันทึก (${nReady}/${wcBattles.length})</button>
                     </div>
                 </div>
                 <div id="wc-body" class="p-3 sm:p-4 overflow-y-auto min-h-0 flex-1 flex flex-col gap-2">${body}</div>
-                <div class="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">กรอบสีเหลือง = ระบบไม่แน่ใจ แตะเพื่อเลือกให้ถูก · เลือก "บนชนะ/ล่างชนะ" ทุกไม้ แล้วกด 📥 ส่งเข้าบันทึก → ไปกด 💾 บันทึกทั้งหมด ที่หน้าบันทึกการต่อสู้</div>
+                <div class="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">กรอบสีเหลือง = ระบบไม่แน่ใจ แตะเพื่อเลือกให้ถูก · 🏁 ผลแพ้ชนะ: ให้หน้ารายการ "สถิติการโจมตี" (ป้าย WIN/LOSE) โชว์บนจอสักครู่ ระบบใส่ผลให้เอง (เลื่อนรายการให้เห็นครบ) · ไม้ไหนไม่ได้ผล กด "บนชนะ/ล่างชนะ" เอง · 📒 บันทึกการใช้ของลูกกิล / 📥 ส่งเข้าบันทึก</div>
             </div>${pickHTML}`;
         if (wcCalFrame) { const c = document.getElementById('wc-cal-canvas'); if (c) c.getContext('2d').drawImage(wcCalFrame, 0, 0); }
         const nb = document.getElementById('wc-body');
@@ -21559,6 +21714,7 @@
                 myTeamId: "REC-MY",
                 myTeamName: match.wcWinnerRole ? `ทีมชนะ · ${match.wcWinnerRole === 'atk' ? 'ฝ่ายบุก' : 'ฝ่ายรับ'}${(match.wcWinnerRole === 'atk' ? match.wcAtkName : match.wcDefName) ? ' · ' + (match.wcWinnerRole === 'atk' ? match.wcAtkName : match.wcDefName) : ''} (${myFormName})` : `My Team (${myFormName})`,
                 attackerName: match.wcAtkName || '', defenderName: match.wcDefName || '',
+                memberName: match.wcMemberName || '', warLabel: match.wcWarLabel || '', warId: match.wcWarId || '',   // 📒 ลูกกิล + วอ/SS (กรองดูตาม SS ได้)
                 analysis: match.btAnalysis || null,   // 🎬 เทิร์น · HP ต่อเทิร์น · สกิลที่ใช้ · สถิติดาเมจ
                 winnerRole: match.wcWinnerRole || '',          // atk = คนตีชนะ · def = เจ้าของปราสาทกันได้ · '' = บันทึกมือ (ไม่รู้)
                 attackerWon: match.wcWinnerRole ? match.wcWinnerRole === 'atk' : null,
@@ -37334,6 +37490,7 @@
             const inv = await fetchMemberInventoryFromServer(target.g, target.m);
             if (!inv || inv.status !== 'success') return false;
             if (Array.isArray(inv.guildTeams)) rosterGuildTeams = inv.guildTeams;
+            if (inv.gameNames) rosterGameNames = inv.gameNames;
             applyMemberInventoryPatch(target.g, target.m, {
                 hero_list: inv.hero_list || [],
                 pet_list: inv.pet_list || [],
@@ -38520,6 +38677,30 @@
 
     // 📌 ทีมที่หัวหน้าตั้งให้ (มากับ getMemberInventory → guildTeams) — ดูอย่างเดียว
     let rosterGuildTeams = null;
+    let rosterGameNames = null;   // 🎮 { mine: [ชื่อในเกมของฉัน], options: [ชื่อที่สแกนได้ ยังไม่มีใครเลือก] }
+    function rosterGameNamesHTML() {
+        const G = rosterGameNames || { mine: [], options: [] };
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const q = s => E(s).replace(/'/g, '&#39;');
+        return '<div class="bg-[#0d1117]/60 border border-gray-800 rounded-lg px-3 py-2.5 mb-4">' +
+            '<div class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">🎮 ชื่อในเกมของฉัน</div>' +
+            '<div class="text-[11px] text-gray-400 mb-2">ชื่อตัวละครในเกม (ไม่ใช่ชื่อ Discord) — ให้หัวหน้าบันทึกวอได้ว่าใครใช้ตัวละคร/แหวนอะไรไปแล้ว</div>' +
+            '<div class="flex flex-wrap gap-1.5 mb-2">' + (G.mine.length ? G.mine.map(n => '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-900/50 border border-indigo-700/60 text-indigo-100 text-xs font-bold">' + E(n) + '<button type="button" onclick="rosterGameNameSet(\'' + q(n) + '\', false)" class="text-indigo-300 hover:text-white">✕</button></span>').join('') : '<span class="text-[11px] text-amber-300">ยังไม่ได้เลือก</span>') + '</div>' +
+            (G.options.length ? '<div class="text-[10px] text-gray-500 mb-1">ชื่อที่หัวหน้าสแกนได้ — กดเลือกชื่อของคุณ</div><div class="flex flex-wrap gap-1.5 mb-2">' + G.options.slice(0, 60).map(n => '<button type="button" onclick="rosterGameNameSet(\'' + q(n) + '\', true)" class="px-2 py-1 rounded-md bg-[#161b22] border border-gray-700 text-gray-200 text-xs hover:border-indigo-500">＋ ' + E(n) + '</button>').join('') + '</div>' : '') +
+            '<div class="flex gap-2"><input id="roster-game-name-input" type="text" maxlength="40" placeholder="หรือพิมพ์ชื่อในเกม" class="flex-1 min-w-0 bg-[#0d1117] border border-gray-600 text-white px-3 py-2 rounded-lg text-sm outline-none focus:border-blue-500">' +
+            '<button type="button" onclick="rosterGameNameSet(document.getElementById(\'roster-game-name-input\').value, true)" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0">＋ เพิ่ม</button></div>' +
+        '</div>';
+    }
+    async function rosterGameNameSet(name, on) {
+        name = String(name || '').trim(); if (!name) return;
+        try {
+            const r = await postJson({ action: 'setMyGameName', accessCode: rosterAuthCode, game_name: name, on: on !== false }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            rosterGameNames = r.gameNames || rosterGameNames;
+            if (typeof showToast === 'function') showToast(on === false ? 'เอาชื่อในเกมออกแล้ว' : '🎮 บันทึกชื่อในเกมแล้ว', 'success');
+        } catch (e) { alert('❌ ' + (e.message || e)); }
+        renderPublicRosterProfile();
+    }
     /** แหวนของตัวเอง (รายการวงจริง { id, stackId }) — teamRingMatch เช็คแหวนซ้อนด้วย */
     function rosterMyRingIds() { return (tempOwnedRings || []).filter(r => r && r.id); }
     function renderPublicRosterGuildTeams() {
@@ -38611,6 +38792,7 @@
                 '</div>' +
                 '<div class="text-[10px] text-gray-500 mt-2">อัปเดตล่าสุด: ' + updatedText + '</div>' +
             '</div>' +
+            rosterGameNamesHTML() +
             rosterDiscordProfileHTML() +
             '<button type="button" onclick="saveRosterProfile()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-1.5 transition active:scale-95 border border-emerald-500/30"><span>💾</span> บันทึกข้อมูลส่วนตัว</button>';
     }
@@ -38904,6 +39086,7 @@
                     <div style="margin:0px 5px;">💍 <b>${counts.rings}</b></div>
                     <div style="margin:0px 5px;" class="${counts.pets ? '' : 'text-red-400'}">🐾 <b>${counts.pets}</b>${counts.pets ? '' : warnBadge}</div>
                     <div style="margin:0px 5px;" class="${teamCount === 0 ? 'text-gray-600' : 'text-blue-400'}">🎖️ <b>${teamCount}</b></div>
+                    ${(() => { const s = typeof warUseSummary === 'function' ? warUseSummary(mem) : null; return s && s.battles ? `<div style="margin:0px 5px;" class="text-indigo-300" title="วอนี้ใช้ไป ${s.battles} ไม้${s.ringMiss.length ? ' · แหวนไม่ตรง ' + s.ringMiss.length + ' วง' : ''}">📒 <b>${s.battles}</b>${s.ringMiss.length ? '<span class="text-red-400">⚠️</span>' : ''}</div>` : ''; })()}
                 </div>
             </button>`;
         }).join('');
@@ -38929,6 +39112,7 @@
         if (statsEl) {
             const wb = '<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-black ml-0.5 align-middle">!</span>';
             statsEl.innerHTML = `<span class="${counts.heroes ? '' : 'text-red-400 font-bold'}">ตัวละคร ${counts.heroes}${counts.heroes ? '' : wb}</span> · แหวน ${counts.rings} · <span class="${counts.pets ? '' : 'text-red-400 font-bold'}">สัตว์เลี้ยง ${counts.pets}${counts.pets ? '' : wb}</span>`;
+            if (typeof wuRosterHeader === 'function') setTimeout(wuRosterHeader, 0);
         }
         if (codeEl) codeEl.textContent = mem.discordName ? '✅ เชื่อม Discord แล้ว' : 'ยังไม่ได้เชื่อม Discord';   // ไม่โชว์รหัสแล้ว — เข้าด้วย Discord อย่างเดียว
         const avEl = document.getElementById('member-roster-selected-avatar');
@@ -38962,7 +39146,26 @@
         else if (memberRosterBrowseTab === 'teams') renderMemberTeamsSlots();
     }
 
+    /** 📒 โหลดบันทึกวอของกิลด์ที่เปิดอยู่ (แคช) — ได้ข้อมูลใหม่ = วาดรายชื่อ/ข้อมูลสมาชิกใหม่ */
+    function warUseEnsureRoster() {
+        const g = guildsDB[activeGuildIndex]; if (!g || typeof warUseLoad !== 'function') return;
+        const before = warUseVer;
+        Promise.all([warUseLoad(String(g.id)), warUseLoadNames(String(g.id))]).then(() => {
+            if (warUseVer === before || currentView !== 'member-roster') return;
+            renderMemberRosterMemberList();
+            if (memberRosterBrowseIdx >= 0 && guildMembersDB[memberRosterBrowseIdx]) { renderMemberRosterBrowseContent(); wuRosterHeader(); }
+        });
+    }
+    function wuRosterHeader() {
+        const statsEl = document.getElementById('member-roster-selected-stats'); const mem = guildMembersDB[memberRosterBrowseIdx];
+        if (!statsEl || !mem) return;
+        statsEl.querySelector('.wu-head')?.remove();
+        const s = warUseSummary(mem); if (!s.battles) return;
+        const W = warUse[wuMemGuildId(mem)] || {};
+        statsEl.insertAdjacentHTML('beforeend', ` <span class="wu-head text-indigo-300 font-bold" title="${wuEsc((W.current || {}).label || '')}">· 📒 วอนี้ใช้ ${s.battles} ไม้ · ตัวละคร ${s.heroes.size} · แหวน ${s.ringIdx.size}${s.ringMiss.length ? ' <span class="text-red-300">⚠️ แหวนไม่ตรง ' + s.ringMiss.length + '</span>' : ''}</span>`);
+    }
     function renderMemberRosterView() {
+        warUseEnsureRoster();
         renderMemberRosterGuildSelect();
         renderMemberRosterMemberList();
 
@@ -39362,16 +39565,21 @@
         const slots = ((team && team.slots) || []).filter(s => s && s.id);
         let missing = 0, notAwk = 0;
         slots.forEach(s => { const o = owned.get(String(s.id)); if (!o) missing++; else if (s.awakened && !o.awakened) notAwk++; });
-        const ringMiss = teamMissingRingCount(team, memberRingIdSet(mem));
+        // 📒 ใช้ในวอนี้ไปแล้ว — ตัวละครนั้นลงซ้ำไม่ได้ · วงแหวนที่จ่ายไปแล้วไม่นับ
+        const wuS = (mem && typeof warUseSummary === 'function') ? warUseSummary(mem) : null;
+        let usedN = 0; if (wuS) slots.forEach(s => { if (wuS.heroes.has(String(s.id))) usedN++; });
+        const ringAvail = wuS && wuS.ringIdx.size ? ((mem && mem.ring_list) || []).filter((rr, i) => rr && rr.id && !wuS.ringIdx.has(i)) : memberRingIdSet(mem);
+        const ringMiss = teamMissingRingCount(team, ringAvail);
         const ringTotal = teamMissingRingCount(team, []);
         const ringAll = team && team.__ringAll != null ? team.__ringAll : ringTotal;
-        const ready = slots.length > 0 && missing === 0;
-        return { total: slots.length, missing, notAwk, ringMiss, ringTotal, ringAll, hasHeroes: !!((mem && mem.hero_list) || []).length, hasRings: !!((mem && mem.ring_list) || []).length, ready, full: ready && !ringMiss };
+        const ready = slots.length > 0 && missing === 0 && usedN === 0;
+        return { usedN, total: slots.length, missing, notAwk, ringMiss, ringTotal, ringAll, hasHeroes: !!((mem && mem.hero_list) || []).length, hasRings: !!((mem && mem.ring_list) || []).length, ready, full: ready && !ringMiss };
     }
     function readinessChips(rd) {
         const c = [];
         if (!rd.hasHeroes) c.push('<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">⚔️ ยังไม่ลงตัวละคร</span>');
         else c.push(rd.missing ? `<span class="px-1.5 py-0.5 rounded bg-red-900/40 text-red-300">❌ ขาดตัวละคร ${rd.missing}</span>` : '<span class="px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300">✅ ตัวครบ</span>');
+        if (rd.usedN) c.push(`<span class="px-1.5 py-0.5 rounded bg-indigo-900/50 text-indigo-200">📒 ใช้ในวอนี้แล้ว ${rd.usedN} ตัว</span>`);
         if (rd.hasHeroes && rd.notAwk) c.push(`<span class="px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300">⚠️ ยังไม่ตื่น ${rd.notAwk}</span>`);
         // 💍 แหวน: มีกี่วงจากที่ทีมใช้ (นับวงซ้ำ)
         if (!rd.ringTotal) c.push(rd.ringAll ? '<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">💍 ไม่เช็คแหวน</span>' : '<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-500">💍 ทีมนี้ไม่ใส่แหวน</span>');
@@ -39937,6 +40145,377 @@
         </div>`);
     }
 
+    // =========================================================
+    // 📒 บันทึกการใช้ในวอ — ลูกกิลใช้ตัวละคร/แหวนอะไรไปแล้ว (อ่านจากหน้าเล่นซ้ำ · แยกตามวอ/SS)
+    //    แหวน = อิงทีม 3v3 ที่ตัวละครตรงกัน (เฉพาะวงที่ติ๊กให้เช็ค) · ลูกกิลไม่มีวงนั้น = "ใช้แหวนไม่ตรง"
+    //    ชื่อในเกม ≠ ชื่อลูกกิล → จับคู่ไว้บน server (แอดมิน/ผู้ช่วยจับคู่ หรือ ลูกกิลเลือกเอง)
+    // =========================================================
+    const warUse = {};            // gid → { war, current, wars, rows, at }
+    const warUseGN = {};          // gid → [{ name, member_id, seen }]
+    let warUseVer = 0;            // เปลี่ยนเมื่อข้อมูลเปลี่ยน (ล้างแคชการคำนวณ)
+    const warUseLoading = {};
+    function wuEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function wuMemGuildId(mem) { const g = (guildsDB || []).find(x => (x.members || []).includes(mem)); return g ? String(g.id) : ''; }
+    function wuSet(gid, r) {
+        if (!r || r.status !== 'success') return;
+        warUse[gid] = { war: r.war, current: r.current || r.war, wars: r.wars || [], rows: r.rows || [], at: Date.now() };
+        warUseVer++;
+    }
+    /** โหลดบันทึกวอปัจจุบันของกิลด์ (แคช 60 วิ) · warId = ดูวอเก่า */
+    async function warUseLoad(gid, opts) {
+        const o = opts || {};
+        if (!gid || !(typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token)) return null;
+        const c = warUse[gid];
+        if (!o.force && !o.warId && c && c.war && c.current && c.war.id === c.current.id && Date.now() - c.at < 60000) return c;
+        if (warUseLoading[gid] && !o.warId) return warUseLoading[gid];
+        const p = (async () => {
+            try {
+                const r = await postJson({ action: 'getWarUsage', guild_id: gid, war_id: o.warId || '' }, { timeout: 30000, retries: 2 });
+                if (r && r.status === 'success') { if (o.warId) return r; wuSet(gid, r); }
+                return warUse[gid] || null;
+            } catch (e) { console.warn('getWarUsage', e); return null; }
+        })();
+        if (!o.warId) { warUseLoading[gid] = p; p.finally(() => { delete warUseLoading[gid]; }); }
+        return p;
+    }
+    async function warUseLoadNames(gid, force) {
+        if (!gid) return [];
+        if (!force && warUseGN[gid]) return warUseGN[gid];
+        try {
+            const r = await postJson({ action: 'getGameNames', guild_id: gid }, { timeout: 30000, retries: 2 });
+            if (r && r.status === 'success') { warUseGN[gid] = r.names || []; warUseVer++; }
+        } catch (e) { console.warn('getGameNames', e); }
+        return warUseGN[gid] || [];
+    }
+    /** ลูกกิลของชื่อในเกม — จับคู่ที่บันทึกไว้ก่อน แล้วค่อยเดาจากชื่อในกิลด์/Discord ที่ตรงกัน */
+    function wuMemberOfName(gid, name) {
+        const k = String(name || '').trim().toLowerCase(); if (!k) return null;
+        const g = (guildsDB || []).find(x => String(x.id) === String(gid)); if (!g) return null;
+        const hit = (warUseGN[gid] || []).find(x => x.name.toLowerCase() === k && x.member_id);
+        if (hit) return (g.members || []).find(m => String(m.id) === String(hit.member_id)) || null;
+        return (g.members || []).find(m => [m.name, m.discordName].some(v => String(v || '').trim().toLowerCase() === k)) || null;
+    }
+    /** ลูกกิลของแถวที่บันทึก — member_id ก่อน · บันทึกตอนยังไม่รู้ชื่อ = ดูจากชื่อในเกมที่จับคู่ทีหลัง */
+    function wuRowMem(gid, r) {
+        if (r.member_id) { const g = (guildsDB || []).find(x => String(x.id) === String(gid)); const m = g && (g.members || []).find(x => String(x.id) === String(r.member_id)); if (m) return m; }
+        return r.game_name ? wuMemberOfName(gid, r.game_name) : null;
+    }
+    /** ไม้ในวอปัจจุบันของลูกกิลคนนี้ */
+    function warUseMemberRows(mem, gid) {
+        const g = gid || wuMemGuildId(mem), w = warUse[g];
+        if (!w || !w.current || !w.war || w.war.id !== w.current.id) return [];
+        return w.rows.filter(r => { if (String(r.member_id) === String(mem.id)) return true; if (r.member_id) return false; const m = wuRowMem(g, r); return !!m && String(m.id) === String(mem.id); });
+    }
+    /** แหวนที่ใช้ไป → วงไหนในรายการแหวนของลูกกิล (index) + วงที่ไม่มี (ใช้แหวนไม่ตรง) — แหวนซ้อนจับคู่ก่อน */
+    function warUseRingConsume(ringList, needs) {
+        const units = (ringList || []).map((r, i) => ({ i, id: String(r && r.id || ''), st: r && r.stackId ? String(r.stackId) : '', used: false })).filter(u => u.id);
+        const take = pred => { const u = units.find(x => !x.used && pred(x)); if (u) u.used = true; return u; };
+        const miss = [];
+        (needs || []).filter(n => n.stack).forEach(n => { if (!take(u => (u.id === n.id && u.st === n.stack) || (u.id === n.stack && u.st === n.id))) miss.push(n); });
+        (needs || []).filter(n => !n.stack).forEach(n => { if (!(take(u => u.id === n.id && !u.st) || take(u => u.id === n.id) || take(u => u.st === n.id))) miss.push(n); });
+        return { used: new Set(units.filter(u => u.used).map(u => u.i)), miss };
+    }
+    const wuSumCache = new WeakMap();
+    /** สรุปของลูกกิลในวอปัจจุบัน: ตัวละครที่ใช้ · วงแหวนที่ใช้ (index) · วงที่ไม่มี */
+    function warUseSummary(mem, gid) {
+        const c = wuSumCache.get(mem);
+        if (c && c.v === warUseVer && c.n === (mem.ring_list || []).length) return c.s;
+        const rows = warUseMemberRows(mem, gid);
+        const heroes = new Set(); rows.forEach(r => (r.heroes || []).forEach(x => heroes.add(String(x.id))));
+        const ring = warUseRingConsume(mem.ring_list || [], rows.flatMap(r => r.rings || []));
+        const s = { battles: rows.length, heroes, ringIdx: ring.used, ringMiss: ring.miss };
+        wuSumCache.set(mem, { v: warUseVer, n: (mem.ring_list || []).length, s });
+        return s;
+    }
+    /** แหวนที่ทีมนี้ใช้ (เฉพาะวงที่ติ๊กให้เช็ค) → [{ id, stack }] */
+    function wuTeamRingNeeds(team) {
+        if (!team) return [];
+        const ck = typeof bulkCheckTeam === 'function' ? bulkCheckTeam(team) : team;
+        return teamRingMatch(ck, []).map(r => ({ id: r.base, stack: r.stack || '' }));
+    }
+    function wuHeroKey(ids) { return ids.map(String).filter(Boolean).sort().join(','); }
+    /** ทีม 3v3 ที่ตัวละครตรงกับไม้นี้ — ทีมที่สร้างให้คนนี้ > ทีมที่ให้คนนี้ > ทีมบุก > ทีมอื่น */
+    function wuTeamsForHeroes(mem, heroIds) {
+        const k = wuHeroKey(heroIds); if (!k) return [];
+        const asg = mem ? new Set(memberAssignedIds(mem)) : new Set();
+        return (teams3v3DB || []).filter(t => t && !t.deleted && wuHeroKey((t.slots || []).filter(s => s && s.id).map(s => s.id)) === k)
+            .map(t => ({ t, sc: (mem && t.owner && String(t.owner.memberId) === String(mem.id) ? 8 : 0) + (asg.has(String(t.id)) ? 4 : 0) + (t.teamType !== 'Defense' ? 2 : 0) }))
+            .sort((a, b) => b.sc - a.sc).map(x => x.t);
+    }
+    function wuHeroThumbs(heroes, px) {
+        const sz = px || 30;
+        return (heroes || []).map(x => { const h = (heroesDB || []).find(y => String(y.id) === String(x.id)); return h ? `<img src="${x.aw && h.img2 ? h.img2 : h.img}" title="${wuEsc(h.name)}" class="rounded object-cover border ${x.aw ? 'border-purple-500' : 'border-gray-700'}" style="width:${sz}px;height:${sz}px" alt="">` : ''; }).join('');
+    }
+    function wuRingThumbs(rings, missList, px) {
+        const sz = px || 22, miss = (missList || []).map(m => m.id + '|' + (m.stack || ''));
+        return (rings || []).map(x => {
+            const r = (ringsDB || []).find(y => String(y.id) === String(x.id)), st = x.stack ? (ringsDB || []).find(y => String(y.id) === String(x.stack)) : null;
+            const k = x.id + '|' + (x.stack || ''), bad = miss.includes(k); if (bad) miss.splice(miss.indexOf(k), 1);
+            return `<span class="relative inline-block" title="${wuEsc((r ? r.name : x.id) + (st ? ' + ซ้อน ' + st.name : ''))}${bad ? ' — ลูกกิลไม่มีวงนี้' : ''}" style="width:${sz}px;height:${sz}px">${r && r.img ? `<img src="${r.img}" class="w-full h-full rounded-full object-cover ${bad ? 'opacity-40 grayscale' : ''}" alt="">` : '💍'}${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -right-1 rounded-full border border-black" style="width:${Math.round(sz * 0.55)}px;height:${Math.round(sz * 0.55)}px" alt="">` : ''}<span class="absolute -bottom-1 -right-1 text-[8px]">${bad ? '❌' : '✅'}</span></span>`;
+        }).join('');
+    }
+
+    // ---------- หน้าต่างตรวจไม้ (จากหน้าอ่านผลวอ) ----------
+    let wuRv = null;   // { gi, items:[{ b, key, ri, mem, teamId, inc }] }
+    function wuBattleKey(b) {
+        const n = r => String((r && (r.nameRaw || r.name)) || '').trim();
+        return (n(b.rows[0]) + '|' + n(b.rows[1]) + '|' + (typeof wcTeamKey === 'function' ? wcTeamKey(b) : '')).slice(0, 290);
+    }
+    function wuRowName(row) { return String((row && row.name) || '').trim(); }
+    async function warUseReviewOpen() {
+        if (typeof wcBattles === 'undefined' || !wcBattles.length) return alert('ยังไม่มีไม้ที่อ่านได้ — เปิดหน้าเล่นซ้ำในเกมให้ระบบอ่านก่อน');
+        const vis = (typeof bulkVisibleGuilds === 'function') ? bulkVisibleGuilds() : guildsDB.map((_, i) => i);
+        const gi = (wuRv && vis.includes(wuRv.gi)) ? wuRv.gi : (vis.includes(activeGuildIndex) ? activeGuildIndex : vis[0]);
+        if (gi == null) return alert('ยังไม่มีกิลด์');
+        wuRv = { gi, items: null };
+        await wuRvLoadGuild();
+    }
+    async function wuRvLoadGuild() {
+        const gid = String(guildsDB[wuRv.gi].id);
+        showLoading('📒 กำลังโหลดชื่อในเกมและบันทึกวอ...');
+        try { await Promise.all([warUseLoad(gid, { force: true }), warUseLoadNames(gid, true)]); } finally { hideLoading(); }
+        // ส่งชื่อที่สแกนได้ขึ้น server — ลูกกิลจะเลือกชื่อตัวเองได้ในหน้าลงทะเบียน
+        const cnt = new Map();
+        wcBattles.forEach(b => b.rows.forEach(r => { const n = wuRowName(r); if (n) cnt.set(n, (cnt.get(n) || 0) + 1); }));
+        const fresh = [...cnt].filter(([n]) => !(warUseGN[gid] || []).some(x => x.name.toLowerCase() === n.toLowerCase()));
+        if (fresh.length) postJson({ action: 'addGameNamesSeen', guild_id: gid, names: fresh.map(([name, count]) => ({ name, count })) }, { timeout: 30000, retries: 1 })
+            .then(r => { if (r && r.status === 'success') { warUseGN[gid] = r.names || []; warUseVer++; wuRvBuild(); wuRvRender(); } }).catch(() => {});
+        wuRvBuild();
+        wuRvRender();
+    }
+    /** แต่ละไม้: ลูกกิลเราอยู่แถวไหน (บน = บุก) · ทีม 3v3 ที่ตรง · แหวน */
+    function wuRvBuild() {
+        const gid = String(guildsDB[wuRv.gi].id);
+        const saved = new Set(((warUse[gid] || {}).rows || []).map(r => r.battle_key));
+        const prev = new Map((wuRv.items || []).map(x => [x.key, x]));
+        wuRv.items = wcBattles.map(b => {
+            const key = wuBattleKey(b), p = prev.get(key);
+            const m0 = wuMemberOfName(gid, wuRowName(b.rows[0])), m1 = wuMemberOfName(gid, wuRowName(b.rows[1]));
+            const ri = m0 ? 0 : (m1 ? 1 : 0), mem = ri === 0 ? m0 : m1;
+            const heroes = (b.rows[ri].slots || []).filter(s => s && s.id).map(s => ({ id: String(s.id), aw: !!s.aw }));
+            const teams = wuTeamsForHeroes(mem, heroes.map(x => x.id));
+            const teamId = p && p.teamTouched ? p.teamId : (teams[0] ? String(teams[0].id) : '');
+            return { b, key, ri, mem, heroes, teams, teamId, teamTouched: !!(p && p.teamTouched), saved: saved.has(key), inc: (p && p.mem === mem && (p.mem || p.touched)) ? p.inc : (ri === 0 && heroes.length > 0 && !saved.has(key)), touched: !!(p && p.mem === mem && p.touched), defense: !!mem && ri === 1 };   // เพิ่งจับคู่ชื่อได้ = ติ๊กให้ใหม่
+        });
+    }
+    function wuRvItemRings(it) {
+        const t = it.teamId ? (teams3v3DB || []).find(x => String(x.id) === it.teamId) : null;
+        const needs = wuTeamRingNeeds(t);
+        if (!it.mem) return { needs, miss: [] };
+        // วงที่ไม้อื่นของคนนี้ (บันทึกแล้ว/ติ๊กไว้ก่อนหน้า) ใช้ไปแล้ว ไม่นับซ้ำ
+        const gid = String(guildsDB[wuRv.gi].id);
+        const before = warUseMemberRows(it.mem, gid).filter(r => r.battle_key !== it.key).flatMap(r => r.rings || []);
+        wuRv.items.filter(x => x !== it && x.inc && x.mem === it.mem && !x.saved && wuRv.items.indexOf(x) < wuRv.items.indexOf(it)).forEach(x => { const tt = (teams3v3DB || []).find(y => String(y.id) === x.teamId); before.push(...wuTeamRingNeeds(tt)); });
+        const pre = warUseRingConsume(it.mem.ring_list || [], before);
+        const left = (it.mem.ring_list || []).filter((r, i) => !pre.used.has(i));
+        return { needs, miss: warUseRingConsume(left, needs).miss };
+    }
+    function wuRvRender() {
+        if (!wuRv) return;
+        const g = guildsDB[wuRv.gi], gid = String(g.id), W = warUse[gid] || {};
+        const vis = (typeof bulkVisibleGuilds === 'function') ? bulkVisibleGuilds() : [];
+        const mems = (g.members || []).filter(m => m && m.id != null && String(m.id) !== '');
+        const memOpts = sel => '<option value="">— ยังไม่ได้เลือก —</option>' + mems.map(m => `<option value="${wuEsc(m.id)}" ${sel && String(sel) === String(m.id) ? 'selected' : ''}>${wuEsc(m.name)}${m.discordName && m.discordName !== m.name ? ' (' + wuEsc(m.discordName) + ')' : ''}</option>`).join('');
+        // 👤 ชื่อในเกมที่สแกนได้ (ไม่ซ้ำ)
+        const names = new Map();
+        wcBattles.forEach(b => b.rows.forEach((r, ri) => { const n = wuRowName(r); if (!n) return; const x = names.get(n) || { n, cnt: 0, atk: 0, def: 0 }; x.cnt++; if (ri === 0) x.atk++; else x.def++; names.set(n, x); }));
+        const nameRows = [...names.values()].sort((a, b) => b.cnt - a.cnt).map(x => {
+            const m = wuMemberOfName(gid, x.n);
+            const stored = (warUseGN[gid] || []).find(y => y.name.toLowerCase() === x.n.toLowerCase() && y.member_id);
+            return `<div class="flex items-center gap-2 p-2 rounded-lg border ${m ? 'border-emerald-800/60 bg-emerald-950/20' : 'border-gray-800 bg-[#0d1117]'}">
+                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">🎮 ${wuEsc(x.n)}</div><div class="text-[10px] text-gray-500">เจอ ${x.cnt} ไม้ · บุก ${x.atk} · รับ ${x.def}${m && !stored ? ' · เดาจากชื่อ' : ''}</div></div>
+                <select onchange="wuRvSetName('${wuEsc(x.n).replace(/'/g, '&#39;')}', this.value)" style="color-scheme:dark" class="max-w-[48%] bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${memOpts(m && m.id)}</select>
+            </div>`;
+        }).join('') || '<div class="text-xs text-gray-500">อ่านชื่อในไม้ไม่ได้เลย</div>';
+        // ⚔️ ไม้
+        const nInc = wuRv.items.filter(x => x.inc && !x.defense).length;
+        const cards = wuRv.items.map((it, i) => {
+            const b = it.b, rg = wuRvItemRings(it);
+            const res = b.winner === 0 ? '<span class="text-emerald-300">ชนะ</span>' : b.winner === 1 ? '<span class="text-red-300">แพ้</span>' : '<span class="text-gray-500">ยังไม่เลือกผล</span>';
+            const castle = b.rows[1].castle || b.rows[0].castle || '';
+            const teamSel = `<select onchange="wuRvSetTeam(${i}, this.value)" style="color-scheme:dark" class="max-w-full bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1 text-[11px]">
+                ${it.teams.map(t => `<option value="${wuEsc(t.id)}" ${String(t.id) === it.teamId ? 'selected' : ''}>${wuEsc(t.name || 'ทีม')}${t.teamType === 'Defense' ? ' (รับ)' : ''}</option>`).join('')}
+                <option value="" ${!it.teamId ? 'selected' : ''}>— ไม่อิงทีม (ไม่นับแหวน) —</option></select>`;
+            const status = !it.mem ? (it.saved ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-900/50 text-indigo-200">✓ บันทึกแล้ว (รอชื่อ)</span>' : '') + '<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">🕓 ยังไม่รู้ว่าเป็นใคร — บันทึกไว้ก่อนได้ ลูกกิลเลือกชื่อในเกมทีหลัง ระบบผูกให้เอง</span>'
+                : it.defense ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">🛡️ ลูกกิลเราเป็นฝ่ายรับ (ไม่นับ)</span>'
+                : it.saved ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-900/50 text-indigo-200">✓ บันทึกแล้ว</span>' : '';
+            const ringBadge = !it.mem || !it.teamId ? (it.mem && !it.teamId && !it.teams.length ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-300">ไม่พบทีม 3v3 ที่ตัวละครตรง — นับแค่ตัวละคร</span>' : '')
+                : !rg.needs.length ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">💍 ทีมนี้ไม่ได้ติ๊กแหวน</span>'
+                : rg.miss.length ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-200">⚠️ ใช้แหวนไม่ตรง ${rg.miss.length} วง</span>` : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-300">💍 แหวนตรง</span>';
+            return `<div class="p-2.5 rounded-xl border ${it.inc && !it.defense ? 'border-indigo-500 bg-indigo-950/20' : 'border-gray-800 bg-[#0d1117]'}">
+                <div class="flex items-center gap-2 mb-1.5 min-w-0">
+                    <input type="checkbox" ${it.inc && !it.defense ? 'checked' : ''} ${it.defense ? 'disabled' : ''} onchange="wuRvToggle(${i}, this.checked)" class="w-4 h-4 accent-indigo-500 shrink-0">
+                    ${it.mem ? memberAvatarHTML(it.mem, 26) : ''}
+                    <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${it.mem ? wuEsc(it.mem.name) : '—'} <span class="text-[10px] text-gray-500 font-normal">🎮 ${wuEsc(wuRowName(b.rows[it.ri]) || '?')} → ${wuEsc(wuRowName(b.rows[1 - it.ri]) || '?')}</span></div>
+                    <div class="text-[10px] text-gray-500">${castle ? '🏰 ' + wuEsc(castle) + ' · ' : ''}${res}</div></div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 pl-6">
+                    <span class="flex gap-1">${wuHeroThumbs(it.heroes, 30)}</span>
+                    ${!it.defense && (it.mem || it.teams.length) ? `<span class="min-w-0 max-w-[60%]">${teamSel}</span>` : ''}
+                    ${it.teamId && rg.needs.length ? `<span class="flex flex-wrap gap-1.5">${wuRingThumbs(rg.needs, rg.miss, 22)}</span>` : ''}
+                </div>
+                <div class="flex flex-wrap gap-1 pl-6 mt-1.5">${status}${it.mem && !it.defense ? ringBadge : ''}</div>
+            </div>`;
+        }).join('');
+        bulkModalShell('wu-review-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex flex-wrap items-start gap-2 shrink-0">
+                <div class="min-w-0 flex-1 basis-[60%]"><h3 class="text-white font-bold">📒 บันทึกการใช้ของลูกกิล</h3>
+                <p class="text-[11px] text-gray-400 mt-0.5">ลงวอ: <b class="text-indigo-300">${wuEsc((W.current || {}).label || '—')}</b> · ตัวละครจากหน้าเล่นซ้ำ · แหวนตามทีม 3v3 ที่ตัวละครตรงกัน</p></div>
+                ${vis.length > 1 ? `<select onchange="wuRv.gi=+this.value;wuRv.items=null;wuRvLoadGuild()" style="color-scheme:dark" class="order-last sm:order-none w-full sm:w-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${vis.map(i => `<option value="${i}" ${i === wuRv.gi ? 'selected' : ''}>${wuEsc(guildsDB[i].name)}</option>`).join('')}</select>` : ''}
+                <button onclick="document.getElementById('wu-review-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+            </div>
+            <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-3">
+                <details ${[...names.keys()].some(n => !wuMemberOfName(gid, n)) ? 'open' : ''} class="rounded-xl border border-gray-800 p-2">
+                    <summary class="text-xs font-bold text-gray-200 cursor-pointer">👤 ชื่อในเกม (${names.size} ชื่อ) — จับคู่ครั้งเดียว ระบบจำไว้ · ลูกกิลเลือกชื่อตัวเองในหน้าลงทะเบียนก็ได้</summary>
+                    <div class="grid gap-1.5 mt-2" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${nameRows}</div>
+                </details>
+                <div class="text-xs font-bold text-gray-200">⚔️ ไม้ที่อ่านได้ (${wuRv.items.length})</div>
+                <div class="space-y-2">${cards}</div>
+            </div>
+            <div class="p-3 border-t border-gray-800 flex items-center gap-2 shrink-0">
+                <span class="text-[11px] text-gray-400">เลือก ${nInc} ไม้</span>
+                <button type="button" onclick="warUseLogOpen(${wuRv.gi})" class="ml-auto px-3 py-2 rounded-xl text-xs font-bold bg-[#0d1117] border border-gray-700 text-gray-200">📒 ดูบันทึกวอ</button>
+                <button type="button" onclick="wuRvSave()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black ${nInc ? '' : 'opacity-50'}">💾 บันทึก ${nInc} ไม้</button>
+            </div>
+        </div>`);
+    }
+    function wuRvToggle(i, on) { const it = wuRv.items[i]; if (it) { it.inc = !!on; it.touched = true; } wuRvRender(); }
+    function wuRvSetTeam(i, v) { const it = wuRv.items[i]; if (it) { it.teamId = String(v || ''); it.teamTouched = true; } wuRvRender(); }
+    async function wuRvSetName(name, memberId) {
+        const gid = String(guildsDB[wuRv.gi].id);
+        try {
+            const r = await postJson({ action: 'setGameName', guild_id: gid, game_name: name, member_id: String(memberId || '') }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            warUseGN[gid] = r.names || []; warUseVer++;
+        } catch (e) { alert('❌ จับคู่ชื่อไม่สำเร็จ\n\n' + (e.message || e)); }
+        wuRvBuild(); wuRvRender();
+    }
+    async function wuRvSave() {
+        const g = guildsDB[wuRv.gi], gid = String(g.id), W = warUse[gid] || {};
+        const list = wuRv.items.filter(x => x.inc && !x.defense);
+        if (!list.length) return alert('ยังไม่ได้เลือกไม้ — ติ๊กไม้ที่จะบันทึก');
+        const items = list.map(it => {
+            const rg = wuRvItemRings(it), b = it.b;
+            return { battle_key: it.key, member_id: it.mem ? String(it.mem.id) : '', member_name: it.mem ? (it.mem.name || '') : '', game_name: wuRowName(b.rows[it.ri]), heroes: it.heroes, rings: rg.needs, ring_miss: rg.miss, team_id: it.teamId,
+                castle: b.rows[1].castle || b.rows[0].castle || '', result: b.winner === it.ri ? 'win' : (b.winner == null ? '' : 'lose'), enemy: wuRowName(b.rows[1 - it.ri]) };
+        });
+        showLoading('📒 กำลังบันทึก ' + items.length + ' ไม้...');
+        try {
+            const r = await postJson({ action: 'saveWarUsage', guild_id: gid, war_id: (W.current || {}).id || '', items }, { timeout: 45000, retries: 2 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            wuSet(gid, r);
+            list.forEach(it => { it.b.wuMemberName = it.mem ? (it.mem.name || '') : wuRowName(it.b.rows[it.ri]); it.b.wuWarLabel = (r.current || r.war || {}).label || ''; it.b.wuWarId = (r.current || r.war || {}).id || ''; });
+            showToast('📒 บันทึกการใช้ ' + items.length + ' ไม้แล้ว (' + ((r.current || {}).label || '') + ')', 'success');
+        } catch (e) { alert('❌ บันทึกไม่สำเร็จ\n\n' + (e.message || e)); }
+        finally { hideLoading(); }
+        wuRvBuild(); wuRvRender();
+        if (currentView === 'member-roster') renderMemberRosterView();
+    }
+
+    // ---------- 📒 บันทึกวอ (ดูย้อนหลังตาม SS) ----------
+    let wuLog = null;   // { gi, data, member }
+    async function warUseLogOpen(gi) {
+        const vis = (typeof bulkVisibleGuilds === 'function') ? bulkVisibleGuilds() : guildsDB.map((_, i) => i);
+        const g0 = gi != null && guildsDB[gi] ? gi : (vis.includes(activeGuildIndex) ? activeGuildIndex : vis[0]);
+        if (g0 == null) return alert('ยังไม่มีกิลด์');
+        wuLog = { gi: g0, data: null, member: '' };
+        await wuLogLoad('');
+    }
+    async function wuLogLoad(warId) {
+        const gid = String(guildsDB[wuLog.gi].id);
+        showLoading('📒 กำลังโหลดบันทึกวอ...');
+        let r = null;
+        try {
+            await warUseLoadNames(gid);
+            r = await postJson({ action: 'getWarUsage', guild_id: gid, war_id: warId || '' }, { timeout: 30000, retries: 2 });
+        } catch (e) { r = { status: 'error', message: e.message }; }
+        finally { hideLoading(); }
+        if (!r || r.status !== 'success') return alert('❌ โหลดบันทึกวอไม่สำเร็จ\n\n' + ((r && r.message) || ''));
+        if (!warId || (r.current && r.war && r.war.id === r.current.id)) wuSet(gid, r);
+        wuLog.data = r;
+        wuLogRender();
+    }
+    function wuLogRender() {
+        const g = guildsDB[wuLog.gi], gid = String(g.id), d = wuLog.data || {};
+        const vis = (typeof bulkVisibleGuilds === 'function') ? bulkVisibleGuilds() : [];
+        const isCur = d.war && d.current && d.war.id === d.current.id;
+        (d.rows || []).forEach(r => { const m = wuRowMem(gid, r); r._mid = m ? String(m.id) : ''; r._mname = m ? (m.name || '') : ''; r._k = m ? String(m.id) : 'gn:' + String(r.game_name || '').toLowerCase(); });
+        const rows = (d.rows || []).filter(r => !wuLog.member || r._k === wuLog.member);
+        const byMem = new Map();
+        (d.rows || []).forEach(r => { const k = r._k; if (!byMem.has(k)) byMem.set(k, { id: k, name: r._mname || ('🎮 ' + (r.game_name || '?') + ' (ยังไม่รู้ว่าใคร)'), n: 0, miss: 0 }); const x = byMem.get(k); x.n++; x.miss += (r.ring_miss || []).length; });
+        const memOf = id => id ? (g.members || []).find(m => String(m.id) === String(id)) : null;
+        const chips = [...byMem.values()].sort((a, b) => b.n - a.n).map(x => `<button type="button" onclick="wuLog.member=wuLog.member===this.dataset.k?'':this.dataset.k;wuLogRender()" data-k="${wuEsc(x.id)}" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs ${wuLog.member === x.id ? 'border-indigo-500 bg-indigo-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300'}">${memOf(x.id) ? memberAvatarHTML(memOf(x.id), 18) : ''}${wuEsc(x.name)} <b>${x.n}</b>${x.miss ? ' <span class="text-red-300">⚠️' + x.miss + '</span>' : ''}</button>`).join('');
+        const list = rows.slice().sort((a, b) => Number(b.at) - Number(a.at)).map(r => `<div class="p-2.5 rounded-xl border ${(r.ring_miss || []).length ? 'border-red-900/60' : 'border-gray-800'} bg-[#0d1117]">
+                <div class="flex items-center gap-2 min-w-0">${memOf(r._mid) ? memberAvatarHTML(memOf(r._mid), 24) : ''}
+                    <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${r._mname ? wuEsc(r._mname) : '<span class="text-gray-400">ยังไม่รู้ว่าใคร</span>'} <span class="text-[10px] text-gray-500 font-normal">🎮 ${wuEsc(r.game_name)}${r.enemy ? ' → ' + wuEsc(r.enemy) : ''}</span></div>
+                    <div class="text-[10px] text-gray-500">${r.castle ? '🏰 ' + wuEsc(r.castle) + ' · ' : ''}${r.result === 'win' ? '<span class="text-emerald-300">ชนะ</span>' : r.result === 'lose' ? '<span class="text-red-300">แพ้</span>' : ''}</div></div>
+                    ${isCur ? `<button type="button" onclick="wuLogDelete('${wuEsc(r.battle_key).replace(/'/g, '&#39;')}')" title="ลบไม้นี้" class="w-7 h-7 rounded-md text-red-300 hover:bg-red-900/40 shrink-0">🗑️</button>` : ''}
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-1.5 pl-1"><span class="flex gap-1">${wuHeroThumbs(r.heroes, 28)}</span><span class="flex flex-wrap gap-1.5">${wuRingThumbs(r.rings, r.ring_miss, 20)}</span>
+                ${(r.ring_miss || []).length ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-200">⚠️ ใช้แหวนไม่ตรง ${r.ring_miss.length} วง</span>` : ''}</div>
+            </div>`).join('') || '<div class="text-center text-gray-500 text-sm py-8">ยังไม่มีไม้ที่บันทึก — ใช้หน้า 🎥 อ่านผลวอจากหน้าจอ แล้วกด 📒 บันทึกการใช้ของลูกกิล</div>';
+        const warOpts = (d.wars || []).map(w => `<option value="${wuEsc(w.id)}" ${d.war && w.id === d.war.id ? 'selected' : ''}>${wuEsc(w.label)}${w.current ? ' (ปัจจุบัน)' : ''}</option>`).join('');
+        bulkModalShell('wu-log-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800 flex flex-wrap items-center gap-2 shrink-0">
+                <h3 class="text-white font-bold mr-auto">📒 บันทึกวอ</h3>
+                ${vis.length > 1 ? `<select onchange="wuLog.gi=+this.value;wuLog.member='';wuLogLoad('')" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${vis.map(i => `<option value="${i}" ${i === wuLog.gi ? 'selected' : ''}>${wuEsc(guildsDB[i].name)}</option>`).join('')}</select>` : ''}
+                <select onchange="wuLog.member='';wuLogLoad(this.value)" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${warOpts}</select>
+                <button onclick="document.getElementById('wu-log-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+            </div>
+            <div class="p-3 border-b border-gray-800 flex flex-wrap items-center gap-2 shrink-0 text-xs">
+                <span class="text-gray-400">${(d.rows || []).length} ไม้ · ${byMem.size} คน</span>
+                ${isCur ? `<button type="button" onclick="wuLogRename()" class="px-2.5 py-1 rounded-lg border border-gray-700 text-gray-200">✎ ตั้งชื่อ (เช่น SS 12)</button>
+                <button type="button" onclick="warUseNewWar(${wuLog.gi})" class="ml-auto px-2.5 py-1 rounded-lg bg-amber-700/40 border border-amber-700/60 text-amber-100 font-bold">🆕 เริ่มวอใหม่</button>` : '<span class="text-gray-500">ดูย้อนหลัง (แก้ไม่ได้)</span>'}
+            </div>
+            ${chips ? `<div class="p-3 border-b border-gray-800 flex flex-wrap gap-1.5 shrink-0 max-h-[25vh] overflow-y-auto">${chips}</div>` : ''}
+            <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${list}</div>
+        </div>`);
+    }
+    async function wuLogDelete(key) {
+        if (!confirm('ลบไม้นี้ออกจากบันทึกวอ?')) return;
+        const gid = String(guildsDB[wuLog.gi].id);
+        try {
+            const r = await postJson({ action: 'deleteWarUsage', guild_id: gid, war_id: wuLog.data.war.id, battle_key: key }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            wuSet(gid, r); wuLog.data = r; wuLogRender();
+            if (currentView === 'member-roster') renderMemberRosterView();
+        } catch (e) { alert('❌ ' + (e.message || e)); }
+    }
+    async function wuLogRename() {
+        const cur = wuLog.data && wuLog.data.war; if (!cur) return;
+        const label = prompt('ชื่อวอนี้ (เช่น SS 12):', cur.label || ''); if (!label || !label.trim()) return;
+        await warUseSetLabel(String(guildsDB[wuLog.gi].id), label.trim());
+        await wuLogLoad('');
+    }
+    async function warUseSetLabel(gid, label) {
+        try {
+            const r = await postJson({ action: 'setWarUsageLabel', guild_id: gid, label: label }, { timeout: 30000, retries: 1 });
+            if (r && r.status === 'success') wuSet(gid, r);
+        } catch (e) { console.warn('setWarUsageLabel', e); }
+    }
+    /** 🆕 วอใหม่ — ล้างสถานะ "ใช้แล้ว" (ของเก่าเก็บไว้ดูย้อนหลัง) */
+    async function warUseNewWar(gi, silentConfirm) {
+        const g = guildsDB[gi]; if (!g) return;
+        if (!silentConfirm && !confirm('เริ่มบันทึกวอใหม่ของกิลด์ "' + g.name + '"?\n\nตัวละคร/แหวนที่ "ใช้แล้ว" ของลูกกิลจะกลับมาว่าง · บันทึกวอเดิมยังเปิดดูย้อนหลังได้')) return false;
+        showLoading('🆕 กำลังเริ่มวอใหม่...');
+        try {
+            const r = await postJson({ action: 'newWarUsage', guild_id: String(g.id) }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            wuSet(String(g.id), r);
+            showToast('🆕 เริ่มบันทึกวอใหม่แล้ว (' + ((r.current || {}).label || '') + ')', 'success');
+        } catch (e) { alert('❌ เริ่มวอใหม่ไม่สำเร็จ\n\n' + (e.message || e)); return false; }
+        finally { hideLoading(); }
+        if (wuLog && document.getElementById('wu-log-dlg') && document.getElementById('wu-log-dlg').style.display !== 'none') await wuLogLoad('');
+        if (currentView === 'member-roster') renderMemberRosterView();
+        return true;
+    }
+    /** กิลด์ของตารางนับคอมพ์ (บัญชีทุกกิลด์ = กิลด์ที่เลือกอยู่) */
+    function warUseCastleGuildIdx() {
+        const raw = String((typeof castleCompGuildRaw === 'function' ? castleCompGuildRaw() : '') || '').trim().toLowerCase();
+        const i = raw && raw !== 'all' ? guildsDB.findIndex(g => String(g.name || '').toLowerCase() === raw || String(g.id || '').toLowerCase() === raw) : -1;
+        return i >= 0 ? i : (guildsDB[activeGuildIndex] ? activeGuildIndex : -1);
+    }
+
     function createMemberTeam(slotIdx) {
         const mem = currentMemberTeamsMember();
         if (!mem) return;
@@ -40050,8 +40629,14 @@
             const h = heroesDB.find(function(x) { return String(x.id) === String(item.id); });
             if (h) entries.push({ item: item, h: h });
         });
+        const wuMem = guildMembersDB[memberRosterBrowseIdx];
+        const wuS = (wuMem && typeof warUseSummary === 'function') ? warUseSummary(wuMem) : null;
         container.innerHTML = buildRosterHeroesByTypeSectionsHtml(entries, function(e) {
-            return renderBrowseHeroCard(e.item, e.h);
+            const card = renderBrowseHeroCard(e.item, e.h);
+            if (!wuS || !wuS.heroes.has(String(e.item.id))) return card;
+            // 📒 ใช้ในวอนี้แล้ว → ทับด้วยป้าย "ใช้แล้ว"
+            const i = card.lastIndexOf('</div>');
+            return card.replace('class="', 'class="relative ').slice(0, i + 9) + '<span class="absolute inset-0 rounded-xl bg-black/65 flex items-center justify-center text-[11px] font-black text-amber-200 pointer-events-none" style="z-index:5">📒 ใช้แล้ว</span>' + card.replace('class="', 'class="relative ').slice(i + 9);
         });
     }
 
@@ -40073,6 +40658,8 @@
             return;
         }
         const sorted = [...rings].sort(compareOwnedRingEntriesByType);
+        const wuMem = guildMembersDB[memberRosterBrowseIdx];
+        const wuRingUsed = (wuMem && typeof warUseSummary === 'function') ? warUseSummary(wuMem).ringIdx : new Set();
         let html = '';
         sorted.forEach((item) => {
             const i = rings.indexOf(item);
@@ -40092,6 +40679,7 @@
                 <img src="${r.img}" class="w-full h-full object-cover rounded-xl p-1 pointer-events-none select-none" draggable="false" alt="">
                 ${stackOverlay}
                 <span class="absolute bottom-0 left-0 right-0 text-[9px] text-center bg-black/80 text-amber-200 truncate px-1 py-0.5 rounded-b-xl pointer-events-none">${r.name}</span>
+                ${wuRingUsed.has(i) ? '<span class="absolute inset-0 rounded-2xl bg-black/65 flex items-center justify-center text-[10px] font-black text-amber-200 pointer-events-none" style="z-index:5">📒 ใช้แล้ว</span>' : ''}
             </div>`;
         });
         container.innerHTML = html;
