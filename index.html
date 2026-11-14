@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.18.0';
+        const APP_VERSION = '1.19.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15808,7 +15808,7 @@
             const tabBtn = (key, label) => `<button onclick="ccViewerSetTab('${key}')" class="flex-1 min-w-0 sm:flex-none px-1.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap overflow-hidden text-ellipsis ${ccViewTab === key
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
 
-            const bodyHTML = ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
+            const bodyHTML = ccViewTab === 'used' ? ccUsedHTML() : ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
             box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">${head}
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                 <!-- 🖱️ ส่วนที่กดได้: แท็บมุมมอง + เลือกตัวละคร -->
@@ -15817,6 +15817,7 @@
                         ${tabBtn('table', '<span class="hidden sm:inline">📊 </span>ตาราง')}
                         ${tabBtn('comp', '<span class="hidden sm:inline">⚔️ </span>คอมพ์')}
                         ${tabBtn('castle', '<span class="hidden sm:inline">🏰 </span><span class="sm:hidden">รายปราสาท</span><span class="hidden sm:inline">แยกรายปราสาท</span>')}
+                        ${tabBtn('used', '<span class="hidden sm:inline">📒 </span><span class="sm:hidden">ที่ตี</span><span class="hidden sm:inline">ที่ตี + แหวนเหลือ</span>')}
                     </div>
                 </div>
                 <!-- 📊 สรุปตัวเลข: ตัวหนังสือล้วน ไม่มีกรอบแบบปุ่ม — มือถือขึ้นแถวของตัวเอง · แท็บตาราง = สรุปละเอียด -->
@@ -15862,7 +15863,98 @@
                     ${ccViewSel.size ? '<button onclick="ccViewerClearHeroes()" class="text-[11px] text-gray-500 hover:text-white underline">ล้าง</button>' : ''}`;
         }
 
-        let ccViewTab = 'table'; // table | comp | castle
+        // =========================================================
+        // 📒 แท็บ "ที่ตี + แหวน" — ไม้ที่ลูกกิลตีในวอนี้ + แหวนที่ยังเหลือ (ทุกคนที่มีลิงก์ดูได้)
+        // =========================================================
+        let ccUsed = { key: '', at: 0, data: null, loading: false, err: '', q: '' };
+        function ccUsedGuildKey() {
+            if (typeof isPublicView !== 'undefined' && isPublicView) return decodeGuildParam(appUrlParams().get('g')) || '';
+            const g = (typeof guildsDB !== 'undefined' && guildsDB[activeGuildIndex]) || null;
+            return g ? String(g.id) : '';
+        }
+        async function ccUsedLoad(force) {
+            const key = ccUsedGuildKey();
+            if (!key) { ccUsed.err = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; return; }
+            if (ccUsed.loading || (!force && ccUsed.key === key && ccUsed.data && Date.now() - ccUsed.at < 60000)) return;
+            ccUsed.loading = true; ccUsed.err = '';
+            if (ccViewTab === 'used') ccViewerRender();
+            try {
+                const r = await postJson({ action: 'getWarUsagePublic', guild: key }, { timeout: 45000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+                ccUsed.data = r; ccUsed.key = key; ccUsed.at = Date.now();
+            } catch (e) { ccUsed.err = e.message || String(e); }
+            ccUsed.loading = false;
+            if (ccViewTab === 'used') ccViewerRender();
+        }
+        function ccUsedRingIcon(id, stack, px) {
+            const sz = px || 26, R = (typeof ringsDB !== 'undefined' ? ringsDB : []) || [];
+            const r = R.find(y => String(y.id) === String(id)), st = stack ? R.find(y => String(y.id) === String(stack)) : null;
+            return `<span class="relative inline-block shrink-0" title="${ccEsc((r ? r.name : id) + (st ? ' + ซ้อน ' + st.name : ''))}" style="width:${sz}px;height:${sz}px">${r && r.img ? `<img src="${r.img}" class="w-full h-full rounded-full object-cover" alt="">` : '💍'}${st && st.img ? `<img src="${st.img}" class="absolute -top-1 -right-1 rounded-full border border-black" style="width:${Math.round(sz * 0.55)}px;height:${Math.round(sz * 0.55)}px" alt="">` : ''}</span>`;
+        }
+        /** ข้อมูลต่อคน: ไม้ที่ตี · แหวนที่เหลือ · แหวนไม่ตรง */
+        function ccUsedModel() {
+            const d = ccUsed.data || {}, mems = d.members || [], rows = d.rows || [], names = d.names || [];
+            const byId = new Map(mems.map(m => [String(m.id), m]));
+            const lc = s => String(s || '').trim().toLowerCase();
+            const memOf = r => {
+                if (r.member_id && byId.has(String(r.member_id))) return byId.get(String(r.member_id));
+                const k = lc(r.game_name); if (!k) return null;
+                const n = names.find(x => lc(x.name) === k && x.member_id);
+                if (n && byId.has(String(n.member_id))) return byId.get(String(n.member_id));
+                return mems.find(m => lc(m.name) === k || lc(m.discordName) === k) || null;
+            };
+            const per = new Map(mems.map(m => [String(m.id), { m, rows: [] }])), unknown = new Map();
+            rows.forEach(r => { const m = memOf(r); if (m) per.get(String(m.id)).rows.push(r); else { const k = r.game_name || '?'; if (!unknown.has(k)) unknown.set(k, []); unknown.get(k).push(r); } });
+            const list = [...per.values()].map(x => {
+                const rl = x.m.ring_list || [], c = warUseRingConsume(rl, x.rows.flatMap(r => r.rings || []));
+                return Object.assign(x, { left: rl.filter((_, i) => !c.used.has(i)), total: rl.length, miss: c.miss, win: x.rows.filter(r => r.result === 'win').length });
+            });
+            return { list, unknown, war: d.war, nRows: rows.length };
+        }
+        function ccUsedBattleLine(r) {
+            const res = r.result === 'win' ? '<span class="text-emerald-300 font-bold">ชนะ</span>' : r.result === 'lose' ? '<span class="text-red-300 font-bold">แพ้</span>' : '';
+            return `<div class="flex flex-wrap items-center gap-x-2 gap-y-1 py-1 border-t border-gray-800/70 first:border-t-0">
+                <span class="flex gap-0.5">${wuHeroThumbs(r.heroes, 26)}</span>
+                <span class="text-[11px] text-gray-400 min-w-0">${r.enemy ? '→ ' + ccEsc(r.enemy) : ''}${r.castle ? ' · 🏰 ' + ccEsc(r.castle) : ''}${res ? ' · ' + res : ''}</span>
+                ${(r.ring_miss || []).length ? `<span class="text-[10px] px-1.5 rounded bg-red-900/50 text-red-200">⚠️ แหวนไม่ตรง ${r.ring_miss.length}</span>` : ''}
+            </div>`;
+        }
+        function ccUsedHTML() {
+            if (!ccUsed.data) {
+                if (!ccUsed.loading && !ccUsed.err) setTimeout(() => ccUsedLoad(), 0);
+                return `<div class="text-center py-16 text-sm ${ccUsed.err ? 'text-amber-300' : 'text-gray-400'}">${ccUsed.err ? '⚠️ ' + ccEsc(ccUsed.err) + ' <button onclick="ccUsedLoad(true)" class="underline ml-2">ลองใหม่</button>' : '⏳ กำลังโหลดไม้ที่ตีในวอนี้…'}</div>`;
+            }
+            const M = ccUsedModel(), q = ccUsed.q.trim().toLowerCase();
+            const match = x => !q || [x.m.name, x.m.discordName].some(v => String(v || '').toLowerCase().includes(q)) || x.rows.some(r => String(r.game_name || '').toLowerCase().includes(q));
+            const list = M.list.filter(match).sort((a, b) => b.rows.length - a.rows.length || String(a.m.name).localeCompare(String(b.m.name), 'th'));
+            const card = x => `<div class="rounded-2xl border ${x.miss.length ? 'border-red-900/60' : x.rows.length ? 'border-amber-800/50' : 'border-gray-800'} bg-[#0f131a] p-3 min-w-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    ${memberAvatarHTML(x.m, 30)}
+                    <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
+                    <div class="text-[11px] text-gray-400">${x.rows.length ? `⚔️ ตี <b class="text-amber-300">${x.rows.length}</b> ไม้ · ชนะ ${x.win}` : '<span class="text-gray-500">ยังไม่ได้ตี</span>'}</div></div>
+                    <div class="text-right shrink-0"><div class="text-[10px] text-gray-500">💍 แหวนเหลือ</div><div class="text-sm font-black ${x.left.length ? 'text-emerald-300' : 'text-gray-500'}">${x.left.length}<span class="text-gray-500 font-normal text-[11px]">/${x.total}</span></div></div>
+                </div>
+                ${x.miss.length ? `<div class="mt-2 text-[11px] px-2 py-1 rounded-lg bg-red-900/40 text-red-200">⚠️ ใช้แหวนไม่ตรง ${x.miss.length} วง — ทีมที่ตีใช้แหวนที่ไม่มีในกระเป๋า <span class="inline-flex gap-1 align-middle ml-1">${x.miss.map(n => ccUsedRingIcon(n.id, n.stack, 20)).join('')}</span></div>` : ''}
+                ${x.rows.length ? `<div class="mt-2">${x.rows.map(ccUsedBattleLine).join('')}</div>` : ''}
+                ${x.left.length ? `<div class="mt-2 flex flex-wrap gap-1.5">${x.left.map(rg => ccUsedRingIcon(rg.id, rg.stackId, 26)).join('')}</div>` : x.total ? '<div class="mt-2 text-[11px] text-gray-500">แหวนใช้หมดแล้ว</div>' : '<div class="mt-2 text-[11px] text-gray-600">ยังไม่ได้ลงแหวน</div>'}
+            </div>`;
+            const unk = [...M.unknown].map(([n, rs]) => `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-3 min-w-0">
+                <div class="text-sm font-bold text-gray-300">🎮 ${ccEsc(n)} <span class="text-[11px] text-gray-500 font-normal">ยังไม่รู้ว่าเป็นใคร · ${rs.length} ไม้</span></div>
+                <div class="mt-1">${rs.map(ccUsedBattleLine).join('')}</div></div>`).join('');
+            const nMiss = M.list.filter(x => x.miss.length).length, nAtk = M.list.filter(x => x.rows.length).length;
+            return `<div class="space-y-3">
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="text-gray-300 font-bold">📒 ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
+                    <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
+                    <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="ml-auto flex-1 min-w-0 sm:flex-none sm:w-48 bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
+                    <button onclick="ccUsedLoad(true)" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${ccUsed.loading ? 'opacity-50' : ''}">${ccUsed.loading ? '⏳' : '🔄'} รีเฟรช</button>
+                </div>
+                ${M.nRows ? '' : '<div class="text-[11px] text-gray-500">ยังไม่มีไม้ที่บันทึกในวอนี้ — แหวนที่แสดงคือแหวนทั้งหมดของแต่ละคน</div>'}
+                <div class="grid gap-2.5" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))">${list.map(card).join('') || '<div class="text-sm text-gray-500">ไม่พบชื่อที่ค้นหา</div>'}${q ? '' : unk}</div>
+            </div>`;
+        }
+
+        let ccViewTab = 'table'; // table | comp | castle | used
 
         function ccViewerSetTab(t) {
             ccViewTab = t;
@@ -19487,7 +19579,7 @@
     }
     function wcSetWinner(bi, w) { const b = wcBattles[bi]; b.winner = b.winner === w ? null : w; b.winnerAuto = false; wcRender(); }
     function wcRemove(bi) { wcBattles.splice(bi, 1); wcRender(); }
-    function wcClearAll() { if (wcBattles.length && !confirm('ล้างไม้ที่อ่านไว้ทั้งหมด ' + wcBattles.length + ' ไม้?')) return; wcBattles = []; wcRender(); }
+    function wcClearAll() { if (wcBattles.length && !confirm('ล้างไม้ที่อ่านไว้ทั้งหมด ' + wcBattles.length + ' ไม้?')) return; wcBattles = []; wcAllowEmpty = true; try { localStorage.removeItem('7k_warcap_session'); } catch (e) {} wcRender(); }
     function wcResetCal() { wcCal = null; try { localStorage.removeItem(WC_CAL_KEY); } catch (e) {} showToast('ล้างกรอบแล้ว — ครั้งหน้าจะให้ลากกรอบใหม่', 'info'); wcRender(); }
 
     /** ส่งเข้า "บันทึกการต่อสู้ (หลาย)" — ฝั่งชนะอยู่ซ้าย (แบบเดียวกับหน้าบันทึกเดิม) */
@@ -19525,28 +19617,36 @@
 
     // ---------- หน้าจอ ----------
     // 💾 เก็บไม้ที่อ่านไว้ในเครื่อง (IndexedDB) — รีเฟรช/ปิดหน้าแล้วไม่หาย
-    let wcRestored = false, wcSaveT = null;
+    let wcRestored = false, wcSaveT = null, wcAllowEmpty = false;
     function wcDb() {
         return new Promise((ok, no) => { try { const r = indexedDB.open('7k_warcap', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } });
     }
     function wcPersist() {
         if (!wcRestored) return;   // ยังไม่ได้โหลดของเดิม → ห้ามเขียนทับ
+        if (!wcBattles.length && !wcAllowEmpty) return;   // ว่าง = เขียนทับเฉพาะตอนกดล้างเอง
+        wcAllowEmpty = false;
         clearTimeout(wcSaveT);
         wcSaveT = setTimeout(async () => {
+            // สำเนาเบา (ไม่มีรูปย่อ) ใน localStorage — กันกรณีอ่าน IndexedDB ไม่ได้
+            try { localStorage.setItem('7k_warcap_session', JSON.stringify({ battles: wcBattles.map(b => Object.assign({}, b, { thumb: '' })), listRes: wcListRes, at: Date.now() })); } catch (e) { console.warn('warcap: สำเนาเบาเก็บไม่ได้', e); }
             try { const db = await wcDb(); const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put({ battles: wcBattles, listRes: wcListRes, at: Date.now() }, 'session'); } catch (e) { console.warn('warcap: เก็บในเครื่องไม่ได้', e); }
         }, 600);
     }
     async function wcRestore() {
         if (wcRestored) return;
+        let v = null, okRead = false;
         try {
             const db = await wcDb();
-            const v = await new Promise(ok => { const r = db.transaction('kv').objectStore('kv').get('session'); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); });
-            if (v && Array.isArray(v.battles) && v.battles.length && !wcBattles.length) {
-                wcBattles = v.battles; if (Array.isArray(v.listRes)) wcListRes = v.listRes;
-                showToast('💾 กู้ไม้ที่อ่านไว้คืนมา ' + wcBattles.length + ' ไม้', 'success');
-            }
+            v = await new Promise((ok, no) => { const r = db.transaction('kv').objectStore('kv').get('session'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+            okRead = true;
         } catch (e) { console.warn('warcap: โหลดของเดิมไม่ได้', e); }
-        wcRestored = true;
+        const has = x => x && Array.isArray(x.battles) && x.battles.length;
+        if (!has(v)) { try { const l = JSON.parse(localStorage.getItem('7k_warcap_session') || 'null'); okRead = true; if (has(l)) v = l; } catch (e) {} }
+        if (has(v) && !wcBattles.length) {
+            wcBattles = v.battles; if (Array.isArray(v.listRes)) wcListRes = v.listRes;
+            showToast('💾 กู้ไม้ที่อ่านไว้คืนมา ' + wcBattles.length + ' ไม้', 'success');
+        }
+        if (okRead) wcRestored = true;   // อ่านของเดิมได้แล้วเท่านั้นถึงเริ่มเก็บ
     }
     async function warCapOpen() {
         let m = document.getElementById('wc-modal');
