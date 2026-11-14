@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.21.0';
+        const APP_VERSION = '1.21.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15887,6 +15887,7 @@
             if (ccViewTab === 'used') ccViewerRender();
             if (ccUsedDlg) ccUsedDlgRender();
         }
+        function ccUsedRingName(id, stack) { const R = (typeof ringsDB !== 'undefined' ? ringsDB : []) || [], n = i => { const r = R.find(y => String(y.id) === String(i)); return r ? r.name : String(i); }; return n(id) + (stack ? ' + ' + n(stack) : ''); }
         function ccUsedRingIcon(id, stack, px) {
             const sz = px || 26, R = (typeof ringsDB !== 'undefined' ? ringsDB : []) || [];
             const r = R.find(y => String(y.id) === String(id)), st = stack ? R.find(y => String(y.id) === String(stack)) : null;
@@ -15929,7 +15930,8 @@
         }
         /** 🔍 Dialog ของลูกกิล: แท็บตัวละคร / แหวน — ที่ใช้ในวอนี้แล้ว = สีเทา */
         let ccUsedDlg = null;   // { id, tab }
-        function ccUsedShow(id, tab) { ccUsedDlg = { id: String(id), tab: tab || (ccUsedDlg && ccUsedDlg.id === String(id) ? ccUsedDlg.tab : 'heroes') }; ccUsedDlgRender(); }
+        function ccUsedShow(id, tab) { const same = ccUsedDlg && ccUsedDlg.id === String(id); ccUsedDlg = { id: String(id), tab: tab || (same ? ccUsedDlg.tab : 'heroes'), q: same ? ccUsedDlg.q : '', f: same ? ccUsedDlg.f : 'all' }; ccUsedDlgRender(); }
+        function ccUsedDlgSet(k, v) { if (!ccUsedDlg) return; ccUsedDlg[k] = v; ccUsedDlgRender(); if (k === 'q') { const i = document.getElementById('cc-used-dlg-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } }
         function ccUsedDlgClose() { ccUsedDlg = null; const m = document.getElementById('cc-used-dlg'); if (m) m.remove(); }
         function ccUsedDlgRender() {
             if (!ccUsedDlg) return;
@@ -15942,9 +15944,17 @@
             let body = '';
             if (ccUsedDlg.tab === 'heroes') {
                 const list = (x.m.hero_list || []).map(y => ({ y, h: H.find(z => String(z.id) === String(y.id)), used: usedH.has(String(y.id)) }))
-                    .sort((p, q) => (p.used - q.used) || String(p.h ? p.h.name : '').localeCompare(String(q.h ? q.h.name : ''), 'th'));
-                body = list.length ? `<div class="text-xs text-gray-400 mb-2">ทั้งหมด ${list.length} ตัว · ใช้ในวอนี้แล้ว <b class="text-gray-200">${list.filter(z => z.used).length}</b> ตัว (สีเทา)</div>
-                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(76px,1fr))">${list.map(z => `<div class="relative text-center" title="${ccEsc(z.h ? z.h.name : z.y.id)}${z.used ? ' — ใช้แล้ว' : ''}">
+                    .sort((p, q) => (q.used - p.used) || String(p.h ? p.h.name : '').localeCompare(String(q.h ? q.h.name : ''), 'th'));
+                const dq = String(ccUsedDlg.q || '').trim().toLowerCase(), df = ccUsedDlg.f || 'all';
+                const shown = list.filter(z => (df === 'all' || (df === 'used' ? z.used : !z.used)) && (!dq || String(z.h ? z.h.name : z.y.id).toLowerCase().includes(dq)));
+                const fb = (k, label) => `<button type="button" onclick="ccUsedDlgSet('f','${k}')" class="px-3 py-1.5 rounded-lg text-xs font-bold border ${df === k ? 'border-amber-500 bg-amber-600/30 text-white' : 'border-gray-700 text-gray-400 hover:text-white'}">${label}</button>`;
+                const nUsed = list.filter(z => z.used).length;
+                body = list.length ? `<div class="flex flex-wrap items-center gap-2 mb-3">
+                        <input id="cc-used-dlg-q" type="search" value="${ccEsc(ccUsedDlg.q || '')}" oninput="clearTimeout(window.__cdqT);const v=this.value;window.__cdqT=setTimeout(()=>ccUsedDlgSet('q',v),250)" placeholder="🔍 ค้นหาตัวละคร" class="flex-1 min-w-[140px] bg-[#0d1117] border border-gray-700 text-white rounded-lg px-3 py-1.5 text-sm">
+                        ${fb('all', 'ทั้งหมด ' + list.length)}${fb('used', 'ใช้แล้ว ' + nUsed)}${fb('free', 'ยังไม่ใช้ ' + (list.length - nUsed))}
+                    </div>
+                    ${shown.length ? '' : '<div class="text-center text-gray-500 py-6 text-sm">ไม่พบตัวละคร</div>'}
+                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(76px,1fr))">${shown.map(z => `<div class="relative text-center" title="${ccEsc(z.h ? z.h.name : z.y.id)}${z.used ? ' — ใช้แล้ว' : ''}">
                         <div class="relative aspect-square rounded-xl overflow-hidden border-2 ${z.used ? 'border-gray-700' : z.y.awakened ? 'border-purple-500' : 'border-gray-600'}">
                             ${z.h ? `<img src="${z.y.awakened && z.h.img2 ? z.h.img2 : z.h.img}" alt="" class="w-full h-full object-cover ${z.used ? 'grayscale opacity-35' : ''}">` : '<div class="w-full h-full flex items-center justify-center text-2xl">❓</div>'}
                             ${z.used ? '<span class="absolute inset-x-0 bottom-0 bg-black/80 text-[10px] font-black text-gray-200 py-0.5">ใช้แล้ว</span>' : ''}
@@ -15953,13 +15963,14 @@
                     : (x.m.hero_list === undefined ? '<div class="text-center text-amber-300 py-10">⚠️ เซิร์ฟเวอร์ยังเป็นรุ่นเก่า — แอดมินต้องอัปโหลด code.gs เวอร์ชันล่าสุด (8.7.0) ถึงจะเห็นตัวละคร</div>' : '<div class="text-center text-gray-500 py-10">ลูกกิลยังไม่ได้ลงตัวละคร</div>');
             } else {
                 const rl = x.m.ring_list || [], c = warUseRingConsume(rl, x.rows.flatMap(r => r.rings || []));
-                const list = rl.map((y, i) => ({ y, used: c.used.has(i) })).sort((p, q) => p.used - q.used);
+                const list = rl.map((y, i) => ({ y, used: c.used.has(i) })).sort((p, q) => q.used - p.used);
                 body = (list.length ? `<div class="text-xs text-gray-400 mb-2">ทั้งหมด ${list.length} วง · ใช้ในวอนี้แล้ว <b class="text-gray-200">${c.used.size}</b> วง (สีเทา) · เหลือ <b class="text-emerald-300">${list.length - c.used.size}</b></div>
-                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(64px,1fr))">${list.map(z => `<div class="relative flex flex-col items-center gap-1 p-1.5 rounded-xl border ${z.used ? 'border-gray-800 bg-black/30' : 'border-gray-700 bg-[#0d1117]'}">
-                        <span class="${z.used ? 'grayscale opacity-35' : ''}">${ccUsedRingIcon(z.y.id, z.y.stackId, 44)}</span>
-                        <span class="text-[10px] font-bold ${z.used ? 'text-gray-500' : 'text-emerald-300'}">${z.used ? 'ใช้แล้ว' : 'ว่าง'}</span></div>`).join('')}</div>`
+                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(96px,1fr))">${list.map(z => `<div title="${ccEsc(ccUsedRingName(z.y.id, z.y.stackId))}" class="relative flex flex-col items-center gap-1 p-2 rounded-xl border ${z.used ? 'border-gray-800 bg-black/30' : 'border-gray-700 bg-[#0d1117]'}">
+                        <span class="${z.used ? 'grayscale opacity-35' : ''}">${ccUsedRingIcon(z.y.id, z.y.stackId, 68)}</span>
+                        <span class="text-[10px] leading-tight text-center w-full truncate ${z.used ? 'text-gray-600' : 'text-gray-300'}">${ccEsc(ccUsedRingName(z.y.id, z.y.stackId))}</span>
+                        <span class="text-xs font-black ${z.used ? 'text-gray-500' : 'text-emerald-300'}">${z.used ? 'ใช้แล้ว' : 'ว่าง'}</span></div>`).join('')}</div>`
                     : '<div class="text-center text-gray-500 py-10">ลูกกิลยังไม่ได้ลงแหวน</div>')
-                    + (c.miss.length ? `<div class="mt-3 p-2.5 rounded-xl bg-red-900/30 border border-red-900/60"><div class="text-xs font-bold text-red-200 mb-2">⚠️ แหวนที่ทีมใช้ แต่ไม่มีในกระเป๋า (${c.miss.length} วง)</div><div class="flex flex-wrap gap-2">${c.miss.map(n => ccUsedRingIcon(n.id, n.stack, 40)).join('')}</div></div>` : '');
+                    + (c.miss.length ? `<div class="mt-3 p-2.5 rounded-xl bg-red-900/30 border border-red-900/60"><div class="text-xs font-bold text-red-200 mb-2">⚠️ แหวนที่ทีมใช้ แต่ไม่มีในกระเป๋า (${c.miss.length} วง)</div><div class="flex flex-wrap gap-2">${c.miss.map(n => ccUsedRingIcon(n.id, n.stack, 56)).join('')}</div></div>` : '');
             }
             m.innerHTML = `<div class="bg-[#11161f] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl">
                 <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-800 shrink-0">
