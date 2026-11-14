@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.19.2';
+        const APP_VERSION = '1.20.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15817,7 +15817,7 @@
                         ${tabBtn('table', '<span class="hidden sm:inline">📊 </span>ตาราง')}
                         ${tabBtn('comp', '<span class="hidden sm:inline">⚔️ </span>คอมพ์')}
                         ${tabBtn('castle', '<span class="hidden sm:inline">🏰 </span><span class="sm:hidden">รายปราสาท</span><span class="hidden sm:inline">แยกรายปราสาท</span>')}
-                        ${tabBtn('used', '<span class="hidden sm:inline">📒 </span><span class="sm:hidden">ที่ตี</span><span class="hidden sm:inline">ที่ตี + แหวนเหลือ</span>')}
+                        ${tabBtn('used', '<span class="hidden sm:inline">📒 </span>รายการตี')}
                     </div>
                 </div>
                 <!-- 📊 สรุปตัวเลข: ตัวหนังสือล้วน ไม่มีกรอบแบบปุ่ม — มือถือขึ้นแถวของตัวเอง · แท็บตาราง = สรุปละเอียด -->
@@ -15885,6 +15885,7 @@
             } catch (e) { ccUsed.err = e.message || String(e); }
             ccUsed.loading = false;
             if (ccViewTab === 'used') ccViewerRender();
+            if (ccUsedDlg) ccUsedDlgRender();
         }
         function ccUsedRingIcon(id, stack, px) {
             const sz = px || 26, R = (typeof ringsDB !== 'undefined' ? ringsDB : []) || [];
@@ -15912,11 +15913,62 @@
             return { list, unknown, war: d.war, nRows: rows.length };
         }
         function ccUsedBattleLine(r) {
-            const res = r.result === 'win' ? '<span class="text-emerald-300 font-bold">ชนะ</span>' : r.result === 'lose' ? '<span class="text-red-300 font-bold">แพ้</span>' : '';
-            return `<div class="flex flex-wrap items-center gap-x-2 gap-y-1 py-1 border-t border-gray-800/70 first:border-t-0">
-                <span class="flex gap-0.5">${wuHeroThumbs(r.heroes, 26)}</span>
-                <span class="text-[11px] text-gray-400 min-w-0">${r.enemy ? '→ ' + ccEsc(r.enemy) : ''}${r.castle ? ' · 🏰 ' + ccEsc(r.castle) : ''}${res ? ' · ' + res : ''}</span>
-                ${(r.ring_miss || []).length ? `<span class="text-[10px] px-1.5 rounded bg-red-900/50 text-red-200">⚠️ แหวนไม่ตรง ${r.ring_miss.length}</span>` : ''}
+            const res = r.result === 'win' ? '<span class="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-300 font-black">ชนะ</span>' : r.result === 'lose' ? '<span class="px-2 py-0.5 rounded-md bg-red-900/50 text-red-300 font-black">แพ้</span>' : '';
+            const en = (r.enemy_heroes || []).length ? wuHeroThumbs(r.enemy_heroes, 52) : '<span class="text-[11px] text-gray-600 self-center px-2">ไม่มีข้อมูลทีมฝ่ายรับ</span>';
+            return `<div class="py-2.5 border-t border-gray-800/70 first:border-t-0">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span class="flex gap-1">${wuHeroThumbs(r.heroes, 52)}</span>
+                    <span class="flex items-center gap-2 sm:gap-3"><span class="text-sm font-black text-gray-500">VS</span><span class="flex gap-1">${en}</span></span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm">
+                    <span class="text-gray-300">→ <b class="text-white">${ccEsc(r.enemy || '?')}</b></span>
+                    ${r.castle ? `<span class="text-gray-400">🏰 ${ccEsc(r.castle)}</span>` : ''}${res}
+                    ${(r.ring_miss || []).length ? `<span class="text-xs px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ แหวนไม่ตรง ${r.ring_miss.length}</span>` : ''}
+                </div>
+            </div>`;
+        }
+        /** 🔍 Dialog ของลูกกิล: แท็บตัวละคร / แหวน — ที่ใช้ในวอนี้แล้ว = สีเทา */
+        let ccUsedDlg = null;   // { id, tab }
+        function ccUsedShow(id, tab) { ccUsedDlg = { id: String(id), tab: tab || (ccUsedDlg && ccUsedDlg.id === String(id) ? ccUsedDlg.tab : 'heroes') }; ccUsedDlgRender(); }
+        function ccUsedDlgClose() { ccUsedDlg = null; const m = document.getElementById('cc-used-dlg'); if (m) m.remove(); }
+        function ccUsedDlgRender() {
+            if (!ccUsedDlg) return;
+            const x = ccUsedModel().list.find(y => String(y.m.id) === ccUsedDlg.id); if (!x) return ccUsedDlgClose();
+            let m = document.getElementById('cc-used-dlg');
+            if (!m) { m = document.createElement('div'); m.id = 'cc-used-dlg'; m.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-2 sm:p-4'; m.onclick = e => { if (e.target === m) ccUsedDlgClose(); }; document.body.appendChild(m); }
+            const H = (typeof heroesDB !== 'undefined' ? heroesDB : []) || [];
+            const usedH = new Set(x.rows.flatMap(r => (r.heroes || []).map(y => String(y.id))));
+            const tabBtn = (k, label) => `<button type="button" onclick="ccUsedShow(${ccEsc(JSON.stringify(ccUsedDlg.id))}, '${k}')" class="flex-1 px-4 py-2 rounded-xl text-sm font-black transition ${ccUsedDlg.tab === k ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
+            let body = '';
+            if (ccUsedDlg.tab === 'heroes') {
+                const list = (x.m.hero_list || []).map(y => ({ y, h: H.find(z => String(z.id) === String(y.id)), used: usedH.has(String(y.id)) }))
+                    .sort((p, q) => (p.used - q.used) || String(p.h ? p.h.name : '').localeCompare(String(q.h ? q.h.name : ''), 'th'));
+                body = list.length ? `<div class="text-xs text-gray-400 mb-2">ทั้งหมด ${list.length} ตัว · ใช้ในวอนี้แล้ว <b class="text-gray-200">${list.filter(z => z.used).length}</b> ตัว (สีเทา)</div>
+                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(76px,1fr))">${list.map(z => `<div class="relative text-center" title="${ccEsc(z.h ? z.h.name : z.y.id)}${z.used ? ' — ใช้แล้ว' : ''}">
+                        <div class="relative aspect-square rounded-xl overflow-hidden border-2 ${z.used ? 'border-gray-700' : z.y.awakened ? 'border-purple-500' : 'border-gray-600'}">
+                            ${z.h ? `<img src="${z.y.awakened && z.h.img2 ? z.h.img2 : z.h.img}" alt="" class="w-full h-full object-cover ${z.used ? 'grayscale opacity-35' : ''}">` : '<div class="w-full h-full flex items-center justify-center text-2xl">❓</div>'}
+                            ${z.used ? '<span class="absolute inset-x-0 bottom-0 bg-black/80 text-[10px] font-black text-gray-200 py-0.5">ใช้แล้ว</span>' : ''}
+                        </div>
+                        <div class="text-[10px] mt-0.5 truncate ${z.used ? 'text-gray-600' : 'text-gray-300'}">${ccEsc(z.h ? z.h.name : z.y.id)}</div></div>`).join('')}</div>`
+                    : '<div class="text-center text-gray-500 py-10">ลูกกิลยังไม่ได้ลงตัวละคร</div>';
+            } else {
+                const rl = x.m.ring_list || [], c = warUseRingConsume(rl, x.rows.flatMap(r => r.rings || []));
+                const list = rl.map((y, i) => ({ y, used: c.used.has(i) })).sort((p, q) => p.used - q.used);
+                body = (list.length ? `<div class="text-xs text-gray-400 mb-2">ทั้งหมด ${list.length} วง · ใช้ในวอนี้แล้ว <b class="text-gray-200">${c.used.size}</b> วง (สีเทา) · เหลือ <b class="text-emerald-300">${list.length - c.used.size}</b></div>
+                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(64px,1fr))">${list.map(z => `<div class="relative flex flex-col items-center gap-1 p-1.5 rounded-xl border ${z.used ? 'border-gray-800 bg-black/30' : 'border-gray-700 bg-[#0d1117]'}">
+                        <span class="${z.used ? 'grayscale opacity-35' : ''}">${ccUsedRingIcon(z.y.id, z.y.stackId, 44)}</span>
+                        <span class="text-[10px] font-bold ${z.used ? 'text-gray-500' : 'text-emerald-300'}">${z.used ? 'ใช้แล้ว' : 'ว่าง'}</span></div>`).join('')}</div>`
+                    : '<div class="text-center text-gray-500 py-10">ลูกกิลยังไม่ได้ลงแหวน</div>')
+                    + (c.miss.length ? `<div class="mt-3 p-2.5 rounded-xl bg-red-900/30 border border-red-900/60"><div class="text-xs font-bold text-red-200 mb-2">⚠️ แหวนที่ทีมใช้ แต่ไม่มีในกระเป๋า (${c.miss.length} วง)</div><div class="flex flex-wrap gap-2">${c.miss.map(n => ccUsedRingIcon(n.id, n.stack, 40)).join('')}</div></div>` : '');
+            }
+            m.innerHTML = `<div class="bg-[#11161f] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl">
+                <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-800 shrink-0">
+                    ${memberAvatarHTML(x.m, 40)}
+                    <div class="min-w-0 flex-1"><div class="text-base font-black text-white truncate">${ccEsc(x.m.name)}</div><div class="text-xs text-gray-400">⚔️ ตี ${x.rows.length} ไม้ · ชนะ ${x.win} · 💍 เหลือ ${x.left.length}/${x.total}</div></div>
+                    <button onclick="ccUsedDlgClose()" class="w-10 h-10 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-2xl shrink-0">✕</button>
+                </div>
+                <div class="flex gap-1 p-1 mx-4 mt-3 rounded-2xl bg-[#0d1117] border border-gray-800 shrink-0">${tabBtn('heroes', '🦸 ดูตัวละคร')}${tabBtn('rings', '💍 ดูแหวน')}</div>
+                <div class="p-4 overflow-y-auto flex-1 min-h-0">${body}</div>
             </div>`;
         }
         function ccUsedHTML() {
@@ -15930,32 +15982,30 @@
             // แถวต่อคน — กดเพื่อกางดูไม้ที่ตี + แหวน
             const isOpen = k => ccUsed.open.has(k);
             const detail = (k, head, body) => `<details ${isOpen(k) ? 'open' : ''} ontoggle="ccUsedTog(this.open, ${ccEsc(JSON.stringify(k))})" class="group border-b border-gray-800 last:border-b-0">
-                <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-2 px-3 py-2 hover:bg-white/5 min-w-0">${head}<span class="text-gray-500 text-xs shrink-0 transition group-open:rotate-90">▶</span></summary>
-                <div class="px-3 pb-3 pl-12 bg-black/20">${body}</div></details>`;
+                <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 hover:bg-white/5 min-w-0">${head}<span class="text-gray-500 text-sm shrink-0 transition group-open:rotate-90">▶</span></summary>
+                <div class="px-3 sm:px-4 pb-3 sm:pl-16 bg-black/20">${body}</div></details>`;
             const row = x => {
                 const k = 'm:' + x.m.id;
-                const head = `${memberAvatarHTML(x.m, 28)}
-                    <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
-                    <div class="sm:hidden text-[11px] text-gray-400">${x.rows.length ? `⚔️ ตี <b class="text-amber-300">${x.rows.length}</b> · ชนะ ${x.win}` : '<span class="text-gray-600">ยังไม่ตี</span>'}${x.miss.length ? ` · <span class="text-red-300 font-bold">⚠️ แหวนไม่ตรง ${x.miss.length}</span>` : ''}</div></div>
-                    <span class="hidden sm:inline w-24 text-[11px] text-right shrink-0">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b><span class="text-gray-500"> · ชนะ ${x.win}</span>` : '<span class="text-gray-600">ยังไม่ตี</span>'}</span>
-                    <span class="hidden sm:inline w-24 text-[11px] text-right shrink-0">${x.miss.length ? `<span class="px-1.5 py-0.5 rounded bg-red-900/50 text-red-200 font-bold">⚠️ ${x.miss.length}</span>` : '<span class="text-gray-700">—</span>'}</span>
-                    <span class="w-16 sm:w-20 text-right shrink-0 text-sm font-black ${x.left.length ? 'text-emerald-300' : 'text-gray-500'}">💍 ${x.left.length}<span class="text-gray-500 font-normal text-[11px]">/${x.total}</span></span>`;
-                const body = `${x.miss.length ? `<div class="mt-2 text-[11px] px-2 py-1 rounded-lg bg-red-900/40 text-red-200">⚠️ ใช้แหวนไม่ตรง ${x.miss.length} วง — ทีมที่ตีใช้แหวนที่ไม่มีในกระเป๋า <span class="inline-flex flex-wrap gap-1 align-middle ml-1">${x.miss.map(n => ccUsedRingIcon(n.id, n.stack, 20)).join('')}</span></div>` : ''}
-                    ${x.rows.length ? `<div class="mt-2">${x.rows.map(ccUsedBattleLine).join('')}</div>` : ''}
-                    <div class="mt-2 text-[11px] text-gray-400 mb-1">💍 แหวนที่เหลือ</div>
-                    ${x.left.length ? `<div class="flex flex-wrap gap-1.5">${x.left.map(rg => ccUsedRingIcon(rg.id, rg.stackId, 26)).join('')}</div>` : `<div class="text-[11px] text-gray-500">${x.total ? 'แหวนใช้หมดแล้ว' : 'ยังไม่ได้ลงแหวน'}</div>`}`;
+                const head = `<span class="hidden sm:inline-flex">${memberAvatarHTML(x.m, 40)}</span><span class="sm:hidden inline-flex">${memberAvatarHTML(x.m, 32)}</span>
+                    <div class="min-w-0 flex-1"><div class="text-base font-bold text-white truncate">${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
+                    <div class="sm:hidden text-xs text-gray-400 whitespace-nowrap">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b> · ชนะ ${x.win}` : '<span class="text-gray-600">ยังไม่ตี</span>'}${x.miss.length ? ` · <span class="text-red-300 font-bold">⚠️ ${x.miss.length}</span>` : ''}</div></div>
+                    <span class="hidden sm:inline w-28 text-sm text-right shrink-0">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b><span class="text-gray-500"> · ชนะ ${x.win}</span>` : '<span class="text-gray-600">ยังไม่ตี</span>'}</span>
+                    <span class="hidden sm:inline w-28 text-sm text-right shrink-0">${x.miss.length ? `<span class="px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ ${x.miss.length}</span>` : '<span class="text-gray-700">—</span>'}</span>
+                    <span class="w-16 sm:w-24 text-right shrink-0 text-base font-black ${x.left.length ? 'text-emerald-300' : 'text-gray-500'}">💍 ${x.left.length}<span class="text-gray-500 font-normal text-xs">/${x.total}</span></span>
+                    <button type="button" onclick="event.preventDefault();event.stopPropagation();ccUsedShow(${ccEsc(JSON.stringify(String(x.m.id)))})" title="ดูตัวละคร / แหวน" class="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black">🔍<span class="hidden sm:inline"> ดูตัวละคร/แหวน</span></button>`;
+                const body = x.rows.length ? `<div class="mt-1">${x.rows.map(ccUsedBattleLine).join('')}</div>` : '<div class="py-3 text-sm text-gray-500">ยังไม่ได้ตีในวอนี้</div>';
                 return detail(k, head, body);
             };
-            const unk = [...M.unknown].map(([n, rs]) => detail('u:' + n, `<span class="w-7 h-7 rounded-full bg-gray-800 flex items-center justify-center shrink-0">🎮</span>
-                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-gray-300 truncate">${ccEsc(n)} <span class="text-[10px] text-gray-500 font-normal">ยังไม่รู้ว่าเป็นใคร</span></div></div>
-                <span class="w-24 text-[11px] text-right shrink-0">⚔️ ตี <b class="text-amber-300">${rs.length}</b></span><span class="hidden sm:inline w-24 shrink-0"></span><span class="hidden sm:inline w-20 shrink-0"></span>`,
+            const unk = [...M.unknown].map(([n, rs]) => detail('u:' + n, `<span class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center shrink-0 text-lg">🎮</span>
+                <div class="min-w-0 flex-1"><div class="text-base font-bold text-gray-300 truncate">${ccEsc(n)} <span class="text-[10px] text-gray-500 font-normal">ยังไม่รู้ว่าเป็นใคร</span></div></div>
+                <span class="w-24 sm:w-28 text-sm text-right shrink-0">⚔️ ตี <b class="text-amber-300">${rs.length}</b></span><span class="hidden sm:inline w-28 shrink-0"></span><span class="hidden sm:inline w-24 shrink-0"></span><span class="w-[38px] sm:w-[132px] shrink-0"></span>`,
                 `<div class="mt-2">${rs.map(ccUsedBattleLine).join('')}</div>`)).join('');
             const nMiss = M.list.filter(x => x.miss.length).length, nAtk = M.list.filter(x => x.rows.length).length;
             const allKeys = list.map(x => 'm:' + x.m.id).concat(q ? [] : [...M.unknown.keys()].map(n => 'u:' + n));
             const allOpen = allKeys.length && allKeys.every(isOpen);
             return `<div class="space-y-3">
                 <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <span class="text-gray-300 font-bold">📒 ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
+                    <span class="text-gray-200 font-black text-sm">📒 รายการตี · ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
                     <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedAll(${allOpen ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white">${allOpen ? '▲ ย่อทั้งหมด' : '▼ กางทั้งหมด'}</button>
@@ -15963,8 +16013,8 @@
                 </div>
                 ${M.nRows ? '' : '<div class="text-[11px] text-gray-500">ยังไม่มีไม้ที่บันทึกในวอนี้ — แหวนที่แสดงคือแหวนทั้งหมดของแต่ละคน</div>'}
                 <div class="rounded-2xl border border-gray-800 bg-[#0f131a] overflow-hidden">
-                    <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-800 text-[10px] text-gray-500 font-bold uppercase">
-                        <span class="flex-1">ลูกกิล</span><span class="hidden sm:inline w-24 text-right">ตี · ชนะ</span><span class="hidden sm:inline w-24 text-right">แหวนไม่ตรง</span><span class="w-16 sm:w-20 text-right">แหวนเหลือ</span><span class="w-3"></span>
+                    <div class="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-gray-800 text-xs text-gray-500 font-bold uppercase">
+                        <span class="flex-1">ลูกกิล</span><span class="hidden sm:inline w-28 text-right">ตี · ชนะ</span><span class="hidden sm:inline w-28 text-right">แหวนไม่ตรง</span><span class="w-16 sm:w-24 text-right">แหวนเหลือ</span><span class="w-[38px] sm:w-[132px]"></span><span class="w-3"></span>
                     </div>
                     ${list.map(row).join('') || '<div class="text-sm text-gray-500 p-4">ไม่พบชื่อที่ค้นหา</div>'}${q ? '' : unk}
                 </div>
@@ -40581,7 +40631,7 @@
         if (!list.length) return alert('ยังไม่ได้เลือกไม้ — ติ๊กไม้ที่จะบันทึก');
         const items = list.map(it => {
             const rg = wuRvItemRings(it), b = it.b;
-            return { battle_key: it.key, member_id: it.mem ? String(it.mem.id) : '', member_name: it.mem ? (it.mem.name || '') : '', game_name: wuRowName(b.rows[it.ri]), heroes: it.heroes, rings: rg.needs, ring_miss: rg.miss, team_id: it.teamId,
+            return { battle_key: it.key, member_id: it.mem ? String(it.mem.id) : '', member_name: it.mem ? (it.mem.name || '') : '', game_name: wuRowName(b.rows[it.ri]), heroes: it.heroes, enemy_heroes: (b.rows[1 - it.ri].slots || []).filter(s => s && s.id).map(s => ({ id: String(s.id), aw: !!s.aw })), rings: rg.needs, ring_miss: rg.miss, team_id: it.teamId,
                 castle: b.rows[1].castle || b.rows[0].castle || '', result: b.winner === it.ri ? 'win' : (b.winner == null ? '' : 'lose'), enemy: wuRowName(b.rows[1 - it.ri]) };
         });
         showLoading('📒 กำลังบันทึก ' + items.length + ' ไม้...');
