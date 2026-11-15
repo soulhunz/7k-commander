@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.21.3';
+        const APP_VERSION = '1.22.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -5043,6 +5043,22 @@
         let current3v3Filter = 'All';
         let filter3v3HeroId = null; // 🟢 ค้นหาทีมที่มีตัวละครนี้ (null = ไม่กรอง)
         let filter3v3Type = null;   // 🧬 กรองทีมตาม Type ของฮีโร่ (null = ทั้งหมด)
+        // 🔍 หน้า 3v3: ค้นหาข้อความ · แชร์/ไม่แชร์ · เรียง · มุมมองการ์ด/แถว (มุมมอง+เรียง จำไว้ในเครื่อง)
+        let v3Q = '', v3Share = 'all';
+        let v3View = (function () { try { return localStorage.getItem('7k_3v3_view') || 'card'; } catch (e) { return 'card'; } })();
+        let v3Sort = (function () { try { return localStorage.getItem('7k_3v3_sort') || 'default'; } catch (e) { return 'default'; } })();
+        function v3Set(k, v) {
+            if (k === 'q') v3Q = v; else if (k === 'share') v3Share = v;
+            else if (k === 'view') { v3View = v; try { localStorage.setItem('7k_3v3_view', v); } catch (e) {} }
+            else if (k === 'sort') { v3Sort = v; try { localStorage.setItem('7k_3v3_sort', v); } catch (e) {} }
+            render3v3TeamsList();
+            if (k === 'q') { const i = document.getElementById('v3-search'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+        }
+        function v3TeamText(t) {
+            const names = (t.slots || []).filter(s => s && s.id).map(s => { const hh = (heroesDB || []).find(x => String(x.id) === String(s.id)); return hh ? hh.name : ''; });
+            return [t.name, t.note, t.formation].concat(names).join(' ').toLowerCase();
+        }
+        function v3TeamTime(t) { const d = Date.parse(t && t.date); if (!isNaN(d)) return d; const n = Number(String((t && t.id) || '').replace(/\D/g, '').slice(0, 13)); return isNaN(n) ? 0 : n; }
 
         let dragSrc3v3Pos = null; // เก็บตำแหน่งต้นทาง (0-4)
 
@@ -26057,6 +26073,25 @@
         }
 
         // 3. ฟังก์ชันวาดการ์ดทีม (Grid) + เมนูบุก/ป้องกัน
+        /** 🔍 แถบเครื่องมือ: ค้นหา · แชร์ · เรียง · การ์ด/แถว */
+        function v3ToolbarHTML(nShown, all) {
+            const nSh = all.filter(t => t && t.isShared).length;
+            const seg = (k, v, label) => `<button type="button" onclick="v3Set('${k}','${v}')" class="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${(k === 'share' ? v3Share : v3View) === v ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}">${label}</button>`;
+            return `<div class="flex flex-wrap items-center gap-2 mb-4">
+                <div class="relative flex-1 min-w-[200px] sm:max-w-md">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
+                    <input id="v3-search" type="search" value="${String(v3Q).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}" oninput="clearTimeout(window.__v3T);const v=this.value;window.__v3T=setTimeout(()=>v3Set('q',v),250)" placeholder="ค้นหา ชื่อทีม / ตัวละคร / โน้ต (เว้นวรรคได้หลายคำ)" class="w-full bg-[#0d1117] border border-gray-700 focus:border-blue-500 text-white text-sm rounded-xl pl-9 pr-3 py-2.5 outline-none">
+                </div>
+                <div class="flex gap-0.5 p-1 rounded-xl bg-[#111827] border border-gray-800">${seg('share', 'all', 'ทั้งหมด')}${seg('share', 'shared', '🌍 แชร์ ' + nSh)}${seg('share', 'private', '🔒 ไม่แชร์ ' + (all.length - nSh))}</div>
+                <select onchange="v3Set('sort', this.value)" style="color-scheme:dark" class="bg-[#111827] border border-gray-800 text-gray-200 text-xs font-bold rounded-xl px-3 py-2.5">
+                    <option value="default" ${v3Sort === 'default' ? 'selected' : ''}>เรียง: แชร์ก่อน</option>
+                    <option value="new" ${v3Sort === 'new' ? 'selected' : ''}>เรียง: ล่าสุด</option>
+                    <option value="name" ${v3Sort === 'name' ? 'selected' : ''}>เรียง: ชื่อ ก-ฮ</option>
+                </select>
+                <div class="flex gap-0.5 p-1 rounded-xl bg-[#111827] border border-gray-800">${seg('view', 'card', '▦ การ์ด')}${seg('view', 'list', '☰ แถว')}</div>
+                ${(v3Q.trim() || v3Share !== 'all') ? `<span class="text-xs text-gray-400">เจอ <b class="text-white">${nShown}</b> ทีม</span>` : ''}
+            </div>`;
+        }
         function render3v3TeamsList() {
             const container = document.getElementById('teams-3v3-wrap');
             if (!container) return;
@@ -26103,7 +26138,9 @@
                 if (t && t.isShared) return 0;
                 return ((t && t.teamType) === 'Defense') ? 2 : 1;
             };
-            const sortedTeams = [...filteredTeams].sort((a, b) => rank3v3(a) - rank3v3(b));
+            const sortedTeams = [...filteredTeams].sort((a, b) => v3Sort === 'name' ? String(a.name || '').localeCompare(String(b.name || ''), 'th')
+                : v3Sort === 'new' ? v3TeamTime(b) - v3TeamTime(a) : rank3v3(a) - rank3v3(b));
+            const v3Words = v3Q.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
             // --- การ์ดทีม ---
             let heroMatchCount = 0;
@@ -26122,6 +26159,9 @@
                     const inTeam = team.slots && team.slots.some(s => s && String(s.id) === String(filter3v3HeroId));
                     if (!inTeam) return;
                 }
+                if (v3Share === 'shared' && !team.isShared) return;
+                if (v3Share === 'private' && team.isShared) return;
+                if (v3Words.length) { const tx = v3TeamText(team); if (!v3Words.every(w => tx.includes(w))) return; }
                 visible3v3.push({ team: team, idx: idx });
             });
 
@@ -26188,6 +26228,31 @@
                     ? 'opacity-60'
                     : (!team.isShared ? 'opacity-50 grayscale hover:opacity-100 hover:grayscale-0' : '');
 
+                if (v3View === 'list') {
+                    const smallIcons = (team.slots || []).slice(0, 3).filter(s => s && s.id).map(s => {
+                        const hh = heroesDB.find(x => String(x.id) === String(s.id)); if (!hh) return '';
+                        const awk = !!(s.awakened && hh.img2 && hh.img2 !== DRIVE_IMG_PREFIX), isMatch = hasHeroFilter && String(s.id) === String(filter3v3HeroId);
+                        return `<img src="${awk ? hh.img2 : hh.img}" title="${hh.name}" class="w-11 h-11 rounded-lg object-cover border-2 ${isMatch ? 'border-yellow-400' : awk ? 'border-purple-500' : 'border-gray-600'} bg-black">`;
+                    }).join('');
+                    return `<div onclick="openTeam3v3Editor(${idx})" class="relative flex items-center gap-3 bg-[#161b22] border border-gray-800 ${hoverBorder} rounded-xl pl-3 pr-2 py-2 cursor-pointer transition group min-w-0 overflow-hidden ${stateDim}">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 ${accentBar}"></div>
+                        <div class="flex gap-1 shrink-0">${smallIcons || '<span class="text-[10px] text-gray-600 italic w-[140px]">ยังไม่มีตัวละคร</span>'}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-bold text-gray-100 truncate ${isDeleted ? 'line-through text-gray-500' : ''}">${team.name || 'Team ' + (idx + 1)}</div>
+                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-[10px]">
+                                <span class="font-bold ${isAttack ? 'text-red-300' : 'text-blue-300'}">${icon} ${typeLabel}</span>
+                                <span class="text-gray-500">· ${team.formation || 'Basic'}</span>
+                                ${team.isShared ? '<span class="text-green-300">· 🌍 แชร์</span>' : '<span class="text-gray-500">· 🔒 ไม่แชร์</span>'}
+                                ${enemyCount > 0 ? `<span class="text-red-300">· 🎯 ${enemyCount}</span>` : ''}${deletedBadge}${unmarkBtn}
+                            </div>
+                        </div>
+                        ${petsHTML ? `<div class="hidden sm:flex items-center shrink-0 scale-75 origin-right">${petsHTML}</div>` : ''}
+                        <div class="flex items-center gap-1 shrink-0">
+                            ${!(team.owner && team.owner.memberId) ? `<button onclick="event.stopPropagation(); bulkAssignOpen('${team.id}')" title="ให้ทีมนี้กับลูกกิล" class="w-7 h-7 flex items-center justify-center rounded-md bg-black/40 hover:bg-indigo-700 text-gray-300 border border-gray-700 text-xs">📌</button>` : ''}
+                            <button onclick="event.stopPropagation(); duplicate3v3TeamById('${team.id}')" title="คัดลอกทีมนี้" class="w-7 h-7 flex items-center justify-center rounded-md bg-black/40 hover:bg-emerald-700 text-gray-300 border border-gray-700 text-xs">📋</button>
+                        </div>
+                    </div>`;
+                }
                 return `
                     <div onclick="openTeam3v3Editor(${idx})" class="relative bg-[#161b22] border border-gray-700 ${hoverBorder} rounded-2xl p-4 cursor-pointer transition-all shadow-lg hover:-translate-y-0.5 group flex flex-col gap-3 overflow-hidden ${stateDim}">
                         <div class="absolute left-0 top-0 bottom-0 w-1.5 ${accentBar}"></div>
@@ -26236,7 +26301,7 @@
                             <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${list.length} ทีม</span>
                             <div class="flex-1 h-px bg-gradient-to-r ${st.line} to-transparent"></div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
+                        <div class="${v3View === 'list' ? 'grid grid-cols-1 xl:grid-cols-2 gap-2' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5'}">
                             ${list.map(card3v3HTML).join('')}
                         </div>
                     </div>`;
@@ -26291,9 +26356,10 @@
                 ${unsavedBanner}
                 ${pendingBanner}
                 ${menuHTML}
+                ${v3ToolbarHTML(shown3v3.length, filteredTeams)}
                 ${heroFilterHTML}
                 ${typeBar3v3HTML}
-                ${cardsHTML || emptyHTML}
+                ${cardsHTML || ((v3Words.length || v3Share !== 'all') ? `<div class="text-center py-16 text-gray-500"><div class="text-4xl mb-3 opacity-50">🔍</div><div class="font-bold text-gray-300 mb-1">ไม่พบทีมที่ตรงกับการค้นหา</div><button onclick="v3Q='';v3Share='all';render3v3TeamsList()" class="mt-3 bg-[#1f2937] hover:bg-[#2d3748] text-gray-200 border border-gray-700 px-5 py-2 rounded-xl text-sm font-bold">✕ ล้างการค้นหา</button></div>` : emptyHTML)}
             `;
         }
 
@@ -26896,7 +26962,8 @@
         function publicLinkBase() {
             const here = window.location.href.split(/[?#]/)[0];
             const isDev = /^file:/i.test(here) || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\//i.test(here);
-            const srv = SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
+            // 🔗 ลิงก์สั้น: หน้าแชร์ใช้ server ที่ฝังไว้ (DEFAULT_WEB_APP_URL) เสมอ → ไม่ต้องแนบ s= ถ้าเป็นตัวเดียวกัน
+            const srv = SCRIPT_URL && SCRIPT_URL !== DEFAULT_WEB_APP_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '';
             if (isDev) return { base: here, srv: srv, dev: true };
             if (PUBLIC_PAGES_URL && SCRIPT_URL) return { base: PUBLIC_PAGES_URL, srv: srv, dev: false };
             return { base: publicShareBaseUrl(), srv: '', dev: false };
@@ -34836,7 +34903,7 @@
 
     /** คีย์สำหรับ "สร้างลิงก์ใหม่" = คีย์ของวันนี้ */
     function getDailyKey() {
-        return getGalleryKeyForDayOffset(0);
+        return '1';   // 🔗 ลิงก์สั้น (k=1) — ลิงก์ไม่มีวันหมดอายุแล้ว คีย์ยาวตามวันที่ไม่ได้กันอะไร
     }
 
     // 🔑 (ปิดไว้) อายุลิงก์แกลเลอรี — ตอนนี้ลิงก์ไม่หมดอายุ เก็บไว้เผื่อกลับมาใช้
@@ -34857,6 +34924,7 @@
      *  ผ่านถ้าเป็นคีย์รูปแบบแกลเลอรี (7k_gallery_...) ของวันไหนก็ได้ */
     function isGalleryKeyValid(key) {
         if (!key) return false;
+        if (String(key) === '1') return true;   // ลิงก์สั้นรุ่นใหม่
         try { return atob(String(key).replace(/ /g, '+')).indexOf('7k_gallery_') === 0; }
         catch (e) { return false; }
     }
@@ -37892,7 +37960,7 @@
         // 🌍 เข้าจากหน้าแกลเลอรี → กลับไปลิงก์แกลเลอรีเดิม (k / g / s)
         if (m[1] === 'gallery') {
             const ret = (saved && /^\?/.test(saved.ret || '')) ? saved.ret
-                : '?k=' + encodeURIComponent(getDailyKey()) + (g ? '&g=' + encodeURIComponent(g) : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '');
+                : '?k=' + encodeURIComponent(getDailyKey()) + (g ? '&g=' + encodeURIComponent(g) : '') + (SCRIPT_URL && SCRIPT_URL !== DEFAULT_WEB_APP_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '');
             try { window.history.replaceState({}, '', window.location.pathname + ret); } catch (e) {}
         }
         else try { window.history.replaceState({}, '', window.location.pathname + '?mode=' + (m[1] === 'officer' ? 'officer' : 'roster') + (g ? '&g=' + encodeURIComponent(g) : '') + (gid ? '&gid=' + encodeURIComponent(gid) : '') + (m[1] === 'enter' ? '&nojoin=1' : '') + (SCRIPT_URL ? '&s=' + encodeURIComponent(btoa(unescape(encodeURIComponent(SCRIPT_URL)))) : '')); } catch (e) {}   // คง s= (URL server) ไว้ให้ลิงก์ครบเหมือนตอนเปิด
