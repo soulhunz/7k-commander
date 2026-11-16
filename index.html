@@ -15931,23 +15931,68 @@
             const per = new Map(mems.map(m => [String(m.id), { m, rows: [] }])), unknown = new Map();
             rows.forEach(r => { const m = memOf(r); if (m) per.get(String(m.id)).rows.push(r); else { const k = r.game_name || '?'; if (!unknown.has(k)) unknown.set(k, []); unknown.get(k).push(r); } });
             const list = [...per.values()].map(x => {
-                const rl = x.m.ring_list || [], c = warUseRingConsume(rl, x.rows.flatMap(r => r.rings || []));
+                const rl = x.m.ring_list || [];
+                // แหวนต่อไม้ (1 ตัว 1 วง) — หักตามลำดับไม้ แล้วจำไว้ในแถวว่าแต่ละตัวได้วงไหน (popup ใช้)
+                x.rows.forEach(r => { r._needs = wuRowRingNeeds(r).map(n => Object.assign({}, n)); r._ringList = rl; });
+                const c = warUseRingConsume(rl, wuRowsByTime(x.rows).map(r => r._needs));   // ไม้แรกหักก่อน
                 return Object.assign(x, { left: rl.filter((_, i) => !c.used.has(i)), total: rl.length, miss: c.miss, win: x.rows.filter(r => r.result === 'win').length });
             });
             return { list, unknown, war: d.war, nRows: rows.length };
+        }
+        /** รูปตัวละครของไม้นี้ — ชี้/แตะ = ดูว่าตัวนี้ใช้แหวนอะไร (1 ตัว 1 วง) */
+        function ccUsedHeroThumbs(r, px) {
+            // r._needs = หักจากแหวนลูกกิลแล้ว (n.got = วงที่ได้) · ไม่มี (ไม้ที่ยังไม่รู้ว่าใคร) = ดูจากที่บันทึกไว้
+            const live = Array.isArray(r._needs), needs = live ? r._needs : wuRowRingNeeds(r), miss = live ? [] : wuRowRingMiss(r).map(m => m.id + '|' + (m.stack || ''));
+            const R = id => ((typeof ringsDB !== 'undefined' ? ringsDB : []) || []).find(y => String(y.id) === String(id));
+            const HDB = (typeof heroesDB !== 'undefined' ? heroesDB : []) || [];
+            return (r.heroes || []).map(x => {
+                const h = HDB.find(y => String(y.id) === String(x.id)); if (!h) return '';
+                const n = needs.find(z => z.hero && String(z.hero) === String(x.id));
+                // วงที่หักจริงจากแหวนของลูกกิล (รวมชั้นซ้อนของวงนั้น) · ไม่มี = แสดงวงที่ทีมต้องการ + "ไม่มี"
+                const unit = n && live && n.got != null ? (r._ringList || [])[n.got] : null;
+                const bad = !!n && (live ? n.got == null : miss.includes(n.id + '|' + (n.stack || '')));
+                const showId = unit ? String(unit.id) : n && n.id, showSt = unit ? (unit.stackId ? String(unit.stackId) : '') : n && n.stack;
+                const stars = rr => { const g = rr ? parseInt(rr.grade, 10) || 0 : 0; return `${'★'.repeat(Math.min(6, g))} <span style="color:#9ca3af;font-weight:700">${g ? g + ' ดาว' : ''}</span>`; };
+                // 💬 popup: รูปตัวละคร + รูปแหวน (ใหญ่) + ดาว · แหวนซ้อน = อีกแถว
+                const ringBox = (rr, id) => `<div style="display:flex;align-items:center;gap:8px;min-width:0">
+                        <div style="width:52px;height:52px;flex-shrink:0;border-radius:10px;border:2px solid ${bad ? '#ef4444' : '#d97706'};background:#000;overflow:hidden;${bad ? 'opacity:.6' : ''}">${rr && rr.img ? `<img src="${rr.img}" style="width:100%;height:100%;object-fit:cover">` : ''}</div>
+                        <div style="min-width:0;line-height:1.3"><div style="font-size:13px;font-weight:800;color:#fff;white-space:nowrap">${ccEsc(rr ? rr.name : id)}</div><div style="font-size:12px;font-weight:900;color:#fcd34d;white-space:nowrap">${stars(rr)}</div></div>
+                    </div>`;
+                // แหวนหลัก ＋ ซ้อน อยู่บรรทัดเดียวกัน
+                const ringRow = (label) => `<div style="margin-top:8px"><div style="font-size:10px;color:#c4b5fd;font-weight:900;margin-bottom:4px">${label}</div>
+                    <div style="display:flex;align-items:center;gap:8px">${ringBox(R(showId), showId)}${showSt ? `<span style="color:#c4b5fd;font-weight:900;font-size:12px;white-space:nowrap">＋ ซ้อน</span>${ringBox(R(showSt), showSt)}` : ''}</div></div>`;
+                // แหวนทุกวงที่ตั้งไว้ให้ตัวนี้ในทีม (ลำดับ 1 = วงที่หัก)
+                const alts = n ? (Array.isArray(n.alts) && n.alts.length ? n.alts : [{ id: n.id, stack: n.stack || '' }]) : [];   // ไม้เก่าไม่มี alts = วงเดียวที่บันทึกไว้
+                const mini = (id, w) => { const rr = R(id); return `<span style="display:inline-flex;align-items:center;gap:4px">${rr && rr.img ? `<img src="${rr.img}" style="width:${w}px;height:${w}px;border-radius:6px;object-fit:cover;border:1px solid #4b5563">` : ''}<span>${ccEsc(rr ? rr.name : id)} <span style="color:#fcd34d">★${rr ? parseInt(rr.grade, 10) || '' : ''}</span></span></span>`; };
+                // แสดงเสมอ (วงเดียวก็แสดง) — จะได้รู้ว่าตั้งไว้กี่วง และใช้วงไหน
+                const altList = alts.length ? `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #374151">
+                        <div style="font-size:10px;color:#9ca3af;font-weight:900;margin-bottom:4px">📋 แหวนที่ตั้งไว้ในทีม (${alts.length} วง${alts.length > 1 ? ' · ใช้ตามลำดับ ไม่มีวงแรกค่อยใช้วงถัดไป' : ''})</div>
+                        ${alts.map((a, i) => { const on = n.gotAlt === i; return `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;padding:2px 4px;border-radius:6px;font-size:11px;font-weight:700;color:${on ? '#fff' : '#9ca3af'};${on ? 'background:rgba(16,185,129,.15);outline:1px solid rgba(16,185,129,.5)' : ''}"><b style="width:14px;color:${on ? '#34d399' : '#6b7280'}">${i + 1}</b>${mini(a.id, 26)}${a.stack ? `<span style="color:#c4b5fd">＋</span>${mini(a.stack, 26)}` : ''}${on ? '<span style="margin-left:auto;color:#34d399;font-size:10px">✓ ใช้วงนี้</span>' : ''}</div>`; }).join('')}
+                    </div>` : '';
+                const body = n
+                    ? ringRow(bad ? '💍 ทีมใช้แหวน' : n.gotAlt > 0 ? `💍 ใช้แหวนลำดับ ${n.gotAlt + 1} (ไม่มีลำดับ 1)` : '💍 ใช้แหวนวงนี้')
+                        + (bad ? `<div style="margin-top:8px;font-size:11px;font-weight:800;color:#fca5a5">⚠️ ลูกกิลไม่มีแหวน${alts.length > 1 ? 'ที่ตั้งไว้สักวง' : 'นี้'} (แหวนไม่ตรง)</div>` : '') + altList
+                    : `<div style="margin-top:6px;font-size:12px;color:#9ca3af">💍 ${needs.some(z => z.hero) ? 'ทีมนี้ไม่ได้ใส่แหวนให้ตัวนี้' : 'ไม่มีข้อมูลแหวนรายตัว'}</div>`;
+                const pop = `<div style="display:flex;align-items:center;gap:8px"><img src="${x.aw && h.img2 ? h.img2 : h.img}" style="width:32px;height:32px;border-radius:6px;object-fit:cover"><b style="font-size:14px;color:#fff">${ccEsc(h.name)}</b></div>${body}`;
+                const ring = n && R(showId);
+                return `<span class="relative inline-block shrink-0 cursor-help" data-tip-html="${ccEsc(pop)}" style="width:${px}px;height:${px}px">
+                    <img src="${x.aw && h.img2 ? h.img2 : h.img}" class="w-full h-full rounded object-cover border ${x.aw ? 'border-purple-500' : 'border-gray-700'}" alt="">
+                    ${ring && ring.img ? `<img src="${ring.img}" class="absolute -bottom-1 -right-1 rounded-full border-2 ${bad ? 'border-red-500 opacity-60' : 'border-black'} bg-black" style="width:${Math.round(px * 0.42)}px;height:${Math.round(px * 0.42)}px" alt="">` : ''}
+                </span>`;
+            }).join('');
         }
         function ccUsedBattleLine(r) {
             const res = r.result === 'win' ? '<span class="px-2 py-0.5 rounded-md bg-emerald-900/50 text-emerald-300 font-black">ชนะ</span>' : r.result === 'lose' ? '<span class="px-2 py-0.5 rounded-md bg-red-900/50 text-red-300 font-black">แพ้</span>' : '';
             const en = (r.enemy_heroes || []).length ? wuHeroThumbs(r.enemy_heroes, 52) : '<span class="text-[11px] text-gray-600 self-center px-2">ไม่มีข้อมูลทีมฝ่ายรับ</span>';
             return `<div class="py-2.5 border-t border-gray-800/70 first:border-t-0">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <span class="flex gap-1">${wuHeroThumbs(r.heroes, 52)}</span>
+                    <span class="flex gap-1">${ccUsedHeroThumbs(r, 52)}</span>
                     <span class="flex items-center gap-2 sm:gap-3"><span class="text-sm font-black text-gray-500">VS</span><span class="flex gap-1">${en}</span></span>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm">
                     <span class="text-gray-300">→ <b class="text-white">${ccEsc(r.enemy || '?')}</b></span>
                     ${r.castle ? `<span class="text-gray-400">🏰 ${ccEsc(r.castle)}</span>` : ''}${res}
-                    ${(r.ring_miss || []).length ? `<span class="text-xs px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ แหวนไม่ตรง ${r.ring_miss.length}</span>` : ''}
+                    ${(() => { const nm = Array.isArray(r._needs) ? r._needs.filter(n => n.got == null).length : wuRowRingMiss(r).length; return nm ? `<span class="text-xs px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ แหวนไม่ตรง ${nm}</span>` : ''; })()}
                 </div>
             </div>`;
         }
@@ -15985,7 +16030,7 @@
                         <div class="text-[10px] mt-0.5 truncate ${z.used ? 'text-gray-600' : 'text-gray-300'}">${ccEsc(z.h ? z.h.name : z.y.id)}</div></div>`).join('')}</div>`
                     : (x.m.hero_list === undefined ? '<div class="text-center text-amber-300 py-10">⚠️ เซิร์ฟเวอร์ยังเป็นรุ่นเก่า — แอดมินต้องอัปโหลด code.gs เวอร์ชันล่าสุด (8.7.0) ถึงจะเห็นตัวละคร</div>' : '<div class="text-center text-gray-500 py-10">ลูกกิลยังไม่ได้ลงตัวละคร</div>');
             } else {
-                const rl = x.m.ring_list || [], c = warUseRingConsume(rl, x.rows.flatMap(r => r.rings || []));
+                const rl = x.m.ring_list || [], c = warUseRingConsume(rl, wuRowsByTime(x.rows).map(wuRowRingNeeds));
                 const all = rl.map((y, i) => ({ y, used: c.used.has(i), k: ccUsedRingRank(y) })).sort((p, q) => (q.used - p.used) || (p.k[0] - q.k[0]) || (p.k[1] - q.k[1]) || (p.k[2] - q.k[2]) || p.k[3].localeCompare(q.k[3], 'th'));   // ใช้แล้วก่อน → ★ สูง → สีวง → วงซ้อนก่อน → ชื่อ
                 const df = ccUsedDlg.f || 'all', list = all.filter(z => df === 'all' || (df === 'used' ? z.used : !z.used));
                 const fb = (k, label) => `<button type="button" onclick="ccUsedDlgSet('f','${k}')" class="px-3 py-1.5 rounded-lg text-xs font-bold border ${df === k ? 'border-amber-500 bg-amber-600/30 text-white' : 'border-gray-700 text-gray-400 hover:text-white'}">${label}</button>`;
@@ -16008,6 +16053,7 @@
                 <div class="p-4 overflow-y-auto flex-1 min-h-0">${body}</div>
             </div>`;
         }
+        const CC_USED_MAX = 5;   // ไม้ต่อคนต่อวอ — ตีครบ = FINISH
         function ccUsedHTML() {
             if (!ccUsed.data) {
                 if (!ccUsed.loading && !ccUsed.err) setTimeout(() => ccUsedLoad(), 0);
@@ -16022,8 +16068,10 @@
                 return HS.map(id => own.has(id) ? (used.has(id) ? 'used' : 'free') : 'none');
             };
             const score = x => { const s = st(x); return s.filter(v => v === 'free').length * 10 + s.filter(v => v === 'used').length; };
-            const list = M.list.filter(match).filter(x => !HS.length || !ccUsed.onlyFree || st(x).every(v => v === 'free'))
-                .sort((a, b) => (HS.length ? score(b) - score(a) : 0) || b.rows.length - a.rows.length || String(a.m.name).localeCompare(String(b.m.name), 'th'));
+            // 🏁 ตีครบ CC_USED_MAX ไม้ = FINISH ไปอยู่ท้าย · ยังไม่ตี = ไม่แสดง (ยกเว้นตอนกรองตัวละคร — ใช้หาคนที่ยังว่าง)
+            const done = x => x.rows.length >= CC_USED_MAX;
+            const list = M.list.filter(match).filter(x => HS.length || x.rows.length).filter(x => !HS.length || !ccUsed.onlyFree || st(x).every(v => v === 'free'))
+                .sort((a, b) => (done(a) - done(b)) || (HS.length ? score(b) - score(a) : 0) || b.rows.length - a.rows.length || String(a.m.name).localeCompare(String(b.m.name), 'th'));
             const heroChips = x => !HS.length ? '' : `<div class="flex flex-wrap gap-1 mt-1">${st(x).map((v, i) => { const hh = HDB.find(z => String(z.id) === HS[i]);
                 return `<span title="${ccEsc((hh ? hh.name : HS[i]) + ' — ' + (v === 'free' ? 'มี · ยังไม่ใช้' : v === 'used' ? 'มี · ใช้แล้ว' : 'ไม่มี'))}" class="inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-md text-[10px] font-bold border ${v === 'free' ? 'border-emerald-600/70 bg-emerald-950/40 text-emerald-200' : v === 'used' ? 'border-gray-700 bg-gray-800/60 text-gray-400' : 'border-red-900/60 bg-red-950/30 text-red-300/80'}">
                     ${hh && hh.img ? `<img src="${hh.img}" alt="" class="w-5 h-5 rounded object-cover ${v === 'free' ? '' : 'grayscale opacity-50'}">` : ''}${v === 'free' ? 'ว่าง' : v === 'used' ? 'ใช้แล้ว' : 'ไม่มี'}</span>`; }).join('')}</div>`;
@@ -16035,7 +16083,7 @@
             const row = x => {
                 const k = 'm:' + x.m.id;
                 const head = `<span class="hidden sm:inline-flex">${memberAvatarHTML(x.m, 40)}</span><span class="sm:hidden inline-flex">${memberAvatarHTML(x.m, 32)}</span>
-                    <div class="min-w-0 flex-1"><div class="text-base font-bold text-white truncate">${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
+                    <div class="min-w-0 flex-1"><div class="text-base font-bold ${done(x) ? 'text-gray-400' : 'text-white'} truncate">${done(x) ? '<span class="mr-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black align-middle">🏁 FINISH</span>' : ''}${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
                     <div class="sm:hidden text-xs text-gray-400 whitespace-nowrap">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b> · ชนะ ${x.win}` : '<span class="text-gray-600">ยังไม่ตี</span>'}${x.miss.length ? ` · <span class="text-red-300 font-bold">⚠️ ${x.miss.length}</span>` : ''}</div>${heroChips(x)}</div>
                     <span class="hidden sm:inline w-28 text-sm text-right shrink-0">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b><span class="text-gray-500"> · ชนะ ${x.win}</span>` : '<span class="text-gray-600">ยังไม่ตี</span>'}</span>
                     <span class="hidden sm:inline w-28 text-sm text-right shrink-0">${x.miss.length ? `<span class="px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ ${x.miss.length}</span>` : '<span class="text-gray-700">—</span>'}</span>
@@ -16054,7 +16102,7 @@
             return `<div class="space-y-3">
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                     <span class="text-gray-200 font-black text-sm">📒 รายการตี · ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
-                    <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
+                    <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน · 🏁 ครบ ${CC_USED_MAX} ไม้ ${M.list.filter(done).length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedAll(${allOpen ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white">${allOpen ? '▲ ย่อทั้งหมด' : '▼ กางทั้งหมด'}</button>
                     <button onclick="ccUsedLoad(true)" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${ccUsed.loading ? 'opacity-50' : ''}">${ccUsed.loading ? '⏳' : '🔄'} รีเฟรช</button>
@@ -16065,7 +16113,7 @@
                     <div class="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-gray-800 text-xs text-gray-500 font-bold uppercase">
                         <span class="flex-1">ลูกกิล</span><span class="hidden sm:inline w-28 text-right">ตี · ชนะ</span><span class="hidden sm:inline w-28 text-right">แหวนไม่ตรง</span><span class="w-16 sm:w-24 text-right">แหวนเหลือ</span><span class="w-[38px] sm:w-[132px]"></span><span class="w-3"></span>
                     </div>
-                    ${list.map(row).join('') || '<div class="text-sm text-gray-500 p-4">ไม่พบชื่อที่ค้นหา</div>'}${q ? '' : unk}
+                    ${list.map(row).join('') || `<div class="text-sm text-gray-500 p-4">${q ? 'ไม่พบชื่อที่ค้นหา' : 'ยังไม่มีใครตีในวอนี้'}</div>`}${q ? '' : unk}
                 </div>
             </div>`;
         }
@@ -39794,7 +39842,7 @@
     }
     /** จับคู่แหวนที่ทีมใช้ กับวงที่ลูกกิลมี — 1 วงใช้ได้ครั้งเดียว
      *  แหวนซ้อน (ทีมกำหนดชั้นซ้อน) = ต้องมีวงที่ซ้อนคู่นั้นจริง (A ซ้อน B หรือ B ซ้อน A)
-     *  แหวนไม่ซ้อน = มีวงรหัสนั้น (เป็นหลัก หรืออยู่ชั้นซ้อนของวงอื่น) · จับคู่แหวนซ้อนก่อน (เงื่อนไขแคบกว่า)
+     *  แหวนไม่ซ้อน = ต้องมีวงเดี่ยวรหัสนั้น (วงที่มีซ้อนอยู่ = คนละวง ไม่นับ) · จับคู่แหวนซ้อนก่อน
      *  → [{ si, j, base, stack, has }] เรียงตามช่องตัวละคร */
     function teamRingMatch(t, owned) {
         const slots = (t && (t.slots || (t.data && t.data.slots))) || [];
@@ -39809,7 +39857,7 @@
         const units = list.filter(r => r && r.id).map(r => ({ id: String(r.id), st: r.stackId ? String(r.stackId) : '', used: false }));
         const take = (r, pred) => { const u = units.find(x => !x.used && pred(x)); if (u) { u.used = true; r.unit = u.id + '|' + u.st; } return !!u; };
         reqs.filter(r => r.stack).forEach(r => { r.has = take(r, u => (u.id === r.base && u.st === r.stack) || (u.id === r.stack && u.st === r.base)); });
-        reqs.filter(r => !r.stack).forEach(r => { r.has = take(r, u => u.id === r.base && !u.st) || take(r, u => u.id === r.base) || take(r, u => u.st === r.base); });
+        reqs.filter(r => !r.stack).forEach(r => { r.has = take(r, u => u.id === r.base && !u.st); });   // แหวนเดี่ยว = วงเดี่ยวเท่านั้น (วงที่มีซ้อน = คนละวง)
         return reqs;   // r.unit = "หลัก|ซ้อน" ของวงที่ใช้
     }
     /** แหวนในทีมที่ลูกกิลขาด — นับเป็นวง (ทีมใช้แหวนเดียวกัน 2 ตัว แต่มี 1 วง = ขาด 1) · owned ว่าง = จำนวนแหวนทั้งหมดของทีม */
@@ -40092,14 +40140,17 @@
     (function () {
         let tip = null;
         const hide = () => { if (tip) tip.style.display = 'none'; };
-        const tipEl = e => e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+        const tipEl = e => e.target && e.target.closest ? e.target.closest('[data-tip],[data-tip-html]') : null;
         const show = el => {
             if (!tip) {
                 tip = document.createElement('div');
                 tip.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;background:#0d1117;color:#e5e7eb;border:1px solid #4b5563;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:700;max-width:260px;box-shadow:0 6px 20px rgba(0,0,0,.5);white-space:pre-line;line-height:1.35';
                 document.body.appendChild(tip);
             }
-            tip.textContent = el.getAttribute('data-tip');
+            // data-tip-html = กล่องมีรูป (HTML ที่เราสร้างเอง) · data-tip = ข้อความล้วน
+            const html = el.getAttribute('data-tip-html');
+            if (html) { tip.innerHTML = html; tip.style.whiteSpace = 'normal'; tip.style.maxWidth = 'min(460px, calc(100vw - 12px))'; tip.style.padding = '10px'; tip.style.borderRadius = '12px'; }
+            else { tip.textContent = el.getAttribute('data-tip'); tip.style.whiteSpace = 'pre-line'; tip.style.maxWidth = '260px'; tip.style.padding = '4px 8px'; tip.style.borderRadius = '8px'; }
             tip.style.display = 'block';
             const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
             const x = Math.max(6, Math.min(window.innerWidth - w - 6, r.left + r.width / 2 - w / 2));
@@ -40530,6 +40581,8 @@
         if (!o.force && !o.warId && c && c.war && c.current && c.war.id === c.current.id && Date.now() - c.at < 60000) return c;
         if (warUseLoading[gid] && !o.warId) return warUseLoading[gid];
         const p = (async () => {
+            // 💍 วงที่ติ๊กให้เช็ค (บน server) — นับแหวนให้ตรงกับหน้า Share
+            if (typeof bulkRingChecksLoaded !== 'undefined' && !bulkRingChecksLoaded) { await bulkRingLoadChecks(); warUseVer++; }
             try {
                 const r = await postJson({ action: 'getWarUsage', guild_id: gid, war_id: o.warId || '' }, { timeout: 30000, retries: 2 });
                 if (r && r.status === 'success') { if (o.warId) return r; wuSet(gid, r); }
@@ -40567,13 +40620,27 @@
         if (!w || !w.current || !w.war || w.war.id !== w.current.id) return [];
         return w.rows.filter(r => { if (String(r.member_id) === String(mem.id)) return true; if (r.member_id) return false; const m = wuRowMem(g, r); return !!m && String(m.id) === String(mem.id); });
     }
-    /** แหวนที่ใช้ไป → วงไหนในรายการแหวนของลูกกิล (index) + วงที่ไม่มี (ใช้แหวนไม่ตรง) — แหวนซ้อนจับคู่ก่อน */
+    /** แหวนที่ใช้ไป → วงไหนในรายการแหวนของลูกกิล (index) + วงที่ไม่มี (ใช้แหวนไม่ตรง)
+     *  แหวนเดี่ยว = ต้องเป็นวงเดี่ยวรหัสนั้น (วงที่มีซ้อนอยู่ = คนละวง ไม่นับ) · แหวนซ้อน = คู่นั้นจริง (สลับหลัก/ซ้อนได้)
+     *  n.alts = ลำดับที่ตั้งไว้ในทีม → ไม่มีลำดับ 1 ค่อยลองลำดับ 2, 3 ... */
     function warUseRingConsume(ringList, needs) {
         const units = (ringList || []).map((r, i) => ({ i, id: String(r && r.id || ''), st: r && r.stackId ? String(r.stackId) : '', used: false })).filter(u => u.id);
-        const take = pred => { const u = units.find(x => !x.used && pred(x)); if (u) u.used = true; return u; };
+        const fits = (u, c) => c.stack ? ((u.id === c.id && u.st === c.stack) || (u.id === c.stack && u.st === c.id)) : (u.id === c.id && !u.st);
+        const take = c => { const u = units.find(x => !x.used && fits(x, c)); if (u) u.used = true; return u; };
+        const cands = n => (Array.isArray(n.alts) && n.alts.length ? n.alts : [{ id: n.id, stack: n.stack || '' }]).map(c => ({ id: String(c.id), stack: c.stack ? String(c.stack) : '' }));
         const miss = [];
-        (needs || []).filter(n => n.stack).forEach(n => { if (!take(u => (u.id === n.id && u.st === n.stack) || (u.id === n.stack && u.st === n.id))) miss.push(n); });
-        (needs || []).filter(n => !n.stack).forEach(n => { if (!(take(u => u.id === n.id && !u.st) || take(u => u.id === n.id) || take(u => u.st === n.id))) miss.push(n); });
+        // needs = [[ไม้ 1], [ไม้ 2], ...] → หักทีละไม้ตามลำดับ (ไม้หลังได้แค่วงที่เหลือ) · ส่งแบบแบน = ไม้เดียว
+        const groups = (needs || []).length && Array.isArray(needs[0]) ? needs : [needs || []];
+        groups.forEach(g => {
+            g.forEach(n => { n.got = null; n.gotAlt = null; });
+            // รอบ 1: ทุกตัวลองลำดับ 1 ก่อน (ตัวอื่นจะได้ไม่มาแย่งด้วยลำดับสำรอง) · รอบ 2: ตัวที่ยังไม่ได้ ลองลำดับถัดไป
+            g.forEach(n => { const u = take(cands(n)[0]); if (u) { n.got = u.i; n.gotAlt = 0; } });
+            g.filter(n => n.got == null).forEach(n => {
+                const cs = cands(n);
+                for (let k = 1; k < cs.length; k++) { const u = take(cs[k]); if (u) { n.got = u.i; n.gotAlt = k; break; } }
+                if (n.got == null) miss.push(n);
+            });
+        });
         return { used: new Set(units.filter(u => u.used).map(u => u.i)), miss };
     }
     const wuSumCache = new WeakMap();
@@ -40583,16 +40650,32 @@
         if (c && c.v === warUseVer && c.n === (mem.ring_list || []).length) return c.s;
         const rows = warUseMemberRows(mem, gid);
         const heroes = new Set(); rows.forEach(r => (r.heroes || []).forEach(x => heroes.add(String(x.id))));
-        const ring = warUseRingConsume(mem.ring_list || [], rows.flatMap(r => r.rings || []));
+        const ring = warUseRingConsume(mem.ring_list || [], wuRowsByTime(rows).map(wuRowRingNeeds));
         const s = { battles: rows.length, heroes, ringIdx: ring.used, ringMiss: ring.miss };
         wuSumCache.set(mem, { v: warUseVer, n: (mem.ring_list || []).length, s });
         return s;
     }
-    /** แหวนที่ทีมนี้ใช้ (เฉพาะวงที่ติ๊กให้เช็ค) → [{ id, stack }] */
+    /** แหวนที่ทีมนี้ใช้ → [{ id, stack }] — 1 ตัวละคร เสีย 1 วง: วงแรกตามลำดับที่ตั้งไว้ (ในวงที่ติ๊กให้เช็ค) */
     function wuTeamRingNeeds(team) {
         if (!team) return [];
         const ck = typeof bulkCheckTeam === 'function' ? bulkCheckTeam(team) : team;
-        return teamRingMatch(ck, []).map(r => ({ id: r.base, stack: r.stack || '' }));
+        const seen = new Set();   // teamRingMatch เรียงตามช่องตัวละคร แล้วตามลำดับวง → วงแรกที่เจอของแต่ละตัว = ลำดับ 1
+        const slots = (ck && ck.slots) || [], all = teamRingMatch(ck, []);
+        // alts = แหวนทุกวงที่ตั้งไว้ให้ตัวนี้ (ลำดับ 1, 2, ...) — โชว์ใน popup
+        return all.filter(r => !seen.has(r.si) && seen.add(r.si)).map(r => ({ id: r.base, stack: r.stack || '', hero: String((slots[r.si] && slots[r.si].id) || ''),
+            alts: all.filter(z => z.si === r.si).map(z => ({ id: z.base, stack: z.stack || '' })) }));
+    }
+    /** แหวนของไม้ที่บันทึกไว้ — มีทีม = คิดใหม่ตามกติกาปัจจุบัน (ไม้เก่าที่เคยนับทุกวงก็ถูก) · หาทีมไม่เจอ = ใช้ที่บันทึกไว้ */
+    function wuRowRingNeeds(r) {
+        const t = r && r.team_id ? (teams3v3DB || []).find(y => y && String(y.id) === String(r.team_id)) : null;
+        return t ? wuTeamRingNeeds(t) : ((r && r.rings) || []);
+    }
+    /** ไม้เรียงตามเวลาที่ตี (เก่า → ใหม่) — ใช้หักแหวนทีละไม้ */
+    function wuRowsByTime(rows) { return (rows || []).slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0)); }
+    /** "ใช้แหวนไม่ตรง" ที่บันทึกไว้ — เหลือเฉพาะวงที่ยังนับตามกติกาปัจจุบัน (1 ตัว 1 วง) */
+    function wuRowRingMiss(r) {
+        const left = wuRowRingNeeds(r).map(n => n.id + '|' + (n.stack || ''));
+        return ((r && r.ring_miss) || []).filter(m => { const i = left.indexOf(m.id + '|' + (m.stack || '')); if (i < 0) return false; left.splice(i, 1); return true; });
     }
     function wuHeroKey(ids) { return ids.map(String).filter(Boolean).sort().join(','); }
     /** ทีม 3v3 ที่ตัวละครตรงกับไม้นี้ — ทีมที่สร้างให้คนนี้ > ทีมที่ให้คนนี้ > ทีมบุก > ทีมอื่น */
@@ -40665,8 +40748,9 @@
         if (!it.mem) return { needs, miss: [] };
         // วงที่ไม้อื่นของคนนี้ (บันทึกแล้ว/ติ๊กไว้ก่อนหน้า) ใช้ไปแล้ว ไม่นับซ้ำ
         const gid = String(guildsDB[wuRv.gi].id);
-        const before = warUseMemberRows(it.mem, gid).filter(r => r.battle_key !== it.key).flatMap(r => r.rings || []);
-        wuRv.items.filter(x => x !== it && x.inc && x.mem === it.mem && !x.saved && wuRv.items.indexOf(x) < wuRv.items.indexOf(it)).forEach(x => { const tt = (teams3v3DB || []).find(y => String(y.id) === x.teamId); before.push(...wuTeamRingNeeds(tt)); });
+        //    หักทีละไม้ตามลำดับ: ไม้ที่บันทึกแล้ว (เก่า → ใหม่) แล้วไม้ที่ติ๊กไว้ก่อนหน้าในรอบนี้
+        const before = wuRowsByTime(warUseMemberRows(it.mem, gid).filter(r => r.battle_key !== it.key)).map(wuRowRingNeeds);
+        wuRv.items.filter(x => x !== it && x.inc && x.mem === it.mem && !x.saved && wuRv.items.indexOf(x) < wuRv.items.indexOf(it)).forEach(x => { const tt = (teams3v3DB || []).find(y => String(y.id) === x.teamId); before.push(wuTeamRingNeeds(tt)); });
         const pre = warUseRingConsume(it.mem.ring_list || [], before);
         const left = (it.mem.ring_list || []).filter((r, i) => !pre.used.has(i));
         return { needs, miss: warUseRingConsume(left, needs).miss };
@@ -40803,17 +40887,17 @@
         (d.rows || []).forEach(r => { const m = wuRowMem(gid, r); r._mid = m ? String(m.id) : ''; r._mname = m ? (m.name || '') : ''; r._k = m ? String(m.id) : 'gn:' + String(r.game_name || '').toLowerCase(); });
         const rows = (d.rows || []).filter(r => !wuLog.member || r._k === wuLog.member);
         const byMem = new Map();
-        (d.rows || []).forEach(r => { const k = r._k; if (!byMem.has(k)) byMem.set(k, { id: k, name: r._mname || ('🎮 ' + (r.game_name || '?') + ' (ยังไม่รู้ว่าใคร)'), n: 0, miss: 0 }); const x = byMem.get(k); x.n++; x.miss += (r.ring_miss || []).length; });
+        (d.rows || []).forEach(r => { const k = r._k; if (!byMem.has(k)) byMem.set(k, { id: k, name: r._mname || ('🎮 ' + (r.game_name || '?') + ' (ยังไม่รู้ว่าใคร)'), n: 0, miss: 0 }); const x = byMem.get(k); x.n++; x.miss += wuRowRingMiss(r).length; });
         const memOf = id => id ? (g.members || []).find(m => String(m.id) === String(id)) : null;
         const chips = [...byMem.values()].sort((a, b) => b.n - a.n).map(x => `<button type="button" onclick="wuLog.member=wuLog.member===this.dataset.k?'':this.dataset.k;wuLogRender()" data-k="${wuEsc(x.id)}" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs ${wuLog.member === x.id ? 'border-indigo-500 bg-indigo-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300'}">${memOf(x.id) ? memberAvatarHTML(memOf(x.id), 18) : ''}${wuEsc(x.name)} <b>${x.n}</b>${x.miss ? ' <span class="text-red-300">⚠️' + x.miss + '</span>' : ''}</button>`).join('');
-        const list = rows.slice().sort((a, b) => Number(b.at) - Number(a.at)).map(r => `<div class="p-2.5 rounded-xl border ${(r.ring_miss || []).length ? 'border-red-900/60' : 'border-gray-800'} bg-[#0d1117]">
+        const list = rows.slice().sort((a, b) => Number(b.at) - Number(a.at)).map(r => `<div class="p-2.5 rounded-xl border ${wuRowRingMiss(r).length ? 'border-red-900/60' : 'border-gray-800'} bg-[#0d1117]">
                 <div class="flex items-center gap-2 min-w-0">${memOf(r._mid) ? memberAvatarHTML(memOf(r._mid), 24) : ''}
                     <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${r._mname ? wuEsc(r._mname) : '<span class="text-gray-400">ยังไม่รู้ว่าใคร</span>'} <span class="text-[10px] text-gray-500 font-normal">🎮 ${wuEsc(r.game_name)}${r.enemy ? ' → ' + wuEsc(r.enemy) : ''}</span></div>
                     <div class="text-[10px] text-gray-500">${r.castle ? '🏰 ' + wuEsc(r.castle) + ' · ' : ''}${r.result === 'win' ? '<span class="text-emerald-300">ชนะ</span>' : r.result === 'lose' ? '<span class="text-red-300">แพ้</span>' : ''}</div></div>
                     ${isCur ? `<button type="button" onclick="wuLogDelete('${wuEsc(r.battle_key).replace(/'/g, '&#39;')}')" title="ลบไม้นี้" class="w-7 h-7 rounded-md text-red-300 hover:bg-red-900/40 shrink-0">🗑️</button>` : ''}
                 </div>
-                <div class="flex flex-wrap items-center gap-2 mt-1.5 pl-1"><span class="flex gap-1">${wuHeroThumbs(r.heroes, 28)}</span><span class="flex flex-wrap gap-1.5">${wuRingThumbs(r.rings, r.ring_miss, 20)}</span>
-                ${(r.ring_miss || []).length ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-200">⚠️ ใช้แหวนไม่ตรง ${r.ring_miss.length} วง</span>` : ''}</div>
+                <div class="flex flex-wrap items-center gap-2 mt-1.5 pl-1"><span class="flex gap-1">${wuHeroThumbs(r.heroes, 28)}</span><span class="flex flex-wrap gap-1.5">${wuRingThumbs(wuRowRingNeeds(r), wuRowRingMiss(r), 20)}</span>
+                ${wuRowRingMiss(r).length ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-200">⚠️ ใช้แหวนไม่ตรง ${wuRowRingMiss(r).length} วง</span>` : ''}</div>
             </div>`).join('') || '<div class="text-center text-gray-500 text-sm py-8">ยังไม่มีไม้ที่บันทึก — ใช้หน้า 🎥 อ่านผลวอจากหน้าจอ แล้วกด 📒 บันทึกการใช้ของลูกกิล</div>';
         const warOpts = (d.wars || []).map(w => `<option value="${wuEsc(w.id)}" ${d.war && w.id === d.war.id ? 'selected' : ''}>${wuEsc(w.label)}${w.current ? ' (ปัจจุบัน)' : ''}</option>`).join('');
         bulkModalShell('wu-log-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
