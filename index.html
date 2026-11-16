@@ -3594,6 +3594,7 @@
                         <span class="hidden sm:block text-[9px] text-gray-500 font-black uppercase tracking-wider pl-1">🧱 ตาราง</span>
                         <div class="flex items-center gap-1 bg-[#0d1117] border border-gray-800 rounded-xl p-1">
                             <button onclick="castleCompCreateTable()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-black transition whitespace-nowrap">🧱 สร้างตาราง</button>
+                            <button onclick="castleCapOpen()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-sky-600" title="อัดหน้าจอตอนเปิดดูปราสาทศัตรูในเกม → อ่านทีมในแต่ละปราสาท แล้วส่งเข้าตาราง">🎥 อ่านปราสาทจากหน้าจอ</button>
                             <button onclick="warUseLogOpen(warUseCastleGuildIdx())" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-indigo-600" title="ลูกกิลใช้ตัวละคร/แหวนอะไรไปแล้วในวอนี้ (ดูย้อนหลังตาม SS)">📒 บันทึกวอ</button>
                             <button onclick="castleCompClearAll()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600" title="ล้างปราสาท + คอมพ์ + จำนวนทั้งหมด">🗑️ ล้างตาราง</button>
                         </div>
@@ -4707,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.26.1';
+        const APP_VERSION = '1.30.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -8848,7 +8849,7 @@
                     const data = enemyPatternsDB[currentPatternIdx];
 
                     if (editContext.type === 'pet') {
-                        // editContext.p = ตำแหน่งสัตว์เลี้ยง (0-2), รองรับสูงสุด 3 ตัว
+                        // editContext.p = ตำแหน่งสัตว์เลี้ยง (0..ENEMY_PATTERN_MAX_PETS-1)
                         const petIdx = parseInt(editContext.p, 10) || 0;
                         normalizePatternPets(data);
                         if (id) {
@@ -13083,7 +13084,7 @@
                     </div>
                 </div>`;
             }).join('');
-            const addCard = `<button type="button" onclick="castleCompOpenAddDialog()" class="border-2 border-dashed border-gray-700 hover:border-amber-500/60 rounded-2xl p-3 min-h-[150px] flex items-center justify-center text-sm font-bold text-gray-500 hover:text-amber-300 transition">＋ เพิ่มคอมพ์</button>`;
+            const addCard = `<button type="button" onclick="castleCompOpenAddDialog(${sel.length ? 'castleCompHeroSelList()' : ''})" class="border-2 border-dashed border-gray-700 hover:border-amber-500/60 rounded-2xl p-3 min-h-[150px] flex flex-col items-center justify-center gap-1 text-sm font-bold text-gray-500 hover:text-amber-300 transition">＋ เพิ่มคอมพ์${sel.length ? '<span class="text-[11px] font-normal">ที่มีตัวละครที่เลือก</span>' : ''}</button>`;
             return `<div class="flex flex-wrap gap-1.5 mb-3">${chips}</div>
                 <div class="flex flex-wrap items-center gap-3 mb-3">
                     <div class="text-sm font-black text-white">🏰 ${ccEsc(cs.name || '')} <span class="text-[11px] font-normal text-gray-500">รวม ${castleCompCastleTotal(cs.id)} หลัง${cs.on ? '' : ' · ไม่แสดงในหน้า Share'}</span></div>
@@ -13101,7 +13102,7 @@
                 </div>` : ''}
                 <div class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));">
                     ${cards || ((castleCompOnlyFilled || sel.length) ? `<div class="col-span-full text-xs text-gray-500 italic py-6 text-center">${sel.length ? 'ไม่มีคอมพ์ที่มีฮีโร่ตัวนี้' : 'ปราสาทนี้ยังไม่ได้ใส่จำนวนคอมพ์'}</div>` : '')}
-                    ${(castleCompOnlyFilled || sel.length) ? '' : addCard}
+                    ${castleCompOnlyFilled ? '' : addCard}
                 </div>`;
         }
 
@@ -14460,7 +14461,7 @@
                 if (inp && !overwriteId) inp.value = ccSsNextLabel(ccSsList);
                 showToast('📚 เก็บ "' + s.label + '" แล้ว', 'success');
                 // 📒 ตั้งชื่อวอปัจจุบันตาม SS — บันทึกการใช้ของลูกกิลรอบนี้ = "SS นี้"
-                if (!overwriteId && typeof warUseCastleGuildIdx === 'function') { const wuGi = warUseCastleGuildIdx(); if (wuGi >= 0) warUseSetLabel(String(guildsDB[wuGi].id), s.label); }
+                if (typeof warUseCastleGuildIdx === 'function') { /* เก็บใหม่หรือเขียนทับ = วอปัจจุบันคือ SS นี้ */ const wuGi = warUseCastleGuildIdx(); if (wuGi >= 0) warUseSetLabel(String(guildsDB[wuGi].id), s.label); }
             } catch (e) {
                 console.error(e);
                 alert('❌ เก็บ SS ไม่สำเร็จ: ' + (e.message || e));
@@ -15005,7 +15006,7 @@
                 </div>
                 ${grid ? `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">${grid}</div>`
                     : `<div class="text-center text-gray-600 py-24"><div class="text-6xl mb-4 opacity-30">${isMine ? '📱' : '🔨'}</div><div class="text-sm">${emptyMsg}</div></div>`}
-            </div>${hbvShared ? hbvDetailHTML(hbvShared) : hbvOpenId !== null ? hbvDetailHTML(all[hbvOpenId]) : ''}
+            </div>${hbvShared ? hbvDetailHTML(hbvShared) : hbvViewMyId && hbvMyFind(hbvViewMyId) ? hbvDetailHTML(Object.assign({}, hbvMyFind(hbvViewMyId), { owner: 'ฉัน (เก็บในเครื่องนี้)', _mine: true })) : hbvOpenId !== null ? hbvDetailHTML(all[hbvOpenId]) : ''}
             ${hbvSandboxOpen ? `<div id="hbv-sandbox-dlg" class="fixed inset-0 z-[140] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 overflow-y-auto">
                 <div id="hbv-sandbox-slot" class="w-full max-w-7xl my-4"></div>
             </div>` : ''}`;
@@ -15120,6 +15121,9 @@
         let hbvTab = 'public';            // public | mine
         let hbvMyBuilds = hbvLoadMy();    // [{ id, name, ts, data }] ใหม่สุดก่อน
         let hbvEditingId = null;          // บิ้วของฉันที่เปิดแก้อยู่ใน dialog
+        let hbvViewMyId = null;           // บิ้วของฉันที่เปิดดูรายละเอียดอยู่ (ยังไม่แก้)
+        function hbvViewMy(id) { hbvViewMyId = id; hbvRender(); }
+        function hbvEditFromView(id) { hbvViewMyId = null; hbvEditMy(id); }
 
         function hbvLoadMy() {
             try { const a = JSON.parse(localStorage.getItem(HBV_MY_KEY)); if (Array.isArray(a)) return a; } catch (e) {}
@@ -15202,7 +15206,7 @@
             const when = b.ts ? new Date(b.ts).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '';
             const id = ccEsc(b.id);
             const act = 'w-8 h-8 rounded-lg flex items-center justify-center text-sm bg-[#0d1117] border border-gray-700 transition';
-            return `<div role="button" tabindex="0" onclick="hbvEditMy('${id}')" title="กดเพื่อแก้บิ้วนี้"
+            return `<div role="button" tabindex="0" onclick="hbvViewMy('${id}')" title="กดเพื่อดูบิ้วนี้ (แก้ได้ในหน้ารายละเอียด)"
                 class="cursor-pointer text-left bg-[#161b22] border border-emerald-800/50 hover:border-emerald-500/70 rounded-2xl p-4 transition hover:-translate-y-0.5 shadow-lg flex flex-col gap-2 group">
                 <div class="flex items-center gap-3">
                     <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0 flex items-center justify-center">
@@ -15219,6 +15223,7 @@
                     ${set ? `<span class="px-1.5 py-0.5 rounded-md bg-cyan-900/20 border border-cyan-800/40 text-cyan-300">🛡️ ${ccEsc(set.name)}</span>` : ''}
                     ${awk ? '<span class="px-1.5 py-0.5 rounded-md bg-purple-900/30 border border-purple-700/50 text-purple-300">✨ ปลุกพลัง</span>' : ''}
                     <span class="flex-1"></span>
+                    <button type="button" onclick="event.stopPropagation(); hbvEditMy('${id}')" title="แก้บิ้วนี้" class="${act} hover:border-sky-500 hover:text-sky-300">✏️</button>
                     <button type="button" onclick="event.stopPropagation(); hbvShareMy('${id}')" title="คัดลอกลิงก์แชร์" class="${act} hover:border-emerald-500 hover:text-emerald-300">🔗</button>
                     <button type="button" onclick="event.stopPropagation(); hbvDeleteMy('${id}')" title="ลบบิ้วนี้" class="${act} hover:border-red-500 hover:bg-red-900/30">🗑️</button>
                 </div>
@@ -15235,6 +15240,7 @@
         function hbvOpen(i) { hbvOpenId = i; hbvRender(); }
         function hbvClose() {
             hbvOpenId = null;
+            hbvViewMyId = null;
             if (hbvShared) {
                 hbvShared = null;
                 // เอา b= ออกจาก URL — รีเฟรชแล้วไม่เด้งบิ้วเดิมขึ้นมาอีก
@@ -15254,7 +15260,7 @@
                 <div class="bg-[#0b0f17] border border-gray-700 rounded-2xl w-full max-w-7xl shadow-2xl my-auto">
                     <div class="flex flex-wrap items-center gap-3 p-4 border-b border-gray-800">
                         <div class="w-16 h-16 rounded-xl border-2 ${awk ? 'border-purple-500' : 'border-gray-700'} bg-black overflow-hidden flex-shrink-0">${hero ? `<img src="${awk ? hero.img2 : hero.img}" class="w-full h-full object-cover">` : ''}</div>
-                        <div class="min-w-0 flex-1">
+                        <div class="min-w-0 flex-1 basis-[55%] sm:basis-auto">
                             <div class="text-lg font-black text-white truncate">${ccEsc(b.name || 'บิ้วไม่มีชื่อ')}</div>
                             <div class="text-xs text-gray-400 truncate">${hero ? ccEsc(hero.name) : '— ไม่พบตัวละคร —'} · โดย ${ccEsc(b.owner || 'ไม่ระบุ')}</div>
                             <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-sm">
@@ -15264,8 +15270,10 @@
                                 ${hero && hero.attackType ? `<span class="text-[11px] font-bold ${hero.attackType === 'magic' ? 'text-purple-300' : 'text-orange-300'}">${hero.attackType === 'magic' ? '🔮 โจมตีเวท' : '⚔️ โจมตีกายภาพ'}</span>` : ''}
                             </div>
                         </div>
-                        <button type="button" onclick="hbvEditCopy(${b === hbvShared ? -1 : hbvOpenId})" title="คัดลอกบิ้วนี้ไปปรับต่อในหน้าสร้างบิ้วของคุณ (เก็บในเครื่องนี้)"
-                            class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️<span class="hidden sm:inline"> เอาไปปรับต่อ</span></button>
+                        ${b._mine ? `<button type="button" onclick="hbvShareMy('${ccEsc(b.id)}')" title="คัดลอกลิงก์แชร์" class="px-3 h-9 rounded-xl bg-[#1f2937] border border-gray-700 hover:border-emerald-500 text-gray-200 text-xs font-bold flex-shrink-0">🔗<span class="hidden sm:inline"> แชร์</span></button>
+                        <button type="button" onclick="hbvEditFromView('${ccEsc(b.id)}')" title="แก้บิ้วนี้" class="px-3 h-9 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️<span class="hidden sm:inline"> แก้ไข</span></button>`
+                        : `<button type="button" onclick="hbvEditCopy(${b === hbvShared ? -1 : hbvOpenId})" title="คัดลอกบิ้วนี้ไปปรับต่อในหน้าสร้างบิ้วของคุณ (เก็บในเครื่องนี้)"
+                            class="px-3 h-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex-shrink-0 whitespace-nowrap">✏️<span class="hidden sm:inline"> เอาไปปรับต่อ</span></button>`}
                         <button type="button" onclick="hbvClose()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
                     </div>
                     <div class="p-3 md:p-4">${hbvBodyHTML(d)}</div>
@@ -15516,6 +15524,7 @@
         }
         async function ccViewerPickSeason(id) {
             if (id === '__file') return;
+            if (typeof ccUsed !== 'undefined') { ccUsed.warId = ''; ccUsed.data = null; ccUsed.key = ''; }
             if (!id) { ccViewerUseCloud(); return; }
             const s = (ccViewSeasons || []).find(x => x.id === id);
             if (!s) return;
@@ -15945,15 +15954,26 @@
             const g = (typeof guildsDB !== 'undefined' && guildsDB[activeGuildIndex]) || null;
             return g ? String(g.id) : '';
         }
+        /** SS ที่เลือกอยู่ในหน้า Share → ชื่อ (ใช้หาวอชื่อเดียวกัน) · ตารางปัจจุบัน = '' */
+        function ccUsedSeasonLabel() {
+            const sid = typeof ccView !== 'undefined' && ccView && ccView.seasonId; if (!sid) return '';
+            const s = (typeof ccViewSeasons !== 'undefined' && Array.isArray(ccViewSeasons) ? ccViewSeasons : []).find(x => x.id === sid);
+            return s ? String(s.label || '') : '';
+        }
+        function ccUsedPickWar(id) { ccUsed.warId = String(id || ''); ccUsed.data = null; ccUsedLoad(true); }
         async function ccUsedLoad(force) {
-            const key = ccUsedGuildKey();
-            if (!key) { ccUsed.err = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; return; }
+            const g = ccUsedGuildKey();
+            if (!g) { ccUsed.err = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; return; }
+            const ss = ccUsed.warId ? '' : ccUsedSeasonLabel(), key = g + '|' + (ccUsed.warId || '') + '|' + ss;
             if (ccUsed.loading || (!force && ccUsed.key === key && ccUsed.data && Date.now() - ccUsed.at < 60000)) return;
             ccUsed.loading = true; ccUsed.err = '';
             if (ccViewTab === 'used') ccViewerRender();
             try {
-                const r = await postJson({ action: 'getWarUsagePublic', guild: key }, { timeout: 45000, retries: 2 });
+                const q = { action: 'getWarUsagePublic', guild: g };
+                if (ccUsed.warId) q.war_id = ccUsed.warId; else if (ss) q.war_label = ss;
+                const r = await postJson(q, { timeout: 45000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+                r.ssLabel = ss;
                 ccUsed.data = r; ccUsed.key = key; ccUsed.at = Date.now();
             } catch (e) { ccUsed.err = e.message || String(e); }
             ccUsed.loading = false;
@@ -16194,7 +16214,7 @@
             return `<div class="space-y-3">
                 ${modeBar}
                 <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <span class="text-gray-200 font-black text-sm">📒 รายการตี · ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
+                    <span class="text-gray-200 font-black text-sm">📒 รายการตี</span>${ccUsedWarSelectHTML(M)}
                     <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedAll(${allOpen ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white">${allOpen ? '▲ ย่อทั้งหมด' : '▼ กางทั้งหมด'}</button>
@@ -16210,6 +16230,16 @@
                 </div>
             </div>`;
         }
+        /** ช่องเลือกวอ (ค่าเริ่มต้น = ตาม SS ที่เลือกด้านบน / วอปัจจุบัน) + เตือนเมื่อ SS นี้ยังไม่มีรายการตี */
+        function ccUsedWarSelectHTML(M) {
+            const d = ccUsed.data || {}, wars = d.wars || [], cur = (d.war && d.war.id) || '';
+            const sel = `<select onchange="ccUsedPickWar(this.value)" style="color-scheme:dark" title="เลือกวอ (SS) ที่จะดูรายการตี" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1 text-xs font-bold max-w-[220px]">
+                ${cur ? '' : '<option value="" selected>— ไม่มีวอที่ตรงกัน —</option>'}
+                ${wars.map(w => `<option value="${ccEsc(w.id)}" ${w.id === cur ? 'selected' : ''}>${ccEsc(w.label || 'วอ')}${w.current ? ' (ปัจจุบัน)' : ''}</option>`).join('')}
+            </select>`;
+            const warn = d.ssLabel && d.matched === false ? `<span class="text-[11px] text-amber-300">⚠️ ยังไม่มีรายการตีที่ตั้งชื่อว่า "${ccEsc(d.ssLabel)}" — เลือกวอจากช่องนี้ หรือให้แอดมินตั้งชื่อวอให้ตรงกับ SS (📒 บันทึกวอ → ✎ ตั้งชื่อ)</span>` : '';
+            return sel + warn;
+        }
         function ccUsedSetMode(m) { ccUsed.mode = m; try { localStorage.setItem('7k_ccused_mode', m); } catch (e) {} ccViewerRender(); }
         /** 🕒 ทุกไม้ เรียงตามลำดับที่บันทึกเข้าไป (#1 = บันทึกก่อน) */
         function ccUsedOrderHTML(M, modeBar) {
@@ -16222,7 +16252,7 @@
             return `<div class="space-y-3">
                 ${modeBar}
                 <div class="flex flex-wrap items-center gap-2 text-xs">
-                    <span class="text-gray-200 font-black text-sm">🕒 ตามลำดับที่บันทึก · ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
+                    <span class="text-gray-200 font-black text-sm">🕒 ตามลำดับที่บันทึก</span>${ccUsedWarSelectHTML(M)}
                     <span class="text-gray-500">${rows.length} ไม้ · #1 = บันทึกก่อน</span>
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedLoad(true)" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${ccUsed.loading ? 'opacity-50' : ''}">${ccUsed.loading ? '⏳' : '🔄'} รีเฟรช</button>
@@ -17117,9 +17147,12 @@
             return s;
         }
 
-        function castleCompOpenAddDialog() {
+        function castleCompHeroSelList() { return [...castleCompHeroSel].map(String); }
+        /** preHeroes = ตัวละครที่กรองอยู่ในหน้านับคอมพ์ → เปิดหน้าเพิ่มคอมพ์โดยกรองตัวนั้นไว้ก่อน */
+        function castleCompOpenAddDialog(preHeroes) {
             castleCompLoad();
             ccAddHeroes.clear();
+            (Array.isArray(preHeroes) ? preHeroes : []).slice(0, 3).forEach(id => ccAddHeroes.add(String(id)));
             ccAddStripScroll = 0;
             ccAddType = '';
             let modal = document.getElementById('cc-add-modal');
@@ -17141,9 +17174,12 @@
 
         function ccAddSetTab(t) { ccAddTab = t; ccAddType = ''; ccAddRenderShell(); }
         function ccAddSetType(t) { ccAddType = (ccAddType === t) ? '' : t; ccAddRenderList(); }
+        const CC_ADD_MAX_HEROES = 3;
         function ccAddToggleHero(id) {
             id = String(id);
-            if (ccAddHeroes.has(id)) ccAddHeroes.delete(id); else ccAddHeroes.add(id);
+            if (ccAddHeroes.has(id)) ccAddHeroes.delete(id);
+            else if (ccAddHeroes.size >= CC_ADD_MAX_HEROES) { if (typeof showToast === 'function') showToast('เลือกได้สูงสุด ' + CC_ADD_MAX_HEROES + ' ตัว — กด ✕ ตัวเดิมออกก่อน', 'error'); return; }
+            else ccAddHeroes.add(id);
             ccAddRenderList();
             ccAddRenderHeroPicker();
         }
@@ -17351,7 +17387,7 @@
                         ${sel}
                         ${ccAddHeroes.size ? '<button onclick="ccAddClearHeroes()" class="text-[11px] text-gray-500 hover:text-white underline">ล้าง</button>' : ''}
                         <span class="flex-1"></span>
-                        ${ccAddTab === 'pattern' ? `<button onclick="ccAddNewPattern()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border border-emerald-500/40" title="สร้างรูปแบบศัตรูใบใหม่ แล้วกลับมาเลือก">➕ สร้างรูปแบบศัตรูใหม่</button>` : ''}
+                        ${ccAddTab === 'pattern' ? `<button onclick="ccAddNewPattern([...ccAddHeroes])" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border border-emerald-500/40" title="สร้างรูปแบบศัตรูใบใหม่ แล้วกลับมาเลือก">➕ สร้างรูปแบบศัตรูใหม่</button>` : ''}
                     </div>
                     ${availTypes.length ? `<div class="flex flex-wrap gap-1.5 items-center">
                         <span class="text-[10px] text-gray-600 font-bold uppercase mr-0.5">Type</span>${typeBtns}
@@ -17366,6 +17402,8 @@
                     ${cards || `<div class="text-center text-gray-600 text-xs py-16">
                         <div class="text-5xl mb-3 opacity-30">📭</div>
                         ${all.length ? 'ไม่พบรายการที่ตรงกับตัวกรอง' : (ccAddTab === 'atk' ? 'ยังไม่มีทีมศัตรูในทีมบุกที่แชร์' : 'ยังไม่มีรูปแบบศัตรู — กดปุ่มสีเขียวเพื่อสร้าง')}
+                        ${ccAddHeroes.size ? `<div class="mt-4"><button type="button" onclick="ccAddNewPattern([...ccAddHeroes])" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-black shadow-lg">＋ สร้างทีมนี้ (${[...ccAddHeroes].map(id => { const x = (heroesDB || []).find(y => String(y.id) === String(id)); return x ? x.name : id; }).join(' + ')})</button>
+                            <div class="text-[11px] text-gray-500 mt-2">เปิดหน้าสร้างรูปแบบศัตรูโดยใส่ตัวที่เลือกไว้ให้ — จัดตำแหน่ง/รูปแบบยืนแล้วกดบันทึก ระบบเพิ่มเข้าตารางให้เลย</div></div>` : ''}
                     </div>`}
                 </div>`;
 
@@ -17396,7 +17434,7 @@
         let ccPendingNewPattern = false;
 
         /** สร้างรูปแบบศัตรูใบใหม่ — ใช้หน้าแก้ไขของเมนูรูปแบบศัตรู แล้วดึงกลับมาเป็นคอมพ์อัตโนมัติ */
-        function ccAddNewPattern() {
+        function ccAddNewPattern(preHeroes) {
             if (typeof createNewEnemyPattern !== 'function') {
                 alert('❌ ยังเปิดหน้าสร้างรูปแบบศัตรูไม่ได้ — ลองเข้าเมนู 🎯 รูปแบบศัตรู แทน');
                 return;
@@ -17404,6 +17442,12 @@
             ccPendingNewPattern = true;
             castleCompCloseAddDialog();
             createNewEnemyPattern();
+            const ids = (Array.isArray(preHeroes) ? preHeroes : []).slice(0, 3);
+            if (ids.length && enemyPatternsDB[0] && enemyPatternsDB[0]._isNew) {
+                const p = enemyPatternsDB[0];
+                [1, 2, 3].forEach((pos, i) => { p.slots[pos] = ids[i] ? { id: String(ids[i]) } : null; });   // วางกลางแถว (ตำแหน่ง 2–4) — ย้ายได้ในหน้าแก้ไข
+                if (typeof renderEnemyEditor === 'function') renderEnemyEditor(0);
+            }
         }
 
         /** เรียกตอนปิดหน้าแก้ไขรูปแบบศัตรู — ถ้ามาจากหน้านับคอมพ์ ให้เพิ่มใบนั้นเข้าตาราง */
@@ -19972,6 +20016,395 @@
         }
         if (okRead) wcRestored = true;   // อ่านของเดิมได้แล้วเท่านั้นถึงเริ่มเก็บ
     }
+    // =========================================================
+    // 🏰 อ่านปราสาทศัตรูจากหน้าจอ — เปิดหน้าต่างปราสาท (นอก-1 … หลัก) ในเกมแล้วเลื่อนรายการ
+    //    ระบบหาการ์ดทีมจากเส้น B/F (ชมพู/ฟ้า) · ตัวละคร 5 ช่อง (แถวหลัง/หน้า) + สัตว์เลี้ยง + ชื่อ · ชื่อปราสาทจากหัวหน้าต่าง
+    //    ตั้งกรอบครั้งแรก = ลากครอบ "การ์ดทีมแรก" (ตอนเลื่อนรายการไว้บนสุด) → ตำแหน่งอื่นคำนวณตามสัดส่วน
+    // =========================================================
+    const CS_U = { span: 6.75, tile: 0.92, bTop: -0.36, fTop: 0.21, petX: 5.75, pet: 0.98, lineX: 4.98, pinkFromTop: 0.36, blue: 0.75, nameX0: -2.9, nameX1: -0.3, nameY0: 0.6, nameY1: 1.4, titleX0: 3.4, titleX1: 8.8, titleY0: -2.3, titleY1: -1.35 };
+    const CS_CAL_KEY = '7k_castlecap_cal_v2', CS_DATA_KEY = '7k_castlecap_data_v1';
+    let csCal = (function () { try { return JSON.parse(localStorage.getItem(CS_CAL_KEY) || 'null'); } catch (e) { return null; } })();
+    let csData = (function () { try { const d = JSON.parse(localStorage.getItem(CS_DATA_KEY) || 'null'); return d && d.castles ? d : { castles: {} }; } catch (e) { return { castles: {} }; } })();
+    let csStream = null, csVideo = null, csTimer = null, csBusy = false, csCalFrame = null, csCalBox = null, csCurCastle = '', csManualCastle = '', csTitleSig = '', csStatus = '';
+    let csOcrQ = Promise.resolve();
+    function csSave() { try { localStorage.setItem(CS_DATA_KEY, JSON.stringify(csData)); } catch (e) {} }
+    function csCastleNow() { return csManualCastle || csCurCastle; }
+    /** กรอบ = ขอบซ้ายช่องตัวละครช่องแรก → ขอบขวารูปสัตว์เลี้ยง · บน = ขอบบนรูปแถวหลัง */
+    function csStep() { return csCal.w / CS_U.span; }
+    /** หาแถวการ์ดทั้งจอ: เส้นชมพู (B) ตามด้วยเส้นฟ้า (F) ห่าง 0.75 ช่อง · คืนตำแหน่ง y ของเส้นชมพู */
+    function csFindRows(cv) {
+        const s = csStep(), g = cv.getContext('2d', { willReadFrequently: true });
+        const x = Math.round(csCal.x + CS_U.lineX * s);
+        if (x < 2 || x + 3 >= cv.width) return [];
+        const H = cv.height, d = g.getImageData(x - 2, 0, 5, H).data;
+        const pix = yy => { let R = 0, G = 0, B = 0; for (let k = 0; k < 5; k++) { const i = (yy * 5 + k) * 4; R += d[i]; G += d[i + 1]; B += d[i + 2]; } return [R / 5, G / 5, B / 5]; };
+        const pink = yy => { const [R, G, B] = pix(yy); return R - G >= 12 && R - B >= 8; };
+        const blue = yy => { const [R, G, B] = pix(yy); return B - R >= 6 && B - G >= 4; };
+        const out = [], gap = CS_U.blue * s;
+        for (let yy = 0; yy < H; yy++) {
+            if (!pink(yy)) continue;
+            let e = yy; while (e + 1 < H && pink(e + 1)) e++;
+            const mid = (yy + e) / 2;
+            if (e - yy <= 0.25 * s) {   // เส้นบาง ไม่ใช่รูป/ปุ่มสีชมพู
+                let okB = false; for (let k = -0.1; k <= 0.1 && !okB; k += 0.02) { const t = Math.round(mid + gap + k * s); if (t >= 0 && t < H && blue(t)) okB = true; }
+                const top = mid + CS_U.bTop * s, bottom = mid + CS_U.nameY1 * s;
+                if (okB && top >= 0 && bottom <= H) out.push(mid);
+            }
+            yy = e + Math.round(0.4 * s);
+        }
+        return out;
+    }
+    /** ทีมที่แพ้แล้ว (Defeat) มีม่านเทาทับ → ยืดความต่างสีของช่องนั้นก่อนเทียบรูป · คืน [canvas, x, y, w, h] */
+    function csStretch(cv, x, y, w, h) {
+        const pad = 0.12, X = Math.max(0, x - w * pad), Y = Math.max(0, y - h * pad), W = Math.min(cv.width - X, w * (1 + 2 * pad)), H = Math.min(cv.height - Y, h * (1 + 2 * pad));
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(W)); c.height = Math.max(1, Math.round(H));
+        const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(cv, X, Y, W, H, 0, 0, c.width, c.height);
+        const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+        // ช่วงสีจากกลางช่อง (ตัดขอบ/พื้น) · 2%–98%
+        const lo = [], hi = [];
+        for (let ch = 0; ch < 3; ch++) {
+            const v = [];
+            for (let yy = Math.round(c.height * 0.25); yy < c.height * 0.75; yy += 2) for (let xx = Math.round(c.width * 0.25); xx < c.width * 0.75; xx += 2) v.push(a[(yy * c.width + xx) * 4 + ch]);
+            v.sort((p, q) => p - q); lo[ch] = v[Math.floor(v.length * 0.02)] || 0; hi[ch] = v[Math.floor(v.length * 0.98)] || 255;
+        }
+        const span = Math.max(...[0, 1, 2].map(ch => hi[ch] - lo[ch]));
+        if (span < 150) {   // จางจริง → ยืด (ใช้สเกลเดียวทุกสี ไม่ให้สีเพี้ยน)
+            const m = Math.min(...lo), k = 235 / Math.max(30, span);
+            for (let i = 0; i < a.length; i += 4) for (let ch = 0; ch < 3; ch++) a[i + ch] = Math.max(0, Math.min(255, (a[i + ch] - m) * k));
+            g.putImageData(d, 0, 0);
+        }
+        return [c, x - X, y - Y, w, h];
+    }
+    /** อ่าน 1 การ์ด (p = y ของเส้นชมพู) → { slots, pet, layout } */
+    function csReadRow(cv, p) {
+        const s = csStep(), g = cv.getContext('2d', { willReadFrequently: true }), X = csCal.x, T = CS_U.tile * s;
+        const score = st => st.std + st.sat;
+        const bTop = p + CS_U.bTop * s, fTop = p + CS_U.fTop * s;
+        const cols = [0, 1, 2, 3, 4].map(i => {
+            const x = X + i * s;
+            const up = wcStats(g, x + 0.14 * s, bTop + 0.06 * s, 0.64 * s, 0.38 * s);   // ครึ่งบนของช่องแถวหลัง
+            const lo = wcStats(g, x + 0.14 * s, fTop + 0.5 * s, 0.64 * s, 0.36 * s);    // ครึ่งล่างของช่องแถวหน้า
+            const uH = score(up) > 28, lH = score(lo) > 28;   // ช่องว่าง ≈ 6–20 · ตัวละครในการ์ดที่แพ้แล้ว (จาง) ≈ 35+
+            const pos = uH && !lH ? 'B' : lH && !uH ? 'F' : (uH && lH ? (score(up) >= score(lo) ? 'B' : 'F') : (up.mean < lo.mean ? 'B' : 'F'));
+            return { i, x, pos, hero: uH || lH, sc: Math.max(score(up), score(lo)) };
+        });
+        const heroCols = cols.filter(c => c.hero);
+        if (heroCols.length > 3) heroCols.sort((a, b) => b.sc - a.sc).slice(3).forEach(c => { c.hero = false; });
+        const slots = cols.filter(c => c.hero).map(c => {
+            const box = [c.x, c.pos === 'B' ? bTop : fTop, T, T];
+            const r = wcRank(wcSigVariants(...csStretch(cv, ...box)), 'hero');
+            return { id: r.top && r.top.id, aw: !!(r.top && r.top.aw), margin: r.margin, col: c.i, pos: c.pos, top: r.list.slice(0, 8) };
+        });
+        const pbox = [X + CS_U.petX * s, bTop, CS_U.pet * s, CS_U.pet * s];
+        const ps = wcStats(g, pbox[0] + pbox[2] * 0.15, pbox[1] + pbox[3] * 0.15, pbox[2] * 0.7, pbox[3] * 0.6);
+        let pet = null;
+        if (score(ps) > 45) { const r = wcRank(wcSigVariants(...csStretch(cv, ...pbox)), 'pet'); pet = { id: r.top && r.top.id, margin: r.margin }; }
+        return { slots, pet, layout: cols.map(c => c.hero ? c.pos : '') };
+    }
+    /** ตัวหนังสือเข้มกว่าพื้นการ์ด (พื้นเทา/ขาวก็ได้) → ขาวดำ */
+    function csBinRel(cv, x, y, w, h, S) {
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * S)); c.height = Math.max(1, Math.round(h * S));
+        const g = c.getContext('2d', { willReadFrequently: true }); g.imageSmoothingQuality = 'high'; g.drawImage(cv, x, y, w, h, 0, 0, c.width, c.height);
+        const d = g.getImageData(0, 0, c.width, c.height), a = d.data, ls = [];
+        for (let i = 0; i < a.length; i += 4) ls.push((a[i] + a[i + 1] + a[i + 2]) / 3);
+        const sorted = ls.slice().sort((p, q) => p - q), med = sorted[Math.floor(sorted.length * 0.6)];
+        for (let i = 0, k = 0; i < a.length; i += 4, k++) { const v = ls[k] < med - 28 ? 0 : 255; a[i] = a[i + 1] = a[i + 2] = v; a[i + 3] = 255; }
+        g.putImageData(d, 0, 0); return c;
+    }
+    async function csReadName(ocr, cv, p) {
+        const s = csStep(), x = Math.max(0, csCal.x + CS_U.nameX0 * s), y = p + CS_U.nameY0 * s, w = csCal.x + CS_U.nameX1 * s - x, h = (CS_U.nameY1 - CS_U.nameY0) * s;
+        const clean = t => String(t || '').replace(/\s+/g, '').replace(/[|_~`'"‘’“”]/g, '');
+        // อ่านทั้ง 2 ภาษา แล้วเลือกอันที่ตัวอ่านมั่นใจกว่า (ชื่อไทยอ่านด้วยตัวอังกฤษจะได้ตัวมั่ว ๆ)
+        const bin = csBinRel(cv, x, y, w, h, 3);
+        let en = { t: '', c: 0 }, th = { t: '', c: 0 };
+        try { const e = await ocr.eng.recognize(bin); en = { t: clean(e.data.text), c: e.data.confidence || 0 }; } catch (e) {}
+        const latin = (en.t.match(/[A-Za-z]/g) || []).length;
+        if (!(latin >= 3 && en.c >= 60)) { try { const t = await ocr.tha.recognize(bin); th = { t: clean(t.data.text), c: t.data.confidence || 0 }; } catch (e) {} }
+        const thaiCons = (th.t.match(/[ก-ฮ]/g) || []).length;
+        const best = (!(latin >= 3 && en.c >= 60) && thaiCons >= 2) ? th.t : en.t;
+        return best.slice(0, 30);
+    }
+    /** ชื่อปราสาทจากหัวหน้าต่าง (อยู่เหนือรายการ) */
+    async function csReadTitle(ocr, cv) {
+        const s = csStep(), p0 = csCal.y - CS_U.bTop * s, x = csCal.x + CS_U.titleX0 * s, y = p0 + CS_U.titleY0 * s, w = (CS_U.titleX1 - CS_U.titleX0) * s, h = (CS_U.titleY1 - CS_U.titleY0) * s;
+        if (y < 0) return '';
+        let c = '';
+        try { const t = await ocr.tha.recognize(wcBinarize(cv, x, y, w, h, 'dark', 2)); c = wcCastleFromText(t.data.text); } catch (e) {}
+        if (c && c !== 'หลัก' && !/[0-9]/.test(c)) {
+            try { const e = await ocr.eng.recognize(wcBinarize(cv, x, y, w, h, 'dark', 2)); const ds = (String(e.data.text || '').replace(/[Il|]/g, '1').match(/[1-9]/g) || []); const dd = ds[ds.length - 1]; if (dd && +dd <= (c === 'ใน' ? 3 : 5)) c += '-' + dd; } catch (e) {}
+        }
+        return c;
+    }
+    function csTitleSigOf(cv) {
+        const s = csStep(), p0 = csCal.y - CS_U.bTop * s, t = document.createElement('canvas'); t.width = 24; t.height = 4;
+        t.getContext('2d').drawImage(cv, csCal.x + CS_U.titleX0 * s, Math.max(0, p0 + CS_U.titleY0 * s), (CS_U.titleX1 - CS_U.titleX0) * s, (CS_U.titleY1 - CS_U.titleY0) * s, 0, 0, 24, 4);
+        const d = t.getContext('2d').getImageData(0, 0, 24, 4).data; let sig = ''; for (let i = 0; i < d.length; i += 4) sig += (d[i] >> 5); return sig;
+    }
+    function csFormation(t) { const back = (t.layout || []).filter(x => x === 'B').length; return { 3: 'Basic', 2: 'Balanced', 4: 'Attack', 1: 'Defense' }[back] || 'Basic'; }
+    const CS_FORM_TH = { Basic: 'พื้นฐาน', Balanced: 'สมดุล', Attack: 'บุก', Defense: 'ป้องกัน' };
+    const csHeroKey = slots => (slots || []).filter(x => x && x.id).map(x => String(x.id)).sort().join(',');
+    /** เพิ่ม/รวมทีม: ปราสาทเดียวกัน + ตัวละครชุดเดียวกัน + ชื่อใกล้กัน (หรือยังไม่มีชื่อ) = ทีมเดิม */
+    function csAddTeam(castle, rd, name, used) {
+        if (!castle) return null;
+        const list = csData.castles[castle] = csData.castles[castle] || [];
+        const k = csHeroKey(rd.slots); if (!k) return null;
+        const lay = (rd.layout || []).join('');
+        let t = list.find(x => !(used && used.has(x)) && csHeroKey(x.slots) === k && ((x.name && name) ? wcNameClose(x.name, name) : (x.layout || []).join('') === lay));
+        if (used && t) used.add(t);
+        if (!t) { t = { id: 'T' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: name || '', slots: rd.slots, pet: rd.pet, layout: rd.layout }; list.push(t); if (used) used.add(t); csSave(); return t; }
+        if (name && !t.name) { t.name = name; csSave(); }
+        // อ่านรอบใหม่มั่นใจกว่า → อัปเดตช่องที่ไม่แน่ใจ
+        rd.slots.forEach((sl, i) => { const o = t.slots[i]; if (o && sl && sl.id === o.id && (sl.margin || 0) > (o.margin || 0)) t.slots[i] = sl; });
+        return t;
+    }
+    async function csProcess(cv) {
+        if (!csCal) { csCalFrame = cv; csStatus = '🎯 ยังไม่ได้ตั้งกรอบ — ลากครอบช่องตัวละคร + สัตว์เลี้ยงของทีมแรก'; csRender(); return 0; }
+        await wcEnsureCands();
+        const rows = csFindRows(cv);
+        if (!rows.length) { csStatus = '⏳ ยังไม่เจอหน้าต่างปราสาท — เปิดปราสาทในเกม'; csRenderStatus(); return 0; }
+        const ocr = await wcOcrInit();
+        const ts = csTitleSigOf(cv);
+        if (ocr && ts !== csTitleSig) { const c = await csReadTitle(ocr, cv); if (c) { csCurCastle = c; csTitleSig = ts; } }
+        const castle = csCastleNow();
+        if (!castle) { csStatus = '⚠️ อ่านชื่อปราสาทไม่ได้ — เลือกปราสาทเองด้านบน'; csRender(); return 0; }
+        let added = 0; const used = new Set();
+        for (const top of rows) {
+            const rd = csReadRow(cv, top);
+            if (rd.slots.length < 2) continue;
+            const name = ocr ? await csReadName(ocr, cv, top) : '';
+            const before = (csData.castles[castle] || []).length;
+            const t = csAddTeam(castle, rd, name, used);
+            if (t && (csData.castles[castle] || []).length > before) added++;
+        }
+        csStatus = '🏰 ' + castle + ' · เจอ ' + rows.length + ' การ์ดบนจอ' + (added ? ' · เพิ่ม ' + added + ' ทีม' : '');
+        csRender();
+        return added;
+    }
+    // ---------- จับหน้าจอ / เลือกรูป ----------
+    async function csStartCapture() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return alert('เบราว์เซอร์นี้จับหน้าจอไม่ได้ — ใช้ Chrome / Edge บนคอม');
+        try { csStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 10 }, audio: false }); } catch (e) { return; }
+        csVideo = document.createElement('video'); csVideo.srcObject = csStream; csVideo.muted = true; await csVideo.play();
+        csStream.getVideoTracks()[0].addEventListener('ended', csStopCapture);
+        csTimer = setInterval(async () => {
+            if (csBusy || !csVideo || !csVideo.videoWidth) return; csBusy = true;
+            try { const c = document.createElement('canvas'); c.width = csVideo.videoWidth; c.height = csVideo.videoHeight; c.getContext('2d').drawImage(csVideo, 0, 0); await csProcess(c); }
+            catch (e) { console.warn('castlecap', e); } finally { csBusy = false; }
+        }, 900);
+        csRender();
+    }
+    function csStopCapture() { clearInterval(csTimer); csTimer = null; if (csStream) csStream.getTracks().forEach(t => t.stop()); csStream = null; csVideo = null; csRender(); }
+    function csPickFiles() {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+        inp.onchange = async () => {
+            for (const f of inp.files) {
+                const im = await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = URL.createObjectURL(f); });
+                if (!im) continue;
+                const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; c.getContext('2d').drawImage(im, 0, 0);
+                if (!csCal) { csCalFrame = c; csRender(); return; }
+                await csProcess(c);
+            }
+            await csOcrQ; csRender();
+        };
+        inp.click();
+    }
+    // ---------- ตั้งกรอบ ----------
+    function csBeginCal() { if (csVideo && csVideo.videoWidth) { const c = document.createElement('canvas'); c.width = csVideo.videoWidth; c.height = csVideo.videoHeight; c.getContext('2d').drawImage(csVideo, 0, 0); csCalFrame = c; } if (!csCalFrame) return alert('เริ่มจับหน้าจอ หรือเลือกรูปแคปหน้าต่างปราสาทก่อน'); csCalBox = null; csRender(); }
+    function csCalMouse(ev, phase) {
+        const cvs = document.getElementById('cs-cal-canvas'); if (!cvs) return;
+        const r = cvs.getBoundingClientRect(), k = csCalFrame.width / r.width;
+        const p = [(ev.clientX - r.left) * k, (ev.clientY - r.top) * k];
+        if (phase === 'down') { csCalBox = { x0: p[0], y0: p[1], x1: p[0], y1: p[1], drag: true }; }
+        else if (csCalBox && csCalBox.drag) { csCalBox.x1 = p[0]; csCalBox.y1 = p[1]; if (phase === 'up') csCalBox.drag = false; }
+        const g = cvs.getContext('2d'); g.drawImage(csCalFrame, 0, 0);
+        if (csCalBox) { g.strokeStyle = '#facc15'; g.lineWidth = Math.max(3, csCalFrame.width / 400); g.strokeRect(Math.min(csCalBox.x0, csCalBox.x1), Math.min(csCalBox.y0, csCalBox.y1), Math.abs(csCalBox.x1 - csCalBox.x0), Math.abs(csCalBox.y1 - csCalBox.y0)); }
+    }
+    async function csConfirmCal() {
+        if (!csCalBox || Math.abs(csCalBox.x1 - csCalBox.x0) < 50) return alert('ลากกรอบครอบช่องตัวละคร + สัตว์เลี้ยงของทีมแรกก่อน');
+        const x = Math.min(csCalBox.x0, csCalBox.x1), y = Math.min(csCalBox.y0, csCalBox.y1), w = Math.abs(csCalBox.x1 - csCalBox.x0);
+        csCal = { x, y, w, fw: csCalFrame.width, fh: csCalFrame.height };
+        try { localStorage.setItem(CS_CAL_KEY, JSON.stringify(csCal)); } catch (e) {}
+        const f = csCalFrame; csCalFrame = null; csCalBox = null; csTitleSig = '';
+        const n = await csProcess(f);
+        if (!csFindRows(f).length) alert('⚠️ ยังหาการ์ดไม่เจอ — ลากใหม่ให้ขอบซ้ายตรงกล่องเทาช่องแรก และขอบขวาตรงขอบขวารูปสัตว์เลี้ยง');
+        csRender();
+    }
+    function csResetCal() { csCal = null; try { localStorage.removeItem(CS_CAL_KEY); } catch (e) {} csRender(); }
+    // ---------- จัดการรายการ ----------
+    function csRemoveTeam(castle, id) { csData.castles[castle] = (csData.castles[castle] || []).filter(t => t.id !== id); csSave(); csRender(); }
+    function csSetName(castle, id, v) { const t = (csData.castles[castle] || []).find(x => x.id === id); if (t) { t.name = String(v || '').trim(); csSave(); } }
+    let csPick = null;   // { castle, id, i, q }
+    function csOpenPick(castle, id, i) { csPick = { castle, id, i, q: '' }; csRender(); setTimeout(() => { const e = document.getElementById('cs-pick-q'); if (e) e.focus(); }, 30); }
+    function csSetSlot(heroId, aw) {
+        const t = csPick && (csData.castles[csPick.castle] || []).find(x => x.id === csPick.id); if (!t) { csPick = null; return csRender(); }
+        const sl = t.slots[csPick.i]; if (sl) { sl.id = String(heroId); sl.aw = !!aw; sl.margin = 99; sl.fixed = true; }
+        csPick = null; csSave(); csRender();
+    }
+    function csPickHTML(E) {
+        const t = (csData.castles[csPick.castle] || []).find(x => x.id === csPick.id); const sl = t && t.slots[csPick.i]; if (!sl) return '';
+        const q = String(csPick.q || '').trim().toLowerCase(), HD = heroesDB || [];
+        const near = (sl.top || []).map(x => ({ h: HD.find(y => String(y.id) === String(x.id)), aw: x.aw })).filter(x => x.h);
+        const list = q ? HD.filter(x => String(x.name || '').toLowerCase().includes(q)).slice(0, 40).map(h => ({ h, aw: false })) : near;
+        const card = x => `<button type="button" onclick="csSetSlot(${E(JSON.stringify(String(x.h.id)))}, ${x.aw ? 'true' : 'false'})" class="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-white/10 w-16"><img src="${x.aw && x.h.img2 ? x.h.img2 : x.h.img}" class="w-12 h-12 rounded-md object-cover border ${x.aw ? 'border-purple-500' : 'border-gray-600'}"><span class="text-[9px] text-gray-300 truncate w-full text-center">${E(x.h.name)}</span></button>`;
+        return `<div class="fixed inset-0 z-[600] flex items-center justify-center bg-black/70 p-3" onclick="if(event.target===this){csPick=null;csRender()}">
+            <div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-xl max-h-[80vh] flex flex-col">
+                <div class="flex gap-2 p-3 border-b border-gray-800"><input id="cs-pick-q" value="${E(csPick.q)}" oninput="csPick.q=this.value;clearTimeout(window.__csq);window.__csq=setTimeout(()=>{csRender();const e=document.getElementById('cs-pick-q');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}},200)" placeholder="ค้นหาชื่อตัวละคร" class="flex-1 bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"><button onclick="csPick=null;csRender()" class="px-3 text-gray-400">✕</button></div>
+                <div class="p-3 overflow-y-auto flex flex-wrap gap-1">${q ? '' : '<div class="w-full text-[11px] text-gray-500 mb-1">ตัวที่ใกล้เคียงที่สุด — หรือพิมพ์ค้นหา</div>'}${list.map(card).join('') || '<span class="text-sm text-gray-500">ไม่พบ</span>'}</div>
+            </div></div>`;
+    }
+    // 🎯 รูปแบบศัตรู: ทีมที่อ่านได้ ↔ รูปแบบศัตรูที่มีอยู่ (ตัวละครชุดเดียวกัน)
+    function csPatternList() { return (Array.isArray(allEnemyPatternsDB) && allEnemyPatternsDB.length ? allEnemyPatternsDB : enemyPatternsDB) || []; }
+    function csPatIds(p) { return Object.values((p && p.slots) || {}).filter(x => x && x.id).map(x => String(x.id)).sort().join(','); }
+    function csFindPattern(t) { const k = csHeroKey(t.slots); return k ? csPatternList().find(p => p && csPatIds(p) === k) || null : null; }
+    function csTeamToPattern(t) {
+        const formation = csFormation(t);
+        const slots = { 0: null, 1: null, 2: null, 3: null, 4: null };
+        t.slots.forEach(sl => { if (sl && sl.id && sl.col != null) slots[sl.col] = Object.assign({ id: String(sl.id) }, sl.aw ? { awakened: true } : {}); });
+        const p = { id: 'EP_' + Date.now() + Math.floor(Math.random() * 1000), name: '', formation, note: (t.name ? 'เจอที่ ' + t.name : '') , slots, pets: t.pet && t.pet.id ? [{ id: String(t.pet.id) }] : [], pet: null, guild_name: (CURRENT_USER && (CURRENT_USER.guild_name || CURRENT_USER.guildId)) || 'all' };
+        if (typeof normalizePatternPets === 'function') normalizePatternPets(p);
+        if (typeof genEnemyPatternName === 'function') p.name = genEnemyPatternName(p);
+        return p;
+    }
+    async function csSavePatterns(list) {
+        if (!list.length) return 0;
+        showLoading('🎯 กำลังบันทึกรูปแบบศัตรู ' + list.length + ' ทีม...');
+        let n = 0;
+        try {
+            for (const t of list) {
+                if (csFindPattern(t)) continue;
+                const p = csTeamToPattern(t);
+                const res = await postJson({ action: 'saveOneEnemyPattern', pattern: p }, { timeout: 45000, retries: 1 });
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'ไม่สำเร็จ');
+                if (Array.isArray(allEnemyPatternsDB)) allEnemyPatternsDB.push(p);
+                enemyPatternsDB.unshift(p); n++;
+            }
+            try { localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB || enemyPatternsDB)); } catch (e) {}
+        } catch (e) { alert('❌ บันทึกรูปแบบศัตรูไม่สำเร็จ: ' + (e.message || e)); }
+        finally { hideLoading(); }
+        if (typeof renderEnemyPatternGrid === 'function') try { renderEnemyPatternGrid(); } catch (e) {}
+        csRender();
+        return n;
+    }
+    async function csAddPetToPattern(pid, petId) {
+        const p = csPatternList().find(x => x && String(x.id) === String(pid)); if (!p || !petId) return;
+        if (typeof normalizePatternPets === 'function') normalizePatternPets(p);
+        if ((p.pets || []).some(x => String(x.id) === String(petId))) return;
+        const maxPets = typeof ENEMY_PATTERN_MAX_PETS !== 'undefined' ? ENEMY_PATTERN_MAX_PETS : 3;
+        if ((p.pets || []).length >= maxPets) return alert('รูปแบบนี้มีสัตว์เลี้ยงครบ ' + maxPets + ' ตัวแล้ว — ลบตัวเดิมในหน้ารูปแบบศัตรูก่อน');
+        p.pets.push({ id: String(petId) }); if (typeof normalizePatternPets === 'function') normalizePatternPets(p);
+        showLoading('🐾 กำลังเพิ่มสัตว์เลี้ยงเข้ารูปแบบศัตรู...');
+        try { const res = await postJson({ action: 'saveOneEnemyPattern', pattern: p }, { timeout: 45000, retries: 1 }); if (!res || res.status !== 'success') throw new Error((res && res.message) || 'ไม่สำเร็จ'); showToast('🐾 เพิ่มสัตว์เลี้ยงเข้ารูปแบบศัตรูแล้ว', 'success'); }
+        catch (e) { alert('❌ ' + (e.message || e)); } finally { hideLoading(); }
+        const i = enemyPatternsDB.findIndex(x => x && String(x.id) === String(pid)); if (i >= 0 && enemyPatternsDB[i] !== p) enemyPatternsDB[i] = p;
+        try { localStorage.setItem('7k_enemy_patterns', JSON.stringify(allEnemyPatternsDB || enemyPatternsDB)); } catch (e) {}
+        csRender();
+    }
+    function csSavePattern(castle, id) { const t = (csData.castles[castle] || []).find(x => x.id === id); if (t) csSavePatterns([t]).then(n => n && showToast('🎯 บันทึกเป็นรูปแบบศัตรูแล้ว', 'success')); }
+    async function csSaveAllPatterns() {
+        const seen = new Set(), todo = [];
+        Object.values(csData.castles).forEach(l => l.forEach(t => { const k = csHeroKey(t.slots); if (k && !seen.has(k) && !csFindPattern(t)) { seen.add(k); todo.push(t); } }));
+        if (!todo.length) return alert('ทุกทีมมีในรูปแบบศัตรูอยู่แล้ว');
+        if (!confirm('บันทึก ' + todo.length + ' ทีมที่ยังไม่มี เป็นรูปแบบศัตรูใหม่?')) return;
+        const n = await csSavePatterns(todo); if (n) showToast('🎯 บันทึกรูปแบบศัตรูใหม่ ' + n + ' ทีม', 'success');
+    }
+    function csOpenPattern(pid) {
+        castleCapClose(); switchView('enemy-manager');
+        setTimeout(() => { const i = enemyPatternsDB.findIndex(p => p && String(p.id) === String(pid)); if (i >= 0 && typeof openEnemyPatternModal === 'function') { currentPatternIdx = i; openEnemyPatternModal(i); } }, 300);
+    }
+    function csClearAll() { if (!confirm('ล้างทีมที่อ่านไว้ทั้งหมด?')) return; csData = { castles: {} }; csSave(); csRender(); }
+    function csSetManual(v) { csManualCastle = String(v || ''); csRender(); }
+    /** 📊 ส่งเข้าตารางนับคอมพ์: แต่ละปราสาท นับทีมตามชุดตัวละคร (ไม่สนลำดับ) → คอมพ์เดิมที่ตัวตรงกัน หรือเพิ่มคอมพ์ใหม่ */
+    function csSendToTable() {
+        castleCompLoad();
+        if (!castleCompDB.created) { castleCompDB = castleCompDefaults(); castleCompDB.created = true; castleCompEnsureFixed(); }
+        const total = Object.values(csData.castles).reduce((s, l) => s + l.length, 0);
+        if (!total) return alert('ยังไม่มีทีมที่อ่านได้');
+        if (!confirm('ส่ง ' + total + ' ทีม เข้าตารางนับคอมพ์?\n\nจำนวนในปราสาทที่อ่านได้ จะถูกแทนด้วยค่าที่อ่านใหม่')) return;
+        const setKey = heroes => (heroes || []).filter(Boolean).map(String).sort().join(',');
+        let newComps = 0;
+        Object.entries(csData.castles).forEach(([cname, list]) => {
+            const cs = castleCompDB.castles.find(c => String(c.name || '').trim() === cname); if (!cs || !list.length) return;
+            castleCompDB.counts[cs.id] = {};
+            list.forEach(t => {
+                const ids = t.slots.filter(x => x && x.id).map(x => String(x.id)); if (!ids.length) return;
+                const k = setKey(ids);
+                let cp = castleCompDB.comps.find(c => setKey(c.heroes) === k);
+                if (!cp) {
+                    const heroes = new Array(CASTLE_COMP_SLOTS).fill(null); ids.slice(0, CASTLE_COMP_SLOTS).forEach((id, i) => { heroes[i] = id; });
+                    const pat = csFindPattern(t);
+                    cp = { id: ccUid('CP'), patternId: pat ? String(pat.id) : '', heroes, awk: t.slots.filter(x => x && x.id).slice(0, CASTLE_COMP_SLOTS).map(x => !!x.aw) };
+                    castleCompDB.comps.push(cp); newComps++;
+                }
+                castleCompDB.counts[cs.id][cp.id] = (parseInt(castleCompDB.counts[cs.id][cp.id]) || 0) + 1;
+            });
+            cs.on = true;
+        });
+        castleCompSave();
+        if (typeof renderCastleComp === 'function' && currentView === 'castle-comp') renderCastleComp();
+        showToast('📊 ส่งเข้าตารางแล้ว ' + total + ' ทีม' + (newComps ? ' · คอมพ์ใหม่ ' + newComps : ''), 'success');
+    }
+    // ---------- หน้าต่าง ----------
+    function castleCapOpen() {
+        let m = document.getElementById('cs-modal');
+        if (!m) { m = document.createElement('div'); m.id = 'cs-modal'; m.className = 'fixed inset-0 z-[560] flex items-center justify-center bg-black/80 p-2 sm:p-4'; document.body.appendChild(m); }
+        m.style.display = 'flex'; csRender(); wcOcrInit(); wcEnsureCands();
+    }
+    function castleCapClose() { const m = document.getElementById('cs-modal'); if (m) m.style.display = 'none'; }
+    function csRenderStatus() { const el = document.getElementById('cs-status'); if (el) el.textContent = csStatus; }
+    function csRender() {
+        const m = document.getElementById('cs-modal'); if (!m || m.style.display === 'none') return;
+        const E = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const js = s => E(JSON.stringify(String(s)));
+        const live = !!csStream;
+        let body;
+        if (csCalFrame) {
+            body = `<div class="p-3 space-y-2">
+                <div class="text-sm text-amber-200 font-bold">🎯 ลากกรอบครอบ <u>ช่องตัวละคร + สัตว์เลี้ยง ของทีมแรก</u> (เลื่อนรายการไว้บนสุด) — ซ้าย = ขอบซ้ายช่องตัวละครช่องแรก (กล่องเทาซ้ายสุด) · ขวา = ขอบขวารูปสัตว์เลี้ยง · บน = ขอบบนรูปตัวละครแถวหลัง</div>
+                <canvas id="cs-cal-canvas" width="${csCalFrame.width}" height="${csCalFrame.height}" class="w-full h-auto rounded-lg border border-gray-700 cursor-crosshair touch-none" onpointerdown="csCalMouse(event,'down')" onpointermove="csCalMouse(event,'move')" onpointerup="csCalMouse(event,'up')"></canvas>
+                <div class="flex gap-2"><button onclick="csConfirmCal()" class="bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-xs font-black">✅ ใช้กรอบนี้</button><button onclick="csCalFrame=null;csRender()" class="px-3 py-2 rounded-lg text-xs text-gray-300 border border-gray-700">ยกเลิก</button></div>
+            </div>`;
+        } else {
+            const order = typeof CC_FIXED_CASTLES !== 'undefined' ? CC_FIXED_CASTLES : WC_CASTLES;
+            const thumb = (sl) => { const hh = (heroesDB || []).find(y => String(y.id) === String(sl.id)); return hh ? `<img src="${sl.aw && hh.img2 ? hh.img2 : hh.img}" title="${E(hh.name)}" class="w-10 h-10 rounded-md object-cover border-2 ${(sl.margin || 0) < 4 ? 'border-amber-400' : sl.aw ? 'border-purple-500' : 'border-gray-600'} ${sl.pos === 'B' ? '-translate-y-1.5' : 'translate-y-1.5'}">` : '<span class="w-10 h-10 rounded-md border-2 border-amber-400 flex items-center justify-center text-amber-300">❓</span>'; };
+            const petThumb = p => { if (!p) return ''; const pp = (petsDB || []).find(y => String(y.id) === String(p.id)); return pp ? `<img src="${pp.img}" title="${E(pp.name)}" class="w-9 h-9 rounded-md object-cover border border-gray-600 ml-1">` : ''; };
+            body = `<div class="p-3 space-y-3">${order.map(cn => {
+                const list = csData.castles[cn] || [];
+                const cap = cn === 'หลัก' ? 20 : /^ใน/.test(cn) ? 15 : 10;
+                return `<div class="rounded-2xl border ${csCastleNow() === cn ? 'border-amber-500' : 'border-gray-800'} bg-[#0f131a]">
+                    <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-800"><span class="text-sm font-black text-white">🏰 ${E(cn)}</span><span class="text-xs ${list.length >= cap ? 'text-emerald-300' : 'text-gray-500'}">${list.length}/${cap} ทีม</span>${csCastleNow() === cn ? '<span class="text-[10px] px-1.5 rounded bg-amber-600 text-white font-bold">กำลังอ่าน</span>' : ''}</div>
+                    ${list.length ? `<div class="divide-y divide-gray-800/70">${list.map((t, i) => `<div class="flex flex-wrap items-center gap-2 px-3 py-2">
+                        <span class="text-[11px] text-gray-500 w-6">#${i + 1}</span>
+                        <input value="${E(t.name)}" placeholder="ชื่อ (กำลังอ่าน…)" onchange="csSetName(${js(cn)}, ${js(t.id)}, this.value)" class="w-36 bg-[#0d1117] border border-gray-700 rounded px-2 py-1 text-xs text-white">
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-300 font-bold" title="รูปแบบการยืน (นับจากตัวที่อยู่แถวหลัง)">${E(csFormation(t))}</span>
+                        <span class="flex gap-1 items-center py-1.5">${t.slots.map((sl, si) => `<button type="button" onclick="csOpenPick(${js(cn)}, ${js(t.id)}, ${si})" title="กดเพื่อแก้ตัวละคร">${thumb(sl)}</button>`).join('')}${petThumb(t.pet)}</span>
+                        ${(() => { const p = csFindPattern(t); const pp = (p && p.pets && p.pets.length) ? p.pets : (p && p.pet ? [p.pet] : []), petIn = !t.pet || !t.pet.id || pp.some(x => x && String(x.id) === String(t.pet.id)); const petNm = t.pet ? ((petsDB || []).find(y => String(y.id) === String(t.pet.id)) || {}).name : ''; return p ? `<button type="button" onclick="csOpenPattern(${js(p.id)})" title="มีในรูปแบบศัตรูแล้ว (ตัวละครชุดเดียวกัน — สัตว์เลี้ยงตัวไหนก็นับเป็นคอมพ์เดียวกัน) · กดเพื่อเปิดดู" class="text-[10px] px-2 py-1 rounded-md bg-emerald-900/40 border border-emerald-700/60 text-emerald-200 font-bold truncate max-w-[180px]">✅ มีแล้ว: ${E(p.name || 'รูปแบบศัตรู')}</button>${petIn ? '' : `<button type="button" onclick="csAddPetToPattern(${js(p.id)}, ${js(t.pet.id)})" title="ทีมนี้ใช้สัตว์เลี้ยงที่ยังไม่อยู่ในรูปแบบ — เพิ่มเป็นตัวเลือก" class="text-[10px] px-2 py-1 rounded-md bg-purple-900/40 border border-purple-700/60 text-purple-200 font-bold">🐾 ＋ ${E(petNm || 'สัตว์เลี้ยง')}</button>`}` : `<button type="button" onclick="csSavePattern(${js(cn)}, ${js(t.id)})" class="text-[10px] px-2 py-1 rounded-md bg-indigo-900/40 border border-indigo-700/60 text-indigo-200 font-bold">➕ บันทึกเป็นรูปแบบศัตรู</button>`; })()}
+                        <button onclick="csRemoveTeam(${js(cn)}, ${js(t.id)})" title="ลบทีมนี้" class="ml-auto w-7 h-7 rounded-md text-red-300 hover:bg-red-900/40">🗑️</button>
+                    </div>`).join('')}</div>` : '<div class="px-3 py-2 text-[11px] text-gray-600">ยังไม่ได้อ่าน</div>'}
+                </div>`; }).join('')}</div>`;
+        }
+        const total = Object.values(csData.castles).reduce((s, l) => s + l.length, 0);
+        const order = typeof CC_FIXED_CASTLES !== 'undefined' ? CC_FIXED_CASTLES : WC_CASTLES;
+        m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl">
+            <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-800 shrink-0">
+                <h3 class="text-white font-black mr-auto">🏰 อ่านปราสาทศัตรูจากหน้าจอ <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-200 font-bold align-middle">ต้นแบบ</span></h3>
+                <button onclick="castleCapClose()" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-800 shrink-0">
+                ${live ? '<button onclick="csStopCapture()" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-black">⏹ หยุดจับหน้าจอ</button>' : '<button onclick="csStartCapture()" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg text-xs font-black">🎥 เริ่มจับหน้าจอ</button>'}
+                <button onclick="csPickFiles()" class="bg-[#1f2937] text-gray-200 px-3 py-2 rounded-lg text-xs font-bold border border-gray-700">📂 เลือกรูปแคป</button>
+                <button onclick="${csCal ? 'csBeginCal()' : 'csBeginCal()'}" class="bg-[#1f2937] text-gray-200 px-3 py-2 rounded-lg text-xs font-bold border border-gray-700">🎯 ${csCal ? 'ตั้งกรอบใหม่' : 'ตั้งกรอบ'}</button>
+                <select onchange="csSetManual(this.value)" style="color-scheme:dark" title="ปกติอ่านชื่อปราสาทจากหัวหน้าต่างเอง — เลือกเองได้ถ้าอ่านผิด" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-2 text-xs"><option value="">🏰 ปราสาท: อ่านเอง${csCurCastle ? ' (' + E(csCurCastle) + ')' : ''}</option>${order.map(c => `<option value="${E(c)}" ${csManualCastle === c ? 'selected' : ''}>🏰 ${E(c)}</option>`).join('')}</select>
+                <span id="cs-status" class="text-[11px] text-gray-400">${E(csStatus)}</span>
+                <span class="ml-auto"></span>
+                ${total ? `<button onclick="csClearAll()" class="text-[11px] text-gray-400 hover:text-red-300 px-2">ล้าง</button><button onclick="csSaveAllPatterns()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-lg text-xs font-black">🎯 บันทึกเป็นรูปแบบศัตรู</button><button onclick="csSendToTable()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-black">📊 ส่งเข้าตารางนับคอมพ์ (${total})</button>` : ''}
+            </div>
+            <div class="flex-1 min-h-0 overflow-y-auto">${body}</div>
+            ${csPick ? csPickHTML(E) : ''}
+            <div class="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500 shrink-0">เปิดหน้าต่างปราสาทในเกม (นอก-1 … หลัก) แล้วเลื่อนรายการช้า ๆ ให้เห็นทุกทีม · กรอบเหลือง = ระบบไม่แน่ใจตัวละคร · ทีมเดียวกันอ่านซ้ำไม่เพิ่ม · ชื่อแก้ได้</div>
+        </div>`;
+        if (csCalFrame) setTimeout(() => { const c = document.getElementById('cs-cal-canvas'); if (c) c.getContext('2d').drawImage(csCalFrame, 0, 0); }, 0);
+    }
+
     async function warCapOpen() {
         let m = document.getElementById('wc-modal');
         if (!m) { m = document.createElement('div'); m.id = 'wc-modal'; m.className = 'fixed inset-0 z-[560] flex items-center justify-center bg-black/80 p-2 sm:p-4'; document.body.appendChild(m); }
@@ -26409,7 +26842,7 @@
                     const smallIcons = (team.slots || []).slice(0, 3).filter(s => s && s.id).map(s => {
                         const hh = heroesDB.find(x => String(x.id) === String(s.id)); if (!hh) return '';
                         const awk = !!(s.awakened && hh.img2 && hh.img2 !== DRIVE_IMG_PREFIX), isMatch = hasHeroFilter && String(s.id) === String(filter3v3HeroId);
-                        return `<img src="${awk ? hh.img2 : hh.img}" title="${hh.name}" class="w-11 h-11 rounded-lg object-cover border-2 ${isMatch ? 'border-yellow-400' : awk ? 'border-purple-500' : 'border-gray-600'} bg-black">`;
+                        return `<img src="${awk ? hh.img2 : hh.img}" title="${hh.name}" class="w-[54px] h-[54px] rounded-lg object-cover border-2 ${isMatch ? 'border-yellow-400' : awk ? 'border-purple-500' : 'border-gray-600'} bg-black">`;
                     }).join('');
                     return `<div onclick="openTeam3v3Editor(${idx})" class="relative flex items-center gap-3 bg-[#161b22] border border-gray-800 ${hoverBorder} rounded-xl pl-3 pr-2 py-2 cursor-pointer transition group min-w-0 overflow-hidden ${stateDim}">
                         <div class="absolute left-0 top-0 bottom-0 w-1 ${accentBar}"></div>
@@ -33575,6 +34008,7 @@
         }
 
         // 🟢 จัดการ Pet เป็น Array (สูงสุด 3 ตัว) + sync ฟิลด์ pet เดิมไว้รองรับโค้ดเก่า
+        const ENEMY_PATTERN_MAX_PETS = 8;   // 🐾 รูปแบบศัตรูเก็บสัตว์เลี้ยงที่เจอได้หลายตัว (ทีมที่ใช้ตัวไหนก็นับเป็นคอมพ์เดียวกัน)
         function normalizePatternPets(data) {
             if (!data) return [];
             if (!Array.isArray(data.pets)) {
@@ -33582,7 +34016,7 @@
                 if (data.pet && data.pet.id) data.pets.push({ id: String(data.pet.id) });
             }
             // ตัดให้เหลือไม่เกิน 3 และ map เป็น {id}
-            data.pets = data.pets.filter(Boolean).slice(0, 3).map(p => (p && p.id) ? { id: String(p.id) } : null).filter(Boolean);
+            data.pets = data.pets.filter(Boolean).slice(0, ENEMY_PATTERN_MAX_PETS).map(p => (p && p.id) ? { id: String(p.id) } : null).filter(Boolean);
             // sync ฟิลด์เดิม (pattern.pet) = ตัวแรก เพื่อให้หน้า 3v3 / preview เดิมยังทำงาน
             data.pet = data.pets[0] ? { id: String(data.pets[0].id) } : null;
             return data.pets;
@@ -33655,6 +34089,11 @@
         }
 
         // 3. Render การ์ดทั้งหมด (Grid)
+        // 🎯 หน้ารูปแบบศัตรู: มุมมองแถว (ค่าเริ่มต้น) / การ์ด · เช็คทีมซ้ำ (ตัวละครชุดเดียวกันครบทุกตัว)
+        let epView = (function () { try { return localStorage.getItem('7k_ep_view') || 'list'; } catch (e) { return 'list'; } })();
+        let epDupOnly = false;
+        function epSetView(v) { epView = v; try { localStorage.setItem('7k_ep_view', v); } catch (e) {} renderEnemyPatternGrid(); }
+        function epHeroKey(p) { const a = p && p.slots ? Object.values(p.slots).filter(s => s && s.id).map(s => String(s.id)) : []; return a.length >= 3 ? a.sort().join(',') : ''; }
         function renderEnemyPatternGrid() {
             renderEnemyHeroFilter(); // sync แถบตัวกรองฮีโร่
             const grid = document.getElementById('enemy-pattern-grid');
@@ -33669,10 +34108,18 @@
             let shown = 0;
             const cardsByType = {};        // 🧬 การ์ดแยกตาม type หลักของทีม
             const passedTypeBar = [];      // ทีมที่ผ่านตัวกรองอื่น (ใช้นับเลขบนปุ่ม type)
+            // 🔍 ทีมซ้ำ: ตัวละครชุดเดียวกันครบทุกตัว (ไม่สนตำแหน่ง/รูปแบบยืน)
+            const dupGroups = new Map();
+            filteredPatterns.forEach(p => { const k = epHeroKey(p); if (!k) return; if (!dupGroups.has(k)) dupGroups.set(k, []); dupGroups.get(k).push(p); });
+            const dupOf = new Map();
+            dupGroups.forEach(list => { if (list.length > 1) list.forEach(p => dupOf.set(p, list.filter(x => x !== p))); });
+            const nDup = dupOf.size;
+            const dupBadge = p => dupOf.has(p) ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-200 font-bold" title="ตัวละครชุดเดียวกันครบทุกตัว — ลบอันที่ไม่ใช้ได้">⚠️ ซ้ำกับ ${dupOf.get(p).map(x => (x.formation || 'Basic')).join(', ')} (${dupOf.get(p).length})</span>` : '';
 
             filteredPatterns.forEach((p) => {
                 const idx = enemyPatternsDB.findIndex(pattern => pattern.id === p.id);
                 if (idx === -1) return;
+                if (epDupOnly && !dupOf.has(p)) return;
 
                 // ตั้งชื่ออัตโนมัติจากตัวละคร (ใช้แทนช่องตั้งชื่อ)
                 const autoName = genEnemyPatternName(p);
@@ -33720,6 +34167,20 @@
                 });
 
                 if (!cardsByType[mainType]) cardsByType[mainType] = '';
+                if (epView === 'list') {
+                    const rowIcons = [0, 1, 2, 3, 4].map(i => { const sl = p.slots && p.slots[i]; if (!sl || !sl.id) return ''; const hh = heroesDB.find(x => String(x.id) === String(sl.id)); if (!hh) return ''; const awk = !!(sl.awakened && hh.img2 && hh.img2 !== DRIVE_IMG_PREFIX); return `<img src="${awk ? hh.img2 : hh.img}" title="${hh.name}" class="w-[54px] h-[54px] rounded-lg object-cover border-2 ${awk ? 'border-purple-500' : 'border-gray-600'} bg-black">`; }).join('');
+                    const rowPets = pets.map(pt => { const pet = petsDB.find(x => String(x.id) === String(pt.id)); return pet ? `<img src="${pet.img}" class="w-10 h-10 rounded-full border-2 border-purple-500 bg-black object-cover -ml-2 first:ml-0">` : ''; }).join('');
+                    cardsByType[mainType] += `<div onclick="openEnemyPatternModal(${idx})" class="relative flex items-center gap-3 bg-[#161b22] border ${dupOf.has(p) ? 'border-amber-700/70' : 'border-gray-800'} hover:border-red-500 rounded-xl pl-3 pr-3 py-2 cursor-pointer transition min-w-0 overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500/60"></div>
+                        <div class="flex gap-1.5 shrink-0">${rowIcons || '<span class="text-[10px] text-gray-600 italic w-[170px]">ยังไม่มีตัวละคร</span>'}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-bold text-gray-100 truncate">${autoName}</div>
+                            <div class="flex items-center gap-1.5 mt-0.5 flex-wrap text-[10px]"><span class="text-red-300 font-bold">${p.formation || 'Basic'}</span>${p.note ? `<span class="text-gray-500 truncate">· ${p.note}</span>` : ''}${dupBadge(p)}</div>
+                        </div>
+                        ${rowPets ? `<div class="hidden sm:flex items-center shrink-0">${rowPets}</div>` : ''}
+                    </div>`;
+                    return;
+                }
                 cardsByType[mainType] += `
                     <div onclick="openEnemyPatternModal(${idx})" class="relative bg-[#161b22] border border-gray-700 hover:border-red-500 rounded-2xl p-4 cursor-pointer transition-all shadow-lg hover:shadow-red-900/20 hover:-translate-y-0.5 group flex flex-col gap-3 overflow-hidden">
                         <div class="absolute inset-0 opacity-[0.04] bg-[url('https:\/\/www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none"></div>
@@ -33752,12 +34213,18 @@
                             <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${count} ทีม</span>
                             <div class="flex-1 h-px bg-gradient-to-r ${st.line} to-transparent"></div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
+                        <div class="${epView === 'list' ? 'grid grid-cols-1 xl:grid-cols-2 gap-2' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5'}">
                             ${cardsByType[t]}
                         </div>
                     </div>`;
             });
-            grid.innerHTML = sectionsHTML;
+            const seg = (v, label) => `<button type="button" onclick="epSetView('${v}')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${epView === v ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'}">${label}</button>`;
+            const toolbar = `<div class="flex flex-wrap items-center gap-2 mb-4">
+                <div class="flex gap-0.5 p-1 rounded-xl bg-[#111827] border border-gray-800">${seg('list', '☰ แถว')}${seg('card', '▦ การ์ด')}</div>
+                <button type="button" onclick="epDupOnly=!epDupOnly;renderEnemyPatternGrid()" class="px-3 py-2 rounded-xl text-xs font-bold border ${epDupOnly ? 'border-amber-500 bg-amber-600/30 text-white' : nDup ? 'border-amber-700/70 text-amber-200' : 'border-gray-800 text-gray-400'}">🔍 เช็คทีมซ้ำ${nDup ? ' (' + nDup + ')' : ' — ไม่มี'}${epDupOnly ? ' ✓' : ''}</button>
+                ${epDupOnly ? '<span class="text-[11px] text-gray-400">แสดงเฉพาะทีมที่ตัวละครชุดเดียวกันครบทุกตัว — เปิดอันที่ไม่ใช้แล้วกดลบ</span>' : ''}
+            </div>`;
+            grid.innerHTML = toolbar + (sectionsHTML || (epDupOnly ? '<div class="text-center text-emerald-300 text-sm py-10">✅ ไม่มีทีมซ้ำ</div>' : ''));
 
             if (emptyBox) {
                 if (shown === 0) { emptyBox.classList.remove('hidden'); emptyBox.classList.add('flex'); }
@@ -33894,10 +34361,11 @@
                 return `<button onclick="updateEnemyPattern('formation', '${f.id}')" class="py-2 rounded-lg text-xs font-bold border transition ${style}">${f.id}</button>`;
             }).join('');
 
-            // B. Pet Box Content (สูงสุด 3 ตัว)
+            // B. Pet Box Content — ช่องเท่าที่มี + ช่องว่างอีก 1 (ขั้นต่ำ 3 ช่อง · สูงสุด ENEMY_PATTERN_MAX_PETS)
             const pets = normalizePatternPets(data);
             let petSlotsHTML = '';
-            for (let pi = 0; pi < 3; pi++) {
+            const petSlotN = Math.min(ENEMY_PATTERN_MAX_PETS, Math.max(3, pets.length + 1));
+            for (let pi = 0; pi < petSlotN; pi++) {
                 const entry = pets[pi];
                 const petData = (entry && entry.id) ? petsDB.find(x => String(x.id) === String(entry.id)) : null;
                 if (petData) {
@@ -33978,7 +34446,7 @@
 
                     <div class="bg-[#161b22] p-5 rounded-2xl border border-gray-700 shadow-lg flex flex-col">
                         <label class="text-[10px] text-purple-400 font-bold uppercase mb-3 flex items-center gap-2">
-                            <span>🐾</span> สัตว์เลี้ยง (สูงสุด 3 ตัว)
+                            <span>🐾</span> สัตว์เลี้ยง (สูงสุด ${ENEMY_PATTERN_MAX_PETS} ตัว · ทีมที่ใช้ตัวไหนก็นับเป็นคอมพ์เดียวกัน)
                         </label>
                         <div class="flex-1 min-h-[80px] flex items-center justify-center">
                             ${petContent}
