@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.25.0';
+        const APP_VERSION = '1.26.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -19513,14 +19513,27 @@
         return bd <= 0.34 ? best : raw;
     }
     function wcCastleFromText(t) {
-        t = String(t || '').replace(/\s+/g, '');
-        if (!/ปราสาท|ปรา|สาท/.test(t)) return '';
-        if (/หลัก/.test(t)) return 'หลัก';
+        t = String(t || '').replace(/\s+/g, '').replace(/[๑-๙]/g, c => String('๑๒๓๔๕๖๗๘๙'.indexOf(c) + 1));
         const d = (t.match(/[1-9]/) || [])[0] || '';
-        if (/นอก/.test(t)) return d ? 'นอก-' + d : 'นอก';
-        if (/ใน/.test(t)) return d ? 'ใน-' + d : 'ใน';
+        if (/หลัก|หลก|ห.ลัก|หลั/.test(t)) return 'หลัก';
+        if (/นอก|รอบ|นอ|อก$|รอ/.test(t)) return d && +d <= 5 ? 'นอก-' + d : 'นอก';
+        if (/ใน|ด้าน|ดาน|ไน|ด้า/.test(t)) return d && +d <= 3 ? 'ใน-' + d : 'ใน';
         return '';
     }
+    /** อ่านป้ายปราสาท: ตัวอ่านไทยได้คำ (นอก/ใน/หลัก) แต่มักหลุดเลข → อ่านเลขซ้ำด้วยตัวอ่านอังกฤษ */
+    async function wcReadCastle(ocr, cv, x, y, w, hh) {
+        let c = '';
+        try { const t = await ocr.tha.recognize(wcBinarize(cv, x, y, w, hh, 'tag', 3)); c = wcCastleFromText(t.data.text); } catch (e) {}
+        if (!c || c === 'หลัก' || /[0-9]/.test(c)) return c;
+        try {
+            const e = await ocr.eng.recognize(wcBinarize(cv, x, y, w, hh, 'tag', 3));
+            const ds = (String(e.data.text || '').replace(/[Il|]/g, '1').match(/[1-9]/g) || []), d = ds[ds.length - 1];   // เลขอยู่ท้ายป้าย
+            if (d && +d <= (c === 'ใน' ? 3 : 5)) c += '-' + d;
+        } catch (e) {}
+        return c;
+    }
+    const WC_CASTLES = ['นอก-1', 'นอก-2', 'นอก-3', 'นอก-4', 'นอก-5', 'ใน-1', 'ใน-2', 'ใน-3', 'หลัก'];
+    function wcSetCastle(bi, v) { const b = wcBattles[bi]; if (!b) return; b.rows[1].castle = String(v || ''); b.rows[1].castleEdited = true; wcRender(); }
     /** ภาพขาวดำ: dark = ตัวเข้มบนพื้นอ่อน (ชื่อ) · tag = ตัวขาวบนพื้นชมพู (ป้ายปราสาท) */
     function wcBinarize(cv, x, y, w, h, mode, S) {
         const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * S)); c.height = Math.max(1, Math.round(h * S));
@@ -19593,7 +19606,9 @@
                 const b = await ocr.eng.recognize(wcBinarize(cv, rx0, c.cy + 0.05 * u, rx1 - rx0, 1.35 * u, 'dark', 3));
                 const atk = clean(a.data.text), def = clean(b.data.text);
                 if (!atk) continue;
-                if (!wcListRes.some(x => x.atk === atk && x.def === def && x.res === c.res)) { wcListRes.push({ atk, def, res: c.res }); n++; }
+                let castle = '';
+                castle = await wcReadCastle(ocr, cv, rx0, c.cy - 1.25 * u, rx1 - rx0, 1.2 * u);
+                if (!wcListRes.some(x => x.atk === atk && x.def === def && x.res === c.res)) { wcListRes.push({ atk, def, castle, res: c.res }); n++; }
             } catch (e) { console.warn('warcap: อ่านแถวรายการไม่ได้', e); }
         }
         if (n) wcApplyListResults();
@@ -19610,18 +19625,19 @@
     function wcApplyListResults() {
         let changed = 0;
         wcBattles.forEach(b => {
-            if (b.winner !== null && !b.winnerAuto) return;
+            const lockW = b.winner !== null && !b.winnerAuto;   // เลือกผลเองแล้ว = ไม่ทับผล (แต่ยังเติมปราสาทได้)
             const an = [b.rows[0].nameRaw, b.rows[0].name], dn = [b.rows[1].nameRaw, b.rows[1].name];
             const hits = wcListRes.filter(x => an.some(n => wcNameClose(x.atk, n)));
             const both = hits.filter(x => x.def && dn.some(n => wcNameClose(x.def, n)));
             // ไม่มีแถวที่ตรงทั้ง 2 ฝั่ง → ใช้ได้เฉพาะแถวที่อ่านชื่อรับไม่ออก (หรือไม้นี้ไม่รู้ชื่อรับ) — กันยืมผลไม้อื่นของคนเดียวกัน
             const pool = both.length ? both : hits.filter(x => !x.def || !dn.some(n => wcNameNorm(n)));
+            const cs = pool.map(x => x.castle).filter(Boolean); if (!b.rows[1].castle && !b.rows[1].castleEdited && cs.length && cs.every(x => x === cs[0])) { b.rows[1].castle = cs[0]; changed++; }
             const kinds = [...new Set(pool.map(x => x.res))];
-            if (kinds.length !== 1) return;
+            if (lockW || kinds.length !== 1) return;
             const w = kinds[0] === 'win' ? 0 : 1;
             if (b.winner !== w) { b.winner = w; b.winnerAuto = true; changed++; }
         });
-        if (changed) { wcRender(); showToast('🏁 ใส่ผลแพ้ชนะจากรายการให้ ' + changed + ' ไม้', 'success'); }
+        if (changed) { wcRender(); showToast('🏁 เติมผลแพ้ชนะ / ปราสาท จากหน้ารายการให้ ' + changed + ' จุด', 'success'); }
         return changed;
     }
     /** ตอนจับหน้าจอ: ไม่ใช่หน้าเล่นซ้ำ → ลองอ่านหน้ารายการ (ภาพเปลี่ยนเท่านั้น · ไม่เกิน 1 ครั้ง/1.5 วิ) */
@@ -19666,9 +19682,10 @@
                         const raw = r.data.text.trim().replace(/\s+/g, '');
                         row.nameRaw = raw; if (!row.nameEdited) row.name = wcResolveName(raw);
                     }
-                    if (x1 - x0 > 30 * kx && y1 - y0 > 10 * ky) {
-                        const t = await ocr.tha.recognize(wcBinarize(cv, X + x0, Y + y0, x1 - x0 + 1, y1 - y0 + 1, 'tag', 3));
-                        row.castle = wcCastleFromText(t.data.text);
+                    if (x1 - x0 > 30 * kx && y1 - y0 > 10 * ky && !row.castleEdited) {
+                        row.castleTried = true;
+                        const c = await wcReadCastle(ocr, cv, X + x0, Y + y0, x1 - x0 + 1, y1 - y0 + 1);
+                        if (c) row.castle = c;
                     }
                 } catch (e) { console.warn('warcap: อ่านชื่อไม่ได้', e); }
             }
@@ -20006,7 +20023,8 @@
                 const rowHTML = (r, ri) => `
                     <div class="flex items-center gap-2 ${b.winner === ri ? 'bg-emerald-500/10 border-emerald-500/50' : b.winner === 1 - ri ? 'opacity-60 border-gray-800' : 'border-gray-800'} border rounded-lg p-1.5">
                         <div class="w-40 flex-shrink-0 flex flex-col gap-1">
-                            <div class="text-[10px] font-black ${ri ? 'text-sky-300' : 'text-red-300'}">${ri ? '🛡️ ฝ่ายรับ' : '⚔️ ฝ่ายบุก'} <span class="text-gray-500 font-bold">${fLabel[r.formation] || ''}</span>${r.castle ? ` <span class="inline-block whitespace-nowrap ml-1 px-1.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/40">🏰 ${ccEsc(r.castle)}</span>` : ''}</div>
+                            <div class="text-[10px] font-black ${ri ? 'text-sky-300' : 'text-red-300'}">${ri ? '🛡️ ฝ่ายรับ' : '⚔️ ฝ่ายบุก'} <span class="text-gray-500 font-bold">${fLabel[r.formation] || ''}</span>${ri ? '' : (r.castle ? ` <span class="inline-block whitespace-nowrap ml-1 px-1.5 rounded bg-rose-500/20 text-rose-200 border border-rose-500/40">🏰 ${ccEsc(r.castle)}</span>` : '')}</div>
+                            ${ri ? `<select onchange="wcSetCastle(${bi}, this.value)" style="color-scheme:dark" title="ปราสาทของฝ่ายรับ — อ่านจากป้ายในเกม แก้ได้" class="w-full rounded px-1.5 py-0.5 text-[11px] font-bold ${r.castle ? 'bg-rose-500/15 text-rose-100 border border-rose-500/40' : 'bg-[#161b22] text-amber-200 border border-amber-400'}"><option value="" ${r.castle ? '' : 'selected'}>🏰 ${r.castleTried ? 'อ่านปราสาทไม่ได้ — เลือก' : 'ปราสาท?'}</option>${WC_CASTLES.concat(r.castle && !WC_CASTLES.includes(r.castle) ? [r.castle] : []).map(c => `<option value="${ccEsc(c)}" ${r.castle === c ? 'selected' : ''}>🏰 ${ccEsc(c)}</option>`).join('')}</select>` : ''}
                             <input type="text" value="${ccEsc(r.name || '')}" placeholder="${r.nameRaw === undefined ? 'กำลังอ่านชื่อ…' : 'ชื่อผู้เล่น'}" title="${r.nameRaw ? 'อ่านได้: ' + ccEsc(r.nameRaw) : ''}" onchange="wcSetName(${bi},${ri},this.value)"
                                 class="w-full bg-[#161b22] border ${r.nameEdited ? 'border-cyan-700' : 'border-gray-700'} rounded px-2 py-1 text-xs text-white outline-none focus:border-cyan-500">
                         </div>
