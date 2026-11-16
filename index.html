@@ -3586,7 +3586,7 @@
             <header class="p-4 md:p-6 border-b border-gray-800 bg-[#111827] flex flex-wrap justify-between items-center gap-3 shadow-lg flex-shrink-0">
                 <div>
                     <h2 class="text-2xl md:text-3xl font-black text-amber-500 uppercase tracking-tighter flex items-center gap-3"><span>🏰</span> นับคอมพ์ปราสาท</h2>
-                    <p class="text-xs text-gray-500 mt-1">ปราสาทมีให้ครบ 9 หลัง (นอก-1–5 · ใน-1–3 · หลัก) · กด + เพิ่มคอมพ์ (คอลัมน์) แล้วกรอกจำนวนที่เจอ · ☑ หน้าชื่อปราสาท = แสดงในหน้า Share — <span class="text-gray-400">บันทึกอัตโนมัติ</span></p>
+                    <p class="text-xs text-gray-500 mt-1">ปราสาทมีให้ครบ 9 หลัง (นอก-1–5 · ใน-1–3 · หลัก) · กด + เพิ่มคอมพ์ (คอลัมน์) แล้วกรอกจำนวนที่เจอ · ☑ หน้าชื่อปราสาท = แสดงในหน้า Share — <span class="text-gray-400">บันทึกอัตโนมัติ · ☁️ ขึ้นเซิร์ฟเวอร์ด้วย (เปิดเครื่องอื่นก็เจอ)</span> <span id="cc-cloud-state" class="text-gray-500"></span></p>
                 </div>
                 <!-- 🧭 เมนูแบ่งเป็นกลุ่ม: ตาราง · ไฟล์ CSV · หน้า Share · ประวัติ -->
                 <div class="flex flex-wrap items-end gap-x-3 gap-y-2">
@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.22.4';
+        const APP_VERSION = '1.25.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -12969,7 +12969,7 @@
         }
 
         // ---------- 🏰 โหมดทีละปราสาท ----------
-        let castleCompView = (function () { try { return localStorage.getItem('cc_admin_view') || 'table'; } catch (e) { return 'table'; } })();
+        let castleCompView = (function () { try { const v = localStorage.getItem('cc_admin_view'); return v === 'castle' ? 'castle' : 'table'; } catch (e) { return 'table'; } })();
         let castleCompSelCastle = null;       // id ปราสาทที่เลือกอยู่
         let castleCompOnlyFilled = false;     // แสดงเฉพาะคอมพ์ที่ใส่จำนวนแล้ว
         function castleCompSetView(v) {
@@ -13147,9 +13147,65 @@
             return castleCompDB;
         }
 
-        function castleCompSave() {
+        function castleCompSave(opts) {
             try { localStorage.setItem(CASTLE_COMP_KEY, JSON.stringify(castleCompDB)); }
             catch (e) { console.error('🏰 castle-comp: บันทึกไม่สำเร็จ', e); }
+            if (!(opts && opts.noCloud)) ccCloudSchedule();
+        }
+        // ☁️ ตารางนับคอมพ์ = เก็บบนเซิร์ฟเวอร์ด้วยเสมอ (เปิดเครื่องอื่นก็เจอ) — แก้แล้วส่งขึ้นเองหลังหยุดพิมพ์ 3 วิ · เปิดหน้าแล้วดึงของใหม่กว่าลงมา
+        const CC_SYNC_KEY = '7k_cc_sync';
+        let ccCloudT = null, ccCloudPulled = false, ccCloudBusy = false;
+        function ccSyncGet() { try { return JSON.parse(localStorage.getItem(CC_SYNC_KEY) || '{}') || {}; } catch (e) { return {}; } }
+        function ccSyncSet(o) { try { localStorage.setItem(CC_SYNC_KEY, JSON.stringify(Object.assign(ccSyncGet(), o))); } catch (e) {} }
+        function ccCloudCan() { return typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token && !(typeof isPublicView !== 'undefined' && isPublicView); }
+        function ccCloudSchedule() {
+            if (!ccCloudCan()) return;
+            ccSyncSet({ dirty: true, g: castleCompGuildRaw() });
+            clearTimeout(ccCloudT);
+            ccCloudT = setTimeout(ccCloudPush, 3000);
+        }
+        async function ccCloudPush() {
+            if (!ccCloudCan()) return;
+            if (ccCloudBusy) { clearTimeout(ccCloudT); ccCloudT = setTimeout(ccCloudPush, 2000); return; }
+            ccCloudBusy = true;
+            const badge = document.getElementById('cc-cloud-state');
+            if (badge) badge.textContent = '☁️ กำลังบันทึกขึ้นเซิร์ฟเวอร์...';
+            try {
+                const csv = castleCompDB && castleCompDB.created ? castleCompBuildCsv() : '';
+                const res = await postJson({ action: 'saveCastleComp', csv: csv || '', guild: castleCompGuildRaw() }, { timeout: 60000, retries: 1 });
+                if (!res || res.status !== 'success') throw new Error((res && res.message) || 'ไม่สำเร็จ');
+                ccSyncSet({ dirty: false, ver: res.version || 0, g: castleCompGuildRaw(), at: Date.now() });
+                if (badge) badge.textContent = '☁️ บันทึกขึ้นเซิร์ฟเวอร์แล้ว';
+            } catch (e) {
+                console.warn('🏰 castle-comp: ส่งขึ้นเซิร์ฟเวอร์ไม่สำเร็จ', e);
+                if (badge) badge.textContent = '⚠️ ยังไม่ได้บันทึกขึ้นเซิร์ฟเวอร์ — จะลองใหม่';
+                clearTimeout(ccCloudT); ccCloudT = setTimeout(ccCloudPush, 15000);
+            } finally { ccCloudBusy = false; }
+        }
+        /** เปิดหน้า: เซิร์ฟเวอร์มีตารางที่ใหม่กว่า (และเครื่องนี้ไม่มีอะไรค้างส่ง) → ดึงลงมาใส่ตาราง */
+        async function ccCloudPull() {
+            if (ccCloudPulled || !ccCloudCan()) return;
+            ccCloudPulled = true;
+            const s = ccSyncGet(), g = castleCompGuildRaw(), sameG = s.g === g;
+            if (sameG && s.dirty) { ccCloudSchedule(); return; }   // เครื่องนี้แก้ค้างไว้ → ส่งขึ้นก่อน
+            try {
+                const res = await postJson({ action: 'getCastleComp', guild: g, version: sameG ? (s.ver || 0) : 0 }, { timeout: 60000, retries: 2 });
+                if (!res || res.status !== 'success' || res.unchanged) return;
+                if (!res.csv) {
+                    // เซิร์ฟเวอร์ว่าง: เคยซิงก์แล้ว = มีคนล้างตาราง → ล้างในเครื่องด้วย · ยังไม่เคยซิงก์ = ส่งตารางในเครื่องขึ้นไป
+                    if (sameG && s.ver && castleCompDB && castleCompDB.created) { castleCompDB = castleCompDefaults(); castleCompSave({ noCloud: true }); if (typeof currentView !== 'undefined' && currentView === 'castle-comp') renderCastleComp(); }
+                    ccSyncSet({ ver: res.version || 0, g });
+                    if (!(sameG && s.ver) && castleCompDB && castleCompDB.created) ccCloudSchedule();
+                    return;
+                }
+                const p = ccParseCsv(res.csv);
+                castleCompDB = { created: true, castles: p.castles, comps: p.comps, counts: p.counts, heroQuota: p.heroQuota, picks: p.picks, picksV: CASTLE_COMP_PICKS_V };
+                castleCompEnsureFixed(false);
+                castleCompSave({ noCloud: true });
+                ccSyncSet({ dirty: false, ver: res.version || 0, g });
+                if (typeof currentView !== 'undefined' && currentView === 'castle-comp') renderCastleComp();
+                showToast('☁️ ดึงตารางนับคอมพ์ล่าสุดจากเซิร์ฟเวอร์แล้ว', 'success');
+            } catch (e) { console.warn('🏰 castle-comp: ดึงจากเซิร์ฟเวอร์ไม่สำเร็จ', e); ccCloudPulled = false; }
         }
 
         function castleCompGetCount(castleId, compId) {
@@ -13259,6 +13315,7 @@
         // ---------- Render ----------
         function renderCastleComp() {
             castleCompLoad();
+            if (!ccCloudPulled) setTimeout(ccCloudPull, 0);
             const box = document.getElementById('castle-comp-body');
             if (!box) return;
 
@@ -13392,7 +13449,7 @@
                     </table>
                 </div>
                 <div id="cc-summary" class="mt-5"></div>
-                <p class="text-[11px] text-gray-600 mt-4 pb-4">💾 ข้อมูลเก็บในเครื่องนี้เท่านั้น (localStorage) · บันทึกอัตโนมัติ · ไม่ขึ้นคลาวด์และไม่แชร์ให้คนอื่น</p>`;
+                <p class="text-[11px] text-gray-600 mt-4 pb-4">💾 บันทึกอัตโนมัติ — เก็บในเครื่อง + ☁️ เซิร์ฟเวอร์ของกิลด์ (เปิดเครื่องอื่นก็เจอ)</p>`;
 
             castleCompRecalcTotals();
         }
@@ -15999,6 +16056,36 @@
                 </div>
             </div>`;
         }
+        /** 📋 ไม้แบบหน้า "สถิติการโจมตี" ในเกม (ไม่มีปุ่มลบ): ซ้าย = ลูกกิล (รูป Discord + ทีม) · กลาง = WIN/LOSE · ขวา = ศัตรู (ปราสาท + ทีม) · เวลา */
+        function ccUsedGameRow(r, m, n, noWho) {   // noWho = อยู่ใต้แถวของคนนั้นแล้ว → ไม่ต้องซ้ำรูป/ชื่อ
+            const av = m && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : '';
+            const avHTML = av ? `<img src="${av}" alt="" referrerpolicy="no-referrer" class="w-[52px] h-[52px] rounded-full object-cover border-2 border-indigo-500/60 shrink-0">`
+                : '<span class="w-[52px] h-[52px] rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center shrink-0 text-gray-400"><svg viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg></span>';
+            const res = r.result === 'win' ? '<span class="text-2xl lg:text-3xl font-black tracking-wider" style="color:#f5c86a;text-shadow:0 1px 0 #6b4d12">WIN</span>'
+                : r.result === 'lose' ? '<span class="text-2xl lg:text-3xl font-black tracking-wider" style="color:#c9b6f2;text-shadow:0 1px 0 #3b2a63">LOSE</span>' : '<span class="text-sm font-bold text-gray-500">—</span>';
+            const ago = typeof wuAgo === 'function' ? wuAgo(r.at) : '';
+            return `<div class="rounded-2xl border border-gray-800 bg-[#0d1117] overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center">
+                    <div class="flex items-center gap-3 px-3 py-2 min-w-0">
+                        ${n ? `<span class="hidden lg:inline shrink-0 text-[11px] font-black text-gray-600 w-7 text-center">#${n}</span>` : ''}
+                        ${noWho ? '' : avHTML}
+                        <div class="min-w-0 flex-1">
+                            ${noWho ? '' : `<div class="text-base font-black text-white truncate">${n ? `<span class="lg:hidden text-[11px] text-gray-600 mr-1">#${n}</span>` : ''}${m ? ccEsc(m.name) : ccEsc(r.game_name || '?')}</div>`}
+                            <div class="flex gap-1.5 ${noWho ? '' : 'mt-1.5'}">${typeof ccUsedHeroThumbs === 'function' ? ccUsedHeroThumbs(r, 64) : wuHeroThumbs(r.heroes, 64)}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center px-6 py-2 lg:py-0 lg:self-stretch bg-gradient-to-b from-[#3a3322] to-[#1f1b13] lg:[clip-path:polygon(0_0,100%_0,82%_100%,18%_100%)] lg:min-w-[130px]">${res}</div>
+                    <div class="flex flex-wrap lg:flex-nowrap items-center gap-x-3 gap-y-1.5 px-3 py-2 min-w-0 lg:justify-end">
+                        <div class="min-w-0 basis-full lg:basis-auto lg:flex-1 lg:text-right">
+                            ${r.castle ? `<span class="inline-block whitespace-nowrap text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-800/70 text-red-100">🏰 ${ccEsc(r.castle)}</span>` : ''}
+                            <div class="text-base font-black text-gray-200 truncate mt-0.5">${ccEsc(r.enemy || '?')}</div>
+                        </div>
+                        <div class="flex gap-1.5 shrink-0">${(r.enemy_heroes || []).length ? wuHeroThumbs(r.enemy_heroes, 64) : '<span class="text-[10px] text-gray-600">ไม่มีข้อมูลทีมฝ่ายรับ</span>'}</div>
+                    </div>
+                    <div class="flex items-center justify-end lg:justify-center px-3 pb-2 lg:p-2 lg:pl-0 lg:min-w-[64px]"><span class="text-[11px] text-gray-500 whitespace-nowrap">${ago}</span></div>
+                </div>
+            </div>`;
+        }
         /** 🔍 Dialog ของลูกกิล: แท็บตัวละคร / แหวน — ที่ใช้ในวอนี้แล้ว = สีเทา */
         let ccUsedDlg = null;   // { id, tab }
         function ccUsedShow(id, tab) { const same = ccUsedDlg && ccUsedDlg.id === String(id), t = tab || (same ? ccUsedDlg.tab : 'heroes'), keep = same && ccUsedDlg.tab === t; ccUsedDlg = { id: String(id), tab: t, q: keep ? ccUsedDlg.q : '', f: keep ? ccUsedDlg.f : 'all' }; ccUsedDlgRender(); }
@@ -16074,7 +16161,7 @@
             // 🏁 ตีครบ CC_USED_MAX ไม้ = FINISH ไปอยู่ท้าย · ยังไม่ตี = ไม่แสดง (ยกเว้นตอนกรองตัวละคร — ใช้หาคนที่ยังว่าง)
             const done = x => x.rows.length >= CC_USED_MAX;
             const list = M.list.filter(match).filter(x => HS.length || x.rows.length).filter(x => !HS.length || !ccUsed.onlyFree || st(x).every(v => v === 'free'))
-                .sort((a, b) => (done(a) - done(b)) || (HS.length ? score(b) - score(a) : 0) || b.rows.length - a.rows.length || String(a.m.name).localeCompare(String(b.m.name), 'th'));
+                .sort((a, b) => (HS.length ? score(b) - score(a) : 0) || b.rows.length - a.rows.length || String(a.m.name).localeCompare(String(b.m.name), 'th'));
             const heroChips = x => !HS.length ? '' : `<div class="flex flex-wrap gap-1 mt-1">${st(x).map((v, i) => { const hh = HDB.find(z => String(z.id) === HS[i]);
                 return `<span title="${ccEsc((hh ? hh.name : HS[i]) + ' — ' + (v === 'free' ? 'มี · ยังไม่ใช้' : v === 'used' ? 'มี · ใช้แล้ว' : 'ไม่มี'))}" class="inline-flex items-center gap-1 pl-0.5 pr-1.5 py-0.5 rounded-md text-[10px] font-bold border ${v === 'free' ? 'border-emerald-600/70 bg-emerald-950/40 text-emerald-200' : v === 'used' ? 'border-gray-700 bg-gray-800/60 text-gray-400' : 'border-red-900/60 bg-red-950/30 text-red-300/80'}">
                     ${hh && hh.img ? `<img src="${hh.img}" alt="" class="w-5 h-5 rounded object-cover ${v === 'free' ? '' : 'grayscale opacity-50'}">` : ''}${v === 'free' ? 'ว่าง' : v === 'used' ? 'ใช้แล้ว' : 'ไม่มี'}</span>`; }).join('')}</div>`;
@@ -16086,19 +16173,19 @@
             const row = x => {
                 const k = 'm:' + x.m.id;
                 const head = `<span class="hidden sm:inline-flex">${memberAvatarHTML(x.m, 40)}</span><span class="sm:hidden inline-flex">${memberAvatarHTML(x.m, 32)}</span>
-                    <div class="min-w-0 flex-1"><div class="text-base font-bold ${done(x) ? 'text-gray-400' : 'text-white'} truncate">${done(x) ? '<span class="mr-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-black align-middle">🏁 FINISH</span>' : ''}${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
-                    <div class="sm:hidden text-xs text-gray-400 whitespace-nowrap">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b> · ชนะ ${x.win}` : '<span class="text-gray-600">ยังไม่ตี</span>'}${x.miss.length ? ` · <span class="text-red-300 font-bold">⚠️ ${x.miss.length}</span>` : ''}</div>${heroChips(x)}</div>
-                    <span class="hidden sm:inline w-28 text-sm text-right shrink-0">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b><span class="text-gray-500"> · ชนะ ${x.win}</span>` : '<span class="text-gray-600">ยังไม่ตี</span>'}</span>
-                    <span class="hidden sm:inline w-28 text-sm text-right shrink-0">${x.miss.length ? `<span class="px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ ${x.miss.length}</span>` : '<span class="text-gray-700">—</span>'}</span>
+                    <div class="min-w-0 flex-1"><div class="text-base font-bold text-white truncate">${ccEsc(x.m.name)}${x.m.discordName && x.m.discordName !== x.m.name ? ` <span class="text-[10px] text-gray-500 font-normal">${ccEsc(x.m.discordName)}</span>` : ''}</div>
+                    <div class="lg:hidden text-xs text-gray-400 whitespace-nowrap">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b> · ชนะ ${x.win}` : '<span class="text-gray-600">ยังไม่ตี</span>'}${x.miss.length ? ` · <span class="text-red-300 font-bold">⚠️ ${x.miss.length}</span>` : ''}</div>${heroChips(x)}</div>
+                    <span class="hidden lg:inline w-28 text-sm text-right shrink-0">${x.rows.length ? `⚔️ <b class="text-amber-300">${x.rows.length}</b><span class="text-gray-500"> · ชนะ ${x.win}</span>` : '<span class="text-gray-600">ยังไม่ตี</span>'}</span>
+                    <span class="hidden lg:inline w-28 text-sm text-right shrink-0">${x.miss.length ? `<span class="px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ ${x.miss.length}</span>` : '<span class="text-gray-700">—</span>'}</span>
                     <span class="w-16 sm:w-24 text-right shrink-0 text-base font-black ${x.left.length ? 'text-emerald-300' : 'text-gray-500'}">💍 ${x.left.length}<span class="text-gray-500 font-normal text-xs">/${x.total}</span></span>
                     <button type="button" onclick="event.preventDefault();event.stopPropagation();ccUsedShow(${ccEsc(JSON.stringify(String(x.m.id)))})" title="ดูตัวละคร / แหวน" class="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black">🔍<span class="hidden sm:inline"> ดูตัวละคร/แหวน</span></button>`;
-                const body = x.rows.length ? `<div class="mt-1">${x.rows.map(ccUsedBattleLine).join('')}</div>` : '<div class="py-3 text-sm text-gray-500">ยังไม่ได้ตีในวอนี้</div>';
+                const body = x.rows.length ? `<div class="mt-2 space-y-2">${x.rows.map(r => ccUsedGameRow(r, x.m, 0, true)).join('')}</div>` : '<div class="py-3 text-sm text-gray-500">ยังไม่ได้ตีในวอนี้</div>';
                 return detail(k, head, body);
             };
             const unk = [...M.unknown].map(([n, rs]) => detail('u:' + n, `<span class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center shrink-0 text-lg">🎮</span>
                 <div class="min-w-0 flex-1"><div class="text-base font-bold text-gray-300 truncate">${ccEsc(n)} <span class="text-[10px] text-gray-500 font-normal">ยังไม่รู้ว่าเป็นใคร</span></div></div>
-                <span class="w-24 sm:w-28 text-sm text-right shrink-0">⚔️ ตี <b class="text-amber-300">${rs.length}</b></span><span class="hidden sm:inline w-28 shrink-0"></span><span class="hidden sm:inline w-24 shrink-0"></span><span class="w-[38px] sm:w-[132px] shrink-0"></span>`,
-                `<div class="mt-2">${rs.map(ccUsedBattleLine).join('')}</div>`)).join('');
+                <span class="w-24 sm:w-28 text-sm text-right shrink-0">⚔️ ตี <b class="text-amber-300">${rs.length}</b></span><span class="hidden lg:inline w-28 shrink-0"></span><span class="hidden lg:inline w-24 shrink-0"></span><span class="w-[38px] sm:w-[132px] shrink-0"></span>`,
+                `<div class="mt-2 space-y-2">${rs.map(r => ccUsedGameRow(r, null, 0, true)).join('')}</div>`)).join('');
             const nMiss = M.list.filter(x => x.miss.length).length, nAtk = M.list.filter(x => x.rows.length).length;
             const allKeys = list.map(x => 'm:' + x.m.id).concat(q ? [] : [...M.unknown.keys()].map(n => 'u:' + n));
             const allOpen = allKeys.length && allKeys.every(isOpen);
@@ -16108,7 +16195,7 @@
                 ${modeBar}
                 <div class="flex flex-wrap items-center gap-2 text-xs">
                     <span class="text-gray-200 font-black text-sm">📒 รายการตี · ${ccEsc((M.war && M.war.label) || 'ยังไม่มีวอที่บันทึก')}</span>
-                    <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน · 🏁 ครบ ${CC_USED_MAX} ไม้ ${M.list.filter(done).length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
+                    <span class="text-gray-500">${M.nRows} ไม้ · ตีแล้ว ${nAtk}/${M.list.length} คน${nMiss ? ` · <span class="text-red-300">แหวนไม่ตรง ${nMiss} คน</span>` : ''}</span>
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedAll(${allOpen ? 'false' : 'true'})" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white">${allOpen ? '▲ ย่อทั้งหมด' : '▼ กางทั้งหมด'}</button>
                     <button onclick="ccUsedLoad(true)" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${ccUsed.loading ? 'opacity-50' : ''}">${ccUsed.loading ? '⏳' : '🔄'} รีเฟรช</button>
@@ -16117,7 +16204,7 @@
                 ${M.nRows ? '' : '<div class="text-[11px] text-gray-500">ยังไม่มีไม้ที่บันทึกในวอนี้ — แหวนที่แสดงคือแหวนทั้งหมดของแต่ละคน</div>'}
                 <div class="rounded-2xl border border-gray-800 bg-[#0f131a] overflow-hidden">
                     <div class="flex items-center gap-3 px-3 sm:px-4 py-2.5 border-b border-gray-800 text-xs text-gray-500 font-bold uppercase">
-                        <span class="flex-1">ลูกกิล</span><span class="hidden sm:inline w-28 text-right">ตี · ชนะ</span><span class="hidden sm:inline w-28 text-right">แหวนไม่ตรง</span><span class="w-16 sm:w-24 text-right">แหวนเหลือ</span><span class="w-[38px] sm:w-[132px]"></span><span class="w-3"></span>
+                        <span class="flex-1">ลูกกิล</span><span class="hidden lg:inline w-28 text-right">ตี · ชนะ</span><span class="hidden lg:inline w-28 text-right">แหวนไม่ตรง</span><span class="w-16 sm:w-24 text-right">แหวนเหลือ</span><span class="w-[38px] sm:w-[132px]"></span><span class="w-3"></span>
                     </div>
                     ${list.map(row).join('') || `<div class="text-sm text-gray-500 p-4">${q ? 'ไม่พบชื่อที่ค้นหา' : 'ยังไม่มีใครตีในวอนี้'}</div>`}${q ? '' : unk}
                 </div>
@@ -16131,14 +16218,7 @@
             const q = ccUsed.q.trim().toLowerCase();
             const items = rows.map((r, i) => ({ r, n: i + 1, m: who.get(r) || null }))
                 .filter(z => !q || [z.m && z.m.name, z.m && z.m.discordName, z.r.game_name, z.r.enemy].some(v => String(v || '').toLowerCase().includes(q)));
-            const line = z => `<div class="flex gap-3 px-3 sm:px-4 py-2 border-b border-gray-800 last:border-b-0 min-w-0">
-                <div class="shrink-0 w-10 pt-2 text-center text-sm font-black text-gray-500">#${z.n}</div>
-                <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2 min-w-0 pt-1">${z.m ? memberAvatarHTML(z.m, 26) : '<span class="w-[26px] h-[26px] rounded-full bg-gray-800 flex items-center justify-center text-xs shrink-0">🎮</span>'}
-                        <span class="text-sm font-bold text-white truncate">${z.m ? ccEsc(z.m.name) : ccEsc(z.r.game_name || '?') + ' <span class="text-[10px] text-gray-500 font-normal">ยังไม่รู้ว่าเป็นใคร</span>'}</span></div>
-                    ${ccUsedBattleLine(z.r)}
-                </div>
-            </div>`;
+            const line = z => ccUsedGameRow(z.r, z.m, z.n);
             return `<div class="space-y-3">
                 ${modeBar}
                 <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -16147,7 +16227,7 @@
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedLoad(true)" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${ccUsed.loading ? 'opacity-50' : ''}">${ccUsed.loading ? '⏳' : '🔄'} รีเฟรช</button>
                 </div>
-                <div class="rounded-2xl border border-gray-800 bg-[#0f131a] overflow-hidden">${items.map(line).join('') || `<div class="text-sm text-gray-500 p-4">${q ? 'ไม่พบชื่อที่ค้นหา' : 'ยังไม่มีไม้ที่บันทึกในวอนี้'}</div>`}</div>
+                <div class="space-y-2">${items.map(line).join('') || `<div class="text-sm text-gray-500 p-4">${q ? 'ไม่พบชื่อที่ค้นหา' : 'ยังไม่มีไม้ที่บันทึกในวอนี้'}</div>`}</div>
             </div>`;
         }
         /** 🦸 แถบกรองตัวละคร — พิมพ์ชื่อ → กดเลือก (หลายตัวได้) */
@@ -19994,8 +20074,7 @@
                     <span id="wc-status" class="text-[11px] text-gray-400 basis-full sm:basis-auto">${live ? '👀 กำลังดูหน้าจอเกม…' : ''}</span>
                     <div class="ml-auto flex gap-2">
                         ${wcBattles.length ? `<button onclick="wcClearAll()" class="text-[11px] text-gray-400 hover:text-red-300 px-2">ล้าง</button>` : ''}
-                        <button onclick="warUseReviewOpen()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-black ${wcBattles.length ? '' : 'opacity-50'}" title="บันทึกว่าลูกกิลใช้ตัวละคร/แหวนอะไรไปแล้วในวอนี้">📒 บันทึกการใช้ของลูกกิล</button>
-                        ${CURRENT_USER && CURRENT_USER.officer ? '' : `<button onclick="wcSendToRecorder()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-black ${nReady ? '' : 'opacity-50'}">📥 ส่งเข้าบันทึก (${nReady}/${wcBattles.length})</button>`}
+                        <button onclick="warUseReviewOpen()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-black" title="ตรวจแล้วบันทึกครั้งเดียว — เข้าบันทึกวอ (รายการตี) + ประวัติการต่อสู้">💾 บันทึก (${wcBattles.length})</button>
                     </div>
                 </div>
                 <div id="wc-body" class="p-3 sm:p-4 overflow-y-auto min-h-0 flex-1 flex flex-col gap-2">${body}</div>
@@ -40376,10 +40455,10 @@
         return q + (publicLinkBase().srv || '');
     }
     /** ลิงก์ผู้ช่วยของกิลด์ — ชี้ GitHub Pages เสมอ (เปิดแอปจากไฟล์ในเครื่องก็ได้ลิงก์ที่ส่งต่อได้) */
-    function officerLinkFor(g) {
+    /** ลิงก์ผู้ช่วย — เปิดจากเครื่อง (file:// / localhost) = ลิงก์ในเครื่องไว้ทดสอบ · real = ลิงก์จริงบน GitHub Pages เสมอ */
+    function officerLinkFor(g, real) {
         const L = publicLinkBase();
-        const base = /^file:/i.test(L.base) ? PUBLIC_PAGES_URL : L.base;
-        return base + officerQuery(g.id, g.name);
+        return (real || !L.dev ? (L.dev ? PUBLIC_PAGES_URL : L.base) : L.base) + officerQuery(g.id, g.name);
     }
     /** เปิดลิงก์ผู้ช่วย: true = เปิดแอปต่อตามปกติ (มี session แล้ว) · false = จัดการเอง (หน้าเข้า / รับผลจาก Discord) */
     async function officerBoot(cb) {
@@ -40521,18 +40600,19 @@
         bulkModalShell('officer-admin-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl">
             <div class="p-4 border-b border-gray-800 flex items-start gap-3 shrink-0">
                 <div class="min-w-0 flex-1"><h3 class="text-white font-bold">🛡️ ลิงก์ผู้ช่วยหัวหน้า · ${E(g.name || '')}</h3>
-                <p class="text-[11px] text-gray-400 mt-1 leading-snug">ผู้ช่วยเปิดลิงก์ → เข้าด้วย Discord → ใช้ได้ 4 หน้า: สร้างทีม 3v3 · รูปแบบศัตรู · ข้อมูลลูกกิล · นับคอมพ์ปราสาท (สร้าง/แก้ได้ · เห็นเฉพาะกิลด์นี้)<br>ลบทีมถาวร ลบสมาชิก ฐานข้อมูล และหน้าอื่น เข้าไม่ได้</p></div>
+                <p class="text-[11px] text-gray-400 mt-1 leading-snug">ผู้ช่วยเปิดลิงก์ → เข้าด้วย Discord → ใช้ได้ 6 หน้า: สร้างทีม 3v3 · รูปแบบศัตรู · ข้อมูลลูกกิล · นับคอมพ์ปราสาท · อ่านผลวอ · วิเคราะห์การต่อสู้ (สร้าง/แก้ได้ · เห็นเฉพาะกิลด์นี้)<br>ลบทีมถาวร ลบสมาชิก ฐานข้อมูล และหน้าอื่น เข้าไม่ได้</p></div>
                 <button onclick="document.getElementById('officer-admin-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
             </div>
             <div class="p-4 border-b border-gray-800 shrink-0">
                 <div class="flex gap-2"><input readonly value="${E(link)}" onclick="this.select()" class="flex-1 min-w-0 bg-[#0d1117] border border-gray-700 text-gray-300 rounded-lg px-2 py-2 text-xs font-mono">
                 <button type="button" onclick="officerAdminCopy()" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shrink-0">📋 คัดลอก</button></div>
+                ${publicLinkBase().dev ? `<div class="mt-2 text-[11px] text-amber-300">🧪 ลิงก์ทดสอบในเครื่อง${/^file:/i.test(publicLinkBase().base) ? ' (เปิดจากไฟล์ — ปุ่มเข้าด้วย Discord ใช้ไม่ได้ ต้องเปิดผ่าน localhost หรือใช้ลิงก์จริง)' : ' (localhost)'} ·<button type="button" onclick="officerAdminCopy(true)" class="underline text-indigo-300 hover:text-white">📋 คัดลอกลิงก์จริง</button></div>` : ''}
             </div>
             <div class="p-4 overflow-y-auto flex-1 min-h-0">${body}</div>
         </div>`);
     }
-    function officerAdminCopy() {
-        const link = officerLinkFor(guildsDB[activeGuildIndex] || {});
+    function officerAdminCopy(real) {
+        const link = officerLinkFor(guildsDB[activeGuildIndex] || {}, real);
         const done = () => { if (typeof showToast === 'function') showToast('📋 คัดลอกลิงก์ผู้ช่วยแล้ว', 'success'); };
         try { navigator.clipboard.writeText(link).then(done, () => prompt('คัดลอกลิงก์นี้:', link)); } catch (e) { prompt('คัดลอกลิงก์นี้:', link); }
     }
@@ -40770,7 +40850,7 @@
         try { await Promise.all([warUseLoad(gid, { force: true }), warUseLoadNames(gid, true)]); } finally { hideLoading(); }
         // ส่งชื่อที่สแกนได้ขึ้น server — ลูกกิลจะเลือกชื่อตัวเองได้ในหน้าลงทะเบียน
         const cnt = new Map();
-        wcBattles.forEach(b => b.rows.forEach(r => { const n = wuRowName(r); if (n) cnt.set(n, (cnt.get(n) || 0) + 1); }));
+        wcBattles.forEach(b => { const n = wuRowName(b.rows[0]); if (n) cnt.set(n, (cnt.get(n) || 0) + 1); });   // ฝั่งซ้าย = ลูกกิลเราเท่านั้น
         const fresh = [...cnt].filter(([n]) => !(warUseGN[gid] || []).some(x => x.name.toLowerCase() === n.toLowerCase()));
         if (fresh.length) postJson({ action: 'addGameNamesSeen', guild_id: gid, names: fresh.map(([name, count]) => ({ name, count })) }, { timeout: 30000, retries: 1 })
             .then(r => { if (r && r.status === 'success') { warUseGN[gid] = r.names || []; warUseVer++; wuRvBuild(); wuRvRender(); } }).catch(() => {});
@@ -40813,12 +40893,12 @@
         const memOpts = sel => '<option value="">— ยังไม่ได้เลือก —</option>' + mems.map(m => `<option value="${wuEsc(m.id)}" ${sel && String(sel) === String(m.id) ? 'selected' : ''}>${wuEsc(m.name)}${m.discordName && m.discordName !== m.name ? ' (' + wuEsc(m.discordName) + ')' : ''}</option>`).join('');
         // 👤 ชื่อในเกมที่สแกนได้ (ไม่ซ้ำ)
         const names = new Map();
-        wcBattles.forEach(b => b.rows.forEach((r, ri) => { const n = wuRowName(r); if (!n) return; const x = names.get(n) || { n, cnt: 0, atk: 0, def: 0 }; x.cnt++; if (ri === 0) x.atk++; else x.def++; names.set(n, x); }));
+        wcBattles.forEach(b => { const n = wuRowName(b.rows[0]); if (!n) return; const x = names.get(n) || { n, cnt: 0, atk: 0, def: 0 }; x.cnt++; x.atk++; names.set(n, x); });   // ฝั่งซ้าย = ลูกกิลเราเท่านั้น (ฝั่งขวา = ศัตรู ไม่ต้องจับคู่)
         const nameRows = [...names.values()].sort((a, b) => b.cnt - a.cnt).map(x => {
             const m = wuMemberOfName(gid, x.n);
             const stored = (warUseGN[gid] || []).find(y => y.name.toLowerCase() === x.n.toLowerCase() && y.member_id);
             return `<div class="flex items-center gap-2 p-2 rounded-lg border ${m ? 'border-emerald-800/60 bg-emerald-950/20' : 'border-gray-800 bg-[#0d1117]'}">
-                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">🎮 ${wuEsc(x.n)}</div><div class="text-[10px] text-gray-500">เจอ ${x.cnt} ไม้ · บุก ${x.atk} · รับ ${x.def}${m && !stored ? ' · เดาจากชื่อ' : ''}</div></div>
+                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">🎮 ${wuEsc(x.n)}</div><div class="text-[10px] text-gray-500">ตี ${x.cnt} ไม้${m && !stored ? ' · เดาจากชื่อ' : ''}</div></div>
                 <select onchange="wuRvSetName('${wuEsc(x.n).replace(/'/g, '&#39;')}', this.value)" style="color-scheme:dark" class="max-w-[48%] bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${memOpts(m && m.id)}</select>
             </div>`;
         }).join('') || '<div class="text-xs text-gray-500">อ่านชื่อในไม้ไม่ได้เลย</div>';
@@ -40870,7 +40950,7 @@
             <div class="p-3 border-t border-gray-800 flex items-center gap-2 shrink-0">
                 <span class="text-[11px] text-gray-400">เลือก ${nInc} ไม้</span>
                 <button type="button" onclick="warUseLogOpen(${wuRv.gi})" class="ml-auto px-3 py-2 rounded-xl text-xs font-bold bg-[#0d1117] border border-gray-700 text-gray-200">📒 ดูบันทึกวอ</button>
-                <button type="button" onclick="wuRvSave()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black ${nInc ? '' : 'opacity-50'}">💾 บันทึก ${nInc} ไม้</button>
+                <button type="button" onclick="wuRvSave()" title="บันทึกวอ (รายการตี) + ประวัติการต่อสู้ ในครั้งเดียว" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-sm font-black ${nInc ? '' : 'opacity-50'}">💾 บันทึก ${nInc} ไม้</button>
             </div>
         </div>`);
     }
@@ -40884,6 +40964,36 @@
             warUseGN[gid] = r.names || []; warUseVer++;
         } catch (e) { alert('❌ จับคู่ชื่อไม่สำเร็จ\n\n' + (e.message || e)); }
         wuRvBuild(); wuRvRender();
+    }
+    /** 📜 ไม้ที่บันทึกวอแล้ว → ประวัติการต่อสู้ (แบบเดียวกับหน้าบันทึกการต่อสู้: ฝั่ง my = ทีมชนะ) · คืนจำนวนที่เพิ่ม */
+    async function warUseToHistory(battles, war) {
+        if (typeof battleHistoryDB === 'undefined' || (CURRENT_USER && CURRENT_USER.officer)) return 0;
+        const ids = a => (a || []).filter(Boolean).map(String).sort().join(',');
+        const sig = (an, dn, wIds, lIds) => [String(an || '').toLowerCase(), String(dn || '').toLowerCase(), ids(wIds), ids(lIds)].join('|');
+        const have = new Set(battleHistoryDB.filter(x => x && x.attackerName).map(x => sig(x.attackerName, x.defenderName, x.playerIds, x.enemyIds)));
+        const fName = f => (typeof formations !== 'undefined' && (formations.find(x => x.id === f) || {}).name) || f || 'Basic';
+        const t0 = Date.now(), add = [];
+        battles.filter(b => b && !b.fromHistory && b.winner !== null && b.winner !== undefined).forEach((b, i) => {
+            const win = b.rows[b.winner], lose = b.rows[1 - b.winner], role = b.winner === 0 ? 'atk' : 'def';
+            const wIds = (win.slots || []).filter(s => s && s.id).map(s => String(s.id)), lIds = (lose.slots || []).filter(s => s && s.id).map(s => String(s.id));
+            const atk = b.rows[0].name || '', def = b.rows[1].name || '';
+            const k = sig(atk, def, wIds, lIds); if (have.has(k)) return; have.add(k);
+            const pad = a => { const o = a.slice(0, 5); while (o.length < 5) o.push(null); return o; };
+            const winName = role === 'atk' ? atk : def, loseName = role === 'atk' ? def : atk;
+            add.push({ id: String(t0 + i), timestamp: t0 + i, date: new Date().toLocaleString('th-TH'), castle: b.rows[1].castle || b.rows[0].castle || 'Manual Record', castleSlot: '-', castleKey: 'MANUAL',
+                myFormation: win.formation || 'Basic', enemyFormation: lose.formation || 'Basic', myTeamId: 'REC-MY',
+                myTeamName: 'ทีมชนะ · ' + (role === 'atk' ? 'ฝ่ายบุก' : 'ฝ่ายรับ') + (winName ? ' · ' + winName : '') + ' (' + fName(win.formation) + ')',
+                attackerName: atk, defenderName: def, memberName: b.wuMemberName || '', warLabel: (war && war.label) || '', warId: (war && war.id) || '', analysis: null,
+                winnerRole: role, attackerWon: role === 'atk',
+                playerData: wIds.map(id => ({ id, star: 10, ring: null })), enemyData: lIds.map(id => ({ id, star: 10, ring: null })), myPet: null, enemyPet: null,
+                playerIds: pad(wIds), enemyIds: pad(lIds), skillQueue: [], enemySkillQueue: [],
+                enemyName: 'ทีมแพ้ · ' + (role === 'atk' ? 'ฝ่ายรับ' : 'ฝ่ายบุก') + (loseName ? ' · ' + loseName : '') + ' (' + fName(lose.formation) + ')', status: 'Win', result: 'Win' });
+        });
+        if (!add.length) return 0;
+        battleHistoryDB.unshift(...add.reverse());
+        while (battleHistoryDB.length > 500) battleHistoryDB.pop();
+        await pushData(false, ['battleHistory']);
+        return add.length;
     }
     async function wuRvSave() {
         const g = guildsDB[wuRv.gi], gid = String(g.id), W = warUse[gid] || {};
@@ -40899,13 +41009,16 @@
             const r = await postJson({ action: 'saveWarUsage', guild_id: gid, war_id: (W.current || {}).id || '', items }, { timeout: 90000, retries: 0 });
             if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
             wuSet(gid, r);
+            let histMsg = '';
+            try { const nh = await warUseToHistory(list.map(it => it.b), (r.current || r.war || {})); if (nh > 0) histMsg = '\n📜 ประวัติการต่อสู้ +' + nh + ' ไม้'; }
+            catch (he) { histMsg = '\n⚠️ ส่งเข้าประวัติการต่อสู้ไม่สำเร็จ: ' + (he.message || he); }
             // ✅ เสร็จ → เอาไม้ที่บันทึกแล้ว (และไม้ซ้ำของมัน) ออกจากรายการอ่านผลวอ กันกดบันทึกซ้ำ
             const done = new Set(items.map(x => x.battle_key));
             const before = wcBattles.length;
             wcBattles = wcBattles.filter(b => !done.has(wuBattleKey(b)));
             if (typeof wcRender === 'function') wcRender();
             hideLoading();
-            alert('✅ บันทึกเสร็จแล้ว ' + items.length + ' ไม้ (' + ((r.current || {}).label || '') + ')\n\nล้างไม้ที่บันทึกออกจากรายการแล้ว ' + (before - wcBattles.length) + ' ไม้' + (wcBattles.length ? '\nเหลือในรายการ ' + wcBattles.length + ' ไม้' : ''));
+            alert('✅ บันทึกเสร็จแล้ว ' + items.length + ' ไม้ (' + ((r.current || {}).label || '') + ')' + histMsg + '\n\nล้างไม้ที่บันทึกออกจากรายการแล้ว ' + (before - wcBattles.length) + ' ไม้' + (wcBattles.length ? '\nเหลือในรายการ ' + wcBattles.length + ' ไม้' : ''));
             if (!wcBattles.length) { const d = document.getElementById('wu-review-dlg'); if (d) d.style.display = 'none'; if (currentView === 'member-roster') renderMemberRosterView(); return; }
         } catch (e) { hideLoading(); alert('❌ บันทึกไม่สำเร็จ\n\n' + (e.message || e) + '\n\nกดบันทึกใหม่ได้เลย — ไม้ที่เข้าไปแล้วจะไม่ซ้ำ'); }
         finally { hideLoading(); }
@@ -40915,6 +41028,14 @@
 
     // ---------- 📒 บันทึกวอ (ดูย้อนหลังตาม SS) ----------
     let wuLog = null;   // { gi, data, member }
+    /** 📒 แสดงรายการที่บันทึกในหน้านับคอมพ์ (ไม่ใช่หน้าต่าง) */
+    async function warUseLogEmbed() {
+        const gi = typeof warUseCastleGuildIdx === 'function' ? warUseCastleGuildIdx() : activeGuildIndex;
+        if (gi == null || gi < 0 || !guildsDB[gi]) { const el = document.getElementById('cc-log-embed'); if (el) el.innerHTML = '<div class="text-center text-gray-500 py-10">ยังไม่มีกิลด์</div>'; return; }
+        const keep = wuLog && wuLog.embed && wuLog.gi === gi ? wuLog : null;
+        wuLog = { gi, data: null, member: '', embed: true, dupOnly: keep ? keep.dupOnly : false };
+        await wuLogLoad('');
+    }
     async function warUseLogOpen(gi) {
         const vis = (typeof bulkVisibleGuilds === 'function') ? bulkVisibleGuilds() : guildsDB.map((_, i) => i);
         const g0 = gi != null && guildsDB[gi] ? gi : (vis.includes(activeGuildIndex) ? activeGuildIndex : vis[0]);
@@ -40953,53 +41074,123 @@
         const memOf = id => id ? (g.members || []).find(m => String(m.id) === String(id)) : null;
         const chips = [...byMem.values()].sort((a, b) => b.n - a.n).map(x => `<button type="button" onclick="wuLog.member=wuLog.member===this.dataset.k?'':this.dataset.k;wuLogRender()" data-k="${wuEsc(x.id)}" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs ${wuLog.member === x.id ? 'border-indigo-500 bg-indigo-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300'}">${memOf(x.id) ? memberAvatarHTML(memOf(x.id), 18) : ''}${wuEsc(x.name)} <b>${x.n}</b>${x.miss ? ' <span class="text-red-300">⚠️' + x.miss + '</span>' : ''}</button>`).join('');
         const order = new Map((d.rows || []).map((x, i) => [x, i + 1]));   // ลำดับที่บันทึกเข้าไป (ตามแถวในชีต)
+        // 🔍 เช็คทีมซ้ำ: คนตีคนเดียวกัน (ลูกกิลเดียวกัน / ชื่อใกล้กัน) + ฝ่ายรับชื่อใกล้กัน = อาจเป็นไม้เดียวกัน → ให้คนดูตัดสินเอง
+        const nm = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0E00-\u0E7F]/g, '');
+        const near = (a, b) => { a = nm(a); b = nm(b); if (!a || !b) return false; if (a === b) return true; if (Math.min(a.length, b.length) >= 4 && (a.startsWith(b) || b.startsWith(a))) return true; return typeof wcLev === 'function' && wcLev(a, b) <= Math.max(1, Math.floor(Math.min(a.length, b.length) * 0.25)); };
+        const sameWho = (a, b) => (a._mid && b._mid) ? a._mid === b._mid : near(a.game_name, b.game_name);
+        // ระดับ: 🔴 ซ้ำแน่ = ตัวละครตรง ≥ 2 ตัวทั้ง 2 ฝั่ง (หรือทีมตรงครบ แม้ชื่อฝ่ายรับอ่านเพี้ยน) · 🟡 อาจซ้ำ = คนตี + ฝ่ายรับเดียวกันแต่ทีมต่างกัน (ตีคนเดิมหลายไม้ได้จริง)
+        const ov = (a, b) => { const A = (a || []).map(x => String(x.id)), B = (b || []).map(x => String(x.id)); return (!A.length || !B.length) ? -1 : A.filter(x => B.includes(x)).length; };
+        const dupOf = new Map();
+        const addDup = (a, b, info) => { if (!dupOf.has(a)) dupOf.set(a, []); dupOf.get(a).push(Object.assign({ n: order.get(b) }, info)); };
+        // ในวอเดียวกัน ลูกกิล 1 คนใช้ตัวละครแต่ละตัวได้ครั้งเดียว → ตัวละครซ้ำกันระหว่างไม้ของคนเดียวกัน = ผิด (ชื่อฝ่ายรับซ้ำได้ ตีคนเดิมหลายไม้ได้)
+        const HN = id => { const x = (heroesDB || []).find(y => String(y.id) === String(id)); return x ? x.name : String(id); };
+        rows.forEach((a, i) => rows.slice(i + 1).forEach(b => {
+            if (!sameWho(a, b)) return;
+            const A = (a.heroes || []).map(x => String(x.id)), shared = (b.heroes || []).map(x => String(x.id)).filter(x => A.includes(x));
+            if (!shared.length) return;
+            const es = ov(a.enemy_heroes, b.enemy_heroes);
+            const strong = shared.length >= 2;   // 2 ตัวขึ้นไป = ไม้เดียวกันที่บันทึกซ้ำ · 1 ตัว = ตัวละครถูกใช้ 2 ไม้ (อ่านผิด / บันทึกผิด)
+            const info = { strong, hs: shared.length, es, names: shared.map(HN), en: near(a.enemy, b.enemy) };
+            addDup(a, b, info); addDup(b, a, info);
+        }));
+        const shownRows = wuLog.dupOnly ? rows.filter(r => dupOf.has(r)).sort((a, b) => ((a._mid || nm(a.game_name)) + '').localeCompare((b._mid || nm(b.game_name)) + '') || order.get(a) - order.get(b)) : rows;
         // 📋 แบบหน้า "สถิติการโจมตี" ในเกม: ซ้าย = ลูกกิลเรา (รูป Discord ใหญ่ + ทีม + แหวน) · กลาง = WIN/LOSE · ขวา = ศัตรู (ปราสาท + ทีม ไม่มีแหวน)
         const bigAv = (m, px) => { const av = m && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : '';
             return av ? `<img src="${av}" alt="" referrerpolicy="no-referrer" class="rounded-full object-cover border-2 border-indigo-500/60 shrink-0" style="width:${px}px;height:${px}px">`
                 : `<span class="rounded-full bg-gray-800 border-2 border-gray-700 flex items-center justify-center shrink-0 text-gray-400" style="width:${px}px;height:${px}px"><svg viewBox="0 0 24 24" fill="currentColor" style="width:${Math.round(px * 0.55)}px;height:${Math.round(px * 0.55)}px"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1h16v-1c0-2.8-3.6-5-8-5z"/></svg></span>`; };
-        const resBadge = res => res === 'win' ? '<span class="text-2xl sm:text-3xl font-black tracking-wider" style="color:#f5c86a;text-shadow:0 1px 0 #6b4d12">WIN</span>'
-            : res === 'lose' ? '<span class="text-2xl sm:text-3xl font-black tracking-wider" style="color:#c9b6f2;text-shadow:0 1px 0 #3b2a63">LOSE</span>' : '<span class="text-sm font-bold text-gray-500">—</span>';
-        const list = rows.map(r => { const m = memOf(r._mid), miss = wuRowRingMiss(r);
+        const resBadge = res => res === 'win' ? '<span class="text-2xl lg:text-3xl font-black tracking-wider" style="color:#f5c86a;text-shadow:0 1px 0 #6b4d12">WIN</span>'
+            : res === 'lose' ? '<span class="text-2xl lg:text-3xl font-black tracking-wider" style="color:#c9b6f2;text-shadow:0 1px 0 #3b2a63">LOSE</span>' : '<span class="text-sm font-bold text-gray-500">—</span>';
+        const list = shownRows.map(r => { const m = memOf(r._mid), miss = wuRowRingMiss(r);
             return `<div class="relative rounded-2xl border ${miss.length ? 'border-red-900/60' : 'border-gray-800'} bg-[#0d1117] overflow-hidden">
-                <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center">
+                <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center">
                     <div class="flex items-center gap-3 p-3 min-w-0">
-                        <span class="hidden sm:inline shrink-0 text-[11px] font-black text-gray-600 w-7 text-center">#${order.get(r)}</span>
+                        <span class="hidden lg:inline shrink-0 text-[11px] font-black text-gray-600 w-7 text-center">#${order.get(r)}</span>
                         ${bigAv(m, 52)}
                         <div class="min-w-0 flex-1">
-                            <div class="text-base font-black text-white truncate"><span class="sm:hidden text-[11px] text-gray-600 mr-1">#${order.get(r)}</span>${r._mname ? wuEsc(r._mname) : wuEsc(r.game_name || '?')}</div>
+                            <div class="text-base font-black text-white truncate"><span class="lg:hidden text-[11px] text-gray-600 mr-1">#${order.get(r)}</span>${r._mname ? wuEsc(r._mname) : wuEsc(r.game_name || '?')}</div>
+                            ${dupOf.has(r) ? `<div class="mt-1 flex flex-wrap gap-1">${dupOf.get(r).map(x => `<span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${x.strong ? 'bg-red-900/60 text-red-100' : 'bg-orange-900/50 text-orange-200'}" title="${x.strong ? 'ตัวละครตรงกัน 2 ตัวขึ้นไป = ไม้เดียวกันบันทึกซ้ำ — ลบอันที่ข้อมูลน้อยกว่า' : 'ตัวละครตัวนี้ถูกใช้ 2 ไม้ (วอหนึ่งใช้ได้ครั้งเดียว) — อ่านตัวละครผิด / บันทึกผิดไม้ใดไม้หนึ่ง'}">${x.strong ? '🔴 ไม้ซ้ำ' : '🟠 ตัวละครซ้ำ'} #${x.n} · ${wuEsc(x.names.join(', '))}${x.strong ? ' · ศัตรูตรง ' + (x.es < 0 ? '?' : x.es + '/3') : ''}</span>`).join('')}</div>` : ''}
                             <div class="flex gap-1.5 mt-1.5">${wuHeroThumbs(r.heroes, 64)}</div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-center px-6 py-2 sm:py-0 sm:self-stretch bg-gradient-to-b from-[#3a3322] to-[#1f1b13] sm:[clip-path:polygon(0_0,100%_0,82%_100%,18%_100%)] sm:min-w-[130px]">${resBadge(r.result)}</div>
-                    <div class="flex items-center gap-3 p-3 min-w-0 sm:justify-end">
-                        <div class="min-w-0 flex-1 sm:text-right">
+                    <div class="flex items-center justify-center px-6 py-2 lg:py-0 lg:self-stretch bg-gradient-to-b from-[#3a3322] to-[#1f1b13] lg:[clip-path:polygon(0_0,100%_0,82%_100%,18%_100%)] lg:min-w-[130px]">${resBadge(r.result)}</div>
+                    <div class="flex items-center gap-3 p-3 min-w-0 lg:justify-end">
+                        <div class="min-w-0 flex-1 lg:text-right">
                             ${r.castle ? `<span class="inline-block text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-800/70 text-red-100">🏰 ${wuEsc(r.castle)}</span>` : ''}
                             <div class="text-base font-black text-gray-200 truncate mt-0.5">${wuEsc(r.enemy || '?')}</div>
-                            <div class="flex gap-1.5 mt-1.5 sm:justify-end">${(r.enemy_heroes || []).length ? wuHeroThumbs(r.enemy_heroes, 64) : '<span class="text-[10px] text-gray-600">ไม่มีข้อมูลทีมฝ่ายรับ</span>'}</div>
+                            <div class="flex gap-1.5 mt-1.5 lg:justify-end">${(r.enemy_heroes || []).length ? wuHeroThumbs(r.enemy_heroes, 64) : '<span class="text-[10px] text-gray-600">ไม่มีข้อมูลทีมฝ่ายรับ</span>'}</div>
                         </div>
                     </div>
-                    <div class="flex sm:flex-col items-center justify-end sm:justify-center gap-2 sm:gap-1 px-3 pb-3 sm:p-3 sm:pl-0 sm:min-w-[84px]">
-                        ${isCur ? `<button type="button" onclick="wuLogDelete('${wuEsc(r.battle_key).replace(/'/g, '&#39;')}')" title="ลบไม้นี้" class="order-2 sm:order-none w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#2a1416] border-2 border-red-900/70 hover:bg-red-900/60 hover:border-red-500 text-red-300 hover:text-white flex items-center justify-center transition"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 sm:w-6 sm:h-6"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg></button>` : ''}
-                        <span class="order-1 sm:order-none text-[11px] text-gray-500 whitespace-nowrap">${wuAgo(r.at)}</span>
+                    <div class="flex lg:flex-col items-center justify-end lg:justify-center gap-2 lg:gap-1 px-3 pb-3 lg:p-3 lg:pl-0 lg:min-w-[84px]">
+                        ${isCur ? `<button type="button" onclick="wuLogDelete('${wuEsc(r.battle_key).replace(/'/g, '&#39;')}')" title="ลบไม้นี้" class="order-2 lg:order-none w-11 h-11 lg:w-14 lg:h-14 rounded-full bg-[#2a1416] border-2 border-red-900/70 hover:bg-red-900/60 hover:border-red-500 text-red-300 hover:text-white flex items-center justify-center transition"><svg viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 lg:w-6 lg:h-6"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h2v-8h-2z"/></svg></button>` : ''}
+                        <span class="order-1 lg:order-none text-[11px] text-gray-500 whitespace-nowrap">${wuAgo(r.at)}</span>
                     </div>
                 </div>
             </div>`; }).join('') || '<div class="text-center text-gray-500 text-sm py-8">ยังไม่มีไม้ที่บันทึก — ใช้หน้า 🎥 อ่านผลวอจากหน้าจอ แล้วกด 📒 บันทึกการใช้ของลูกกิล</div>';
         const warOpts = (d.wars || []).map(w => `<option value="${wuEsc(w.id)}" ${d.war && w.id === d.war.id ? 'selected' : ''}>${wuEsc(w.label)}${w.current ? ' (ปัจจุบัน)' : ''}</option>`).join('');
-        bulkModalShell('wu-log-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl">
+        const nDup = dupOf.size, nStrong = [...dupOf.values()].filter(v => v.some(x => x.strong)).length;
+        const dupBtn = `<button type="button" onclick="wuLog.dupOnly=!wuLog.dupOnly;wuLogRender()" class="px-2.5 py-1 rounded-lg border font-bold ${wuLog.dupOnly ? 'border-amber-500 bg-amber-600/30 text-white' : 'border-amber-700/60 text-amber-200'}">🔍 เช็คตัวละครซ้ำ${nDup ? ' (' + [nStrong ? '🔴' + nStrong : '', nDup - nStrong ? '🟠' + (nDup - nStrong) : ''].filter(Boolean).join(' ') + ')' : ''}${wuLog.dupOnly ? ' ✓' : ''}</button>`;
+        const html = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full ${wuLog.embed ? '' : 'max-w-5xl max-h-[95vh]'} flex flex-col shadow-2xl">
             <div class="p-4 border-b border-gray-800 flex flex-wrap items-center gap-2 shrink-0">
                 <h3 class="text-white font-bold mr-auto">📒 บันทึกวอ</h3>
                 ${vis.length > 1 ? `<select onchange="wuLog.gi=+this.value;wuLog.member='';wuLogLoad('')" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${vis.map(i => `<option value="${i}" ${i === wuLog.gi ? 'selected' : ''}>${wuEsc(guildsDB[i].name)}</option>`).join('')}</select>` : ''}
                 <select onchange="wuLog.member='';wuLogLoad(this.value)" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${warOpts}</select>
-                <button onclick="document.getElementById('wu-log-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+                ${wuLog.embed ? `<button type="button" onclick="wuLogLoad(wuLog.data && wuLog.data.war ? wuLog.data.war.id : '')" class="px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-300 text-xs">🔄 รีเฟรช</button>` : `<button onclick="document.getElementById('wu-log-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>`}
             </div>
             <div class="p-3 border-b border-gray-800 flex flex-wrap items-center gap-2 shrink-0 text-xs">
-                <span class="text-gray-400">${(d.rows || []).length} ไม้ · ${byMem.size} คน</span>
-                ${isCur ? `<button type="button" onclick="wuLogDedupe()" title="ไม้เดียวกันที่บันทึกซ้ำหลายแถว → เหลือแถวเดียว" class="px-2.5 py-1 rounded-lg border border-gray-700 text-gray-200">🧹 ลบไม้ซ้ำ</button>
+                <span class="text-gray-400">${(d.rows || []).length} ไม้ · ${byMem.size} คน${wuLog.dupOnly ? ' · แสดงเฉพาะไม้ที่ตัวละครซ้ำ ' + shownRows.length + ' ไม้' : ''}</span>
+                ${dupBtn}
+                ${isCur ? `<button type="button" onclick="warUseImportHistory()" title="ไม้ที่กด 📥 ส่งเข้าบันทึก ไปหน้าประวัติการต่อสู้ → ดึงกลับมาบันทึกเข้าบันทึกวอ" class="px-2.5 py-1 rounded-lg border border-emerald-700/70 bg-emerald-900/30 text-emerald-200 font-bold">📥 ดึงจากประวัติการต่อสู้</button>
+                <button type="button" onclick="wuLogDedupe()" title="ไม้เดียวกันที่บันทึกซ้ำหลายแถว → เหลือแถวเดียว" class="px-2.5 py-1 rounded-lg border border-gray-700 text-gray-200">🧹 ลบไม้ซ้ำ</button>
                 <button type="button" onclick="wuLogRename()" class="px-2.5 py-1 rounded-lg border border-gray-700 text-gray-200">✎ ตั้งชื่อ (เช่น SS 12)</button>
                 <button type="button" onclick="warUseNewWar(${wuLog.gi})" class="ml-auto px-2.5 py-1 rounded-lg bg-amber-700/40 border border-amber-700/60 text-amber-100 font-bold">🆕 เริ่มวอใหม่</button>` : '<span class="text-gray-500">ดูย้อนหลัง (แก้ไม่ได้)</span>'}
             </div>
-            <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${list}</div>
-        </div>`);
+            <div class="p-3 ${wuLog.embed ? '' : 'overflow-y-auto flex-1 min-h-0'} space-y-2">${wuLog.dupOnly && !shownRows.length ? '<div class="text-center text-emerald-300 text-sm py-8">✅ ไม่มีตัวละครที่ถูกใช้ซ้ำ</div>' : list}</div>
+        </div>`;
+        if (wuLog.embed) { const el = document.getElementById('cc-log-embed'); if (el) el.innerHTML = html; return; }
+        bulkModalShell('wu-log-dlg', html);
+    }
+    /** 📥 ไม้ที่ส่งไป "ประวัติการต่อสู้" (ปุ่ม 📥 ส่งเข้าบันทึก) → แปลงกลับเป็นไม้ในหน้าอ่านผลวอ แล้วเปิดหน้าตรวจไม้ให้บันทึกเข้าบันทึกวอ
+     *  ประวัติเก็บ "ทีมชนะ" เป็นฝั่ง my · winnerRole บอกว่าคนชนะเป็นฝ่ายบุก (atk) หรือฝ่ายรับ (def) */
+    function warUseImportHistory() {
+        const gid = String(guildsDB[wuLog.gi].id), d = wuLog.data || {}, since = Number((d.current || d.war || {}).startedAt) || 0;
+        const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0E00-\u0E7F]/g, '');
+        const slotsOf = ids => (ids || []).filter(Boolean).map(id => ({ id: String(id && id.id != null ? id.id : id), aw: false }));
+        const mk = (atkName, defName, castle, winRole, winIds, loseIds) => {
+            const atkIds = winRole === 'atk' ? winIds : loseIds, defIds = winRole === 'atk' ? loseIds : winIds;
+            const row = (n, ids, c) => ({ name: String(n || '').trim(), nameRaw: String(n || '').trim(), formation: 'Basic', pet: null, castle: c || '', slots: slotsOf(ids).concat([null, null]).slice(0, 5) });
+            return { id: 'H' + Date.now() + Math.random().toString(36).slice(2, 6), rows: [row(atkName, atkIds, ''), row(defName, defIds, castle)], winner: winRole === 'atk' ? 0 : 1, thumb: '', fromHistory: true };
+        };
+        const cand = [];
+        // 1) ที่บันทึกเข้าประวัติแล้ว (ตั้งแต่เริ่มวอนี้)
+        (typeof battleHistoryDB !== 'undefined' ? battleHistoryDB : []).forEach(x => {
+            if (!x || !x.attackerName || !x.winnerRole) return;
+            if (since && Number(x.timestamp) && Number(x.timestamp) < since) return;
+            cand.push(mk(x.attackerName, x.defenderName, x.castle && x.castle !== 'Manual Record' ? x.castle : '', x.winnerRole, x.playerIds, x.enemyIds));
+        });
+        // 2) ที่ยังค้างในหน้าบันทึกการต่อสู้ (ยังไม่ได้กด 💾)
+        (typeof pendingMatches !== 'undefined' ? pendingMatches : []).forEach(m => {
+            if (!m || !m.wcAtkName || !m.wcWinnerRole) return;
+            cand.push(mk(m.wcAtkName, m.wcDefName, m.wcCastle, m.wcWinnerRole, (m.myHeroes || []).map(x => x && x.id), (m.enemyHeroes || []).map(x => x && x.id)));
+        });
+        // ไม่เอาไม้ที่อยู่ในบันทึกวอแล้ว / อยู่ในหน้าอ่านผลวอแล้ว / ซ้ำกันเอง
+        const ids = a => (a || []).map(x => String(x.id)).sort().join(',');
+        // ไม้เดียวกัน = คนตี + ฝ่ายรับ + ผลเดียวกัน และตัวละครตรงกัน ≥ 2 ตัว (อ่านเพี้ยนได้ 1 ตัว)
+        const overlap = (a, b) => { const B = (b || []).map(x => String(x && x.id != null ? x.id : x)); return (a || []).filter(x => B.includes(String(x && x.id != null ? x.id : x))).length; };
+        const inSaved = b => (d.rows || []).some(x => norm(x.game_name) === norm(b.rows[0].name) && norm(x.enemy) === norm(b.rows[1].name)
+            && x.result === (b.winner === 0 ? 'win' : 'lose') && overlap(x.heroes, b.rows[0].slots.filter(Boolean)) >= 2);
+        const have = new Set(wcBattles.map(wuBattleKey));
+        let n = 0, skip = 0;
+        cand.forEach(b => {
+            const k = wuBattleKey(b), sig = norm(b.rows[0].name) + '|' + norm(b.rows[1].name) + '|' + ids(b.rows[0].slots.filter(Boolean));
+            if (have.has(k) || inSaved(b)) { skip++; return; }
+            have.add(k); wcBattles.push(b); n++;
+        });
+        if (!n) return alert(cand.length ? 'ไม้ในประวัติการต่อสู้ของวอนี้ อยู่ในบันทึกวอครบแล้ว (' + skip + ' ไม้)' : 'ไม่พบไม้จากหน้าอ่านผลวอในประวัติการต่อสู้ของวอนี้');
+        if (typeof wcPersist === 'function') wcPersist();
+        alert('📥 ดึงมาได้ ' + n + ' ไม้' + (skip ? ' (ข้าม ' + skip + ' ไม้ที่มีอยู่แล้ว)' : '') + '\n\nตรวจในหน้าถัดไป แล้วกด 💾 บันทึก');
+        const dlg = document.getElementById('wu-log-dlg'); if (dlg) dlg.style.display = 'none';
+        wuRv = { gi: wuLog.gi, items: null };
+        wuRvLoadGuild();
     }
     /** 🧹 ลบไม้ซ้ำในวอปัจจุบัน — ส่งบันทึกว่าง ๆ ให้เซิร์ฟเวอร์จัดการไม้ซ้ำ (code.gs 8.8.2 ขึ้นไป) */
     async function wuLogDedupe() {
