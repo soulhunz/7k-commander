@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.22.2';
+        const APP_VERSION = '1.22.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15943,6 +15943,7 @@
         function ccUsedHeroThumbs(r, px) {
             // r._needs = หักจากแหวนลูกกิลแล้ว (n.got = วงที่ได้) · ไม่มี (ไม้ที่ยังไม่รู้ว่าใคร) = ดูจากที่บันทึกไว้
             const live = Array.isArray(r._needs), needs = live ? r._needs : wuRowRingNeeds(r), miss = live ? [] : wuRowRingMiss(r).map(m => m.id + '|' + (m.stack || ''));
+            const noTeam = wuRowNoTeam(r);
             const R = id => ((typeof ringsDB !== 'undefined' ? ringsDB : []) || []).find(y => String(y.id) === String(id));
             const HDB = (typeof heroesDB !== 'undefined' ? heroesDB : []) || [];
             return (r.heroes || []).map(x => {
@@ -15972,6 +15973,7 @@
                 const body = n
                     ? ringRow(bad ? '💍 ทีมใช้แหวน' : n.gotAlt > 0 ? `💍 ใช้แหวนลำดับ ${n.gotAlt + 1} (ไม่มีลำดับ 1)` : '💍 ใช้แหวนวงนี้')
                         + (bad ? `<div style="margin-top:8px;font-size:11px;font-weight:800;color:#fca5a5">⚠️ ลูกกิลไม่มีแหวน${alts.length > 1 ? 'ที่ตั้งไว้สักวง' : 'นี้'} (แหวนไม่ตรง)</div>` : '') + altList
+                    : noTeam ? '<div style="margin-top:6px;font-size:12px;font-weight:800;color:#fcd34d">❓ ไม่มีคอมพ์นี้ในระบบ (ไม่ตรงทีมที่แชร์ไว้) — ไม่เช็คแหวน</div>'
                     : `<div style="margin-top:6px;font-size:12px;color:#9ca3af">💍 ${needs.some(z => z.hero) ? 'ทีมนี้ไม่ได้ใส่แหวนให้ตัวนี้' : 'ไม่มีข้อมูลแหวนรายตัว'}</div>`;
                 const pop = `<div style="display:flex;align-items:center;gap:8px"><img src="${x.aw && h.img2 ? h.img2 : h.img}" style="width:32px;height:32px;border-radius:6px;object-fit:cover"><b style="font-size:14px;color:#fff">${ccEsc(h.name)}</b></div>${body}`;
                 const ring = n && R(showId);
@@ -15992,7 +15994,8 @@
                 <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm">
                     <span class="text-gray-300">→ <b class="text-white">${ccEsc(r.enemy || '?')}</b></span>
                     ${r.castle ? `<span class="text-gray-400">🏰 ${ccEsc(r.castle)}</span>` : ''}${res}
-                    ${(() => { const nm = Array.isArray(r._needs) ? r._needs.filter(n => n.got == null).length : wuRowRingMiss(r).length; return nm ? `<span class="text-xs px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ แหวนไม่ตรง ${nm}</span>` : ''; })()}
+                    ${wuRowNoTeam(r) ? '<span class="text-xs px-2 py-0.5 rounded-md bg-amber-900/40 text-amber-200 font-bold" title="ตัวละครไม่ตรงกับทีม 3v3 ที่เปิดแชร์ — ไม่ได้เช็คแหวน">❓ ไม่มีคอมพ์นี้ในระบบ</span>'
+                        : (() => { const nm = Array.isArray(r._needs) ? r._needs.filter(n => n.got == null).length : wuRowRingMiss(r).length; return nm ? `<span class="text-xs px-2 py-0.5 rounded-md bg-red-900/50 text-red-200 font-bold">⚠️ แหวนไม่ตรง ${nm}</span>` : ''; })()}
                 </div>
             </div>`;
         }
@@ -40665,10 +40668,24 @@
         return all.filter(r => !seen.has(r.si) && seen.add(r.si)).map(r => ({ id: r.base, stack: r.stack || '', hero: String((slots[r.si] && slots[r.si].id) || ''),
             alts: all.filter(z => z.si === r.si).map(z => ({ id: z.base, stack: z.stack || '' })) }));
     }
-    /** แหวนของไม้ที่บันทึกไว้ — มีทีม = คิดใหม่ตามกติกาปัจจุบัน (ไม้เก่าที่เคยนับทุกวงก็ถูก) · หาทีมไม่เจอ = ใช้ที่บันทึกไว้ */
+    /** ทีมที่เปิดแชร์เท่านั้นที่ใช้เช็คแหวน */
+    const wuTeamShared = t => !!t && !t.deleted && (t.isShared === true || t.isShared === 'true');
+    /** ทีม 3v3 ของไม้นี้ (ต้องยังอยู่และเปิดแชร์) */
+    function wuRowTeam(r) {
+        return r && r.team_id ? (teams3v3DB || []).find(y => y && String(y.id) === String(r.team_id) && wuTeamShared(y)) || null : null;
+    }
+    /** ❓ ไม้นี้ไม่มีคอมพ์ในระบบ (ไม่ตรงทีมที่แชร์ไว้) → ไม่เช็คแหวน
+     *  หน้า Share ไม่มีทีม 3v3 ในเครื่อง — server บอกมาใน no_team */
+    function wuRowNoTeam(r) {
+        if (typeof isPublicView !== 'undefined' && isPublicView) return !!(r && r.no_team);
+        return !wuRowTeam(r);
+    }
+    /** แหวนของไม้ที่บันทึกไว้ — คิดใหม่จากทีมที่แชร์ตามกติกาปัจจุบัน · ไม่มีคอมพ์ = ไม่เช็คแหวน
+     *  หน้า Share = server คิดให้แล้ว (r.rings) */
     function wuRowRingNeeds(r) {
-        const t = r && r.team_id ? (teams3v3DB || []).find(y => y && String(y.id) === String(r.team_id)) : null;
-        return t ? wuTeamRingNeeds(t) : ((r && r.rings) || []);
+        if (typeof isPublicView !== 'undefined' && isPublicView) return (r && !r.no_team && r.rings) || [];
+        const t = wuRowTeam(r);
+        return t ? wuTeamRingNeeds(t) : [];
     }
     /** ไม้เรียงตามเวลาที่ตี (เก่า → ใหม่) — ใช้หักแหวนทีละไม้ */
     function wuRowsByTime(rows) { return (rows || []).slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0)); }
@@ -40682,7 +40699,7 @@
     function wuTeamsForHeroes(mem, heroIds) {
         const k = wuHeroKey(heroIds); if (!k) return [];
         const asg = mem ? new Set(memberAssignedIds(mem)) : new Set();
-        return (teams3v3DB || []).filter(t => t && !t.deleted && wuHeroKey((t.slots || []).filter(s => s && s.id).map(s => s.id)) === k)
+        return (teams3v3DB || []).filter(t => wuTeamShared(t) && wuHeroKey((t.slots || []).filter(s => s && s.id).map(s => s.id)) === k)
             .map(t => ({ t, sc: (mem && t.owner && String(t.owner.memberId) === String(mem.id) ? 8 : 0) + (asg.has(String(t.id)) ? 4 : 0) + (t.teamType !== 'Defense' ? 2 : 0) }))
             .sort((a, b) => b.sc - a.sc).map(x => x.t);
     }
@@ -40743,7 +40760,7 @@
         });
     }
     function wuRvItemRings(it) {
-        const t = it.teamId ? (teams3v3DB || []).find(x => String(x.id) === it.teamId) : null;
+        const t = it.teamId ? (teams3v3DB || []).find(x => String(x.id) === it.teamId && wuTeamShared(x)) : null;
         const needs = wuTeamRingNeeds(t);
         if (!it.mem) return { needs, miss: [] };
         // วงที่ไม้อื่นของคนนี้ (บันทึกแล้ว/ติ๊กไว้ก่อนหน้า) ใช้ไปแล้ว ไม่นับซ้ำ
@@ -40897,7 +40914,8 @@
                     ${isCur ? `<button type="button" onclick="wuLogDelete('${wuEsc(r.battle_key).replace(/'/g, '&#39;')}')" title="ลบไม้นี้" class="w-7 h-7 rounded-md text-red-300 hover:bg-red-900/40 shrink-0">🗑️</button>` : ''}
                 </div>
                 <div class="flex flex-wrap items-center gap-2 mt-1.5 pl-1"><span class="flex gap-1">${wuHeroThumbs(r.heroes, 28)}</span><span class="flex flex-wrap gap-1.5">${wuRingThumbs(wuRowRingNeeds(r), wuRowRingMiss(r), 20)}</span>
-                ${wuRowRingMiss(r).length ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-200">⚠️ ใช้แหวนไม่ตรง ${wuRowRingMiss(r).length} วง</span>` : ''}</div>
+                ${wuRowNoTeam(r) ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-200">❓ ไม่มีคอมพ์นี้ในระบบ (ไม่เช็คแหวน)</span>'
+                    : wuRowRingMiss(r).length ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-900/50 text-red-200">⚠️ ใช้แหวนไม่ตรง ${wuRowRingMiss(r).length} วง</span>` : ''}</div>
             </div>`).join('') || '<div class="text-center text-gray-500 text-sm py-8">ยังไม่มีไม้ที่บันทึก — ใช้หน้า 🎥 อ่านผลวอจากหน้าจอ แล้วกด 📒 บันทึกการใช้ของลูกกิล</div>';
         const warOpts = (d.wars || []).map(w => `<option value="${wuEsc(w.id)}" ${d.war && w.id === d.war.id ? 'selected' : ''}>${wuEsc(w.label)}${w.current ? ' (ปัจจุบัน)' : ''}</option>`).join('');
         bulkModalShell('wu-log-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col shadow-2xl">
