@@ -4707,7 +4707,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.26.0';
+        const APP_VERSION = '1.26.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -19710,18 +19710,17 @@
     /** ทีมเดียวกันไหม — รูปแบบยืนต้องตรง · ฮีโร่ต่างกันไม่เกิน 1 ช่อง (ไม้ใหม่จริงต่างกันทั้งทีม) */
     function wcSameTeam(a, b) {
         if (!a || !b) return false;
-        const ids = k => k.split('/').map(r => r.split('|')[0]);
+        const ids = k => k.split('/').map(r => ((r.split('|')[0].split(':')[1]) || '').split(',').map(v => v.replace('*', '')).filter(v => v && v !== '-'));
         const A = ids(a), B = ids(b);
         if (A.length !== B.length) return false;
         let diff = 0;
         for (let i = 0; i < A.length; i++) {
-            const [fa, sa] = A[i].split(':'), [fb, sb] = B[i].split(':');
-            if (fa !== fb) return false;
-            const xa = sa.split(','), xb = sb.split(',');
-            if (xa.length !== xb.length) return false;
-            xa.forEach((v, j) => { if (v.replace('*', '') !== xb[j].replace('*', '')) diff++; });
+            const bb = B[i].slice(); let same = 0;
+            A[i].forEach(v => { const j = bb.indexOf(v); if (j >= 0) { same++; bb.splice(j, 1); } });
+            if (same < Math.min(2, A[i].length, B[i].length)) return false;   // แต่ละฝั่งต้องตรงกันอย่างน้อย 2 ตัว
+            diff += Math.max(A[i].length, B[i].length) - same;
         }
-        return diff <= 1;
+        return diff <= 2;
     }
     async function wcAddFromCanvas(cv, pre) {
         await wcEnsureCands();
@@ -40880,9 +40879,12 @@
         const gid = String(guildsDB[wuRv.gi].id);
         const saved = new Set(((warUse[gid] || {}).rows || []).map(r => r.battle_key));
         const prev = new Map((wuRv.items || []).map(x => [x.key, x]));
-        const seenKey = new Set();
+        const seenKey = new Set(), seenB = [];
+        const hid = b => (b.rows[0].slots || []).filter(s => s && s.id).map(s => String(s.id));
         wuRv.items = wcBattles.map(b => {
-            const key = wuBattleKey(b), p = prev.get(key), dup = seenKey.has(key); seenKey.add(key);
+            const key = wuBattleKey(b), p = prev.get(key);
+            const H = hid(b), dup = seenKey.has(key) || seenB.some(o => wcNameClose(o.rows[0].name, b.rows[0].name) && hid(o).filter(x => H.includes(x)).length >= 2);
+            seenKey.add(key); seenB.push(b);
             const ri = 0, mem = wuMemberOfName(gid, wuRowName(b.rows[0]));   // ฝั่งซ้าย/บน = ลูกกิลเรา · ขวา/ล่าง = ศัตรู
             const heroes = (b.rows[ri].slots || []).filter(s => s && s.id).map(s => ({ id: String(s.id), aw: !!s.aw }));
             const teams = wuTeamsForHeroes(mem, heroes.map(x => x.id));
