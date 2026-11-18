@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.31.3';
+        const APP_VERSION = '1.31.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14913,9 +14913,10 @@
                 total += st.total || 0; win += st.win || 0; lose += st.lose || 0;
                 (st.members || []).forEach(m => {
                     const k = m.key || m.member_id || ('n:' + (m.name || ''));
-                    const x = memMap.get(k) || { key: k, name: m.name, member_id: m.member_id, avatar: m.avatar || '', total: 0, win: 0, lose: 0 };
+                    const x = memMap.get(k) || { key: k, name: m.name, game_name: m.game_name || '', member_id: m.member_id, avatar: m.avatar || '', total: 0, win: 0, lose: 0 };
                     x.total += m.total || 0; x.win += m.win || 0; x.lose += m.lose || 0;
                     if (!x.name && m.name) x.name = m.name;
+                    if (!x.game_name && m.game_name) x.game_name = m.game_name;
                     if (!x.avatar && m.avatar) x.avatar = m.avatar;
                     memMap.set(k, x);
                 });
@@ -14966,7 +14967,10 @@
                     return `<div class="flex items-center gap-3 px-3 py-2 border-b border-gray-800/70 last:border-b-0 ${i % 2 ? 'bg-black/10' : ''}">
                         <span class="w-6 text-right text-[11px] font-black text-gray-500 shrink-0">${i + 1}</span>
                         ${avatarHTML(x)}
-                        <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-bold text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div>
+                            ${x.game_name && x.game_name !== x.name ? `<div class="text-[10px] text-gray-500 truncate">🎮 ${ccEsc(x.game_name)}</div>` : ''}
+                        </div>
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-amber-300 shrink-0">${x.total}</span>
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-emerald-300 shrink-0">${x.win}</span>
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-red-300 shrink-0">${x.lose}</span>
