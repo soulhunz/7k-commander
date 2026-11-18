@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.34.5';
+        const APP_VERSION = '1.34.6';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15007,18 +15007,12 @@
                 battlesBody = `<div class="p-6 text-center text-sm text-amber-300">⚠️ โหลดไม้ไม่สำเร็จ${wsMemBattlesErr ? '<br><span class="text-[11px] text-gray-500">' + ccEsc(wsMemBattlesErr) + '</span>' : ''}${needDeploy ? '<br><span class="text-[11px] text-gray-400 mt-2 block">แอดมินต้อง deploy Apps Script ใหม่ (รุ่น 8.11.0 ขึ้นไป)</span>' : ''}</div>`;
             } else {
                 const rows = (wsMemBattles.battles || []).filter(r => wsMemWarTab === '__all' || r.war_id === wsMemWarTab);
-                let sorted = rows.slice().sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
-                // 🧢 "ทุกวอ": เอาแค่ 5 ไม้ล่าสุดของแต่ละวอ (กรอบเกมจริง 1 คน 1 วอ ตีได้ 5 ไม้)
-                let capped = false;
-                if (wsMemWarTab === '__all') {
-                    const nPerWar = {};
-                    sorted = sorted.filter(r => { const w = r.war_id || ''; nPerWar[w] = (nPerWar[w] || 0) + 1; if (nPerWar[w] > 5) { capped = true; return false; } return true; });
-                }
+                const sorted = rows.slice().sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
                 if (!sorted.length) battlesBody = '<div class="p-6 text-center text-sm text-gray-500">ไม่มีไม้ในวอนี้</div>';
                 else {
                     const mLocal = (guildsDB || []).flatMap(g => g.members || []).find(mm => String(mm.id) === String(x.member_id)) || { name: x.name, discordAvatar: x.avatar };
-                    const capNote = capped ? '<div class="px-3 pt-3 text-[11px] text-gray-500">🧢 แสดงไม้ล่าสุดวอละ 5 (กดแท็บวอเพื่อดูครบ)</div>' : '';
-                    battlesBody = `${capNote}<div class="p-3 space-y-2">${sorted.map((r, i) => (typeof ccUsedGameRow === 'function' ? ccUsedGameRow(r, mLocal, i + 1, true) : '')).join('')}</div>`;
+                    // 🧢 กรอบไม้: ~5 ไม้แรกอยู่ในจอ · เกิน → สกอข้างในกรอบ (ไม่ดันหน้าต่างให้เลื่อนทั้งก้อน)
+                    battlesBody = `<div class="p-3 overflow-y-auto custom-scroll space-y-2" style="max-height:min(520px,60vh)">${sorted.map((r, i) => (typeof ccUsedGameRow === 'function' ? ccUsedGameRow(r, mLocal, i + 1, true) : '')).join('')}</div>`;
                 }
             }
             m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl">
