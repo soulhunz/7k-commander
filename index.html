@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.34.2';
+        const APP_VERSION = '1.34.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14981,14 +14981,10 @@
             perWar.forEach(w => { const k = w.ss || ''; ssCount[k] = (ssCount[k] || 0) + 1; w._num = ssCount[k]; });
             const warTabs = `<div class="flex flex-wrap gap-1.5 p-2 border-b border-gray-800 bg-[#0d1117]/60">
                 <button onclick="wsMemSetWarTab('__all')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${wsMemWarTab === '__all' ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">🌐 ทุกวอ <span class="opacity-70 font-normal">(${x.total})</span></button>
-                ${perWar.map(w => {
-                    // 📅 1 SS = 18 รอบ (รอบ 1 พัก · รอบคู่ตั้งทีมป้องกัน · รอบคี่ตั้งแต่ 3 = สู้) → วอ-N = รอบ (2N+1)
-                    const round = 2 * w._num + 1;
-                    return `<button onclick="wsMemSetWarTab('${ccEsc(w.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition flex flex-col items-center leading-tight ${wsMemWarTab === w.id ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}" title="${ccEsc(w.label || w.id)}${w.ss ? ' · 📚 ' + ccEsc(w.ss) : ''} · รอบ ${round}/18">
-                        <span>วอ-${w._num} <span class="opacity-70 font-normal">(${w.total})</span></span>
-                        <span class="text-[9px] font-normal opacity-60 mt-0.5">รอบ ${round}/18</span>
-                    </button>`;
-                }).join('')}
+                ${perWar.map(w => `<button onclick="wsMemSetWarTab('${ccEsc(w.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition flex flex-col items-center leading-tight ${wsMemWarTab === w.id ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}" title="${ccEsc(w.label || w.id)}${w.ss ? ' · 📚 ' + ccEsc(w.ss) : ''} · รอบ ${w._num}/18">
+                    <span>วอ-${w._num} <span class="opacity-70 font-normal">(${w.total})</span></span>
+                    <span class="text-[9px] font-normal opacity-60 mt-0.5">รอบ ${w._num}/18</span>
+                </button>`).join('')}
             </div>`;
             // เนื้อหาตามแท็บ — ใช้ข้อมูลไม้จริง (lazy fetch) · ยังไม่โหลดเสร็จ = ขึ้นสัญลักษณ์กำลังโหลด
             let battlesBody = '';
