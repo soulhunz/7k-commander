@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.33.0';
+        const APP_VERSION = '1.34.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14870,6 +14870,7 @@
         // =========================================================
         let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all', wsSort = 'win', wsDir = 'desc';
         let wsMembers = new Map(), wsActiveWarCount = 0;   // จาก ccStatsHTML รอบล่าสุด — ใช้ใน modal
+        let wsMemBattles = null, wsMemBattlesKey = '', wsMemBattlesLoading = false, wsMemWarTab = '__all';
         /** ระดับจากสัดส่วนไม้ที่ตีตามคอมพ์ (on_comp / total) */
         function wsRankBadge(r) {
             if (r >= 0.9) return { icon: '🌟', label: 'Perfect', text: 'text-amber-300', cls: 'border-amber-400 bg-amber-900/30 text-amber-200' };
@@ -14906,9 +14907,28 @@
                 ${dots}${labels}
             </svg>`;
         }
-        /** modal ของลูกกิล: กราฟ 5 แกน + รายการต่อวอ (ตีใครบ้าง) + รายการคอมพ์ที่ตี */
+        /** 📋 โหลดไม้ทั้งหมดของคนนี้ (lazy · แคชต่อ key) — แล้วเปิด tab วอใหม่สุด */
+        async function wsLoadMemberBattles(x) {
+            const key = String(x.key);
+            if (wsMemBattlesKey === key && wsMemBattles) return;
+            wsMemBattles = null; wsMemBattlesKey = key; wsMemBattlesLoading = true; wsMemWarTab = '__all';
+            wsRenderMemberModal(x);
+            try {
+                const g = wsGuild();
+                const r = await postJson({ action: 'getMemberBattlesPublic', guild: g, member_id: x.member_id || '', game_name: x.member_id ? '' : (x.game_name || x.name || '') }, { timeout: 45000, retries: 2 });
+                if (r && r.status === 'success') wsMemBattles = r;
+            } catch (e) { console.warn('getMemberBattlesPublic', e); }
+            wsMemBattlesLoading = false;
+            if (wsMemBattlesKey === key) wsRenderMemberModal(x);
+        }
+        function wsMemSetWarTab(t) { wsMemWarTab = t; const x = wsMembers.get(wsMemBattlesKey); if (x) wsRenderMemberModal(x); }
+        /** modal ของลูกกิล: กราฟ 5 แกน + tab วอ + รายการคอมพ์ที่ตี */
         function wsOpenMember(key) {
             const x = wsMembers.get(key); if (!x) return;
+            wsRenderMemberModal(x);
+            wsLoadMemberBattles(x);
+        }
+        function wsRenderMemberModal(x) {
             let m = document.getElementById('ws-mem-dlg');
             if (!m) {
                 m = document.createElement('div');
@@ -14954,22 +14974,28 @@
                     </div>
                 </div>`;
             };
-            // 🗓️ ต่อวอ — เรียงใหม่สุดก่อน · ศัตรูรวมเลขข้างชื่อ
+            // 🗓️ แท็บวอ + ไม้แบบในเกม (reuse ccUsedGameRow)
             const perWar = x.perWar.slice().sort((a, b) => (Number(b.startedAt) || 0) - (Number(a.startedAt) || 0));
-            const warRows = perWar.map(w => {
-                const pr = w.total ? Math.round((w.win / w.total) * 1000) / 10 : 0;
-                const ens = (w.enemies || []).slice().sort((a, b) => b.n - a.n);
-                const enHTML = ens.length ? ens.map(e => `<span class="inline-block px-2 py-0.5 rounded bg-[#161b22] border border-gray-700 text-[11px] text-gray-300 mr-1 mb-1">⚔️ ${ccEsc(e.name)}${e.n > 1 ? ' <b class="text-amber-300">×' + e.n + '</b>' : ''}</span>`).join('') : '<span class="text-[11px] text-gray-600 italic">ไม่มีข้อมูลศัตรู</span>';
-                return `<div class="p-3 border-b border-gray-800/70 last:border-b-0">
-                    <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                        <span class="text-sm font-bold text-white">${ccEsc(w.label || w.id)}</span>
-                        ${w.ss ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-violet-900/40 border border-violet-600/60 text-violet-200 font-bold">📚 ${ccEsc(w.ss)}</span>` : ''}
-                        <span class="ml-auto text-[11px]"><b class="text-amber-300">${w.total}</b> ไม้ · <span class="text-emerald-300 font-bold">${w.win}</span><span class="text-gray-600">/</span><span class="text-red-300 font-bold">${w.lose}</span>${w.total ? ` · <span class="text-indigo-300 font-bold">${pr}%</span>` : ''}</span>
-                    </div>
-                    <div class="flex flex-wrap">${enHTML}</div>
-                </div>`;
-            }).join('');
-            m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl">
+            const warTabs = `<div class="flex flex-wrap gap-1.5 p-2 border-b border-gray-800 bg-[#0d1117]/60">
+                <button onclick="wsMemSetWarTab('__all')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${wsMemWarTab === '__all' ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">🌐 ทุกวอ <span class="opacity-70 font-normal">(${x.total})</span></button>
+                ${perWar.map(w => `<button onclick="wsMemSetWarTab('${ccEsc(w.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${wsMemWarTab === w.id ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}" title="${ccEsc(w.label || w.id)}${w.ss ? ' · ' + ccEsc(w.ss) : ''}">${w.ss ? '📚 ' + ccEsc(w.ss) : ccEsc((w.label || w.id).slice(0, 20))} <span class="opacity-70 font-normal">(${w.total})</span></button>`).join('')}
+            </div>`;
+            // เนื้อหาตามแท็บ — ใช้ข้อมูลไม้จริง (lazy fetch) · ยังไม่โหลดเสร็จ = ขึ้นสัญลักษณ์กำลังโหลด
+            let battlesBody = '';
+            if (wsMemBattlesLoading && !wsMemBattles) {
+                battlesBody = '<div class="p-6 text-center text-sm text-gray-400">⏳ กำลังโหลดไม้...</div>';
+            } else if (!wsMemBattles) {
+                battlesBody = '<div class="p-6 text-center text-sm text-gray-500">โหลดไม้ไม่สำเร็จ</div>';
+            } else {
+                const rows = (wsMemBattles.battles || []).filter(r => wsMemWarTab === '__all' || r.war_id === wsMemWarTab);
+                const sorted = rows.slice().sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+                if (!sorted.length) battlesBody = '<div class="p-6 text-center text-sm text-gray-500">ไม่มีไม้ในวอนี้</div>';
+                else {
+                    const mLocal = (guildsDB || []).flatMap(g => g.members || []).find(mm => String(mm.id) === String(x.member_id)) || { name: x.name, discordAvatar: x.avatar };
+                    battlesBody = `<div class="p-3 space-y-2">${sorted.map((r, i) => (typeof ccUsedGameRow === 'function' ? ccUsedGameRow(r, mLocal, i + 1, true) : '')).join('')}</div>`;
+                }
+            }
+            m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl">
                 <div class="p-4 border-b border-gray-800 flex items-center gap-3 shrink-0">
                     ${avUrl ? `<img src="${avUrl}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 border-indigo-500/60" alt="">` : '<div class="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xl">👤</div>'}
                     <div class="min-w-0 flex-1"><div class="text-lg font-black text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div>
@@ -14988,8 +15014,9 @@
                         <div class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2 text-center">📊 โปรไฟล์การตี</div>
                         ${wsRadarSVG(axes, [vBat, vFull, vOn, vOff, vWin])}
                     </div>
-                    <div class="px-4 py-2 border-b border-gray-800 bg-indigo-900/10 text-xs font-black text-indigo-200 uppercase tracking-wider">🗓️ สถิติแยกวอ · ${perWar.length} วอ</div>
-                    ${perWar.length ? warRows : '<div class="p-4 text-sm text-gray-500 text-center">ยังไม่มีข้อมูลวอ</div>'}
+                    <div class="px-4 py-2 border-b border-gray-800 bg-indigo-900/10 text-xs font-black text-indigo-200 uppercase tracking-wider">🗓️ ไม้ที่ตี · แยกวอ</div>
+                    ${warTabs}
+                    ${battlesBody}
                     <div class="px-4 py-2 border-b border-gray-800 bg-emerald-900/10 text-xs font-black text-emerald-200 uppercase tracking-wider">✅ ตีตามคอมพ์ · ${x.on_comp || 0} ไม้ (${onList.length} คอมพ์)</div>
                     ${onList.length ? onList.map(c => compRow(c, false)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ยังไม่มีไม้ที่ตีตามคอมพ์ที่แชร์ไว้</div>'}
                     <div class="px-4 py-2 border-b border-gray-800 bg-red-900/10 text-xs font-black text-red-200 uppercase tracking-wider">❓ ไม่ตรงคอมพ์ · ${x.off_comp || 0} ไม้ (${offList.length} รูปแบบ)</div>
