@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.31.4';
+        const APP_VERSION = '1.31.5';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14931,14 +14931,14 @@
             });
             const rate = total ? Math.round((win / total) * 1000) / 10 : 0;
 
-            const ssBtn = (key, label, n) => `<button onclick="wsSs='${ccEsc(String(key).replace(/'/g, '&#39;'))}';wsWarId='__all';wsRender()" class="px-3 py-1.5 rounded-xl text-xs font-black border transition ${wsSs === key ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">${label} <span class="opacity-70 font-normal">(${n})</span></button>`;
+            const ssBtn = (key, label, n) => `<button onclick="wsSs='${ccEsc(String(key).replace(/'/g, '&#39;'))}';wsWarId='__all';ccViewerRender()" class="px-3 py-1.5 rounded-xl text-xs font-black border transition ${wsSs === key ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">${label} <span class="opacity-70 font-normal">(${n})</span></button>`;
             const ssBar = `<div class="flex flex-wrap gap-2 mb-4">
                 ${ssBtn('__all', '📚 ทุก SS', wars.length)}
                 ${ssList.map(([k, list]) => ssBtn(k, k ? '📚 ' + ccEsc(k) : '❓ ไม่ระบุ SS', list.length)).join('')}
             </div>`;
             // dropdown เลือกวอในแต่ละ SS
             const warSel = warsOfSs.length > 1 ? `<label class="flex items-center gap-2 text-xs text-gray-400 font-bold mb-4">🗓️ วอ:
-                <select onchange="wsWarId=this.value;wsRender()" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">
+                <select onchange="wsWarId=this.value;ccViewerRender()" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">
                     <option value="__all" ${wsWarId === '__all' ? 'selected' : ''}>ทุกวอใน ${wsSs === '__all' ? 'ทุก SS' : (wsSs || 'ไม่ระบุ')} (${warsOfSs.length} วอ)</option>
                     ${warsOfSs.map(w => `<option value="${ccEsc(w.id)}" ${wsWarId === w.id ? 'selected' : ''}>${ccEsc(w.label || w.id)}${w.current ? ' · ปัจจุบัน' : ''}</option>`).join('')}
                 </select></label>` : '';
