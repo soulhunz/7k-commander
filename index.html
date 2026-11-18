@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.31.0';
+        const APP_VERSION = '1.31.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -6290,7 +6290,7 @@
             if (appUrlParams().get('mode') === 'mai-view') { ccHubPage = 'mai'; ccViewerBoot(); return; }
             // 🔨 หน้าดูบิ้วตัวละครที่เผยแพร่ — ไม่ต้อง login
             if (appUrlParams().get('mode') === 'builds-view') { hbvBoot(); return; }
-            if (appUrlParams().get('mode') === 'stats-view') { wsBoot(); return; }
+            if (appUrlParams().get('mode') === 'stats-view') { ccViewTab = 'stats'; ccViewerBoot(); return; }
 
             // 🔗 ลิงก์แชร์ (k= / mode=apply) แต่ไม่รู้ URL server = ลิงก์ไม่ครบ (โดนตัดท้าย / ลิงก์รุ่นเก่าไม่มี s=)
             //    คนทั่วไปไม่มีทางรู้ URL server — อย่าถาม ให้บอกว่าต้องขอลิงก์ใหม่
@@ -14791,10 +14791,10 @@
             if (!isPublicView) return '';
             if (active === 'mai') active = 'gallery';   // ⚔️ ไม้ชน อยู่ใต้แกลเลอรีทีม (แท็บข้าง Targets/Defense)
             const btn = (key, icon, label) => `<button onclick="switchPublicHub('${key}')" class="flex-1 min-w-0 sm:flex-none px-2 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap overflow-hidden ${active === key
-                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'mai' ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : key === 'stats' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
+                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'mai' ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
                 : 'text-gray-400 hover:text-white hover:bg-white/5'}"><span class="hidden sm:inline">${icon}</span>${label}</button>`;
             return `<div class="flex w-full sm:w-auto sm:self-start gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">
-                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}${btn('stats', '📊', 'สถิติ')}
+                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}
                 </div>`;
         }
         /** ชื่อกิลด์ของลิงก์ (มุมขวาบน) — หน้าสาธารณะเท่านั้น */
@@ -14821,15 +14821,8 @@
             const q = galleryShareQuery(); // k / g / s เดิม
             const hbv = document.getElementById('hb-viewer');
             if (hbv) hbv.style.display = 'none';
-            const wsv = document.getElementById('ws-viewer');
-            if (wsv && target !== 'stats') wsv.style.display = 'none';
-            if (target === 'stats') {
-                try { window.history.replaceState({}, '', window.location.pathname + '?mode=stats-view' + q); } catch (e) {}
-                ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-                if (hbv) hbv.style.display = 'none';
-                wsBoot();
-                return;
-            }
+            // 📊 สถิติย้ายไปเป็นแท็บย่อยในหน้าคอมพ์ปราสาทแล้ว — ลิงก์เก่า ?mode=stats-view = เปิดคอมพ์ปราสาทแท็บสถิติ
+            if (target === 'stats') { ccViewTab = 'stats'; target = 'castle'; }
             if (target === 'builds') {
                 try { window.history.replaceState({}, '', window.location.pathname + '?mode=builds-view' + q); } catch (e) {}
                 ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -14872,49 +14865,29 @@
         }
 
         // =========================================================
-        // 📊 หน้าสาธารณะ: สถิติการตีของกิลด์ (?mode=stats-view) — ชนะ/แพ้ ต่อคน · กรองตาม SS / วอ
+        // 📊 แท็บย่อยในหน้าคอมพ์ปราสาท: สถิติการตีของกิลด์ · ชนะ/แพ้ ต่อคน · กรองตาม SS / วอ
         //    ข้อมูลจาก getWarStatsPublic — ไม่ login = เห็นเลขรวมกิลด์ (ซ่อนชื่อ) · login = เห็นแยกคน
         // =========================================================
         let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all';
         function wsGuild() { try { return decodeGuildParam(appUrlParams().get('g')) || ''; } catch (e) { return ''; } }
         async function wsLoad(force) {
             const g = wsGuild();
-            if (!g) { wsErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; wsRender(); return; }
+            if (!g) { wsErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; if (ccViewTab === 'stats') ccViewerRender(); return; }
             if (wsLoading || (!force && wsData && wsData._guild === g && Date.now() - wsData._at < 60000)) return;
-            wsLoading = true; wsErr = ''; wsRender();
+            wsLoading = true; wsErr = '';
+            if (ccViewTab === 'stats') ccViewerRender();
             try {
                 const r = await postJson({ action: 'getWarStatsPublic', guild: g }, { timeout: 45000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
                 wsData = Object.assign(r, { _guild: g, _at: Date.now() });
             } catch (e) { wsErr = e.message || String(e); }
-            wsLoading = false; wsRender();
+            wsLoading = false;
+            if (ccViewTab === 'stats') ccViewerRender();
         }
-        function wsBoot() {
-            isPublicView = true;
-            ['login-screen', 'main-sidebar', 'main-content', 'cc-viewer', 'hb-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-            hideLoading();
-            let box = document.getElementById('ws-viewer');
-            if (!box) {
-                box = document.createElement('div');
-                box.id = 'ws-viewer';
-                box.className = 'fixed inset-0 z-[100] overflow-y-auto bg-[#0b0e14] text-gray-200';
-                document.body.appendChild(box);
-            }
-            box.style.display = '';
-            wsRender();
-            wsLoad();
-        }
-        function wsRender() {
-            const box = document.getElementById('ws-viewer'); if (!box) return;
-            const head = `<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
-                <div class="flex flex-col gap-3">
-                    <div class="flex items-center gap-3"><h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">📊 สถิติ<span class="text-indigo-400"> วอ</span></h1></div>
-                    ${publicHubNavHTML('stats')}
-                </div>
-                <div class="flex flex-wrap items-center md:justify-end gap-3">${publicHubGuildHTML()}</div>
-            </div>`;
-            if (wsErr) { box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}<div class="text-center py-20 text-amber-300 text-sm">⚠️ ${ccEsc(wsErr)} <button onclick="wsLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div></div>`; return; }
-            if (!wsData) { box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}<div class="text-center py-20 text-gray-400 text-sm">⏳ กำลังโหลดสถิติ…</div></div>`; return; }
+        function ccStatsHTML() {
+            if (!wsData && !wsLoading && !wsErr) setTimeout(() => wsLoad(), 0);
+            if (wsErr) return `<div class="text-center py-16 text-amber-300 text-sm">⚠️ ${ccEsc(wsErr)} <button onclick="wsLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
+            if (!wsData) return `<div class="text-center py-16 text-sm text-gray-400">⏳ กำลังโหลดสถิติ…</div>`;
 
             const wars = wsData.wars || [], stats = wsData.stats || {};
             // กลุ่มตาม SS (รวม "ไม่ระบุ")
@@ -14989,8 +14962,9 @@
                 </div>`;
             }
 
-            box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}
-                <h2 class="text-sm text-gray-400 font-black mb-3">📚 เลือก SS</h2>
+            return `<div class="space-y-3">
+                <div class="flex flex-wrap items-center gap-2 text-xs"><span class="text-gray-200 font-black text-sm">📊 สถิติวอ</span><button onclick="wsLoad(true)" class="ml-auto px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${wsLoading ? 'opacity-50' : ''}">${wsLoading ? '⏳' : '🔄'} รีเฟรช</button></div>
+                <h2 class="text-xs text-gray-500 font-black uppercase tracking-wider">📚 เลือก SS</h2>
                 ${ssBar}${warSel}${aggCard}${memBlock}
             </div>`;
         }
@@ -16024,7 +15998,7 @@
             const tabBtn = (key, label) => `<button onclick="ccViewerSetTab('${key}')" class="flex-1 min-w-0 sm:flex-none px-1.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap overflow-hidden text-ellipsis ${ccViewTab === key
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
 
-            const bodyHTML = ccViewTab === 'used' ? ccUsedHTML() : ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
+            const bodyHTML = ccViewTab === 'used' ? ccUsedHTML() : ccViewTab === 'stats' ? ccStatsHTML() : ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
             box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">${head}
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                 <!-- 🖱️ ส่วนที่กดได้: แท็บมุมมอง + เลือกตัวละคร -->
@@ -16034,6 +16008,7 @@
                         ${tabBtn('comp', '<span class="hidden sm:inline">⚔️ </span>คอมพ์')}
                         ${tabBtn('castle', '<span class="hidden sm:inline">🏰 </span><span class="sm:hidden">รายปราสาท</span><span class="hidden sm:inline">แยกรายปราสาท</span>')}
                         ${tabBtn('used', '<span class="hidden sm:inline">📒 </span>รายการตี')}
+                        ${tabBtn('stats', '<span class="hidden sm:inline">📊 </span>สถิติ')}
                     </div>
                 </div>
                 <!-- 📊 สรุปตัวเลข: ตัวหนังสือล้วน ไม่มีกรอบแบบปุ่ม — มือถือขึ้นแถวของตัวเอง · แท็บตาราง = สรุปละเอียด -->
