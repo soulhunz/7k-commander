@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.31.1';
+        const APP_VERSION = '1.31.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14937,9 +14937,7 @@
             <div class="mb-5 text-sm text-gray-400">🏆 อัตราชนะ: <b class="text-white">${rate}%</b></div>`;
 
             let memBlock = '';
-            if (!wsData.reveal) {
-                memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-4 text-sm text-gray-400 text-center">👤 เข้าสู่ระบบด้วย Discord ที่มุมขวาบน เพื่อดูรายชื่อลูกกิลที่ตีในวอนี้</div>`;
-            } else if (!mems.length) {
+            if (!mems.length) {
                 memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">ไม่มีไม้ในช่วงที่เลือก</div>`;
             } else {
                 const rowHTML = mems.map((x, i) => {
