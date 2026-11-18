@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.30.0';
+        const APP_VERSION = '1.31.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -4989,7 +4989,7 @@
             if (SYSTEM_CONFIG.WEB_APP_URL) return; // เปิดผ่าน Apps Script = รู้ URL ตัวเองแน่นอนแล้ว
             try {
                 const p = appUrlParams();
-                if (!(p.get('k') || p.get('mode') === 'apply' || p.get('mode') === 'castle-view' || p.get('mode') === 'mai-view' || p.get('mode') === 'builds-view')) return;
+                if (!(p.get('k') || p.get('mode') === 'apply' || p.get('mode') === 'castle-view' || p.get('mode') === 'mai-view' || p.get('mode') === 'builds-view' || p.get('mode') === 'stats-view')) return;
                 if (DEFAULT_WEB_APP_URL) { SCRIPT_URL = DEFAULT_WEB_APP_URL; USE_CLOUD = true; return; }
                 if (!p.get('s')) return;
                 const url = decodeURIComponent(escape(atob(p.get('s'))));
@@ -6290,6 +6290,7 @@
             if (appUrlParams().get('mode') === 'mai-view') { ccHubPage = 'mai'; ccViewerBoot(); return; }
             // 🔨 หน้าดูบิ้วตัวละครที่เผยแพร่ — ไม่ต้อง login
             if (appUrlParams().get('mode') === 'builds-view') { hbvBoot(); return; }
+            if (appUrlParams().get('mode') === 'stats-view') { wsBoot(); return; }
 
             // 🔗 ลิงก์แชร์ (k= / mode=apply) แต่ไม่รู้ URL server = ลิงก์ไม่ครบ (โดนตัดท้าย / ลิงก์รุ่นเก่าไม่มี s=)
             //    คนทั่วไปไม่มีทางรู้ URL server — อย่าถาม ให้บอกว่าต้องขอลิงก์ใหม่
@@ -14790,10 +14791,10 @@
             if (!isPublicView) return '';
             if (active === 'mai') active = 'gallery';   // ⚔️ ไม้ชน อยู่ใต้แกลเลอรีทีม (แท็บข้าง Targets/Defense)
             const btn = (key, icon, label) => `<button onclick="switchPublicHub('${key}')" class="flex-1 min-w-0 sm:flex-none px-2 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap overflow-hidden ${active === key
-                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'mai' ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
+                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'mai' ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : key === 'stats' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
                 : 'text-gray-400 hover:text-white hover:bg-white/5'}"><span class="hidden sm:inline">${icon}</span>${label}</button>`;
             return `<div class="flex w-full sm:w-auto sm:self-start gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">
-                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}
+                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}${btn('stats', '📊', 'สถิติ')}
                 </div>`;
         }
         /** ชื่อกิลด์ของลิงก์ (มุมขวาบน) — หน้าสาธารณะเท่านั้น */
@@ -14820,6 +14821,15 @@
             const q = galleryShareQuery(); // k / g / s เดิม
             const hbv = document.getElementById('hb-viewer');
             if (hbv) hbv.style.display = 'none';
+            const wsv = document.getElementById('ws-viewer');
+            if (wsv && target !== 'stats') wsv.style.display = 'none';
+            if (target === 'stats') {
+                try { window.history.replaceState({}, '', window.location.pathname + '?mode=stats-view' + q); } catch (e) {}
+                ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                if (hbv) hbv.style.display = 'none';
+                wsBoot();
+                return;
+            }
             if (target === 'builds') {
                 try { window.history.replaceState({}, '', window.location.pathname + '?mode=builds-view' + q); } catch (e) {}
                 ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -14859,6 +14869,130 @@
                 if (galleryCacheDB && galleryCacheDB.length && Date.now() - (gallerySync.at || 0) >= GALLERY_POLL_MS - 1000) syncSharedGalleryInBackground(decodeGuildParam(appUrlParams().get('g'))); // ไม่ได้ดูนาน → เช็คเลย
             }
             window.scrollTo(0, 0);
+        }
+
+        // =========================================================
+        // 📊 หน้าสาธารณะ: สถิติการตีของกิลด์ (?mode=stats-view) — ชนะ/แพ้ ต่อคน · กรองตาม SS / วอ
+        //    ข้อมูลจาก getWarStatsPublic — ไม่ login = เห็นเลขรวมกิลด์ (ซ่อนชื่อ) · login = เห็นแยกคน
+        // =========================================================
+        let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all';
+        function wsGuild() { try { return decodeGuildParam(appUrlParams().get('g')) || ''; } catch (e) { return ''; } }
+        async function wsLoad(force) {
+            const g = wsGuild();
+            if (!g) { wsErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; wsRender(); return; }
+            if (wsLoading || (!force && wsData && wsData._guild === g && Date.now() - wsData._at < 60000)) return;
+            wsLoading = true; wsErr = ''; wsRender();
+            try {
+                const r = await postJson({ action: 'getWarStatsPublic', guild: g }, { timeout: 45000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+                wsData = Object.assign(r, { _guild: g, _at: Date.now() });
+            } catch (e) { wsErr = e.message || String(e); }
+            wsLoading = false; wsRender();
+        }
+        function wsBoot() {
+            isPublicView = true;
+            ['login-screen', 'main-sidebar', 'main-content', 'cc-viewer', 'hb-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+            hideLoading();
+            let box = document.getElementById('ws-viewer');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'ws-viewer';
+                box.className = 'fixed inset-0 z-[100] overflow-y-auto bg-[#0b0e14] text-gray-200';
+                document.body.appendChild(box);
+            }
+            box.style.display = '';
+            wsRender();
+            wsLoad();
+        }
+        function wsRender() {
+            const box = document.getElementById('ws-viewer'); if (!box) return;
+            const head = `<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3"><h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">📊 สถิติ<span class="text-indigo-400"> วอ</span></h1></div>
+                    ${publicHubNavHTML('stats')}
+                </div>
+                <div class="flex flex-wrap items-center md:justify-end gap-3">${publicHubGuildHTML()}</div>
+            </div>`;
+            if (wsErr) { box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}<div class="text-center py-20 text-amber-300 text-sm">⚠️ ${ccEsc(wsErr)} <button onclick="wsLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div></div>`; return; }
+            if (!wsData) { box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}<div class="text-center py-20 text-gray-400 text-sm">⏳ กำลังโหลดสถิติ…</div></div>`; return; }
+
+            const wars = wsData.wars || [], stats = wsData.stats || {};
+            // กลุ่มตาม SS (รวม "ไม่ระบุ")
+            const bySs = new Map();
+            wars.forEach(w => { const k = w.ss || ''; if (!bySs.has(k)) bySs.set(k, []); bySs.get(k).push(w); });
+            // ให้ปุ่ม SS เรียงตามเวลาของวอใหม่สุดในกลุ่ม
+            const ssList = [...bySs.entries()].sort((a, b) => Math.max(...b[1].map(w => +w.startedAt || 0)) - Math.max(...a[1].map(w => +w.startedAt || 0)));
+            // วอที่เลือก (ตามตัวกรอง SS + วอ)
+            const warsOfSs = wsSs === '__all' ? wars : (bySs.get(wsSs) || []);
+            const activeWars = wsWarId === '__all' ? warsOfSs : warsOfSs.filter(w => w.id === wsWarId);
+
+            // รวมสถิติข้ามวอที่เลือก · ต่อลูกกิล
+            let total = 0, win = 0, lose = 0;
+            const memMap = new Map();
+            activeWars.forEach(w => {
+                const st = stats[w.id]; if (!st) return;
+                total += st.total || 0; win += st.win || 0; lose += st.lose || 0;
+                (st.members || []).forEach(m => {
+                    const k = m.key || m.member_id || ('n:' + (m.name || ''));
+                    const x = memMap.get(k) || { key: k, name: m.name, member_id: m.member_id, total: 0, win: 0, lose: 0 };
+                    x.total += m.total || 0; x.win += m.win || 0; x.lose += m.lose || 0;
+                    if (!x.name && m.name) x.name = m.name;
+                    memMap.set(k, x);
+                });
+            });
+            const mems = [...memMap.values()].filter(x => x.total > 0).sort((a, b) => b.win - a.win || b.total - a.total || String(a.name || '').localeCompare(String(b.name || ''), 'th'));
+            const rate = total ? Math.round((win / total) * 1000) / 10 : 0;
+
+            const ssBtn = (key, label, n) => `<button onclick="wsSs='${ccEsc(String(key).replace(/'/g, '&#39;'))}';wsWarId='__all';wsRender()" class="px-3 py-1.5 rounded-xl text-xs font-black border transition ${wsSs === key ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">${label} <span class="opacity-70 font-normal">(${n})</span></button>`;
+            const ssBar = `<div class="flex flex-wrap gap-2 mb-4">
+                ${ssBtn('__all', '📚 ทุก SS', wars.length)}
+                ${ssList.map(([k, list]) => ssBtn(k, k ? '📚 ' + ccEsc(k) : '❓ ไม่ระบุ SS', list.length)).join('')}
+            </div>`;
+            // dropdown เลือกวอในแต่ละ SS
+            const warSel = warsOfSs.length > 1 ? `<label class="flex items-center gap-2 text-xs text-gray-400 font-bold mb-4">🗓️ วอ:
+                <select onchange="wsWarId=this.value;wsRender()" style="color-scheme:dark" class="bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">
+                    <option value="__all" ${wsWarId === '__all' ? 'selected' : ''}>ทุกวอใน ${wsSs === '__all' ? 'ทุก SS' : (wsSs || 'ไม่ระบุ')} (${warsOfSs.length} วอ)</option>
+                    ${warsOfSs.map(w => `<option value="${ccEsc(w.id)}" ${wsWarId === w.id ? 'selected' : ''}>${ccEsc(w.label || w.id)}${w.current ? ' · ปัจจุบัน' : ''}</option>`).join('')}
+                </select></label>` : '';
+
+            const aggCard = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4"><div class="text-[10px] text-gray-500 font-black uppercase">วอที่เลือก</div><div class="text-2xl font-black text-white">${activeWars.length}</div></div>
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4"><div class="text-[10px] text-gray-500 font-black uppercase">ไม้ทั้งหมด</div><div class="text-2xl font-black text-amber-300">${total}</div></div>
+                <div class="bg-[#161b22] border border-emerald-800/60 rounded-2xl p-4"><div class="text-[10px] text-emerald-400 font-black uppercase">ชนะ</div><div class="text-2xl font-black text-emerald-300">${win}</div></div>
+                <div class="bg-[#161b22] border border-red-800/60 rounded-2xl p-4"><div class="text-[10px] text-red-400 font-black uppercase">แพ้</div><div class="text-2xl font-black text-red-300">${lose}</div></div>
+            </div>
+            <div class="mb-5 text-sm text-gray-400">🏆 อัตราชนะ: <b class="text-white">${rate}%</b></div>`;
+
+            let memBlock = '';
+            if (!wsData.reveal) {
+                memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-4 text-sm text-gray-400 text-center">👤 เข้าสู่ระบบด้วย Discord ที่มุมขวาบน เพื่อดูรายชื่อลูกกิลที่ตีในวอนี้</div>`;
+            } else if (!mems.length) {
+                memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">ไม่มีไม้ในช่วงที่เลือก</div>`;
+            } else {
+                const rowHTML = mems.map((x, i) => {
+                    const pr = x.total ? Math.round((x.win / x.total) * 1000) / 10 : 0;
+                    return `<div class="flex items-center gap-3 px-3 py-2 border-b border-gray-800/70 last:border-b-0 ${i % 2 ? 'bg-black/10' : ''}">
+                        <span class="w-6 text-right text-[11px] font-black text-gray-500 shrink-0">${i + 1}</span>
+                        <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div></div>
+                        <span class="w-14 sm:w-16 text-right text-sm font-black text-amber-300 shrink-0">${x.total}</span>
+                        <span class="w-14 sm:w-16 text-right text-sm font-black text-emerald-300 shrink-0">${x.win}</span>
+                        <span class="w-14 sm:w-16 text-right text-sm font-black text-red-300 shrink-0">${x.lose}</span>
+                        <span class="w-16 sm:w-20 text-right text-sm font-black text-indigo-300 shrink-0">${pr}%</span>
+                    </div>`;
+                }).join('');
+                memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] overflow-hidden">
+                    <div class="flex items-center gap-3 px-3 py-2.5 border-b border-gray-800 text-[10px] text-gray-500 font-black uppercase">
+                        <span class="w-6"></span><span class="flex-1">ลูกกิล (${mems.length} คน)</span>
+                        <span class="w-14 sm:w-16 text-right">ตี</span><span class="w-14 sm:w-16 text-right">ชนะ</span><span class="w-14 sm:w-16 text-right">แพ้</span><span class="w-16 sm:w-20 text-right">% ชนะ</span>
+                    </div>
+                    ${rowHTML}
+                </div>`;
+            }
+
+            box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}
+                <h2 class="text-sm text-gray-400 font-black mb-3">📚 เลือก SS</h2>
+                ${ssBar}${warSel}${aggCard}${memBlock}
+            </div>`;
         }
 
         // =========================================================
