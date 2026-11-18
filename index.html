@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.32.1';
+        const APP_VERSION = '1.33.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14869,13 +14869,13 @@
         //    ข้อมูลจาก getWarStatsPublic — ไม่ login = เห็นเลขรวมกิลด์ (ซ่อนชื่อ) · login = เห็นแยกคน
         // =========================================================
         let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all', wsSort = 'win', wsDir = 'desc';
-        let wsMembers = new Map();   // key → aggregated member (จาก ccStatsHTML รอบล่าสุด — ใช้ใน modal)
+        let wsMembers = new Map(), wsActiveWarCount = 0;   // จาก ccStatsHTML รอบล่าสุด — ใช้ใน modal
         /** ระดับจากสัดส่วนไม้ที่ตีตามคอมพ์ (on_comp / total) */
         function wsRankBadge(r) {
-            if (r >= 0.9) return { icon: '🌟', label: 'Perfect', cls: 'border-amber-400 bg-amber-900/30 text-amber-200' };
-            if (r >= 0.7) return { icon: '🏆', label: 'Great', cls: 'border-emerald-500 bg-emerald-900/30 text-emerald-200' };
-            if (r >= 0.5) return { icon: '👍', label: 'Good', cls: 'border-sky-500 bg-sky-900/30 text-sky-200' };
-            return { icon: '⚠️', label: 'Bad', cls: 'border-red-700 bg-red-900/30 text-red-200' };
+            if (r >= 0.9) return { icon: '🌟', label: 'Perfect', text: 'text-amber-300', cls: 'border-amber-400 bg-amber-900/30 text-amber-200' };
+            if (r >= 0.7) return { icon: '🏆', label: 'Great', text: 'text-emerald-300', cls: 'border-emerald-500 bg-emerald-900/30 text-emerald-200' };
+            if (r >= 0.5) return { icon: '👍', label: 'Good', text: 'text-sky-300', cls: 'border-sky-500 bg-sky-900/30 text-sky-200' };
+            return { icon: '⚠️', label: 'Bad', text: 'text-red-300', cls: 'border-red-700 bg-red-900/30 text-red-200' };
         }
         /** กดหัวตารางเพื่อเรียง — ซ้ำคีย์เดิม = สลับขึ้น/ลง */
         function wsSetSort(k) {
@@ -14883,7 +14883,30 @@
             else { wsSort = k; wsDir = (k === 'name' ? 'asc' : 'desc'); }
             ccViewerRender();
         }
-        /** modal ของลูกกิล: แสดงคอมพ์ที่ "ตีตาม" vs "ไม่ตรง" ของคนนี้ */
+        /** วาดเพนทากอน (SVG) 5 แกน — ค่า 0–100 ต่อแกน */
+        function wsRadarSVG(axes, values) {
+            const cx = 150, cy = 150, R = 100;
+            const pt = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+            const angles = axes.map((_, i) => -Math.PI / 2 + i * (2 * Math.PI / 5));
+            const grid = [0.25, 0.5, 0.75, 1].map(f =>
+                '<polygon points="' + angles.map(a => pt(a, R * f).join(',')).join(' ') + '" fill="none" stroke="#374151" stroke-width="1"/>'
+            ).join('');
+            const spokes = angles.map(a => { const [x, y] = pt(a, R); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#374151" stroke-width="1"/>`; }).join('');
+            const poly = values.map((v, i) => pt(angles[i], R * Math.max(0, Math.min(100, v)) / 100).join(',')).join(' ');
+            const dots = values.map((v, i) => { const [x, y] = pt(angles[i], R * Math.max(0, Math.min(100, v)) / 100); return `<circle cx="${x}" cy="${y}" r="3" fill="#6366f1"/>`; }).join('');
+            const labels = axes.map((lab, i) => {
+                const [x, y] = pt(angles[i], R + 20);
+                const anchor = Math.abs(x - cx) < 5 ? 'middle' : (x < cx ? 'end' : 'start');
+                return `<text x="${x}" y="${y}" text-anchor="${anchor}" dy="0.35em" font-size="11" font-weight="700" fill="#e5e7eb">${ccEsc(lab.l)}</text>
+                        <text x="${x}" y="${y + 13}" text-anchor="${anchor}" font-size="10" font-weight="900" fill="${lab.c || '#818cf8'}">${lab.v}</text>`;
+            }).join('');
+            return `<svg viewBox="0 0 300 300" class="w-full max-w-[320px] mx-auto">
+                ${grid}${spokes}
+                <polygon points="${poly}" fill="rgba(99,102,241,0.25)" stroke="#818cf8" stroke-width="2"/>
+                ${dots}${labels}
+            </svg>`;
+        }
+        /** modal ของลูกกิล: กราฟ 5 แกน + รายการต่อวอ (ตีใครบ้าง) + รายการคอมพ์ที่ตี */
         function wsOpenMember(key) {
             const x = wsMembers.get(key); if (!x) return;
             let m = document.getElementById('ws-mem-dlg');
@@ -14904,19 +14927,49 @@
             const comps = [...(x.compMap || new Map()).values()];
             const onList = comps.filter(c => !c.no_team).sort((a, b) => b.total - a.total);
             const offList = comps.filter(c => c.no_team).sort((a, b) => b.total - a.total);
+            // 📊 5 แกน (0–100): การตี · จ่ายครบ 5 ไม้ · ตีตรงคอมพ์ · ไม่ตรงคอมพ์ · อัตราชนะ
+            const WAR_QUOTA = 5;
+            const maxBat = Math.max(1, (wsActiveWarCount || x.perWar.length || 1) * WAR_QUOTA);
+            const warsFull = x.perWar.filter(w => (w.total || 0) >= WAR_QUOTA).length;
+            const warsBase = x.perWar.length || 1;
+            const vBat = Math.min(100, (x.total / maxBat) * 100);
+            const vFull = Math.min(100, (warsFull / warsBase) * 100);
+            const vOn = x.total ? (x.on_comp / x.total) * 100 : 0;
+            const vOff = x.total ? (x.off_comp / x.total) * 100 : 0;
+            const vWin = x.total ? (x.win / x.total) * 100 : 0;
+            const axes = [
+                { l: 'การตี', v: `${x.total}/${maxBat}`, c: '#fbbf24' },
+                { l: 'จ่ายครบ 5', v: `${warsFull}/${warsBase}`, c: '#60a5fa' },
+                { l: 'ตีตรง', v: `${x.on_comp || 0}`, c: '#34d399' },
+                { l: 'ไม่ตรง', v: `${x.off_comp || 0}`, c: '#f87171' },
+                { l: 'ชนะ', v: `${x.win || 0}`, c: '#818cf8' }
+            ];
             const compRow = (c, isOff) => {
                 const pr = c.total ? Math.round((c.win / c.total) * 1000) / 10 : 0;
-                return `<div class="p-3 border-b border-gray-800/70 last:border-b-0 ${isOff ? 'bg-red-950/10' : ''}">
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <div class="flex gap-1.5">${thumbs(c.heroes)}</div>
-                        <div class="min-w-0 flex-1">
-                            ${!isOff ? `<div class="text-sm font-bold text-emerald-200 truncate">${ccEsc(c.name || '(ทีมไม่มีชื่อ)')}</div>` : '<div class="text-sm font-bold text-red-200">❓ ไม่ตรงคอมพ์ในระบบ</div>'}
-                        </div>
-                        <div class="text-right shrink-0"><div class="text-base font-black text-white">${c.total} ไม้</div><div class="text-[11px]"><span class="text-emerald-300 font-bold">${c.win}</span><span class="text-gray-600"> · </span><span class="text-red-300 font-bold">${c.lose}</span><span class="text-gray-500"> · </span><span class="text-indigo-300 font-bold">${pr}%</span></div></div>
+                return `<div class="p-2 border-b border-gray-800/70 last:border-b-0 ${isOff ? 'bg-red-950/10' : ''}">
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <div class="flex gap-1">${thumbs(c.heroes)}</div>
+                        <div class="min-w-0 flex-1">${!isOff ? `<div class="text-xs font-bold text-emerald-200 truncate">${ccEsc(c.name || '(ทีมไม่มีชื่อ)')}</div>` : '<div class="text-xs font-bold text-red-200">❓ ไม่ตรงคอมพ์</div>'}</div>
+                        <div class="text-right shrink-0 text-[11px]"><b class="text-white">${c.total}</b><span class="text-gray-500"> · </span><span class="text-emerald-300">${c.win}</span><span class="text-gray-600">/</span><span class="text-red-300">${c.lose}</span><span class="text-gray-500"> · </span><span class="text-indigo-300">${pr}%</span></div>
                     </div>
                 </div>`;
             };
-            m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
+            // 🗓️ ต่อวอ — เรียงใหม่สุดก่อน · ศัตรูรวมเลขข้างชื่อ
+            const perWar = x.perWar.slice().sort((a, b) => (Number(b.startedAt) || 0) - (Number(a.startedAt) || 0));
+            const warRows = perWar.map(w => {
+                const pr = w.total ? Math.round((w.win / w.total) * 1000) / 10 : 0;
+                const ens = (w.enemies || []).slice().sort((a, b) => b.n - a.n);
+                const enHTML = ens.length ? ens.map(e => `<span class="inline-block px-2 py-0.5 rounded bg-[#161b22] border border-gray-700 text-[11px] text-gray-300 mr-1 mb-1">⚔️ ${ccEsc(e.name)}${e.n > 1 ? ' <b class="text-amber-300">×' + e.n + '</b>' : ''}</span>`).join('') : '<span class="text-[11px] text-gray-600 italic">ไม่มีข้อมูลศัตรู</span>';
+                return `<div class="p-3 border-b border-gray-800/70 last:border-b-0">
+                    <div class="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span class="text-sm font-bold text-white">${ccEsc(w.label || w.id)}</span>
+                        ${w.ss ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-violet-900/40 border border-violet-600/60 text-violet-200 font-bold">📚 ${ccEsc(w.ss)}</span>` : ''}
+                        <span class="ml-auto text-[11px]"><b class="text-amber-300">${w.total}</b> ไม้ · <span class="text-emerald-300 font-bold">${w.win}</span><span class="text-gray-600">/</span><span class="text-red-300 font-bold">${w.lose}</span>${w.total ? ` · <span class="text-indigo-300 font-bold">${pr}%</span>` : ''}</span>
+                    </div>
+                    <div class="flex flex-wrap">${enHTML}</div>
+                </div>`;
+            }).join('');
+            m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl">
                 <div class="p-4 border-b border-gray-800 flex items-center gap-3 shrink-0">
                     ${avUrl ? `<img src="${avUrl}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 border-indigo-500/60" alt="">` : '<div class="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xl">👤</div>'}
                     <div class="min-w-0 flex-1"><div class="text-lg font-black text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div>
@@ -14931,10 +14984,16 @@
                     <button onclick="document.getElementById('ws-mem-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
                 </div>
                 <div class="overflow-y-auto flex-1 min-h-0">
+                    <div class="p-4 border-b border-gray-800">
+                        <div class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2 text-center">📊 โปรไฟล์การตี</div>
+                        ${wsRadarSVG(axes, [vBat, vFull, vOn, vOff, vWin])}
+                    </div>
+                    <div class="px-4 py-2 border-b border-gray-800 bg-indigo-900/10 text-xs font-black text-indigo-200 uppercase tracking-wider">🗓️ สถิติแยกวอ · ${perWar.length} วอ</div>
+                    ${perWar.length ? warRows : '<div class="p-4 text-sm text-gray-500 text-center">ยังไม่มีข้อมูลวอ</div>'}
                     <div class="px-4 py-2 border-b border-gray-800 bg-emerald-900/10 text-xs font-black text-emerald-200 uppercase tracking-wider">✅ ตีตามคอมพ์ · ${x.on_comp || 0} ไม้ (${onList.length} คอมพ์)</div>
-                    ${onList.length ? onList.map(c => compRow(c, false)).join('') : '<div class="p-4 text-sm text-gray-500 text-center">ยังไม่มีไม้ที่ตีตามคอมพ์ที่แชร์ไว้</div>'}
+                    ${onList.length ? onList.map(c => compRow(c, false)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ยังไม่มีไม้ที่ตีตามคอมพ์ที่แชร์ไว้</div>'}
                     <div class="px-4 py-2 border-b border-gray-800 bg-red-900/10 text-xs font-black text-red-200 uppercase tracking-wider">❓ ไม่ตรงคอมพ์ · ${x.off_comp || 0} ไม้ (${offList.length} รูปแบบ)</div>
-                    ${offList.length ? offList.map(c => compRow(c, true)).join('') : '<div class="p-4 text-sm text-gray-500 text-center">ตีตรงคอมพ์ทั้งหมด</div>'}
+                    ${offList.length ? offList.map(c => compRow(c, true)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ตีตรงคอมพ์ทั้งหมด</div>'}
                 </div>
             </div>`;
             m.style.display = 'flex';
@@ -14977,9 +15036,12 @@
                 total += st.total || 0; win += st.win || 0; lose += st.lose || 0;
                 (st.members || []).forEach(m => {
                     const k = m.key || m.member_id || ('n:' + (m.name || ''));
-                    const x = memMap.get(k) || { key: k, name: m.name, game_name: m.game_name || '', member_id: m.member_id, avatar: m.avatar || '', total: 0, win: 0, lose: 0, on_comp: 0, off_comp: 0, compMap: new Map() };
+                    const x = memMap.get(k) || { key: k, name: m.name, game_name: m.game_name || '', member_id: m.member_id, avatar: m.avatar || '', total: 0, win: 0, lose: 0, on_comp: 0, off_comp: 0, compMap: new Map(), perWar: [] };
                     x.total += m.total || 0; x.win += m.win || 0; x.lose += m.lose || 0;
                     x.on_comp += m.on_comp || 0; x.off_comp += m.off_comp || 0;
+                    // 🗓️ บันทึกต่อวอ — ใช้ใน modal "ตีใครบ้างต่อวอ"
+                    const warMeta = wars.find(ww => ww.id === w.id) || w;
+                    x.perWar.push({ id: w.id, label: warMeta.label || w.id, ss: warMeta.ss || '', startedAt: warMeta.startedAt || '', total: m.total || 0, win: m.win || 0, lose: m.lose || 0, enemies: m.enemies || [] });
                     // รวมคอมพ์ข้ามวอ (sig เดียวกัน = ผสาน)
                     (m.comps || []).forEach(c => {
                         const sig = c.no_team ? 'H:' + (c.heroes || []).map(h => h.id).slice().sort().join(',') : 'T:' + (c.team_id || '');
@@ -15027,6 +15089,7 @@
 
             // 🧭 เก็บลงหน่วยความจำ ให้ modal (wsOpenMember) ใช้ · ดึงด้วย key
             wsMembers = new Map(mems.map(x => [x.key, x]));
+            wsActiveWarCount = activeWars.length;
             let memBlock = '';
             if (!mems.length) {
                 memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">ไม่มีไม้ในช่วงที่เลือก</div>`;
@@ -15052,7 +15115,8 @@
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-emerald-300 shrink-0">${x.win}</span>
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-red-300 shrink-0">${x.lose}</span>
                         <span class="w-16 sm:w-20 text-right text-sm font-black text-indigo-300 shrink-0">${pr}%</span>
-                        <button type="button" onclick="wsOpenMember('${ccEsc(String(x.key).replace(/'/g, '&#39;'))}')" title="${b.label} · ${Math.round(cr * 1000) / 10}% · ตรง ${x.on_comp || 0} · ไม่ตรง ${x.off_comp || 0} — กดดูคอมพ์" class="w-24 sm:w-28 text-center text-[11px] font-black shrink-0 px-2 py-1 rounded-lg border ${b.cls} hover:brightness-125 transition">${b.icon} ${b.label}</button>
+                        <span title="${b.label} · ${Math.round(cr * 1000) / 10}% · ตรง ${x.on_comp || 0} · ไม่ตรง ${x.off_comp || 0}" class="w-24 sm:w-28 text-center text-[11px] font-black shrink-0 flex items-center justify-center gap-1 ${b.text || 'text-gray-200'}">${b.icon} <span class="hidden sm:inline">${b.label}</span></span>
+                        <button type="button" onclick="wsOpenMember('${ccEsc(String(x.key).replace(/'/g, '&#39;'))}')" title="ดูสถิติละเอียด" class="w-9 h-9 shrink-0 rounded-lg border border-gray-700 bg-[#0d1117] text-gray-300 hover:text-white hover:border-indigo-500 hover:bg-indigo-900/30 transition">🔍</button>
                     </div>`;
                 }).join('');
                 const arrow = k => wsSort === k ? (wsDir === 'desc' ? ' ▼' : ' ▲') : '';
@@ -15066,6 +15130,7 @@
                         ${th('lose', 'แพ้', 'w-14 sm:w-16')}
                         ${th('rate', '% ชนะ', 'w-16 sm:w-20')}
                         ${th('rank', 'ระดับ', 'w-24 sm:w-28')}
+                        <span class="w-9 shrink-0"></span>
                     </div>
                     ${rowHTML}
                 </div>`;
