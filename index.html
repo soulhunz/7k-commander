@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.34.3';
+        const APP_VERSION = '1.34.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14871,7 +14871,7 @@
         const WS_SS_ROUNDS = 18;   // 1 SS = 18 รอบ (ไว้โชว์ความคืบหน้าในสถิติ)
         let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all', wsSort = 'win', wsDir = 'desc';
         let wsMembers = new Map(), wsActiveWarCount = 0;   // จาก ccStatsHTML รอบล่าสุด — ใช้ใน modal
-        let wsMemBattles = null, wsMemBattlesKey = '', wsMemBattlesLoading = false, wsMemWarTab = '__all';
+        let wsMemBattles = null, wsMemBattlesKey = '', wsMemBattlesLoading = false, wsMemBattlesErr = '', wsMemWarTab = '__all';
         /** ระดับจากสัดส่วนไม้ที่ตีตามคอมพ์ (on_comp / total) */
         function wsRankBadge(r) {
             if (r >= 0.9) return { icon: '🌟', label: 'Perfect', text: 'text-amber-300', cls: 'border-amber-400 bg-amber-900/30 text-amber-200' };
@@ -14912,13 +14912,14 @@
         async function wsLoadMemberBattles(x) {
             const key = String(x.key);
             if (wsMemBattlesKey === key && wsMemBattles) return;
-            wsMemBattles = null; wsMemBattlesKey = key; wsMemBattlesLoading = true; wsMemWarTab = '__all';
+            wsMemBattles = null; wsMemBattlesErr = ''; wsMemBattlesKey = key; wsMemBattlesLoading = true; wsMemWarTab = '__all';
             wsRenderMemberModal(x);
             try {
                 const g = wsGuild();
                 const r = await postJson({ action: 'getMemberBattlesPublic', guild: g, member_id: x.member_id || '', game_name: x.member_id ? '' : (x.game_name || x.name || '') }, { timeout: 45000, retries: 2 });
                 if (r && r.status === 'success') wsMemBattles = r;
-            } catch (e) { console.warn('getMemberBattlesPublic', e); }
+                else wsMemBattlesErr = (r && r.message) || 'server ตอบไม่สำเร็จ';
+            } catch (e) { console.warn('getMemberBattlesPublic', e); wsMemBattlesErr = e.message || String(e); }
             wsMemBattlesLoading = false;
             if (wsMemBattlesKey === key) wsRenderMemberModal(x);
         }
@@ -14992,7 +14993,8 @@
             if (wsMemBattlesLoading && !wsMemBattles) {
                 battlesBody = '<div class="p-6 text-center text-sm text-gray-400">⏳ กำลังโหลดไม้...</div>';
             } else if (!wsMemBattles) {
-                battlesBody = '<div class="p-6 text-center text-sm text-gray-500">โหลดไม้ไม่สำเร็จ</div>';
+                const needDeploy = /ไม่รู้จัก|เข้าสู่ระบบ|unknown|getMemberBattlesPublic/i.test(wsMemBattlesErr || '');
+                battlesBody = `<div class="p-6 text-center text-sm text-amber-300">⚠️ โหลดไม้ไม่สำเร็จ${wsMemBattlesErr ? '<br><span class="text-[11px] text-gray-500">' + ccEsc(wsMemBattlesErr) + '</span>' : ''}${needDeploy ? '<br><span class="text-[11px] text-gray-400 mt-2 block">แอดมินต้อง deploy Apps Script ใหม่ (รุ่น 8.11.0 ขึ้นไป)</span>' : ''}</div>`;
             } else {
                 const rows = (wsMemBattles.battles || []).filter(r => wsMemWarTab === '__all' || r.war_id === wsMemWarTab);
                 const sorted = rows.slice().sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
