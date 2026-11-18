@@ -4708,7 +4708,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.31.2';
+        const APP_VERSION = '1.31.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14868,7 +14868,13 @@
         // 📊 แท็บย่อยในหน้าคอมพ์ปราสาท: สถิติการตีของกิลด์ · ชนะ/แพ้ ต่อคน · กรองตาม SS / วอ
         //    ข้อมูลจาก getWarStatsPublic — ไม่ login = เห็นเลขรวมกิลด์ (ซ่อนชื่อ) · login = เห็นแยกคน
         // =========================================================
-        let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all';
+        let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all', wsSort = 'win', wsDir = 'desc';
+        /** กดหัวตารางเพื่อเรียง — ซ้ำคีย์เดิม = สลับขึ้น/ลง */
+        function wsSetSort(k) {
+            if (wsSort === k) wsDir = wsDir === 'desc' ? 'asc' : 'desc';
+            else { wsSort = k; wsDir = (k === 'name' ? 'asc' : 'desc'); }
+            ccViewerRender();
+        }
         function wsGuild() { try { return decodeGuildParam(appUrlParams().get('g')) || ''; } catch (e) { return ''; } }
         async function wsLoad(force) {
             const g = wsGuild();
@@ -14907,13 +14913,21 @@
                 total += st.total || 0; win += st.win || 0; lose += st.lose || 0;
                 (st.members || []).forEach(m => {
                     const k = m.key || m.member_id || ('n:' + (m.name || ''));
-                    const x = memMap.get(k) || { key: k, name: m.name, member_id: m.member_id, total: 0, win: 0, lose: 0 };
+                    const x = memMap.get(k) || { key: k, name: m.name, member_id: m.member_id, avatar: m.avatar || '', total: 0, win: 0, lose: 0 };
                     x.total += m.total || 0; x.win += m.win || 0; x.lose += m.lose || 0;
                     if (!x.name && m.name) x.name = m.name;
+                    if (!x.avatar && m.avatar) x.avatar = m.avatar;
                     memMap.set(k, x);
                 });
             });
-            const mems = [...memMap.values()].filter(x => x.total > 0).sort((a, b) => b.win - a.win || b.total - a.total || String(a.name || '').localeCompare(String(b.name || ''), 'th'));
+            const rateOf = x => x.total ? x.win / x.total : 0;
+            const key = { win: x => x.win, lose: x => x.lose, total: x => x.total, rate: rateOf, name: x => String(x.name || '').toLowerCase() };
+            const kf = key[wsSort] || key.win, dir = wsDir === 'asc' ? 1 : -1;
+            const mems = [...memMap.values()].filter(x => x.total > 0).sort((a, b) => {
+                const va = kf(a), vb = kf(b);
+                if (va < vb) return -1 * dir; if (va > vb) return 1 * dir;
+                return b.win - a.win || b.total - a.total || String(a.name || '').localeCompare(String(b.name || ''), 'th');
+            });
             const rate = total ? Math.round((win / total) * 1000) / 10 : 0;
 
             const ssBtn = (key, label, n) => `<button onclick="wsSs='${ccEsc(String(key).replace(/'/g, '&#39;'))}';wsWarId='__all';wsRender()" class="px-3 py-1.5 rounded-xl text-xs font-black border transition ${wsSs === key ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">${label} <span class="opacity-70 font-normal">(${n})</span></button>`;
@@ -14940,10 +14954,18 @@
             if (!mems.length) {
                 memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">ไม่มีไม้ในช่วงที่เลือก</div>`;
             } else {
+                const avatarHTML = x => {
+                    const av = typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(x.avatar) : '';
+                    if (av) return `<img src="${av}" referrerpolicy="no-referrer" alt="" class="w-8 h-8 rounded-full object-cover border border-indigo-500/40 shrink-0">`;
+                    const nm = String(x.name || '').trim().replace(/^[^\p{L}\p{N}]+/u, '');
+                    const ch = (Array.from(nm)[0] || '?').toUpperCase().replace(/[<>&"]/g, '');
+                    return `<span class="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-300 text-xs font-bold shrink-0">${ch}</span>`;
+                };
                 const rowHTML = mems.map((x, i) => {
                     const pr = x.total ? Math.round((x.win / x.total) * 1000) / 10 : 0;
                     return `<div class="flex items-center gap-3 px-3 py-2 border-b border-gray-800/70 last:border-b-0 ${i % 2 ? 'bg-black/10' : ''}">
                         <span class="w-6 text-right text-[11px] font-black text-gray-500 shrink-0">${i + 1}</span>
+                        ${avatarHTML(x)}
                         <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div></div>
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-amber-300 shrink-0">${x.total}</span>
                         <span class="w-14 sm:w-16 text-right text-sm font-black text-emerald-300 shrink-0">${x.win}</span>
@@ -14951,10 +14973,16 @@
                         <span class="w-16 sm:w-20 text-right text-sm font-black text-indigo-300 shrink-0">${pr}%</span>
                     </div>`;
                 }).join('');
+                const arrow = k => wsSort === k ? (wsDir === 'desc' ? ' ▼' : ' ▲') : '';
+                const th = (k, label, cls) => `<button type="button" onclick="wsSetSort('${k}')" class="${cls} text-right hover:text-white transition ${wsSort === k ? 'text-indigo-300' : ''}">${label}${arrow(k)}</button>`;
                 memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] overflow-hidden">
                     <div class="flex items-center gap-3 px-3 py-2.5 border-b border-gray-800 text-[10px] text-gray-500 font-black uppercase">
-                        <span class="w-6"></span><span class="flex-1">ลูกกิล (${mems.length} คน)</span>
-                        <span class="w-14 sm:w-16 text-right">ตี</span><span class="w-14 sm:w-16 text-right">ชนะ</span><span class="w-14 sm:w-16 text-right">แพ้</span><span class="w-16 sm:w-20 text-right">% ชนะ</span>
+                        <span class="w-6"></span><span class="w-8 shrink-0"></span>
+                        ${th('name', `ลูกกิล (${mems.length} คน)`, 'flex-1 text-left')}
+                        ${th('total', 'ตี', 'w-14 sm:w-16')}
+                        ${th('win', 'ชนะ', 'w-14 sm:w-16')}
+                        ${th('lose', 'แพ้', 'w-14 sm:w-16')}
+                        ${th('rate', '% ชนะ', 'w-16 sm:w-20')}
                     </div>
                     ${rowHTML}
                 </div>`;
