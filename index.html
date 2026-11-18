@@ -14868,6 +14868,7 @@
         // 📊 แท็บย่อยในหน้าคอมพ์ปราสาท: สถิติการตีของกิลด์ · ชนะ/แพ้ ต่อคน · กรองตาม SS / วอ
         //    ข้อมูลจาก getWarStatsPublic — ไม่ login = เห็นเลขรวมกิลด์ (ซ่อนชื่อ) · login = เห็นแยกคน
         // =========================================================
+        const WS_SS_ROUNDS = 18;   // 1 SS = 18 รอบ (ไว้โชว์ความคืบหน้าในสถิติ)
         let wsData = null, wsLoading = false, wsErr = '', wsSs = '__all', wsWarId = '__all', wsSort = 'win', wsDir = 'desc';
         let wsMembers = new Map(), wsActiveWarCount = 0;   // จาก ccStatsHTML รอบล่าสุด — ใช้ใน modal
         let wsMemBattles = null, wsMemBattlesKey = '', wsMemBattlesLoading = false, wsMemWarTab = '__all';
@@ -15112,8 +15113,10 @@
                     ${warsOfSs.map(w => `<option value="${ccEsc(w.id)}" ${wsWarId === w.id ? 'selected' : ''}>${ccEsc(w.label || w.id)}${w.current ? ' · ปัจจุบัน' : ''}</option>`).join('')}
                 </select></label>` : '';
 
+            // 📚 1 SS = 18 รอบ — เลือก SS แล้วจะโชว์ "X/18 รอบ" ให้เห็นว่าเหลืออีกกี่รอบ
+            const roundsNote = wsSs !== '__all' && wsWarId === '__all' ? ` <span class="text-[11px] text-gray-500 font-normal">/${WS_SS_ROUNDS} รอบ</span>` : '';
             const aggCard = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4"><div class="text-[10px] text-gray-500 font-black uppercase">วอที่เลือก</div><div class="text-2xl font-black text-white">${activeWars.length}</div></div>
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4"><div class="text-[10px] text-gray-500 font-black uppercase">วอที่เลือก</div><div class="text-2xl font-black text-white">${activeWars.length}${roundsNote}</div></div>
                 <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4"><div class="text-[10px] text-gray-500 font-black uppercase">ไม้ทั้งหมด</div><div class="text-2xl font-black text-amber-300">${total}</div></div>
                 <div class="bg-[#161b22] border border-emerald-800/60 rounded-2xl p-4"><div class="text-[10px] text-emerald-400 font-black uppercase">ชนะ</div><div class="text-2xl font-black text-emerald-300">${win}</div></div>
                 <div class="bg-[#161b22] border border-red-800/60 rounded-2xl p-4"><div class="text-[10px] text-red-400 font-black uppercase">แพ้</div><div class="text-2xl font-black text-red-300">${lose}</div></div>
