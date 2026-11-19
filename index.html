@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.37.3';
+        const APP_VERSION = '1.38.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15216,7 +15216,7 @@
             const tabBtn = (k, label, cls) => `<button onclick="poPageSetTab('${k}')" class="flex-1 min-w-0 sm:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition whitespace-nowrap ${poPageTab === k ? cls : 'bg-[#0d1117] text-gray-400 hover:text-white border border-gray-700'}">${label}</button>`;
             const tabs = `<div class="flex gap-2 mb-4">
                 ${tabBtn('pay', '💸 จ่ายไม้', 'bg-emerald-600 text-white shadow-lg')}
-                ${tabBtn('who', '👥 ใครจ่ายอะไร', 'bg-indigo-600 text-white shadow-lg')}
+                ${tabBtn('who', '📋 รายการจ่ายไม้', 'bg-indigo-600 text-white shadow-lg')}
             </div>`;
             return `<div class="pb-20 w-full">${warHead}${tabs}${poPageTab === 'pay' ? poPagePayHTML() : poPageWhoHTML()}</div>`;
         }
@@ -15243,26 +15243,28 @@
         }
         function poPageWhoHTML() {
             const log = poData.log || [];
-            if (!log.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">ยังไม่มีลูกกิลคนไหนจ่ายไม้</div>`;
-            // group by member
-            const byMem = new Map();
-            log.forEach(p => {
-                const k = p.member_id || 'g:' + (p.member_name || '?');
-                if (!byMem.has(k)) byMem.set(k, { name: p.member_name || p.member_id || '(ไม่ระบุ)', paid: [] });
-                byMem.get(k).paid.push(p);
-            });
-            const members = [...byMem.values()].sort((a, b) => b.paid.length - a.paid.length);
-            return `<div class="space-y-3">${members.map(m => {
-                const heroesHTML = m.paid.map(p => {
+            const members = poData.members || [];
+            if (!members.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">กิลด์นี้ยังไม่มีลูกกิล</div>`;
+            // จับคู่ log ↔ member · รวมรายการที่ member_id ไม่อยู่ในกิลด์ (ชื่อตกหล่น) ไว้ท้าย
+            const paidByMem = new Map();
+            log.forEach(p => { const k = p.member_id || 'n:' + (p.member_name || ''); if (!paidByMem.has(k)) paidByMem.set(k, []); paidByMem.get(k).push(p); });
+            const knownIds = new Set(members.map(m => String(m.id)));
+            const extras = [...paidByMem.entries()].filter(([k]) => !knownIds.has(k)).map(([k, list]) => ({ id: k, name: (list[0].member_name || k).replace(/^n:/, ''), extra: true, paid: list }));
+            const rows = members.map(m => ({ id: String(m.id), name: m.name, discordAvatar: m.discordAvatar, paid: paidByMem.get(String(m.id)) || [] })).concat(extras);
+            // เรียง: คนที่จ่ายแล้วมากสุดก่อน · ตามด้วย ยังไม่จ่าย
+            rows.sort((a, b) => b.paid.length - a.paid.length || String(a.name).localeCompare(String(b.name), 'th'));
+            const avatar = m => { const av = m.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : ''; if (av) return `<img src="${av}" referrerpolicy="no-referrer" alt="" class="w-9 h-9 rounded-full object-cover border border-indigo-500/40 shrink-0">`; return `<span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 text-xs text-gray-400">${ccEsc(String(m.name || '?').trim().charAt(0).toUpperCase())}</span>`; };
+            return `<div class="space-y-2">${rows.map(m => {
+                const heroesHTML = m.paid.length ? m.paid.map(p => {
                     const h = (heroesDB || []).find(x => String(x.id) === String(p.hero_id));
                     return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#0d1117] border border-emerald-700/50" title="${p.at ? new Date(+p.at).toLocaleString('th-TH') : ''}">
-                        ${h && h.img ? `<img src="${h.img}" class="w-8 h-8 rounded object-cover" alt="">` : ''}
+                        ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover" alt="">` : ''}
                         <span class="text-xs font-bold text-emerald-200">${ccEsc(h ? h.name : p.hero_id)}</span>
                     </span>`;
-                }).join('');
-                return `<div class="p-4 rounded-2xl border border-gray-800 bg-[#0d1117]">
-                    <div class="flex items-center gap-2 mb-2"><span class="text-lg">👤</span><span class="text-base font-black text-white truncate">${ccEsc(m.name)}</span><span class="ml-auto text-xs font-black text-emerald-300">${m.paid.length} ตัว</span></div>
-                    <div class="flex flex-wrap gap-2">${heroesHTML}</div>
+                }).join('') : '<span class="text-xs text-gray-500 italic">ยังไม่จ่าย</span>';
+                return `<div class="p-3 rounded-2xl border ${m.paid.length ? 'border-emerald-700/40 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
+                    <div class="flex items-center gap-3 mb-2">${avatar(m)}<span class="text-sm font-black text-white truncate flex-1">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</span><span class="text-xs font-black ${m.paid.length ? 'text-emerald-300' : 'text-gray-500'}">${m.paid.length} ตัว</span></div>
+                    <div class="flex flex-wrap gap-1.5 pl-12">${heroesHTML}</div>
                 </div>`;
             }).join('')}</div>`;
         }
