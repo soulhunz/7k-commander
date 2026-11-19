@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.40.1';
+        const APP_VERSION = '1.40.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -17226,7 +17226,7 @@
         const MAI_SHOW_RING = false;   // 💍 ปิดรูปแหวนใต้ตัวละคร (ตามคำขอ) — เปลี่ยนเป็น true ถ้าจะเปิดกลับ
         var maiSetIdx = 0;   // 📑 เซ็ตที่เปิดดูอยู่ (0 = เซ็ตที่ 1)
         var maiTab = 'plan';   // 'plan' | 'payout' | 'payoutlist'
-        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t !== 'plan') setTimeout(() => poLoad(true), 0); }
+        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t !== 'plan') setTimeout(() => poLoad(false), 0); }
         function maiSetSet(i) { maiSetIdx = i; ccRerenderKeepScroll(); }
         // ✏️ จัดเอง — เก็บลายเซ็นทีม (id ฮีโร่) ที่เลือกไว้ในเครื่อง แยกตามกิลด์ของลิงก์
         function maiCustomKey() { return '7k_mai_custom_' + String(decodeGuildParam(appUrlParams().get('g')) || 'all').toLowerCase(); }
@@ -42354,7 +42354,7 @@
     async function poLoad(force) {
         const g = poGuildKey_();
         if (!g) { poErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; poRender(); return; }
-        if (poLoading || (!force && poData && poGuildKey === g && Date.now() - (poData._at || 0) < 10000)) return;
+        if (poLoading || (!force && poData && poGuildKey === g && Date.now() - (poData._at || 0) < 60000)) return;
         poLoading = true; poErr = ''; poGuildKey = g; poRender();
         try {
             const r = await postJson({ action: 'getPayoutState', guild: g }, { timeout: 30000, retries: 2 });
