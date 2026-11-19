@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.39.3';
+        const APP_VERSION = '1.40.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15226,7 +15226,7 @@
         function poPagePayHTML() {
             if (!poData || !poData.heroes) return `<div class="mb-4 text-center text-sm text-emerald-300 font-bold py-2 bg-emerald-900/10 border border-emerald-800/50 rounded-xl">⏳ กำลังโหลด...</div>${poSkeletonGrid(6)}`;
             if (!poData.heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
-            const log = poData.log || [];
+            const log = poEffectiveLog();
             const curMember = (typeof memberSession !== 'undefined' && memberSession) ? { member_id: memberSession.memberId || '', member_name: memberSession.name || '' } : null;
             const warActive = !!poData.war;
             const loading = poLoading;   // โหลดอยู่ = disable ปุ่มจ่าย
@@ -15253,7 +15253,7 @@
         function poListClear() { poListHeroFilter.clear(); poListStatus = 'all'; if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
         function poPageWhoHTML() {
             if (!poData) return `<div class="space-y-2">${Array.from({ length: 5 }).map(() => '<div class="p-3 rounded-2xl border border-gray-800 bg-[#0d1117] animate-pulse"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-full bg-gray-800"></div><div class="h-3 w-32 rounded bg-gray-800"></div></div><div class="h-4 w-full rounded bg-gray-800 ml-12"></div></div>').join('')}</div>`;
-            const log = poData.log || [];
+            const log = poEffectiveLog();
             const members = poData.members || [];
             const heroes = poData.heroes || [];
             // 🎛️ แถบกรอง — เลือกฮีโร่ที่จะดู + สถานะจ่ายแล้ว/ยังไม่จ่าย
@@ -42334,6 +42334,16 @@
     //    แอดมินเห็นรายการ "ใครจ่ายอะไรไปแล้ว" ป้องกันจ่ายซ้ำ
     // =========================================================
     let poData = null, poLoading = false, poErr = '', poGuildKey = '', poPollTimer = null;
+    /** log รวม = คนกดจ่าย + auto-paid จากบันทึกการตี (ใช้คอมพ์ที่มีฮีโร่ที่ตั้งไว้) */
+    function poEffectiveLog() {
+        if (!poData) return [];
+        const manual = poData.log || [];
+        const auto = poData.auto || [];
+        // กันซ้ำ: ถ้ามีกดจ่าย manual อยู่แล้ว ไม่เอา auto มาทับ
+        const seen = new Set(manual.map(x => (x.member_id || '') + '|' + x.hero_id));
+        const extra = auto.filter(x => !seen.has((x.member_id || '') + '|' + x.hero_id));
+        return manual.concat(extra);
+    }
     function poGuildKey_() { if (typeof isPublicView !== 'undefined' && isPublicView) return decodeGuildParam(appUrlParams().get('g')) || ''; const g = guildsDB[activeGuildIndex]; return g ? String(g.id) : ''; }
     async function poLoad(force) {
         const g = poGuildKey_();
@@ -42472,7 +42482,7 @@
         else if (!poData.war) body = '<div class="p-8 text-center text-sm text-gray-500">กิลด์นี้ยังไม่มีวอ</div>';
         else if (!poData.heroes || !poData.heroes.length) body = `<div class="p-8 text-center text-sm text-gray-500">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย${isAdmin ? ' — กด ⚙️ ตั้งค่าด้านบน' : ''}</div>`;
         else {
-            const log = poData.log || [];
+            const log = poEffectiveLog();
             const curMember = memberSession ? { member_id: memberSession.memberId || '', member_name: memberSession.name || '' } : null;
             const rows = poData.heroes.map(hid => {
                 const h = (heroesDB || []).find(x => String(x.id) === String(hid));
