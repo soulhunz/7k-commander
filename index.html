@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.38.2';
+        const APP_VERSION = '1.38.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15210,8 +15210,12 @@
         // =========================================================
         function poWarHead() {
             if (poErr) return `<div class="mb-4 text-amber-300 text-sm">⚠️ ${ccEsc(poErr)} <button onclick="poLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
-            if (!poData) return `<div class="mb-4 text-xs text-gray-500">⏳ โหลดวอปัจจุบัน...</div>`;
+            if (!poData) return '';   // ซ่อนไปเลย ไม่ต้องขึ้น "กำลังโหลด" รอ
             return poData.war ? `<div class="mb-4 text-sm text-gray-400"><b class="text-white">${ccEsc(poData.war.label || '')}</b>${poData.war.ss ? ' · 📚 ' + ccEsc(poData.war.ss) : ''}</div>` : '<div class="mb-4 text-amber-300 text-sm">⚠️ กิลด์นี้ยังไม่มีวอ</div>';
+        }
+        /** โครงกระดูก card placeholder — โชว์ก่อนโหลดเสร็จ */
+        function poSkeletonGrid(n) {
+            return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))">${Array.from({ length: n || 6 }).map(() => '<div class="p-4 rounded-2xl border border-gray-800 bg-[#0d1117] flex flex-col items-center gap-3 animate-pulse"><div class="w-20 h-20 rounded-xl bg-gray-800"></div><div class="h-3 w-24 rounded bg-gray-800"></div><div class="h-6 w-full rounded bg-gray-800"></div></div>').join('')}</div>`;
         }
         function renderPayoutPay() {
             return `<div class="pb-20 w-full">${poWarHead()}${poPagePayHTML()}</div>`;
@@ -15220,7 +15224,7 @@
             return `<div class="pb-20 w-full">${poWarHead()}${poPageWhoHTML()}</div>`;
         }
         function poPagePayHTML() {
-            if (!poData || !poData.heroes) return `<div class="text-center text-sm text-gray-500 py-12">⏳ โหลดฮีโร่...</div>`;
+            if (!poData || !poData.heroes) return poSkeletonGrid(6);   // โชว์โครงกระดูก ไม่ต้องรอ
             if (!poData.heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
             const log = poData.log || [];
             const curMember = (typeof memberSession !== 'undefined' && memberSession) ? { member_id: memberSession.memberId || '', member_name: memberSession.name || '' } : null;
@@ -15242,7 +15246,7 @@
             return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))">${cards}</div>`;
         }
         function poPageWhoHTML() {
-            if (!poData) return `<div class="text-center text-sm text-gray-500 py-12">⏳ โหลดรายชื่อ...</div>`;
+            if (!poData) return `<div class="space-y-2">${Array.from({ length: 5 }).map(() => '<div class="p-3 rounded-2xl border border-gray-800 bg-[#0d1117] animate-pulse"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-full bg-gray-800"></div><div class="h-3 w-32 rounded bg-gray-800"></div></div><div class="h-4 w-full rounded bg-gray-800 ml-12"></div></div>').join('')}</div>`;
             const log = poData.log || [];
             const members = poData.members || [];
             const heroes = poData.heroes || [];
