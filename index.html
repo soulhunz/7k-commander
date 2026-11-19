@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.40.5';
+        const APP_VERSION = '1.40.6';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -41413,7 +41413,7 @@
     // =========================================================
     // ผู้ช่วยที่อนุมัติแล้ว = บัญชีผูกกิลด์แบบหนึ่ง (เก็บแยกที่ OFFICER_SESSION_STORE · officer:true) → ใช้เมนู/โหลดข้อมูลแบบเดียวกับบัญชีปกติ
     //    เห็นแค่ 4 เมนู · สร้าง/แก้ได้ปกติ · เซิร์ฟเวอร์กรองให้เห็นเฉพาะกิลด์ตัวเอง
-    const OFFICER_MENUS = ['nav-team-builder-3v3', 'nav-enemy-manager', 'nav-member-roster', 'nav-castle-comp', 'nav-warcap', 'nav-battle-analyze'];
+    const OFFICER_MENUS = ['nav-team-builder-3v3', 'nav-enemy-manager', 'nav-member-roster', 'nav-castle-comp', 'nav-warcap', 'nav-battle-analyze', 'nav-hero-build'];
     function isOfficerMode() { return !!(typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.officer) || document.body.classList.contains('officer-mode'); }
     function officerUrlGid() { try { return appUrlParams().get('gid') || ''; } catch (e) { return ''; } }
     function officerSessionMatchesUrl(s) {
@@ -41574,7 +41574,7 @@
         bulkModalShell('officer-admin-dlg', `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl">
             <div class="p-4 border-b border-gray-800 flex items-start gap-3 shrink-0">
                 <div class="min-w-0 flex-1"><h3 class="text-white font-bold">🛡️ ลิงก์ผู้ช่วยหัวหน้า · ${E(g.name || '')}</h3>
-                <p class="text-[11px] text-gray-400 mt-1 leading-snug">ผู้ช่วยเปิดลิงก์ → เข้าด้วย Discord → ใช้ได้ 6 หน้า: สร้างทีม 3v3 · รูปแบบศัตรู · ข้อมูลลูกกิล · นับคอมพ์ปราสาท · อ่านผลวอ · วิเคราะห์การต่อสู้ (สร้าง/แก้ได้ · เห็นเฉพาะกิลด์นี้)<br>ลบทีมถาวร ลบสมาชิก ฐานข้อมูล และหน้าอื่น เข้าไม่ได้</p></div>
+                <p class="text-[11px] text-gray-400 mt-1 leading-snug">ผู้ช่วยเปิดลิงก์ → เข้าด้วย Discord → ใช้ได้ 7 หน้า: สร้างทีม 3v3 · รูปแบบศัตรู · ข้อมูลลูกกิล · นับคอมพ์ปราสาท · อ่านผลวอ · วิเคราะห์การต่อสู้ · บิ้วตัวละคร (สร้าง/แก้ได้ · เห็นเฉพาะกิลด์นี้)<br>ลบทีมถาวร ลบสมาชิก ฐานข้อมูล และหน้าอื่น เข้าไม่ได้</p></div>
                 <button onclick="document.getElementById('officer-admin-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
             </div>
             <div class="p-4 border-b border-gray-800 shrink-0">
