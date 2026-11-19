@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.40.3';
+        const APP_VERSION = '1.40.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -37892,15 +37892,20 @@
         const hasStack = !!(stackId && ringsDB.find(x => String(x.id) === String(stackId)));
         const stackOverlay = hasStack ? render3v3RingStackOverlay(stackId) : '';
         const ctx = ' oncontextmenu="open3v3RingContextMenu(event, ' + slotIdx + ', ' + ringIdx + '); return false;"';
+        const isPrimary = ringIdx === 0;
+        const primaryClass = isPrimary ? ' t3v3-ring-primary' : '';
+        const primaryBadge = isPrimary ? '<span class="t3v3-ring-primary-badge" title="\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01 \u2014 \u0E40\u0E0A\u0E47\u0E04\u0E25\u0E39\u0E01\u0E01\u0E34\u0E25\u0E40\u0E2D\u0E32\u0E27\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19 \u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E04\u0E48\u0E2D\u0E22\u0E25\u0E2D\u0E07\u0E25\u0E33\u0E14\u0E31\u0E1A\u0E16\u0E31\u0E14\u0E44\u0E1B">\u2B50 \u0E2B\u0E25\u0E31\u0E01</span>' : '';
         if (r) {
-            return '<div class="t3v3-item-slot t3v3-ring-slot filled grade-' + (r.grade || 6) + (hasStack ? ' has-stack' : '') + '"' +
+            return '<div class="t3v3-item-slot t3v3-ring-slot filled grade-' + (r.grade || 6) + (hasStack ? ' has-stack' : '') + primaryClass + '"' +
                 ' onclick="event.stopPropagation(); open3v3RingSelector(' + slotIdx + ', ' + ringIdx + ')"' + ctx +
-                ' title="' + (r.name || '') + '">' +
-                '<img src="' + r.img + '" alt="">' + stackOverlay + '</div>';
+                ' title="' + (r.name || '') + (isPrimary ? ' (\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01)' : '') + '">' +
+                '<img src="' + r.img + '" alt="">' + stackOverlay + primaryBadge + '</div>';
         }
-        return '<div class="t3v3-item-slot t3v3-ring-slot"' +
-            ' onclick="event.stopPropagation(); open3v3RingSelector(' + slotIdx + ', ' + ringIdx + ')"' + ctx + '>' +
-            '<span class="t3v3-slot-icon">\uD83D\uDC8D</span><span class="t3v3-slot-label">RING</span></div>';
+        const label = isPrimary ? '\u0E2B\u0E25\u0E31\u0E01' : 'RING';
+        return '<div class="t3v3-item-slot t3v3-ring-slot' + primaryClass + '"' +
+            ' onclick="event.stopPropagation(); open3v3RingSelector(' + slotIdx + ', ' + ringIdx + ')"' + ctx +
+            (isPrimary ? ' title="\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01 (\u0E41\u0E2B\u0E27\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E15\u0E31\u0E27) \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E40\u0E0A\u0E47\u0E04\u0E25\u0E39\u0E01\u0E01\u0E34\u0E25\u0E14\u0E49\u0E27\u0E22\u0E27\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19"' : '') + '>' +
+            '<span class="t3v3-slot-icon">\uD83D\uDC8D</span><span class="t3v3-slot-label">' + label + '</span>' + primaryBadge + '</div>';
     }
 
     function render3v3RingAddSlot(slotIdx) {
