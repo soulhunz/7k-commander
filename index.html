@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.38.0';
+        const APP_VERSION = '1.38.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14826,8 +14826,9 @@
             if (hbv) hbv.style.display = 'none';
             // 📊 สถิติย้ายไปเป็นแท็บย่อยในหน้าคอมพ์ปราสาทแล้ว — ลิงก์เก่า ?mode=stats-view = เปิดคอมพ์ปราสาทแท็บสถิติ
             if (target === 'stats') { ccViewTab = 'stats'; target = 'castle'; }
-            // 💸 จ่ายไม้ เป็นแท็บใน Community Gallery — แปลงเป็นเปิดแกลเลอรีแล้วตั้งแท็บ Payout
+            // 💸 จ่ายไม้ / 📋 รายการจ่ายไม้ = แท็บใน Community Gallery
             if (target === 'payout') { currentGalleryTab = 'Payout'; target = 'gallery'; }
+            if (target === 'payoutlist') { currentGalleryTab = 'PayoutList'; target = 'gallery'; }
             if (target === 'builds') {
                 try { window.history.replaceState({}, '', window.location.pathname + '?mode=builds-view' + q); } catch (e) {}
                 ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -15205,23 +15206,22 @@
         let hbvSearch = '', hbvOpenId = null, hbvSync = { state: 'idle', at: 0 }, hbvBusy = false, hbvPollTimer = null;
 
         // =========================================================
-        // 💸 แท็บจ่ายไม้ใน Community Gallery — 2 แท็บย่อย: จ่ายไม้ / ใครจ่ายอะไร
+        // 💸 💸 จ่ายไม้ / 📋 รายการจ่ายไม้ = 2 แท็บแยกใน Community Gallery
         // =========================================================
-        let poPageTab = 'pay';   // 'pay' | 'who'
-        function poPageSetTab(t) { poPageTab = t; if (typeof rerenderGallery === 'function') rerenderGallery(); }
-        function renderPayoutTab() {
-            if (poErr) return `<div class="text-center py-16 text-amber-300 text-sm">⚠️ ${ccEsc(poErr)} <button onclick="poLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
-            if (!poData) return `<div class="text-center py-16 text-gray-400 text-sm">⏳ กำลังโหลด…</div>`;
-            const warHead = poData.war ? `<div class="mb-4 text-sm text-gray-400"><b class="text-white">${ccEsc(poData.war.label || '')}</b>${poData.war.ss ? ' · 📚 ' + ccEsc(poData.war.ss) : ''}</div>` : '<div class="mb-4 text-amber-300 text-sm">⚠️ กิลด์นี้ยังไม่มีวอ</div>';
-            const tabBtn = (k, label, cls) => `<button onclick="poPageSetTab('${k}')" class="flex-1 min-w-0 sm:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition whitespace-nowrap ${poPageTab === k ? cls : 'bg-[#0d1117] text-gray-400 hover:text-white border border-gray-700'}">${label}</button>`;
-            const tabs = `<div class="flex gap-2 mb-4">
-                ${tabBtn('pay', '💸 จ่ายไม้', 'bg-emerald-600 text-white shadow-lg')}
-                ${tabBtn('who', '📋 รายการจ่ายไม้', 'bg-indigo-600 text-white shadow-lg')}
-            </div>`;
-            return `<div class="pb-20 w-full">${warHead}${tabs}${poPageTab === 'pay' ? poPagePayHTML() : poPageWhoHTML()}</div>`;
+        function poWarHead() {
+            if (poErr) return `<div class="mb-4 text-amber-300 text-sm">⚠️ ${ccEsc(poErr)} <button onclick="poLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
+            if (!poData) return `<div class="mb-4 text-xs text-gray-500">⏳ โหลดวอปัจจุบัน...</div>`;
+            return poData.war ? `<div class="mb-4 text-sm text-gray-400"><b class="text-white">${ccEsc(poData.war.label || '')}</b>${poData.war.ss ? ' · 📚 ' + ccEsc(poData.war.ss) : ''}</div>` : '<div class="mb-4 text-amber-300 text-sm">⚠️ กิลด์นี้ยังไม่มีวอ</div>';
+        }
+        function renderPayoutPay() {
+            return `<div class="pb-20 w-full">${poWarHead()}${poPagePayHTML()}</div>`;
+        }
+        function renderPayoutList() {
+            return `<div class="pb-20 w-full">${poWarHead()}${poPageWhoHTML()}</div>`;
         }
         function poPagePayHTML() {
-            if (!poData.heroes || !poData.heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
+            if (!poData || !poData.heroes) return `<div class="text-center text-sm text-gray-500 py-12">⏳ โหลดฮีโร่...</div>`;
+            if (!poData.heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
             const log = poData.log || [];
             const curMember = (typeof memberSession !== 'undefined' && memberSession) ? { member_id: memberSession.memberId || '', member_name: memberSession.name || '' } : null;
             const warActive = !!poData.war;
@@ -15242,29 +15242,38 @@
             return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))">${cards}</div>`;
         }
         function poPageWhoHTML() {
+            if (!poData) return `<div class="text-center text-sm text-gray-500 py-12">⏳ โหลดรายชื่อ...</div>`;
             const log = poData.log || [];
             const members = poData.members || [];
+            const heroes = poData.heroes || [];
             if (!members.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">กิลด์นี้ยังไม่มีลูกกิล</div>`;
-            // จับคู่ log ↔ member · รวมรายการที่ member_id ไม่อยู่ในกิลด์ (ชื่อตกหล่น) ไว้ท้าย
+            if (!heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
+            // paid[member_id] = Set(hero_id)
             const paidByMem = new Map();
-            log.forEach(p => { const k = p.member_id || 'n:' + (p.member_name || ''); if (!paidByMem.has(k)) paidByMem.set(k, []); paidByMem.get(k).push(p); });
+            log.forEach(p => { const k = p.member_id || 'n:' + (p.member_name || ''); if (!paidByMem.has(k)) paidByMem.set(k, new Set()); paidByMem.get(k).add(String(p.hero_id)); });
             const knownIds = new Set(members.map(m => String(m.id)));
-            const extras = [...paidByMem.entries()].filter(([k]) => !knownIds.has(k)).map(([k, list]) => ({ id: k, name: (list[0].member_name || k).replace(/^n:/, ''), extra: true, paid: list }));
-            const rows = members.map(m => ({ id: String(m.id), name: m.name, discordAvatar: m.discordAvatar, paid: paidByMem.get(String(m.id)) || [] })).concat(extras);
-            // เรียง: คนที่จ่ายแล้วมากสุดก่อน · ตามด้วย ยังไม่จ่าย
-            rows.sort((a, b) => b.paid.length - a.paid.length || String(a.name).localeCompare(String(b.name), 'th'));
+            const extras = [...new Set(log.filter(p => !knownIds.has(p.member_id || '')).map(p => p.member_id || 'n:' + (p.member_name || '')))]
+                .map(k => { const p = log.find(x => (x.member_id || 'n:' + (x.member_name || '')) === k); return { id: k, name: (p.member_name || k).replace(/^n:/, ''), extra: true }; });
+            const rows = members.map(m => ({ id: String(m.id), name: m.name, discordAvatar: m.discordAvatar })).concat(extras);
+            // เรียง: จ่ายมากสุดก่อน · ตามด้วยยังไม่ครบ
+            rows.forEach(m => { m._n = (paidByMem.get(m.id) || new Set()).size; });
+            rows.sort((a, b) => b._n - a._n || String(a.name).localeCompare(String(b.name), 'th'));
             const avatar = m => { const av = m.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : ''; if (av) return `<img src="${av}" referrerpolicy="no-referrer" alt="" class="w-9 h-9 rounded-full object-cover border border-indigo-500/40 shrink-0">`; return `<span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 text-xs text-gray-400">${ccEsc(String(m.name || '?').trim().charAt(0).toUpperCase())}</span>`; };
             return `<div class="space-y-2">${rows.map(m => {
-                const heroesHTML = m.paid.length ? m.paid.map(p => {
-                    const h = (heroesDB || []).find(x => String(x.id) === String(p.hero_id));
-                    return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#0d1117] border border-emerald-700/50" title="${p.at ? new Date(+p.at).toLocaleString('th-TH') : ''}">
-                        ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover" alt="">` : ''}
-                        <span class="text-xs font-bold text-emerald-200">${ccEsc(h ? h.name : p.hero_id)}</span>
+                const paidSet = paidByMem.get(m.id) || new Set();
+                const allPaid = heroes.every(hid => paidSet.has(String(hid)));
+                const heroChips = heroes.map(hid => {
+                    const h = (heroesDB || []).find(x => String(x.id) === String(hid));
+                    const paid = paidSet.has(String(hid));
+                    return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
+                        ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover ${paid ? 'grayscale' : ''}" alt="">` : ''}
+                        <span class="text-xs font-bold ${paid ? 'text-gray-400 line-through' : 'text-emerald-200'}">${ccEsc(h ? h.name : hid)}</span>
+                        ${paid ? '<span class="text-[9px] font-black text-gray-500 ml-1">✓ จ่ายแล้ว</span>' : ''}
                     </span>`;
-                }).join('') : '<span class="text-xs text-gray-500 italic">ยังไม่จ่าย</span>';
-                return `<div class="p-3 rounded-2xl border ${m.paid.length ? 'border-emerald-700/40 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
-                    <div class="flex items-center gap-3 mb-2">${avatar(m)}<span class="text-sm font-black text-white truncate flex-1">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</span><span class="text-xs font-black ${m.paid.length ? 'text-emerald-300' : 'text-gray-500'}">${m.paid.length} ตัว</span></div>
-                    <div class="flex flex-wrap gap-1.5 pl-12">${heroesHTML}</div>
+                }).join('');
+                return `<div class="p-3 rounded-2xl border ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
+                    <div class="flex items-center gap-3 mb-2">${avatar(m)}<span class="text-sm font-black text-white truncate flex-1">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</span><span class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">${paidSet.size}/${heroes.length}${allPaid ? ' ✅' : ''}</span></div>
+                    <div class="flex flex-wrap gap-1.5 pl-12">${heroChips}</div>
                 </div>`;
             }).join('')}</div>`;
         }
@@ -17194,9 +17203,7 @@
         /** ⚔️ ปุ่ม Attack Plan — กล่องแยกข้างแถบ Targets/Defense ในหน้า Community (หน้าสาธารณะเท่านั้น) */
         function maiGalleryTabHTML(active) {
             if (!isPublicView) return '';
-            const payoutOn = !active && typeof currentGalleryTab !== 'undefined' && currentGalleryTab === 'Payout';
             return `<div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
-                    <button onclick="switchPublicHub('payout')" class="px-6 py-2 rounded-xl transition ${payoutOn ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-emerald-500'} text-xs font-black uppercase">💸 จ่ายไม้</button>
                     <button onclick="switchPublicHub('mai')" class="px-6 py-2 rounded-xl transition ${active ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : 'bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-gray-500'} text-xs font-black uppercase">🗡️ Attack Plan</button>
                 </div>`;
         }
@@ -33478,10 +33485,15 @@
             else if (currentGalleryTab === 'MyHeroes') {
                 contentHTML = renderMyHeroesContent();
             }
-            // 💸 แท็บ "จ่ายไม้" — แอดมินตั้งฮีโร่ · ลูกกิล login กดจ่าย · ทุกคนดูได้ว่าใครจ่ายอะไร
+            // 💸 แท็บ "จ่ายไม้" — แอดมินตั้งฮีโร่ · ลูกกิล login กดจ่าย
             else if (currentGalleryTab === 'Payout') {
-                contentHTML = renderPayoutTab();
-                setTimeout(() => poLoad(true), 0);   // ดึงล่าสุดทุกครั้งที่เปิดแท็บ
+                contentHTML = renderPayoutPay();
+                setTimeout(() => poLoad(true), 0);
+            }
+            // 📋 แท็บ "รายการจ่ายไม้" — ลูกกิลทุกคน + ฮีโร่ที่แอดมินตั้ง (จ่ายแล้ว = disabled)
+            else if (currentGalleryTab === 'PayoutList') {
+                contentHTML = renderPayoutList();
+                setTimeout(() => poLoad(true), 0);
             }
             // 🧬 แท็บ Targets — แบ่งกลุ่มตาม Type ที่เยอะสุดในทีม
             else if (currentGalleryTab === 'Attack') {
@@ -33633,6 +33645,8 @@
                                     ? `<button type="button" disabled title="เข้าสู่ระบบก่อน (ปุ่ม 🎮 เข้าสู่ระบบ มุมขวาบน) — ดูทีมที่หัวหน้ากิลด์ตั้งให้" class="px-6 py-2 rounded-xl text-xs font-black uppercase bg-[#0d1117] text-gray-600 border border-gray-800 opacity-60 cursor-not-allowed">🔒 Defense</button>`
                                     : `<button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>`}
                                 ${GALLERY_ROTATION_ENABLED ? `<button onclick="switchGalleryTab('Rotation')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Rotation' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : btnInactive} text-xs font-black uppercase">🗡️ วนไม้</button>` : ''}
+                                <button onclick="switchGalleryTab('Payout')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Payout' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">💸 จ่ายไม้</button>
+                                <button onclick="switchGalleryTab('PayoutList')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'PayoutList' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : btnInactive} text-xs font-black uppercase">📋 รายการ</button>
                             </div>
                             ${maiGalleryTabHTML(false)}
                         </div>
