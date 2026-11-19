@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.39.1';
+        const APP_VERSION = '1.39.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15234,11 +15234,11 @@
                 const h = (heroesDB || []).find(x => String(x.id) === String(hid));
                 const paid = log.filter(x => x.hero_id === String(hid));
                 const paidSelf = curMember && paid.some(p => p.member_id === curMember.member_id);
-                return `<div class="p-4 rounded-2xl border ${paid.length ? 'border-emerald-700/50 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'} flex flex-col items-center gap-3">
-                    ${h && h.img ? `<img src="${h.img}" class="w-20 h-20 rounded-xl object-cover border-2 border-gray-700" alt="">` : '<div class="w-20 h-20 rounded-xl bg-gray-800"></div>'}
+                return `<div class="p-4 rounded-2xl border ${paidSelf ? 'border-gray-700 bg-gray-800/30' : paid.length ? 'border-emerald-700/50 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'} flex flex-col items-center gap-3 ${paidSelf ? 'opacity-70' : ''}">
+                    ${h && h.img ? `<img src="${h.img}" class="w-20 h-20 rounded-xl object-cover border-2 border-gray-700 ${paidSelf ? 'grayscale' : ''}" alt="">` : '<div class="w-20 h-20 rounded-xl bg-gray-800"></div>'}
                     <div class="text-center min-w-0 w-full">
-                        <div class="text-sm font-black text-white truncate">${ccEsc(h ? h.name : hid)}</div>
-                        <div class="text-[11px] font-bold mt-1 ${paid.length ? 'text-emerald-300' : 'text-gray-500'}">${paid.length ? '✅ ' + paid.length + ' คนจ่ายแล้ว' : '⏳ ยังไม่มีคนจ่าย'}</div>
+                        <div class="text-sm font-black ${paidSelf ? 'text-gray-400' : 'text-white'} truncate">${ccEsc(h ? h.name : hid)}</div>
+                        <div class="text-[11px] font-bold mt-1 ${paidSelf ? 'text-emerald-400' : paid.length ? 'text-emerald-300' : 'text-gray-500'}">${paidSelf ? '✅ จ่ายแล้ว (กดอีกครั้ง = ยกเลิก)' : paid.length ? '✅ ' + paid.length + ' คนจ่ายแล้ว' : '⏳ ยังไม่มีคนจ่าย'}</div>
                     </div>
                     ${curMember && warActive ? `<button ${loading ? 'disabled' : ''} onclick="poToggle('${ccEsc(String(hid))}', {member_id:'${ccEsc(curMember.member_id)}',member_name:'${ccEsc(curMember.member_name)}'})" class="w-full px-3 py-2 rounded-xl text-xs font-black ${loading ? 'bg-gray-700 opacity-60 cursor-not-allowed' : paidSelf ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-500'} text-white">${loading ? '⏳ โหลด...' : paidSelf ? '✅ ฉันจ่ายแล้ว' : '💸 กดจ่าย'}</button>` : !curMember ? '<div class="text-[10px] text-gray-500 text-center">เข้าสู่ระบบด้วย Discord เพื่อกดจ่าย</div>' : ''}
                     ${paid.length ? `<div class="flex flex-wrap gap-1.5 justify-center w-full">${paid.map(p => `<span class="inline-block px-2 py-0.5 rounded-lg bg-indigo-900/40 border border-indigo-600/50 text-indigo-100 text-[10px] font-bold" title="${p.at ? new Date(+p.at).toLocaleString('th-TH') : ''}">👤 ${ccEsc(p.member_name || p.member_id)}</span>`).join('')}</div>` : ''}
@@ -15282,12 +15282,18 @@
                 </div>`;
             }).join('')}</div>`;
         }
-        // hook: เมื่อ poLoad ได้ข้อมูลใหม่ → ถ้าอยู่แท็บ Payout ของแกลเลอรี ให้ rerender
+        // hook: เมื่อ poLoad ได้ข้อมูลใหม่ → re-render ทั้ง gallery และ attack plan
         setTimeout(() => {
             if (window._poRenderPatched || typeof poRender !== 'function') return;
             window._poRenderPatched = true;
             const _orig = poRender;
-            poRender = function () { _orig(); if (currentGalleryTab === 'Payout' && typeof rerenderGallery === 'function') rerenderGallery(); };
+            poRender = function () {
+                _orig();
+                // หน้า Attack Plan กำลังเปิดแท็บจ่ายไม้
+                if ((maiTab === 'payout' || maiTab === 'payoutlist') && typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') { ccViewerRender(); return; }
+                // หน้า Gallery กำลังเปิดแท็บจ่ายไม้
+                if ((currentGalleryTab === 'Payout' || currentGalleryTab === 'PayoutList') && typeof rerenderGallery === 'function') rerenderGallery();
+            };
         }, 0);
 
         function hbvBoot() {
@@ -42349,11 +42355,14 @@
             if (!body.member_id) body.member_id = memberSession.memberId;
             if (!body.member_name) body.member_name = memberSession.name;
         }
+        if (typeof showLoading === 'function') showLoading(alreadyPaid ? '🔄 กำลังยกเลิก...' : '💾 กำลังบันทึกจ่ายไม้...');
         try {
             const r = await postJson(body, { timeout: 20000, retries: 1 });
             if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
             await poLoad(true);
+            if (typeof showToast === 'function') showToast(alreadyPaid ? '🔄 ยกเลิกแล้ว' : '💸 บันทึกจ่ายแล้ว', 'success');
         } catch (e) { alert('❌ ' + (e.message || e)); }
+        finally { if (typeof hideLoading === 'function') hideLoading(); }
     }
     /** เปิดหน้าต่าง · mode: 'admin' = หน้าแอดมิน · 'member' = ฝั่งลูกกิล (แค่คนเดียว) */
     function poOpen(mode) {
