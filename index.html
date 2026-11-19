@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.38.1';
+        const APP_VERSION = '1.38.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -33645,10 +33645,13 @@
                                     ? `<button type="button" disabled title="เข้าสู่ระบบก่อน (ปุ่ม 🎮 เข้าสู่ระบบ มุมขวาบน) — ดูทีมที่หัวหน้ากิลด์ตั้งให้" class="px-6 py-2 rounded-xl text-xs font-black uppercase bg-[#0d1117] text-gray-600 border border-gray-800 opacity-60 cursor-not-allowed">🔒 Defense</button>`
                                     : `<button onclick="switchGalleryTab('Defense')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Defense' ? btnActiveBlue : btnInactive} text-xs font-black uppercase">🛡️ Defense</button>`}
                                 ${GALLERY_ROTATION_ENABLED ? `<button onclick="switchGalleryTab('Rotation')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Rotation' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : btnInactive} text-xs font-black uppercase">🗡️ วนไม้</button>` : ''}
-                                <button onclick="switchGalleryTab('Payout')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Payout' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : btnInactive} text-xs font-black uppercase">💸 จ่ายไม้</button>
-                                <button onclick="switchGalleryTab('PayoutList')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'PayoutList' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : btnInactive} text-xs font-black uppercase">📋 รายการ</button>
                             </div>
                             ${maiGalleryTabHTML(false)}
+                        </div>
+                        <!-- 💸 แถวย่อยใต้เมนูหลัก: จ่ายไม้ / รายการ -->
+                        <div class="flex flex-wrap justify-start gap-2 mb-5 shrink-0 w-full">
+                            <button onclick="switchGalleryTab('Payout')" class="px-5 py-2 rounded-xl transition ${currentGalleryTab === 'Payout' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-[#0d1117] text-gray-400 border border-gray-700 hover:text-white hover:border-emerald-500'} text-xs font-black uppercase">💸 จ่ายไม้</button>
+                            <button onclick="switchGalleryTab('PayoutList')" class="px-5 py-2 rounded-xl transition ${currentGalleryTab === 'PayoutList' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'bg-[#0d1117] text-gray-400 border border-gray-700 hover:text-white hover:border-indigo-500'} text-xs font-black uppercase">📋 รายการ</button>
                         </div>
                         ${currentGalleryTab === 'Defense' && memberSession ? galleryMyTeamsHTML() : ''}
                         ${memberTeamsPanelHTML}
