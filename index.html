@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.36.2';
+        const APP_VERSION = '1.37.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -4992,7 +4992,7 @@
             if (SYSTEM_CONFIG.WEB_APP_URL) return; // เปิดผ่าน Apps Script = รู้ URL ตัวเองแน่นอนแล้ว
             try {
                 const p = appUrlParams();
-                if (!(p.get('k') || p.get('mode') === 'apply' || p.get('mode') === 'castle-view' || p.get('mode') === 'mai-view' || p.get('mode') === 'builds-view' || p.get('mode') === 'stats-view')) return;
+                if (!(p.get('k') || p.get('mode') === 'apply' || p.get('mode') === 'castle-view' || p.get('mode') === 'mai-view' || p.get('mode') === 'builds-view' || p.get('mode') === 'stats-view' || p.get('mode') === 'payout-view')) return;
                 if (DEFAULT_WEB_APP_URL) { SCRIPT_URL = DEFAULT_WEB_APP_URL; USE_CLOUD = true; return; }
                 if (!p.get('s')) return;
                 const url = decodeURIComponent(escape(atob(p.get('s'))));
@@ -6294,6 +6294,7 @@
             // 🔨 หน้าดูบิ้วตัวละครที่เผยแพร่ — ไม่ต้อง login
             if (appUrlParams().get('mode') === 'builds-view') { hbvBoot(); return; }
             if (appUrlParams().get('mode') === 'stats-view') { ccViewTab = 'stats'; ccViewerBoot(); return; }
+            if (appUrlParams().get('mode') === 'payout-view') { poPageBoot(); return; }
 
             // 🔗 ลิงก์แชร์ (k= / mode=apply) แต่ไม่รู้ URL server = ลิงก์ไม่ครบ (โดนตัดท้าย / ลิงก์รุ่นเก่าไม่มี s=)
             //    คนทั่วไปไม่มีทางรู้ URL server — อย่าถาม ให้บอกว่าต้องขอลิงก์ใหม่
@@ -14826,6 +14827,14 @@
             if (hbv) hbv.style.display = 'none';
             // 📊 สถิติย้ายไปเป็นแท็บย่อยในหน้าคอมพ์ปราสาทแล้ว — ลิงก์เก่า ?mode=stats-view = เปิดคอมพ์ปราสาทแท็บสถิติ
             if (target === 'stats') { ccViewTab = 'stats'; target = 'castle'; }
+            if (target === 'payout') {
+                try { window.history.replaceState({}, '', window.location.pathname + '?mode=payout-view' + q); } catch (e) {}
+                ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+                if (hbv) hbv.style.display = 'none';
+                poPageBoot();
+                window.scrollTo(0, 0);
+                return;
+            }
             if (target === 'builds') {
                 try { window.history.replaceState({}, '', window.location.pathname + '?mode=builds-view' + q); } catch (e) {}
                 ['main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -15201,6 +15210,106 @@
         //    กดการ์ด → หน้าต่างรายละเอียด: ระดับดาว · สเตตัส base → รวม · เซต · ออฟหลัก/รอง · ของรัก
         // =========================================================
         let hbvSearch = '', hbvOpenId = null, hbvSync = { state: 'idle', at: 0 }, hbvBusy = false, hbvPollTimer = null;
+
+        // =========================================================
+        // 💸 หน้า Payout (?mode=payout-view) — เต็มหน้า · 2 แท็บ: จ่ายไม้ / ใครจ่ายอะไร
+        // =========================================================
+        let poPageTab = 'pay';   // 'pay' | 'who'
+        let poPagePollTimer = null;
+        function poPageBoot() {
+            isPublicView = true;
+            ['login-screen', 'main-sidebar', 'main-content', 'cc-viewer', 'hb-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+            hideLoading();
+            let box = document.getElementById('po-viewer');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'po-viewer';
+                box.className = 'fixed inset-0 z-[100] overflow-y-auto bg-[#0b0e14] text-gray-200';
+                document.body.appendChild(box);
+            }
+            box.style.display = '';
+            mergePublicMasterData(null, null);   // ใช้ heroesDB ที่ cache ไว้
+            poPageRender();
+            poLoad(true);
+            if (!poPagePollTimer) {
+                const on = () => { const b = document.getElementById('po-viewer'); return b && b.style.display !== 'none'; };
+                poPagePollTimer = setInterval(() => { if (document.visibilityState === 'visible' && on()) poLoad(true); }, 15000);
+            }
+        }
+        function poPageSetTab(t) { poPageTab = t; poPageRender(); }
+        function poPageRender() {
+            const box = document.getElementById('po-viewer'); if (!box) return;
+            const head = `<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-5">
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3"><h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">💸 จ่าย<span class="text-emerald-400">ไม้</span></h1></div>
+                    ${publicHubNavHTML('gallery')}
+                </div>
+                <div class="flex flex-wrap items-center md:justify-end gap-3">${publicHubGuildHTML()}</div>
+            </div>`;
+            if (poErr) { box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}<div class="text-center py-20 text-amber-300 text-sm">⚠️ ${ccEsc(poErr)} <button onclick="poLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div></div>`; return; }
+            if (!poData) { box.innerHTML = `<div class="max-w-6xl mx-auto p-4 md:p-6">${head}<div class="text-center py-20 text-gray-400 text-sm">⏳ กำลังโหลด…</div></div>`; return; }
+
+            const warHead = poData.war ? `<div class="mb-4 text-sm text-gray-400"><b class="text-white">${ccEsc(poData.war.label || '')}</b>${poData.war.ss ? ' · 📚 ' + ccEsc(poData.war.ss) : ''}</div>` : '<div class="mb-4 text-amber-300 text-sm">⚠️ กิลด์นี้ยังไม่มีวอ</div>';
+            const tabBtn = (k, label, cls) => `<button onclick="poPageSetTab('${k}')" class="flex-1 min-w-0 sm:flex-none px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition whitespace-nowrap ${poPageTab === k ? cls : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
+            const tabs = `<div class="flex w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl mb-4">
+                ${tabBtn('pay', '💸 จ่ายไม้', 'bg-emerald-600 text-white shadow-lg')}
+                ${tabBtn('who', '👥 ใครจ่ายอะไร', 'bg-indigo-600 text-white shadow-lg')}
+            </div>`;
+            box.innerHTML = `<div class="max-w-5xl mx-auto p-4 md:p-6">${head}${warHead}${tabs}${poPageTab === 'pay' ? poPagePayHTML() : poPageWhoHTML()}</div>`;
+        }
+        function poPagePayHTML() {
+            if (!poData.heroes || !poData.heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
+            const log = poData.log || [];
+            const curMember = (typeof memberSession !== 'undefined' && memberSession) ? { member_id: memberSession.memberId || '', member_name: memberSession.name || '' } : null;
+            const warActive = !!poData.war;
+            const cards = poData.heroes.map(hid => {
+                const h = (heroesDB || []).find(x => String(x.id) === String(hid));
+                const paid = log.filter(x => x.hero_id === String(hid));
+                const paidSelf = curMember && paid.some(p => p.member_id === curMember.member_id);
+                return `<div class="p-4 rounded-2xl border ${paid.length ? 'border-emerald-700/50 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'} flex flex-col items-center gap-3">
+                    ${h && h.img ? `<img src="${h.img}" class="w-20 h-20 rounded-xl object-cover border-2 border-gray-700" alt="">` : '<div class="w-20 h-20 rounded-xl bg-gray-800"></div>'}
+                    <div class="text-center min-w-0 w-full">
+                        <div class="text-sm font-black text-white truncate">${ccEsc(h ? h.name : hid)}</div>
+                        <div class="text-[11px] font-bold mt-1 ${paid.length ? 'text-emerald-300' : 'text-gray-500'}">${paid.length ? '✅ ' + paid.length + ' คนจ่ายแล้ว' : '⏳ ยังไม่มีคนจ่าย'}</div>
+                    </div>
+                    ${curMember && warActive ? `<button onclick="poToggle('${ccEsc(String(hid))}', {member_id:'${ccEsc(curMember.member_id)}',member_name:'${ccEsc(curMember.member_name)}'})" class="w-full px-3 py-2 rounded-xl text-xs font-black ${paidSelf ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-500'} text-white">${paidSelf ? '✅ ฉันจ่ายแล้ว' : '💸 กดจ่าย'}</button>` : !curMember ? '<div class="text-[10px] text-gray-500 text-center">เข้าสู่ระบบด้วย Discord เพื่อกดจ่าย</div>' : ''}
+                    ${paid.length ? `<div class="flex flex-wrap gap-1.5 justify-center w-full">${paid.map(p => `<span class="inline-block px-2 py-0.5 rounded-lg bg-indigo-900/40 border border-indigo-600/50 text-indigo-100 text-[10px] font-bold" title="${p.at ? new Date(+p.at).toLocaleString('th-TH') : ''}">👤 ${ccEsc(p.member_name || p.member_id)}</span>`).join('')}</div>` : ''}
+                </div>`;
+            }).join('');
+            return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))">${cards}</div>`;
+        }
+        function poPageWhoHTML() {
+            const log = poData.log || [];
+            if (!log.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">ยังไม่มีลูกกิลคนไหนจ่ายไม้</div>`;
+            // group by member
+            const byMem = new Map();
+            log.forEach(p => {
+                const k = p.member_id || 'g:' + (p.member_name || '?');
+                if (!byMem.has(k)) byMem.set(k, { name: p.member_name || p.member_id || '(ไม่ระบุ)', paid: [] });
+                byMem.get(k).paid.push(p);
+            });
+            const members = [...byMem.values()].sort((a, b) => b.paid.length - a.paid.length);
+            return `<div class="space-y-3">${members.map(m => {
+                const heroesHTML = m.paid.map(p => {
+                    const h = (heroesDB || []).find(x => String(x.id) === String(p.hero_id));
+                    return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#0d1117] border border-emerald-700/50" title="${p.at ? new Date(+p.at).toLocaleString('th-TH') : ''}">
+                        ${h && h.img ? `<img src="${h.img}" class="w-8 h-8 rounded object-cover" alt="">` : ''}
+                        <span class="text-xs font-bold text-emerald-200">${ccEsc(h ? h.name : p.hero_id)}</span>
+                    </span>`;
+                }).join('');
+                return `<div class="p-4 rounded-2xl border border-gray-800 bg-[#0d1117]">
+                    <div class="flex items-center gap-2 mb-2"><span class="text-lg">👤</span><span class="text-base font-black text-white truncate">${ccEsc(m.name)}</span><span class="ml-auto text-xs font-black text-emerald-300">${m.paid.length} ตัว</span></div>
+                    <div class="flex flex-wrap gap-2">${heroesHTML}</div>
+                </div>`;
+            }).join('')}</div>`;
+        }
+        // hook: ให้ poLoad render หน้าเพจด้วย (defer จนกว่า poRender จะพร้อม)
+        setTimeout(() => {
+            if (window._poRenderPatched || typeof poRender !== 'function') return;
+            window._poRenderPatched = true;
+            const _orig = poRender;
+            poRender = function () { _orig(); const bx = document.getElementById('po-viewer'); if (bx && bx.style.display !== 'none') poPageRender(); };
+        }, 0);
 
         function hbvBoot() {
             isPublicView = true;
@@ -17122,7 +17231,7 @@
             if (!isPublicView) return '';
             return `<div class="bg-[#0b0e14] p-1 rounded-2xl border border-gray-800 flex gap-1 shadow-xl">
                     <button onclick="switchPublicHub('mai')" class="px-6 py-2 rounded-xl transition ${active ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : 'bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-gray-500'} text-xs font-black uppercase">🗡️ Attack Plan</button>
-                    <button onclick="poOpen(typeof memberSession!=='undefined'&&memberSession?'member':'public')" class="px-6 py-2 rounded-xl transition bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-emerald-500 text-xs font-black uppercase">💸 จ่ายไม้</button>
+                    <button onclick="switchPublicHub('payout')" class="px-6 py-2 rounded-xl transition bg-[#0d1117] text-gray-500 border border-gray-700 hover:text-white hover:border-emerald-500 text-xs font-black uppercase">💸 จ่ายไม้</button>
                 </div>`;
         }
         /** จากหน้าไม้ชน กลับไปแท็บ Targets/Defense ของแกลเลอรี */
