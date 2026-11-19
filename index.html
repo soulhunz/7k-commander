@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.36.0';
+        const APP_VERSION = '1.36.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -42223,14 +42223,16 @@
     }
     /** 💾 บันทึก hero config (แอดมิน/ผู้ช่วย) */
     async function poSaveConfig(gid, heroIds) {
+        if (typeof showLoading === 'function') showLoading('💾 กำลังบันทึกฮีโร่ที่ต้องจ่าย...');
         try {
             const r = await postJson({ action: 'setPayoutConfig', guild_id: gid, hero_ids: heroIds }, { timeout: 30000, retries: 2 });
             if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
             if (poData) poData.heroes = r.hero_ids || [];
             poRender();
-            if (typeof showToast === 'function') showToast('💸 บันทึกฮีโร่ที่จะจ่ายแล้ว', 'success');
+            if (typeof showToast === 'function') showToast('💸 บันทึกฮีโร่ที่จะจ่ายแล้ว (' + (r.hero_ids || []).length + ' ตัว)', 'success');
             return true;
         } catch (e) { alert('❌ บันทึกไม่สำเร็จ\n\n' + (e.message || e)); return false; }
+        finally { if (typeof hideLoading === 'function') hideLoading(); }
     }
     /** 💸 กด = บอกว่าจ่ายแล้ว · ซ้ำ = ยกเลิก */
     async function poToggle(heroId, member) {
