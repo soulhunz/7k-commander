@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.39.2';
+        const APP_VERSION = '1.39.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15246,11 +15246,30 @@
             }).join('');
             return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))">${cards}</div>`;
         }
+        // 🎛️ ตัวกรองหน้า "รายการ"
+        if (typeof poListHeroFilter === 'undefined') { var poListHeroFilter = new Set(); var poListStatus = 'all'; }
+        function poListToggleHero(id) { id = String(id); if (poListHeroFilter.has(id)) poListHeroFilter.delete(id); else poListHeroFilter.add(id); if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
+        function poListSetStatus(s) { poListStatus = s; if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
+        function poListClear() { poListHeroFilter.clear(); poListStatus = 'all'; if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
         function poPageWhoHTML() {
             if (!poData) return `<div class="space-y-2">${Array.from({ length: 5 }).map(() => '<div class="p-3 rounded-2xl border border-gray-800 bg-[#0d1117] animate-pulse"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-full bg-gray-800"></div><div class="h-3 w-32 rounded bg-gray-800"></div></div><div class="h-4 w-full rounded bg-gray-800 ml-12"></div></div>').join('')}</div>`;
             const log = poData.log || [];
             const members = poData.members || [];
             const heroes = poData.heroes || [];
+            // 🎛️ แถบกรอง — เลือกฮีโร่ที่จะดู + สถานะจ่ายแล้ว/ยังไม่จ่าย
+            const focusedHeroes = poListHeroFilter.size ? heroes.filter(h => poListHeroFilter.has(String(h))) : heroes;
+            const heroChips = heroes.map(hid => {
+                const h = (heroesDB || []).find(x => String(x.id) === String(hid));
+                const on = poListHeroFilter.has(String(hid));
+                return `<button onclick="poListToggleHero('${ccEsc(String(hid))}')" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 text-xs font-bold transition ${on ? 'border-emerald-400 bg-emerald-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500'}">
+                    ${h && h.img ? `<img src="${h.img}" class="w-6 h-6 rounded object-cover" alt="">` : ''}<span>${ccEsc(h ? h.name : hid)}</span>
+                </button>`;
+            }).join('');
+            const statusBtn = (k, label) => `<button onclick="poListSetStatus('${k}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${poListStatus === k ? 'bg-indigo-600 text-white border-indigo-400' : 'border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500'}">${label}</button>`;
+            const filterBar = `<div class="mb-4 space-y-2 p-3 rounded-2xl bg-[#0d1117] border border-gray-800">
+                <div class="flex flex-wrap items-center gap-2"><span class="text-[11px] font-black text-gray-400 uppercase">🎛️ สถานะ:</span>${statusBtn('all', 'ทั้งหมด')}${statusBtn('paid', '✅ จ่ายแล้ว')}${statusBtn('unpaid', '⏳ ยังไม่จ่าย')}${poListHeroFilter.size || poListStatus !== 'all' ? `<button onclick="poListClear()" class="ml-auto text-[11px] text-amber-300 hover:text-white underline">ล้างตัวกรอง</button>` : ''}</div>
+                ${heroes.length ? `<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-black text-gray-400 uppercase mr-1">🦸 ฮีโร่:</span>${heroChips}</div>` : ''}
+            </div>`;
             if (!members.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">กิลด์นี้ยังไม่มีลูกกิล</div>`;
             if (!heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
             // paid[member_id] = Set(hero_id)
@@ -15260,14 +15279,21 @@
             const extras = [...new Set(log.filter(p => !knownIds.has(p.member_id || '')).map(p => p.member_id || 'n:' + (p.member_name || '')))]
                 .map(k => { const p = log.find(x => (x.member_id || 'n:' + (x.member_name || '')) === k); return { id: k, name: (p.member_name || k).replace(/^n:/, ''), extra: true }; });
             const rows = members.map(m => ({ id: String(m.id), name: m.name, discordAvatar: m.discordAvatar })).concat(extras);
-            // เรียง: จ่ายมากสุดก่อน · ตามด้วยยังไม่ครบ
-            rows.forEach(m => { m._n = (paidByMem.get(m.id) || new Set()).size; });
+            // เรียง: จ่ายมากสุดก่อน (เทียบจาก focused heroes)
+            rows.forEach(m => { const ps = paidByMem.get(m.id) || new Set(); m._n = focusedHeroes.filter(h => ps.has(String(h))).length; });
             rows.sort((a, b) => b._n - a._n || String(a.name).localeCompare(String(b.name), 'th'));
+            // สถานะกรอง: นับจาก focused heroes
+            const filtered = rows.filter(m => {
+                if (poListStatus === 'all') return true;
+                const allPaidFocused = focusedHeroes.every(h => (paidByMem.get(m.id) || new Set()).has(String(h)));
+                return poListStatus === 'paid' ? allPaidFocused : !allPaidFocused;
+            });
             const avatar = m => { const av = m.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : ''; if (av) return `<img src="${av}" referrerpolicy="no-referrer" alt="" class="w-9 h-9 rounded-full object-cover border border-indigo-500/40 shrink-0">`; return `<span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 text-xs text-gray-400">${ccEsc(String(m.name || '?').trim().charAt(0).toUpperCase())}</span>`; };
-            return `<div class="space-y-2">${rows.map(m => {
+            const countBar = `<div class="mb-3 text-xs text-gray-500">แสดง <b class="text-white">${filtered.length}</b>/${rows.length} คน${poListHeroFilter.size ? ` · กรองฮีโร่ ${poListHeroFilter.size} ตัว` : ''}</div>`;
+            const listHTML = filtered.length ? filtered.map(m => {
                 const paidSet = paidByMem.get(m.id) || new Set();
-                const allPaid = heroes.every(hid => paidSet.has(String(hid)));
-                const heroChips = heroes.map(hid => {
+                const allPaid = focusedHeroes.every(hid => paidSet.has(String(hid)));
+                const heroChips = focusedHeroes.map(hid => {
                     const h = (heroesDB || []).find(x => String(x.id) === String(hid));
                     const paid = paidSet.has(String(hid));
                     return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
@@ -15277,10 +15303,11 @@
                     </span>`;
                 }).join('');
                 return `<div class="p-3 rounded-2xl border ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
-                    <div class="flex items-center gap-3 mb-2">${avatar(m)}<span class="text-sm font-black text-white truncate flex-1">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</span><span class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">${paidSet.size}/${heroes.length}${allPaid ? ' ✅' : ''}</span></div>
+                    <div class="flex items-center gap-3 mb-2">${avatar(m)}<span class="text-sm font-black text-white truncate flex-1">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</span><span class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">${focusedHeroes.filter(h => paidSet.has(String(h))).length}/${focusedHeroes.length}${allPaid ? ' ✅' : ''}</span></div>
                     <div class="flex flex-wrap gap-1.5 pl-12">${heroChips}</div>
                 </div>`;
-            }).join('')}</div>`;
+            }).join('') : '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่พบลูกกิลตามตัวกรอง</div>';
+            return `${filterBar}${countBar}<div class="space-y-2">${listHTML}</div>`;
         }
         // hook: เมื่อ poLoad ได้ข้อมูลใหม่ → re-render ทั้ง gallery และ attack plan
         setTimeout(() => {
