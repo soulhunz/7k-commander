@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.38.3';
+        const APP_VERSION = '1.39.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -17191,6 +17191,8 @@
         const MAI_MAX = 5;
         const MAI_SHOW_RING = false;   // 💍 ปิดรูปแหวนใต้ตัวละคร (ตามคำขอ) — เปลี่ยนเป็น true ถ้าจะเปิดกลับ
         var maiSetIdx = 0;   // 📑 เซ็ตที่เปิดดูอยู่ (0 = เซ็ตที่ 1)
+        var maiTab = 'plan';   // 'plan' | 'payout' | 'payoutlist'
+        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t !== 'plan') setTimeout(() => poLoad(true), 0); }
         function maiSetSet(i) { maiSetIdx = i; ccRerenderKeepScroll(); }
         // ✏️ จัดเอง — เก็บลายเซ็นทีม (id ฮีโร่) ที่เลือกไว้ในเครื่อง แยกตามกิลด์ของลิงก์
         function maiCustomKey() { return '7k_mai_custom_' + String(decodeGuildParam(appUrlParams().get('g')) || 'all').toLowerCase(); }
@@ -17390,14 +17392,23 @@
             // 📑 แท็บเซ็ต (แบบเดียวกับแท็บในหน้าคอมพ์ปราสาท) + ✏️ จัดเอง ขวาสุด
             const tabCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
             const nCustom = custom ? main.length : maiCustomLoad().length;
+            const payCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on === 'pay' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : on === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
+            const payBox = `<div class="flex flex-wrap w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex">
+                <button onclick="maiSetTab('payout')" class="${payCls(maiTab === 'payout' ? 'pay' : '')}">💸 จ่ายไม้</button>
+                <button onclick="maiSetTab('payoutlist')" class="${payCls(maiTab === 'payoutlist' ? 'list' : '')}">📋 รายการ</button>
+            </div>`;
             const setTabs = `<div class="flex flex-wrap items-center gap-3 mb-4">
                 <div class="flex flex-wrap w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex">
-                    ${sets.map((s, i) => `<button onclick="maiSetSet(${i})" title="${i ? 'ไม้ 1 = ' + ccEsc([...new Set(groups[s[0]].teams.map(t => t.name || 'ทีมชน'))].join(' / ')) : 'ชุดที่จัดได้ดีที่สุด'}"
-                        class="${tabCls(i === maiSetIdx)}">เซ็ตที่ ${i + 1} <span class="font-normal opacity-70">(${s.length} ไม้)</span></button>`).join('')}
-                    <button onclick="maiSetSet('custom')" title="เลือกทีมเองได้สูงสุด ${MAI_MAX} ไม้ (จำไว้ในเครื่องนี้)" class="${tabCls(custom)}">✏️ จัดเอง${nCustom ? ` <span class="font-normal opacity-70">(${nCustom} ไม้)</span>` : ''}</button>
+                    ${sets.map((s, i) => `<button onclick="maiSetSet(${i});maiSetTab('plan')" title="${i ? 'ไม้ 1 = ' + ccEsc([...new Set(groups[s[0]].teams.map(t => t.name || 'ทีมชน'))].join(' / ')) : 'ชุดที่จัดได้ดีที่สุด'}"
+                        class="${tabCls(i === maiSetIdx && maiTab === 'plan')}">เซ็ตที่ ${i + 1} <span class="font-normal opacity-70">(${s.length} ไม้)</span></button>`).join('')}
+                    <button onclick="maiSetSet('custom');maiSetTab('plan')" title="เลือกทีมเองได้สูงสุด ${MAI_MAX} ไม้ (จำไว้ในเครื่องนี้)" class="${tabCls(custom && maiTab === 'plan')}">✏️ จัดเอง${nCustom ? ` <span class="font-normal opacity-70">(${nCustom} ไม้)</span>` : ''}</button>
                 </div>
-                ${custom && main.length ? `<button onclick="maiCustomClear()" class="text-[11px] text-gray-500 hover:text-white underline">ล้างที่เลือก</button>` : ''}
+                ${payBox}
+                ${custom && main.length && maiTab === 'plan' ? `<button onclick="maiCustomClear()" class="text-[11px] text-gray-500 hover:text-white underline">ล้างที่เลือก</button>` : ''}
             </div>`;
+            // 💸 / 📋 ครอบคลุมหน้า Attack Plan → return เนื้อหา payout (ยังคง head + setTabs)
+            if (maiTab === 'payout') return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}${renderPayoutPay()}</div>`;
+            if (maiTab === 'payoutlist') return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}${renderPayoutList()}</div>`;
             const emptyPick = `<div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-8 text-center">ยังไม่ได้เลือก — กด <b class="text-emerald-400 not-italic">+ เลือก</b> ที่ทีมด้านล่าง (สูงสุด ${MAI_MAX} ไม้ ห้ามตัวซ้ำ)</div>`;
             return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}
                 ${section(custom ? 'ไม้ที่เลือก' : 'ไม้หลัก', main.length + '/' + MAI_MAX + ' ไม้', 'bg-red-500', 'text-red-400', 'from-red-500/50', main.length ? grid(main.map((g, i) => card(g, i + 1)).join('')) : emptyPick)}
@@ -33489,16 +33500,10 @@
             else if (currentGalleryTab === 'MyHeroes') {
                 contentHTML = renderMyHeroesContent();
             }
-            // 💸 แท็บ "จ่ายไม้" — แอดมินตั้งฮีโร่ · ลูกกิล login กดจ่าย
-            else if (currentGalleryTab === 'Payout') {
-                contentHTML = renderPayoutPay();
-                setTimeout(() => poLoad(true), 0);
-            }
-            // 📋 แท็บ "รายการจ่ายไม้" — ลูกกิลทุกคน + ฮีโร่ที่แอดมินตั้ง (จ่ายแล้ว = disabled)
-            else if (currentGalleryTab === 'PayoutList') {
-                contentHTML = renderPayoutList();
-                setTimeout(() => poLoad(true), 0);
-            }
+            // 💸 Payout / 📋 List เดิมอยู่ใน Community Gallery · ตอนนี้ย้ายเข้าหน้า Attack Plan แล้ว
+            // กดจาก URL/ลิงก์เก่า → redirect ไป Attack Plan
+            else if (currentGalleryTab === 'Payout') { setTimeout(() => { maiTab = 'payout'; switchPublicHub('mai'); }, 0); contentHTML = ''; }
+            else if (currentGalleryTab === 'PayoutList') { setTimeout(() => { maiTab = 'payoutlist'; switchPublicHub('mai'); }, 0); contentHTML = ''; }
             // 🧬 แท็บ Targets — แบ่งกลุ่มตาม Type ที่เยอะสุดในทีม
             else if (currentGalleryTab === 'Attack') {
                 const typeMap = new Map();
@@ -33651,11 +33656,6 @@
                                 ${GALLERY_ROTATION_ENABLED ? `<button onclick="switchGalleryTab('Rotation')" class="px-6 py-2 rounded-xl transition ${currentGalleryTab === 'Rotation' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : btnInactive} text-xs font-black uppercase">🗡️ วนไม้</button>` : ''}
                             </div>
                             ${maiGalleryTabHTML(false)}
-                        </div>
-                        <!-- 💸 แถวย่อยใต้เมนูหลัก: จ่ายไม้ / รายการ -->
-                        <div class="flex flex-wrap justify-start gap-2 mb-5 shrink-0 w-full">
-                            <button onclick="switchGalleryTab('Payout')" class="px-5 py-2 rounded-xl transition ${currentGalleryTab === 'Payout' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-[#0d1117] text-gray-400 border border-gray-700 hover:text-white hover:border-emerald-500'} text-xs font-black uppercase">💸 จ่ายไม้</button>
-                            <button onclick="switchGalleryTab('PayoutList')" class="px-5 py-2 rounded-xl transition ${currentGalleryTab === 'PayoutList' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'bg-[#0d1117] text-gray-400 border border-gray-700 hover:text-white hover:border-indigo-500'} text-xs font-black uppercase">📋 รายการ</button>
                         </div>
                         ${currentGalleryTab === 'Defense' && memberSession ? galleryMyTeamsHTML() : ''}
                         ${memberTeamsPanelHTML}
