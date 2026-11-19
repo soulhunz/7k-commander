@@ -3597,6 +3597,8 @@
                             <button onclick="castleCapOpen()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-sky-600" title="อัดหน้าจอตอนเปิดดูปราสาทศัตรูในเกม → อ่านทีมในแต่ละปราสาท แล้วส่งเข้าตาราง">🎥 อ่านปราสาทจากหน้าจอ</button>
                             <button onclick="warUseLogOpen(warUseCastleGuildIdx())" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-indigo-600" title="ลูกกิลใช้ตัวละคร/แหวนอะไรไปแล้วในวอนี้ (ดูย้อนหลังตาม SS)">📒 บันทึกวอ</button>
                             <button onclick="poOpen('admin')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-emerald-600" title="ลูกกิลจ่ายฮีโร่อะไรแล้วบ้างในวอนี้ (realtime)">💸 จ่ายไม้</button>
+                            <button onclick="warUseFinishWar(warUseCastleGuildIdx())" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-amber-600" title="จบวอ · ปิดการบันทึก + snapshot ตาราง · กดเริ่มวอใหม่ค่อยล้าง">🏁 จบวอ</button>
+                            <button onclick="warUseFinishSs(warUseCastleGuildIdx())" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-indigo-600" title="จบ SS · ปิดวอทั้งหมดใน SS + สรุปสถิติทั้งซีซั่น">🎖️ จบ SS</button>
                             <button onclick="castleCompClearAll()" class="px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600" title="ล้างปราสาท + คอมพ์ + จำนวนทั้งหมด">🗑️ ล้างตาราง</button>
                         </div>
                     </div>
@@ -4709,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.35.3';
+        const APP_VERSION = '1.36.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -42053,12 +42055,22 @@
     /** 🆕 วอใหม่ — ล้างสถานะ "ใช้แล้ว" (ของเก่าเก็บไว้ดูย้อนหลัง) */
     async function warUseNewWar(gi, silentConfirm) {
         const g = guildsDB[gi]; if (!g) return;
-        if (!silentConfirm && !confirm('เริ่มบันทึกวอใหม่ของกิลด์ "' + g.name + '"?\n\nตัวละคร/แหวนที่ "ใช้แล้ว" ของลูกกิลจะกลับมาว่าง · บันทึกวอเดิมยังเปิดดูย้อนหลังได้')) return false;
+        const prev = (warUse[String(g.id)] || {}).current || null;
+        const inheritSs = prev && prev.state === 'finished' && prev.ss ? prev.ss : '';
+        if (!silentConfirm && !confirm('🆕 เริ่มวอใหม่ของ "' + g.name + '"?\n\n' + (inheritSs ? '• SS: ' + inheritSs + ' (วอ ' + ((prev.warNum || 0) + 1) + '/18)\n' : '') + '• ล้างจำนวนคอมพ์ในตาราง (คอมพ์ยังอยู่)\n• ตัวละคร/แหวน "ใช้แล้ว" กลับมาว่าง\n• วอเดิมดูย้อนหลังได้')) return false;
         showLoading('🆕 กำลังเริ่มวอใหม่...');
         try {
-            const r = await postJson({ action: 'newWarUsage', guild_id: String(g.id) }, { timeout: 30000, retries: 1 });
+            const body = { action: 'newWarUsage', guild_id: String(g.id) };
+            if (inheritSs) body.ss = inheritSs;
+            const r = await postJson(body, { timeout: 30000, retries: 1 });
             if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
             wuSet(String(g.id), r);
+            // 🏰 ล้างจำนวนคอมพ์ในตาราง (เก็บคอมพ์ · ปราสาทไว้)
+            if (typeof castleCompDB === 'object' && castleCompDB && castleCompDB.counts) {
+                Object.keys(castleCompDB.counts).forEach(cid => { castleCompDB.counts[cid] = {}; });
+                if (typeof castleCompSave === 'function') castleCompSave();
+                if (typeof renderCastleComp === 'function') renderCastleComp();
+            }
             showToast('🆕 เริ่มบันทึกวอใหม่แล้ว (' + ((r.current || {}).label || '') + ')', 'success');
         } catch (e) { alert('❌ เริ่มวอใหม่ไม่สำเร็จ\n\n' + (e.message || e)); return false; }
         finally { hideLoading(); }
@@ -42066,6 +42078,122 @@
         if (currentView === 'member-roster') renderMemberRosterView();
         return true;
     }
+    // =========================================================
+    // 🏁 จบวอ / 🎖️ จบ SS — หน้าสรุป (ไม่ล้างอะไรเอง) · หลังปิดแอดมินค่อยกด "เริ่มวอใหม่"
+    // =========================================================
+    /** 🏁 จบวอปัจจุบัน — เซฟสถานะ 'finished' ที่ server + snapshot castle comp + โชว์สรุป */
+    async function warUseFinishWar(gi) {
+        const g = guildsDB[gi]; if (!g) return;
+        const cur = (warUse[String(g.id)] || {}).current;
+        if (!cur) return alert('ยังไม่มีวอปัจจุบัน');
+        if (cur.state === 'finished') return warUseShowWarSummary(gi, cur);
+        if (!confirm('🏁 จบ ' + (cur.label || 'วอนี้') + '?\n\n• ปิดการบันทึกไม้เพิ่ม\n• snapshot ตารางนับคอมพ์เก็บลงประวัติ SS\n• ตารางนับคอมพ์ยังอยู่ จะกดเริ่มวอใหม่เมื่อไรก็ได้\n\n(กดได้ไม่เกิดผลถาวรนะ · เริ่มวอใหม่ค่อยล้าง)')) return;
+        // 📚 snapshot ลง SS history ก่อน (ไม่สำเร็จก็ผ่านได้)
+        try {
+            if (typeof castleCompDB === 'object' && castleCompDB.comps && castleCompDB.comps.length) {
+                const ssLabel = (cur.ss ? cur.ss + ' · ' : '') + (cur.label || ('วอ ' + (cur.warNum || '')));
+                if (typeof ccSsSaveAuto === 'function') await ccSsSaveAuto(ssLabel);
+            }
+        } catch (e) { console.warn('snapshot skip', e); }
+        showLoading('🏁 กำลังจบวอ...');
+        try {
+            const r = await postJson({ action: 'finishCurrentWar', guild_id: String(g.id) }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            if (warUse[String(g.id)]) { warUse[String(g.id)].current.state = 'finished'; warUse[String(g.id)].current.endedAt = String(Date.now()); warUse[String(g.id)].wars = r.wars || warUse[String(g.id)].wars; warUseVer++; }
+            hideLoading();
+            warUseShowWarSummary(gi, warUse[String(g.id)].current);
+        } catch (e) { hideLoading(); alert('❌ ' + (e.message || e)); }
+    }
+    /** 📋 หน้าสรุปวอ · ปุ่ม "เริ่มวอใหม่" = warUseNewWar(gi) */
+    function warUseShowWarSummary(gi, cur) {
+        const g = guildsDB[gi]; if (!g || !cur) return;
+        const d = warUse[String(g.id)] || {}, rows = (d.rows || []).filter(r => r.war_id === cur.id);
+        const win = rows.filter(r => r.result === 'win').length;
+        const lose = rows.filter(r => r.result === 'lose').length;
+        const byMem = new Map();
+        rows.forEach(r => { const k = r.member_id || r.game_name || '?'; const x = byMem.get(k) || { name: r.member_name || r.game_name || '', total: 0, win: 0 }; x.total++; if (r.result === 'win') x.win++; byMem.set(k, x); });
+        const top = [...byMem.values()].sort((a, b) => b.win - a.win).slice(0, 10);
+        let m = document.getElementById('war-end-dlg');
+        if (!m) { m = document.createElement('div'); m.id = 'war-end-dlg'; m.className = 'fixed inset-0 z-[720] flex items-center justify-center bg-black/85 backdrop-blur-sm p-3'; m.onclick = e => { if (e.target === m) m.style.display = 'none'; }; document.body.appendChild(m); }
+        m.innerHTML = `<div class="bg-[#161b22] border border-amber-700/60 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800"><h3 class="text-white font-bold text-lg">🏁 จบ ${ccEsc(cur.label || 'วอนี้')}</h3>${cur.ss ? `<div class="text-xs text-indigo-300 mt-1">📚 ${ccEsc(cur.ss)} · วอที่ ${cur.warNum || '?'}/18</div>` : ''}</div>
+            <div class="p-5 overflow-y-auto flex-1 min-h-0 space-y-4">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 text-center"><div class="text-[10px] text-gray-500 font-black uppercase">ไม้ทั้งหมด</div><div class="text-2xl font-black text-amber-300">${rows.length}</div></div>
+                    <div class="bg-[#0d1117] border border-emerald-800/60 rounded-xl p-3 text-center"><div class="text-[10px] text-emerald-400 font-black uppercase">ชนะ</div><div class="text-2xl font-black text-emerald-300">${win}</div></div>
+                    <div class="bg-[#0d1117] border border-red-800/60 rounded-xl p-3 text-center"><div class="text-[10px] text-red-400 font-black uppercase">แพ้</div><div class="text-2xl font-black text-red-300">${lose}</div></div>
+                </div>
+                <div>
+                    <div class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">🏆 TOP ${top.length} คน</div>
+                    <div class="rounded-xl border border-gray-800 bg-[#0d1117] overflow-hidden">
+                        ${top.length ? top.map((x, i) => `<div class="flex items-center gap-2 px-3 py-2 ${i ? 'border-t border-gray-800/60' : ''}"><span class="w-6 text-[11px] font-black text-gray-500">${i + 1}</span><span class="flex-1 text-sm text-white truncate">${ccEsc(x.name || '(ไม่ระบุ)')}</span><span class="text-xs text-amber-300 font-black">${x.total} ไม้</span><span class="text-xs text-emerald-300 font-black ml-2 w-10 text-right">${x.win} ชนะ</span></div>`).join('') : '<div class="p-4 text-center text-sm text-gray-500">ยังไม่มีไม้ที่บันทึก</div>'}
+                    </div>
+                </div>
+            </div>
+            <div class="p-3 border-t border-gray-800 flex gap-2 flex-wrap">
+                <button onclick="document.getElementById('war-end-dlg').style.display='none'" class="px-4 py-2 rounded-xl bg-[#1f2937] text-gray-200 text-sm font-bold border border-gray-700">ปิด</button>
+                <button onclick="warUseNewWar(${gi}).then(ok=>{if(ok)document.getElementById('war-end-dlg').style.display='none'})" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black">🆕 เริ่มวอใหม่ · ล้างตาราง</button>
+            </div>
+        </div>`;
+        m.style.display = 'flex';
+    }
+    /** 🎖️ จบ SS — เซฟสถานะ 'ss_closed' + โชว์สรุป SS */
+    async function warUseFinishSs(gi) {
+        const g = guildsDB[gi]; if (!g) return;
+        const cur = (warUse[String(g.id)] || {}).current;
+        const ssName = cur && cur.ss ? cur.ss : '';
+        if (!ssName) return alert('วอปัจจุบันยังไม่ได้ตั้ง SS — ตั้งก่อนที่ 📒 บันทึกวอ → 📚 SS');
+        if (!confirm('🎖️ จบ SS "' + ssName + '"?\n\n• วอทุกตัวใน SS นี้จะปิด\n• ก่อนกดต้องจบวอปัจจุบันก่อน')) return;
+        if (cur && cur.state === 'active') return alert('⛔ จบวอปัจจุบันก่อน (กด 🏁 จบวอ)');
+        showLoading('🎖️ กำลังจบ SS...');
+        try {
+            const r = await postJson({ action: 'finishCurrentSs', guild_id: String(g.id), ss: ssName }, { timeout: 30000, retries: 1 });
+            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            const sum = await postJson({ action: 'getSsSummary', guild_id: String(g.id), ss: ssName }, { timeout: 30000, retries: 1 });
+            hideLoading();
+            if (sum && sum.status === 'success') warUseShowSsSummary(gi, sum.summary);
+        } catch (e) { hideLoading(); alert('❌ ' + (e.message || e)); }
+    }
+    function warUseShowSsSummary(gi, sum) {
+        const g = guildsDB[gi]; if (!g || !sum) return;
+        const rate = sum.total ? Math.round((sum.win / sum.total) * 1000) / 10 : 0;
+        const top = (sum.members || []).slice(0, 15);
+        const enemies = (sum.topEnemies || []).slice(0, 8);
+        let m = document.getElementById('ss-end-dlg');
+        if (!m) { m = document.createElement('div'); m.id = 'ss-end-dlg'; m.className = 'fixed inset-0 z-[720] flex items-center justify-center bg-black/85 backdrop-blur-sm p-3'; m.onclick = e => { if (e.target === m) m.style.display = 'none'; }; document.body.appendChild(m); }
+        m.innerHTML = `<div class="bg-[#161b22] border border-indigo-700/60 rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-gray-800"><h3 class="text-white font-bold text-xl">🎖️ สรุป ${ccEsc(sum.ss)}</h3><div class="text-xs text-gray-400 mt-1">วอทั้งหมด ${(sum.wars || []).length} / 18</div></div>
+            <div class="p-5 overflow-y-auto flex-1 min-h-0 space-y-4">
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 text-center"><div class="text-[10px] text-gray-500 font-black uppercase">วอ</div><div class="text-2xl font-black text-white">${(sum.wars || []).length}</div></div>
+                    <div class="bg-[#0d1117] border border-gray-800 rounded-xl p-3 text-center"><div class="text-[10px] text-gray-500 font-black uppercase">ไม้</div><div class="text-2xl font-black text-amber-300">${sum.total || 0}</div></div>
+                    <div class="bg-[#0d1117] border border-emerald-800/60 rounded-xl p-3 text-center"><div class="text-[10px] text-emerald-400 font-black uppercase">ชนะ</div><div class="text-2xl font-black text-emerald-300">${sum.win || 0}</div></div>
+                    <div class="bg-[#0d1117] border border-indigo-800/60 rounded-xl p-3 text-center"><div class="text-[10px] text-indigo-400 font-black uppercase">% ชนะ</div><div class="text-2xl font-black text-indigo-300">${rate}%</div></div>
+                </div>
+                <div>
+                    <div class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">🏆 TOP ${top.length} คน</div>
+                    <div class="rounded-xl border border-gray-800 bg-[#0d1117] overflow-hidden">
+                        ${top.length ? top.map((x, i) => `<div class="flex items-center gap-2 px-3 py-2 ${i ? 'border-t border-gray-800/60' : ''}"><span class="w-6 text-[11px] font-black text-gray-500">${i + 1}</span><span class="flex-1 text-sm text-white truncate">${ccEsc(x.name || '(ไม่ระบุ)')}</span><span class="text-xs text-amber-300 font-black">${x.total} ไม้</span><span class="text-xs text-emerald-300 font-black ml-2 w-10 text-right">${x.win} ชนะ</span></div>`).join('') : '<div class="p-4 text-center text-sm text-gray-500">—</div>'}
+                    </div>
+                </div>
+                ${enemies.length ? `<div>
+                    <div class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">⚔️ กิลด์คู่แข่งที่เจอบ่อย</div>
+                    <div class="flex flex-wrap gap-2">${enemies.map(e => `<span class="px-3 py-1 rounded-lg bg-[#0d1117] border border-gray-800 text-xs text-gray-200"><b class="text-red-300">${ccEsc(e.name)}</b> <span class="opacity-70">${e.count}</span></span>`).join('')}</div>
+                </div>` : ''}
+            </div>
+            <div class="p-3 border-t border-gray-800 flex gap-2"><button onclick="document.getElementById('ss-end-dlg').style.display='none'" class="px-4 py-2 rounded-xl bg-[#1f2937] text-gray-200 text-sm font-bold border border-gray-700">ปิด</button></div>
+        </div>`;
+        m.style.display = 'flex';
+    }
+    /** 💾 บันทึก snapshot ตารางคอมพ์ลง SS history แบบเงียบ (ใช้ตอนกดจบวอ) */
+    async function ccSsSaveAuto(label) {
+        if (typeof castleCompBuildCsv !== 'function' || !castleCompDB || !castleCompDB.comps.length) return;
+        if (!CURRENT_USER || !CURRENT_USER.token) return;
+        try {
+            await postJson({ action: 'saveCastleCompSeason', guild: castleCompGuildRaw(), id: '', label: label, csv: castleCompBuildCsv(true), meta: (typeof ccSsBuildMeta === 'function' ? ccSsBuildMeta() : '{}') }, { timeout: 45000, retries: 1 });
+        } catch (e) { console.warn('ccSsSaveAuto', e); }
+    }
+
     // =========================================================
     // 💸 ระบบจ่ายไม้ realtime — แอดมินตั้งฮีโร่ที่กิลด์ต้องจ่าย · ลูกกิล login แล้วกดบอก
     //    แอดมินเห็นรายการ "ใครจ่ายอะไรไปแล้ว" ป้องกันจ่ายซ้ำ
