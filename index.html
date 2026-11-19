@@ -4711,7 +4711,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.40.0';
+        const APP_VERSION = '1.40.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -32722,14 +32722,20 @@
                 }
             }
 
-            // ถ้าไม่มี Cache หรือกด Refresh ค่อยโหลดใหม่
+            // 💀 Skeleton: วาดโครงกระดูกการ์ดทันที — ไม่ต้องรอ server (เร็วขึ้นในการรับรู้)
+            const mc = document.getElementById('main-content');
+            if (mc) {
+                const sk = Array.from({ length: 12 }).map(() => '<div class="bg-[#161b22] border border-gray-800 rounded-2xl p-3 animate-pulse" style="min-height:220px"><div class="h-6 w-32 rounded bg-gray-800 mb-4"></div><div class="flex gap-2 justify-center mb-3">' + '<div class="w-16 h-16 rounded-xl bg-gray-800"></div>'.repeat(3) + '</div><div class="h-10 bg-gray-800 rounded-lg"></div></div>').join('');
+                mc.innerHTML = `<div class="w-full h-full overflow-y-auto p-4 md:p-6 bg-[#0b0e14]">
+                    <div class="flex justify-between items-center mb-6 animate-pulse"><div class="h-10 w-80 rounded bg-gray-800"></div><div class="h-8 w-40 rounded bg-gray-800"></div></div>
+                    <div class="flex gap-2 mb-4 animate-pulse">${'<div class="h-9 w-24 rounded-xl bg-gray-800"></div>'.repeat(3)}</div>
+                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))">${sk}</div>
+                </div>`;
+            }
+            // บอกสถานะในป้ายเล็กมุมบน (ไม่ค้าง overlay บัง)
             const overlay = document.getElementById('loading-overlay');
             const text = document.getElementById('loading-text');
-            if (overlay && text) {
-                text.innerText = "📥 กำลังโหลดข้อมูล Community...";
-                overlay.classList.add('active');
-                overlay.style.display = 'flex';
-            }
+            if (overlay) overlay.style.display = 'none';   // ไม่บัง skeleton
 
             try {
                 // 🟢 ดึง guild_name และ role ของ User (หรือใช้จาก URL ถ้าเป็น Public)
