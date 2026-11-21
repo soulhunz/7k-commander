@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.42.0';
+        const APP_VERSION = '1.43.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14942,7 +14942,7 @@
             wsRenderMemberModal(x);
             try {
                 const g = wsGuild();
-                const r = await postJson({ action: 'getMemberBattlesPublic', guild: g, member_id: x.member_id || '', game_name: x.member_id ? '' : (x.game_name || x.name || '') }, { timeout: 45000, retries: 2 });
+                const r = await postJson(Object.assign({ action: 'getMemberBattlesPublic', guild: g, member_id: x.member_id || '', game_name: x.member_id ? '' : (x.game_name || x.name || '') }, wsAuthQ()), { timeout: 45000, retries: 2 });
                 if (r && r.status === 'success') wsMemBattles = r;
                 else wsMemBattlesErr = (r && r.message) || 'server ตอบไม่สำเร็จ';
             } catch (e) { console.warn('getMemberBattlesPublic', e); wsMemBattlesErr = e.message || String(e); }
@@ -15072,24 +15072,46 @@
             m.style.display = 'flex';
         }
         function wsGuild() { try { return decodeGuildParam(appUrlParams().get('g')) || ''; } catch (e) { return ''; } }
+        /** 🔐 ยืนยันตัวลูกกิล (Discord) — server ส่งสถิติเฉพาะของตัวเอง · ผู้ช่วย/แอดมินได้ทุกคน */
+        function wsAuthQ() { return (typeof memberSession !== 'undefined' && memberSession && memberSession.code) ? { accessCode: memberSession.code } : {}; }
+        function wsAuthKey() { return wsAuthQ().accessCode || ((typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) ? 'admin' : ''); }
+        let wsView = 'me';   // 'me' = สถิติของฉัน · 'members' = สมาชิกทั้งหมด (ผู้ช่วย/แอดมิน)
+        function wsSetView(v) { wsView = v; ccViewerRender(); }
         async function wsLoad(force) {
             const g = wsGuild();
             if (!g) { wsErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; if (ccHubPage === 'stats') ccViewerRender(); return; }
-            if (wsLoading || (!force && wsData && wsData._guild === g && Date.now() - wsData._at < 60000)) return;
-            wsLoading = true; wsErr = '';
+            const auth = wsAuthKey();
+            if (wsLoading || (!force && wsData && wsData._guild === g && wsData._auth === auth && Date.now() - wsData._at < 60000)) return;
+            wsLoading = true; wsErr = ''; wsErrCode = '';
             if (ccHubPage === 'stats') ccViewerRender();
             try {
-                const r = await postJson({ action: 'getWarStatsPublic', guild: g }, { timeout: 45000, retries: 2 });
+                const r = await postJson(Object.assign({ action: 'getWarStatsPublic', guild: g }, wsAuthQ()), { timeout: 45000, retries: 2 });
+                if (r && r.code === 'login_required') { wsErrCode = 'login'; wsData = null; throw new Error(r.message || 'เข้าสู่ระบบก่อน'); }
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
-                wsData = Object.assign(r, { _guild: g, _at: Date.now() });
+                wsData = Object.assign(r, { _guild: g, _auth: auth, _at: Date.now() });
             } catch (e) { wsErr = e.message || String(e); }
             wsLoading = false;
             if (ccHubPage === 'stats') ccViewerRender();
         }
+        let wsErrCode = '';
         function ccStatsHTML() {
+            if (typeof restoreMemberSession === 'function') restoreMemberSession();
+            const auth = wsAuthKey();
+            const loginCard = `<div class="max-w-md mx-auto text-center py-14 px-6 rounded-3xl border border-gray-800 bg-[#0f131a]">
+                <div class="text-5xl mb-3">🔒</div>
+                <div class="text-lg font-black text-white mb-1">เข้าสู่ระบบเพื่อดูสถิติของคุณ</div>
+                <div class="text-xs text-gray-400 mb-5">ลูกกิลเห็นสถิติของตัวเอง · ผู้ช่วยหัวหน้า/แอดมินเห็นสถิติสมาชิกทุกคน</div>
+                <button onclick="try{localStorage.setItem('7k_after_login','stats')}catch(e){};galleryDiscordStart()" class="px-5 py-2.5 rounded-xl text-sm font-black text-white shadow hover:brightness-110 transition" style="background:#5865F2">🎮 เข้าสู่ระบบด้วย Discord</button>
+            </div>`;
+            if (!auth) return loginCard;
+            if (wsData && wsData._auth !== auth && !wsLoading) setTimeout(() => wsLoad(true), 0);
             if (!wsData && !wsLoading && !wsErr) setTimeout(() => wsLoad(), 0);
+            if (wsErrCode === 'login') return loginCard;
             if (wsErr) return `<div class="text-center py-16 text-amber-300 text-sm">⚠️ ${ccEsc(wsErr)} <button onclick="wsLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
-            if (!wsData) return `<div class="text-center py-16 text-sm text-gray-400">⏳ กำลังโหลดสถิติ…</div>`;
+            if (!wsData || wsData._auth !== auth) return `<div class="text-center py-16 text-sm text-gray-400">⏳ กำลังโหลดสถิติ…</div>`;
+            const canAll = !!wsData.officer;
+            if (!canAll) wsView = 'me';
+            const meId = String(wsData.me || (memberSession && memberSession.memberId) || '');
 
             const wars = wsData.wars || [], stats = wsData.stats || {};
             // กลุ่มตาม SS (รวม "ไม่ระบุ")
@@ -15133,12 +15155,20 @@
             const compRateOf = x => x.total ? (x.on_comp || 0) / x.total : 0;
             const key = { win: x => x.win, lose: x => x.lose, total: x => x.total, rate: rateOf, rank: compRateOf, name: x => String(x.name || '').toLowerCase() };
             const kf = key[wsSort] || key.win, dir = wsDir === 'asc' ? 1 : -1;
-            const mems = [...memMap.values()].filter(x => x.total > 0).sort((a, b) => {
+            let mems = [...memMap.values()].filter(x => x.total > 0).sort((a, b) => {
                 const va = kf(a), vb = kf(b);
                 if (va < vb) return -1 * dir; if (va > vb) return 1 * dir;
                 return b.win - a.win || b.total - a.total || String(a.name || '').localeCompare(String(b.name || ''), 'th');
             });
+            // 👤 ของฉัน = เฉพาะแถวของคนที่ login · ตัวเลขสรุปนับจากของตัวเอง
+            if (wsView === 'me') {
+                mems = mems.filter(x => meId && String(x.member_id) === meId);
+                total = mems.reduce((s, x) => s + x.total, 0); win = mems.reduce((s, x) => s + x.win, 0); lose = mems.reduce((s, x) => s + x.lose, 0);
+            }
             const rate = total ? Math.round((win / total) * 1000) / 10 : 0;
+            const viewTabs = canAll ? `<div class="flex w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex mb-1">
+                ${[['me', '👤 สถิติของฉัน'], ['members', '👥 สมาชิก']].map(([k, l]) => `<button onclick="wsSetView('${k}')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap ${wsView === k ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${l}</button>`).join('')}
+            </div>` : '';
 
             const ssBtn = (key, label, n) => `<button onclick="wsSs='${ccEsc(String(key).replace(/'/g, '&#39;'))}';wsWarId='__all';ccViewerRender()" class="px-3 py-1.5 rounded-xl text-xs font-black border transition ${wsSs === key ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">${label} <span class="opacity-70 font-normal">(${n})</span></button>`;
             const ssBar = `<div class="flex flex-wrap gap-2 mb-4">
@@ -15167,7 +15197,7 @@
             wsActiveWarCount = activeWars.length;
             let memBlock = '';
             if (!mems.length) {
-                memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">ไม่มีไม้ในช่วงที่เลือก</div>`;
+                memBlock = `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">${wsView === 'me' ? 'คุณยังไม่มีไม้ที่บันทึกในช่วงที่เลือก' : 'ไม่มีไม้ในช่วงที่เลือก'}</div>`;
             } else {
                 const avatarHTML = x => {
                     const av = typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(x.avatar) : '';
@@ -15212,7 +15242,8 @@
             }
 
             return `<div class="space-y-3">
-                <div class="flex flex-wrap items-center gap-2 text-xs"><span class="text-gray-200 font-black text-sm">📊 สถิติวอ</span><button onclick="wsLoad(true)" class="ml-auto px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${wsLoading ? 'opacity-50' : ''}">${wsLoading ? '⏳' : '🔄'} รีเฟรช</button></div>
+                ${viewTabs}
+                <div class="flex flex-wrap items-center gap-2 text-xs"><span class="text-gray-200 font-black text-sm">${wsView === 'me' ? '👤 สถิติของฉัน' : '👥 สถิติสมาชิก'}</span><button onclick="wsLoad(true)" class="ml-auto px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${wsLoading ? 'opacity-50' : ''}">${wsLoading ? '⏳' : '🔄'} รีเฟรช</button></div>
                 <h2 class="text-xs text-gray-500 font-black uppercase tracking-wider">📚 เลือก SS</h2>
                 ${ssBar}${warSel}${aggCard}${memBlock}
             </div>`;
@@ -33208,7 +33239,9 @@
                 galleryMemberApply({ discord: true, ver, code: r.accessCode, guildId: r.guild_id || '', guildName: mlUrlGuildName(), name: r.name || '', avatar: r.discordAvatar || '', discordName: r.discordName || '' }, inv);
                 try { saveRosterPortalSession(r.accessCode); } catch (e) {}   // เปิดหน้าลูกกิลต่อได้เลยไม่ต้องเข้าใหม่
                 hideLoading();
-                rerenderGallery();   // อยู่หน้าเดิม (Targets) — แท็บ DEFENSE กดได้แล้ว
+                let after = ''; try { after = localStorage.getItem('7k_after_login') || ''; localStorage.removeItem('7k_after_login'); } catch (e) {}
+                if (after === 'stats') switchPublicHub('stats');   // 📊 กดเข้าสู่ระบบจากหน้าสถิติ → กลับไปหน้าสถิติ
+                else rerenderGallery();   // อยู่หน้าเดิม (Targets) — แท็บ DEFENSE กดได้แล้ว
                 if (typeof showToast === 'function') showToast('🎮 เข้าสู่ระบบแล้ว: ' + (memberSession.name || 'ลูกกิล'), 'success');
             } catch (e) {
                 hideLoading();
