@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.41.5';
+        const APP_VERSION = '1.41.6';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15285,14 +15285,14 @@
             const heroChips = heroes.map(hid => {
                 const h = (heroesDB || []).find(x => String(x.id) === String(hid));
                 const on = poListHeroFilter.has(String(hid));
-                return `<button onclick="poListToggleHero('${ccEsc(String(hid))}')" class="flex items-center gap-1.5 px-2 py-1 rounded-lg border-2 text-xs font-bold transition ${on ? 'border-emerald-400 bg-emerald-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500'}">
-                    ${h && h.img ? `<img src="${h.img}" class="w-6 h-6 rounded object-cover" alt="">` : ''}<span>${ccEsc(h ? h.name : hid)}</span>
+                return `<button onclick="poListToggleHero('${ccEsc(String(hid))}')" class="min-w-0 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-1 sm:pr-2.5 rounded-xl border-2 text-xs sm:text-sm font-bold transition ${on ? 'border-emerald-400 bg-emerald-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500'}">
+                    ${h && h.img ? `<img src="${h.img}" class="w-11 h-11 rounded-lg object-cover shrink-0" alt="">` : ''}<span class="max-w-full truncate text-[11px] sm:text-sm">${ccEsc(h ? h.name : hid)}</span>
                 </button>`;
             }).join('');
             const statusBtn = (k, label) => `<button onclick="poListSetStatus('${k}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${poListStatus === k ? 'bg-indigo-600 text-white border-indigo-400' : 'border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500'}">${label}</button>`;
             const filterBar = `<div class="mb-4 space-y-2 p-3 rounded-2xl bg-[#0d1117] border border-gray-800">
                 <div class="flex flex-wrap items-center gap-2"><span class="text-[11px] font-black text-gray-400 uppercase">🎛️ สถานะ:</span>${statusBtn('all', 'ทั้งหมด')}${statusBtn('paid', '✅ จ่ายแล้ว')}${statusBtn('unpaid', '⏳ ยังไม่จ่าย')}${poListHeroFilter.size || poListStatus !== 'all' ? `<button onclick="poListClear()" class="ml-auto text-[11px] text-amber-300 hover:text-white underline">ล้างตัวกรอง</button>` : ''}</div>
-                ${heroes.length ? `<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-black text-gray-400 uppercase mr-1">🦸 ฮีโร่:</span>${heroChips}</div>` : ''}
+                ${heroes.length ? `<div class="grid grid-cols-4 sm:flex sm:flex-wrap sm:items-center gap-1.5 sm:gap-2"><span class="col-span-4 sm:col-span-1 text-[11px] font-black text-gray-400 uppercase mr-1">🦸 ฮีโร่:</span>${heroChips}</div>` : ''}
             </div>`;
             if (!members.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">กิลด์นี้ยังไม่มีลูกกิล</div>`;
             if (!heroes.length) return `<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">แอดมินยังไม่ได้ตั้งฮีโร่ที่ต้องจ่าย</div>`;
@@ -15322,17 +15322,23 @@
                 const heroChips = shownHeroes(m).map(hid => {
                     const h = (heroesDB || []).find(x => String(x.id) === String(hid));
                     const paid = paidSet.has(String(hid));
-                    if (poListStatus === 'paid') return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-emerald-500/60 bg-emerald-900/30" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">
-                        ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover" alt="">` : ''}<span class="text-xs font-bold text-emerald-100">${ccEsc(h ? h.name : hid)}</span><span class="text-[10px] font-black text-emerald-300 ml-1">✅</span></span>`;
-                    return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
-                        ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover ${paid ? 'grayscale' : ''}" alt="">` : ''}
-                        <span class="text-xs font-bold ${paid ? 'text-gray-400 line-through' : 'text-emerald-200'}">${ccEsc(h ? h.name : hid)}</span>
-                        ${paid ? '<span class="text-[9px] font-black text-gray-500 ml-1">✓ จ่ายแล้ว</span>' : ''}
+                    const chip = 'min-w-0 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-xl border';
+                    const pic = extra => h && h.img ? `<img src="${h.img}" class="w-12 h-12 rounded-lg object-cover shrink-0 ${extra}" alt="">` : '';
+                    const nm = cls => `<span class="max-w-full truncate text-[11px] sm:text-sm font-bold ${cls}">${ccEsc(h ? h.name : hid)}</span>`;
+                    if (poListStatus === 'paid') return `<span class="${chip} border-emerald-500/60 bg-emerald-900/30" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">${pic('')}${nm('text-emerald-100')}<span class="hidden sm:inline text-[11px] font-black text-emerald-300">✅</span></span>`;
+                    return `<span class="${chip} ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
+                        ${pic(paid ? 'grayscale' : '')}${nm(paid ? 'text-gray-400 line-through' : 'text-emerald-200')}
+                        ${paid ? '<span class="hidden sm:inline text-[9px] font-black text-gray-500">✓ จ่ายแล้ว</span>' : ''}
                     </span>`;
                 }).join('');
                 return `<div class="p-3 rounded-2xl border ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
-                    <div class="flex items-center gap-3 mb-2">${avatar(m)}<span class="text-sm font-black text-white truncate flex-1">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</span><span class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">${focusedHeroes.filter(h => paidSet.has(String(h))).length}/${focusedHeroes.length}${allPaid ? ' ✅' : ''}</span></div>
-                    <div class="flex flex-wrap gap-1.5 pl-12">${heroChips}</div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
+                        <div class="flex items-center gap-3 min-w-0 sm:w-60 sm:shrink-0 sm:pr-4">${avatar(m)}
+                            <div class="min-w-0 flex-1"><div class="text-sm font-black text-white truncate">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</div>
+                            <div class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">จ่ายแล้ว ${focusedHeroes.filter(h => paidSet.has(String(h))).length}/${focusedHeroes.length}${allPaid ? ' ✅' : ''}</div></div>
+                        </div>
+                        <div class="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 flex-1 min-w-0 pt-2 border-t border-gray-800 sm:pt-0 sm:border-t-0 sm:border-l-2 sm:border-gray-700 sm:pl-4 sm:self-stretch sm:items-center">${heroChips}</div>
+                    </div>
                 </div>`;
             }).join('') : '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่พบลูกกิลตามตัวกรอง</div>';
             return `${filterBar}${countBar}<div class="space-y-2">${listHTML}</div>`;
