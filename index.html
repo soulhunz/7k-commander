@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.44.2';
+        const APP_VERSION = '1.44.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15470,17 +15470,16 @@
                     const pic = extra => h && h.img ? `<img src="${h.img}" class="w-12 h-12 rounded-lg object-cover shrink-0 ${extra}" alt="">` : '';
                     const nm = cls => `<span class="max-w-full truncate text-[11px] sm:text-sm font-bold ${cls}">${ccEsc(h ? h.name : hid)}</span>`;
                     if (poListStatus === 'paid') return `<span class="${chip} border-emerald-500/60 bg-emerald-900/30" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">${pic('')}${nm('text-emerald-100')}<span class="hidden sm:inline text-[11px] font-black text-emerald-300">✅</span></span>`;
-                    if (paid) return `<span class="${chip} border-emerald-600/50 bg-emerald-900/20" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">${pic('')}<span class="min-w-0 flex flex-col items-center sm:items-start">${nm('text-emerald-100')}<span class="text-[9px] sm:text-[10px] font-black text-emerald-300">✅ จ่ายแล้ว</span></span></span>`;
-                    return `<span class="${chip} border-2 border-red-500/70 bg-red-950/40" title="${ccEsc(h ? h.name : hid)} — ยังไม่จ่าย">
-                        ${pic('ring-2 ring-red-500/60')}<span class="min-w-0 flex flex-col items-center sm:items-start">${nm('text-red-100')}<span class="text-[9px] sm:text-[10px] font-black text-red-300">⏳ ยังไม่จ่าย</span></span>
+                    return `<span class="${chip} ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
+                        ${pic(paid ? 'grayscale' : '')}${nm(paid ? 'text-gray-400 line-through' : 'text-emerald-200')}
+                        ${paid ? '<span class="hidden sm:inline text-[9px] font-black text-gray-500">✓ จ่ายแล้ว</span>' : ''}
                     </span>`;
                 }).join('');
-                const owe = focusedHeroes.filter(h => !paidSet.has(String(h))).length;
-                return `<div class="p-3 rounded-2xl border ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : 'border-red-800/60 bg-red-950/10 border-l-4 border-l-red-500'}">
+                return `<div class="p-3 rounded-2xl border ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                         <div class="flex items-center gap-3 min-w-0 sm:w-60 sm:shrink-0 sm:pr-4">${avatar(m)}
                             <div class="min-w-0 flex-1"><div class="text-sm font-black text-white truncate">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</div>
-                            <div class="text-xs font-black flex flex-wrap items-center gap-x-2">${allPaid ? `<span class="text-emerald-300">✅ จ่ายครบ ${focusedHeroes.length}/${focusedHeroes.length}</span>` : `<span class="px-1.5 py-0.5 rounded bg-red-600 text-white">⏳ ค้าง ${owe} ตัว</span><span class="text-gray-400">จ่ายแล้ว ${focusedHeroes.length - owe}/${focusedHeroes.length}</span>`}</div></div>
+                            <div class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">จ่ายแล้ว ${focusedHeroes.filter(h => paidSet.has(String(h))).length}/${focusedHeroes.length}${allPaid ? ' ✅' : ''}</div></div>
                         </div>
                         <div class="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 flex-1 min-w-0 pt-2 border-t border-gray-800 sm:pt-0 sm:border-t-0 sm:border-l-2 sm:border-gray-700 sm:pl-4 sm:self-stretch sm:items-center">${heroChips}</div>
                     </div>
