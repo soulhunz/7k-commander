@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.41.2';
+        const APP_VERSION = '1.41.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -17531,6 +17531,16 @@
             const due = () => Date.now() - (maiSync.at || 0) >= GALLERY_POLL_MS - 1000;
             maiPollTimer = setInterval(() => { if (document.visibilityState === 'visible' && maiOnScreen() && due()) maiSyncTeams(); }, GALLERY_POLL_MS);
             document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && maiOnScreen() && due()) maiSyncTeams(); });
+            // 🔁 แท็บ 💸 จ่ายไม้ / 📋 รายการ / 📒 รายการตี — ดึงข้อมูลใหม่เองเป็นระยะ (ไม่ต้องกดรีเฟรช)
+            let tick = 0;
+            const tabRefresh = (now) => {
+                if (document.visibilityState !== 'visible' || !maiOnScreen()) return;
+                const a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;   // กำลังพิมพ์ค้นหา = ไม่วาดทับ
+                if (maiTab === 'payout' || maiTab === 'payoutlist') { if (!poPending.size && !poLoading) poLoad(true); }
+                else if (maiTab === 'used' && (now || tick % 2 === 0) && !ccUsed.loading) ccUsedLoad(true);
+            };
+            setInterval(() => { tick++; tabRefresh(false); }, 15000);   // จ่ายไม้ทุก 15 วิ · รายการตีทุก 30 วิ
+            document.addEventListener('visibilitychange', () => tabRefresh(true));
         }
 
         /** 🗂️ กดการ์ดไม้ → dialog เลือกว่าจะดูการตั้งค่าทีมไหน (ทีม × บ้านที่เข้า) · มีตัวเลือกเดียว = เปิดเลย */
