@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.40.7';
+        const APP_VERSION = '1.40.8';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15249,6 +15249,7 @@
             const log = poEffectiveLog();
             const curMember = (typeof memberSession !== 'undefined' && memberSession) ? { member_id: memberSession.memberId || '', member_name: memberSession.name || '' } : null;
             const warActive = !!poData.war;
+            const assist = !!poData.assist || !!(CURRENT_USER && CURRENT_USER.token);   // 🛡️ หัวหน้า/ผู้ช่วย กดจ่ายแทนคนอื่นได้
             // ⚡ ไม่ล็อกปุ่มตอนรีเฟรชเบื้องหลัง (ทุก 15 วิ) — ล็อกเฉพาะใบที่กดแล้วกำลังรอ server
             const pendingOf = hid => !!curMember && typeof poPending !== 'undefined' && poPending.has(String(hid) + '|' + curMember.member_id);
             const cards = poData.heroes.map(hid => {
@@ -15262,6 +15263,10 @@
                         <div class="text-[11px] font-bold mt-1 ${paidSelf ? 'text-emerald-400' : paid.length ? 'text-emerald-300' : 'text-gray-500'}">${paidSelf ? '✅ จ่ายแล้ว (กดอีกครั้ง = ยกเลิก)' : paid.length ? '✅ ' + paid.length + ' คนจ่ายแล้ว' : '⏳ ยังไม่มีคนจ่าย'}</div>
                     </div>
                     ${curMember && warActive ? (() => { const loading = pendingOf(hid); return `<button ${loading ? 'disabled' : ''} onclick="poToggle('${ccEsc(String(hid))}', {member_id:'${ccEsc(curMember.member_id)}',member_name:'${ccEsc(curMember.member_name)}'})" class="w-full px-3 py-2 rounded-xl text-xs font-black ${loading ? 'bg-gray-700 opacity-60 cursor-not-allowed' : paidSelf ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-500'} text-white">${loading ? '⏳ กำลังบันทึก...' : paidSelf ? '✅ ฉันจ่ายแล้ว' : '💸 กดจ่าย'}</button>`; })() : !curMember ? '<div class="text-[10px] text-gray-500 text-center">เข้าสู่ระบบด้วย Discord เพื่อกดจ่าย</div>' : ''}
+                    <div class="flex gap-2 w-full">
+                        <button type="button" onclick="poOpenSub('paid', '${ccEsc(String(hid))}')" class="flex-1 px-2 py-1.5 rounded-lg border border-gray-700 bg-[#0d1117] text-gray-300 hover:text-white hover:border-emerald-500 text-[11px] font-bold">👥 ดูรายชื่อ${paid.length ? ' (' + paid.length + ')' : ''}</button>
+                        ${assist && warActive ? `<button type="button" onclick="poOpenSub('pick', '${ccEsc(String(hid))}')" title="กดจ่ายให้ลูกกิลที่ลืมกด (หัวหน้า/ผู้ช่วย)" class="flex-1 px-2 py-1.5 rounded-lg border border-amber-600/60 bg-amber-900/20 text-amber-200 hover:bg-amber-800/40 text-[11px] font-black">➕ กดให้คนอื่น</button>` : ''}
+                    </div>
                 </div>`;
             }).join('');
             return `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))">${cards}</div>`;
@@ -42458,7 +42463,9 @@
         if (poLoading || (!force && poData && poGuildKey === g && Date.now() - (poData._at || 0) < 60000)) return;
         poLoading = true; poErr = ''; poGuildKey = g; poRender();
         try {
-            const r = await postJson({ action: 'getPayoutState', guild: g }, { timeout: 30000, retries: 2 });
+            const req = { action: 'getPayoutState', guild: g };
+            if (!(CURRENT_USER && CURRENT_USER.token) && typeof memberSession !== 'undefined' && memberSession && memberSession.code) req.accessCode = memberSession.code;   // หัวหน้า/ผู้ช่วยในหน้า Share → server ตอบ assist
+            const r = await postJson(req, { timeout: 30000, retries: 2 });
             if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
             const keepLog = poPending.size && poData ? poData.log : null;   // กำลังรอ server ตอบการกด = ไม่เอารายการเก่าทับของที่เพิ่งกด
             poData = Object.assign(r, { _at: Date.now() });
@@ -42500,6 +42507,10 @@
             body.accessCode = memberSession.code;
             if (!body.member_id) body.member_id = memberSession.memberId;
             if (!body.member_name) body.member_name = memberSession.name;
+            if (String(body.member_id) !== String(memberSession.memberId || '')) {   // 🛡️ ผู้ช่วยกดให้คนอื่น
+                if (!poData.assist) return alert('เฉพาะหัวหน้า/ผู้ช่วยเท่านั้นที่กดให้คนอื่นได้');
+                body.target_member_id = body.member_id; body.target_member_name = body.member_name;
+            }
         }
         // ⚡ ขึ้นบนจอทันที (ไม่ต้องรอ server) → ส่งเบื้องหลัง · ไม่สำเร็จ = คืนค่าเดิม
         const k = heroId + '|' + (body.member_id || '');
@@ -42584,7 +42595,7 @@
     /** วาด dialog จ่ายไม้ (ใช้ร่วมกันทั้งแอดมินและลูกกิล) */
     function poRender() {
         const m = document.getElementById('po-dlg');
-        if (!m || m.style.display === 'none') return;
+        if (!m || m.style.display === 'none') { poRenderSub(); return; }
         const mode = m.dataset.mode || 'member';
         const isAdmin = mode === 'admin' && CURRENT_USER && CURRENT_USER.token;
         const head = `<div class="p-4 border-b border-gray-800 flex items-center gap-2 shrink-0">
@@ -42669,7 +42680,7 @@
     function poRenderSub() {
         const d = document.getElementById('po-sub-dlg');
         if (!d || !poSub || d.style.display === 'none' || !poData) return;
-        const isAdmin = CURRENT_USER && CURRENT_USER.token;
+        const isAdmin = (CURRENT_USER && CURRENT_USER.token) || poData.assist;
         const h = (heroesDB || []).find(x => String(x.id) === poSub.hid);
         const log = poEffectiveLog().filter(x => String(x.hero_id) === poSub.hid);
         const manualIds = new Set((poData.log || []).filter(x => String(x.hero_id) === poSub.hid).map(x => String(x.member_id)));
