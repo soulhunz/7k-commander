@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.44.1';
+        const APP_VERSION = '1.44.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15469,7 +15469,8 @@
                     const chip = 'min-w-0 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-1 sm:pl-1 sm:pr-2.5 rounded-xl border';
                     const pic = extra => h && h.img ? `<img src="${h.img}" class="w-12 h-12 rounded-lg object-cover shrink-0 ${extra}" alt="">` : '';
                     const nm = cls => `<span class="max-w-full truncate text-[11px] sm:text-sm font-bold ${cls}">${ccEsc(h ? h.name : hid)}</span>`;
-                    if (poListStatus === 'paid') return `<span class="${chip} border-emerald-500/60 bg-emerald-900/30" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">${pic('')}${nm('text-emerald-100')}<span class="hidden sm:inline text-[11px] font-black text-emerald-300">✅</span></span>`;
+                    if (poListStatus === 'paid') return `<span class="${chip} border-emerald-500/60 bg-emerald-900/30" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">${pic('')}<span class="min-w-0 flex flex-col items-center sm:items-start">${nm('text-emerald-100')}<span class="text-[9px] sm:text-[11px] font-black text-emerald-300">✅ จ่ายแล้ว</span></span></span>`;
+                    if (poListStatus === 'unpaid') return `<span class="${chip} border-emerald-700/50 bg-emerald-900/10" title="${ccEsc(h ? h.name : hid)} — ยังไม่จ่าย">${pic('')}<span class="min-w-0 flex flex-col items-center sm:items-start">${nm('text-emerald-200')}<span class="text-[9px] sm:text-[11px] font-black text-gray-300">⏳ ยังไม่จ่าย</span></span></span>`;
                     return `<span class="${chip} ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
                         ${pic(paid ? 'grayscale' : '')}${nm(paid ? 'text-gray-400 line-through' : 'text-emerald-200')}
                         ${paid ? '<span class="hidden sm:inline text-[9px] font-black text-gray-500">✓ จ่ายแล้ว</span>' : ''}
