@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.44.0';
+        const APP_VERSION = '1.44.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -34505,7 +34505,7 @@
             };
             const petsListHTML = renderPetsList();
 
-            const STAT_LABELS = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ แม่นยำ', resist: '🚫 ต้านทาน' };
+            const STAT_LABELS = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ เข้าเป้า', resist: '🚫 ต้านทาน' };
             const PERCENT_STATS = ['cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'];
 
             // --- 3. Render HTML ---
@@ -41262,7 +41262,7 @@
         const H = id => (heroesDB || []).find(x => String(x.id) === String(id));
         const P = id => (petsDB || []).find(x => String(x.id) === String(id));
         const R = id => (ringsDB || []).find(x => String(x.id) === String(id));
-        const LBL = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ แม่นยำ', resist: '🚫 ต้านทาน' };
+        const LBL = { atk: '⚔️ พลังโจมตี', def: '🛡️ พลังป้องกัน', hp: '❤️ เลือด', spd: '⚡ ความเร็ว', cri: '🔥 คริติคอล', cdmg: '💥 คริดาเมจ', weakness: '🎯 จุดอ่อน', block: '🛡️ บล็อก', dmgRed: '🧱 ลดดาเมจ', acc: '👁️ เข้าเป้า', resist: '🚫 ต้านทาน' };
         const PCT = ['cri', 'cdmg', 'weakness', 'block', 'dmgRed', 'acc', 'resist'];
         const FMT = { basic: 'พื้นฐาน', balanced: 'สมดุล', attack: 'บุก', defense: 'ป้องกัน' };
         const slots = Array.isArray(d.slots) ? d.slots : [];
