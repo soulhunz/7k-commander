@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.41.4';
+        const APP_VERSION = '1.41.5';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -17565,17 +17565,17 @@
                 </button>`).join('');
             let m = document.getElementById('mai-pick-dlg');
             if (!m) { m = document.createElement('div'); m.id = 'mai-pick-dlg'; document.body.appendChild(m); }
-            m.className = 'fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-start justify-center p-3 sm:p-5 overflow-y-auto';
+            m.className = 'fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5';
             m.onclick = ev => { if (ev.target === m) m.style.display = 'none'; };
-            m.innerHTML = `<div class="w-full max-w-lg bg-[#0d1117] border border-gray-700 rounded-2xl shadow-2xl my-auto">
-                <div class="flex items-center gap-3 p-4 border-b border-gray-800">
+            m.innerHTML = `<div class="w-full max-w-lg max-h-[85vh] flex flex-col bg-[#0d1117] border border-gray-700 rounded-2xl shadow-2xl">
+                <div class="flex items-center gap-3 p-4 border-b border-gray-800 shrink-0">
                     <div class="min-w-0 flex-1">
                         <div class="text-white font-black text-base">เลือกทีมที่จะดูการตั้งค่า</div>
                         <div class="text-xs text-gray-500 truncate">${ccEsc([...new Set(g.teams.map(t => t.name || 'ทีมชน'))].join(' / '))}</div>
                     </div>
                     <button type="button" onclick="document.getElementById('mai-pick-dlg').style.display='none'" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-red-600 text-gray-300 hover:text-white flex-shrink-0">✕</button>
                 </div>
-                <div class="p-3 flex flex-col gap-2">${rows}</div>
+                <div class="p-3 flex flex-col gap-2 overflow-y-auto min-h-0 overscroll-contain">${rows}</div>
             </div>`;
             m.style.display = 'flex';
         }
