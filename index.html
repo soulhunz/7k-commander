@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.44.3';
+        const APP_VERSION = '1.45.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15419,6 +15419,37 @@
         function poListToggleHero(id) { id = String(id); if (poListHeroFilter.has(id)) poListHeroFilter.delete(id); else poListHeroFilter.add(id); if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
         function poListSetStatus(s) { poListStatus = s; if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
         function poListClear() { poListHeroFilter.clear(); poListStatus = 'all'; if (typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender(); else if (typeof rerenderGallery === 'function') rerenderGallery(); }
+        // ⚔️ ไม้ที่ตีในวอปัจจุบัน (getWarUsagePublic) — "ไม้ x/5" + กดการ์ดดูคอมพ์ที่ใช้
+        const PO_WAR_QUOTA = 5;
+        let poUsed = { key: '', data: null, loading: false, at: 0 }, poWhoOpen = new Set();
+        function poUsedLoad() {
+            const wid = poData && poData.war && poData.war.id, g = typeof poGuildKey_ === 'function' ? poGuildKey_() : '';
+            if (!wid || !g || poUsed.loading) return;
+            const key = g + '|' + wid;
+            if (poUsed.key === key && Date.now() - poUsed.at < 30000) return;
+            poUsed.loading = true;
+            postJson({ action: 'getWarUsagePublic', guild: g, war_id: wid }, { timeout: 45000, retries: 1 })
+                .then(r => { if (r && r.status === 'success') poUsed.data = r; })
+                .catch(e => console.warn('poUsedLoad', e))
+                .finally(() => { poUsed.key = key; poUsed.at = Date.now(); poUsed.loading = false; if (typeof poRender === 'function') poRender(); });
+        }
+        function poUsedByMember() {
+            const d = poUsed.data; if (!d) return null;
+            const mems = d.members || [], names = d.names || [], lc = s => String(s || '').trim().toLowerCase(), map = new Map();
+            (d.rows || []).forEach(r => {
+                let id = r.member_id && mems.some(m => String(m.id) === String(r.member_id)) ? String(r.member_id) : '';
+                if (!id) {
+                    const k = lc(r.game_name), n = k && names.find(x => lc(x.name) === k && x.member_id);
+                    const m = n ? null : (k && mems.find(y => lc(y.name) === k || lc(y.discordName) === k));
+                    id = n ? String(n.member_id) : m ? String(m.id) : '';
+                }
+                if (!id) return;
+                if (!map.has(id)) map.set(id, []);
+                map.get(id).push(r);
+            });
+            return map;
+        }
+        function poWhoToggle(id) { if (poWhoOpen.has(id)) poWhoOpen.delete(id); else poWhoOpen.add(id); poRender(); }
         function poPageWhoHTML() {
             if (!poData) return `<div class="space-y-2">${Array.from({ length: 5 }).map(() => '<div class="p-3 rounded-2xl border border-gray-800 bg-[#0d1117] animate-pulse"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-full bg-gray-800"></div><div class="h-3 w-32 rounded bg-gray-800"></div></div><div class="h-4 w-full rounded bg-gray-800 ml-12"></div></div>').join('')}</div>`;
             const log = poEffectiveLog();
@@ -15459,6 +15490,8 @@
             };
             const filtered = rows.filter(m => poListStatus === 'all' || shownHeroes(m).length);
             const avatar = m => { const av = m.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : ''; if (av) return `<img src="${av}" referrerpolicy="no-referrer" alt="" class="w-9 h-9 rounded-full object-cover border border-indigo-500/40 shrink-0">`; return `<span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 text-xs text-gray-400">${ccEsc(String(m.name || '?').trim().charAt(0).toUpperCase())}</span>`; };
+            setTimeout(poUsedLoad, 0);
+            const usedBy = poUsedByMember();
             const countBar = `<div class="mb-3 text-xs text-gray-500">แสดง <b class="text-white">${filtered.length}</b>/${rows.length} คน${poListHeroFilter.size ? ` · กรองฮีโร่ ${poListHeroFilter.size} ตัว` : ''}</div>`;
             const listHTML = filtered.length ? filtered.map(m => {
                 const paidSet = paidByMem.get(m.id) || new Set();
@@ -15476,14 +15509,24 @@
                         ${paid ? '<span class="hidden sm:inline text-[9px] font-black text-gray-500">✓ จ่ายแล้ว</span>' : ''}
                     </span>`;
                 }).join('');
-                return `<div class="p-3 rounded-2xl border ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
+                const used = usedBy ? (usedBy.get(String(m.id)) || []) : null;
+                const open = poWhoOpen.has(String(m.id));
+                const usedBody = !open ? '' : `<div onclick="event.stopPropagation()" class="mt-3 pt-3 border-t border-gray-800 space-y-2 cursor-default">
+                    <div class="text-xs font-black text-gray-400">⚔️ คอมพ์ที่ใช้ในวอนี้${poData.war && poData.war.label ? ' · ' + ccEsc(poData.war.label) : ''}</div>
+                    ${used === null ? '<div class="p-4 text-center text-sm text-gray-400">⏳ กำลังโหลดไม้...</div>'
+                        : used.length ? used.slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0)).map((r, i) => ccUsedGameRow(r, m, i + 1, true)).join('')
+                        : '<div class="p-4 text-center text-sm text-gray-500">ยังไม่มีไม้ที่บันทึกในวอนี้</div>'}
+                </div>`;
+                return `<div onclick="poWhoToggle('${ccEsc(String(m.id).replace(/'/g, '&#39;'))}')" title="กดเพื่อดูคอมพ์ที่ใช้" class="p-3 rounded-2xl border cursor-pointer transition hover:brightness-125 ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                         <div class="flex items-center gap-3 min-w-0 sm:w-60 sm:shrink-0 sm:pr-4">${avatar(m)}
                             <div class="min-w-0 flex-1"><div class="text-sm font-black text-white truncate">${ccEsc(m.name || m.id)}${m.extra ? ' <span class="text-[10px] font-normal text-amber-400">(ไม่อยู่ในรายชื่อ)</span>' : ''}</div>
-                            <div class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">จ่ายแล้ว ${focusedHeroes.filter(h => paidSet.has(String(h))).length}/${focusedHeroes.length}${allPaid ? ' ✅' : ''}</div></div>
+                            <div class="text-xs font-black ${paidSet.size ? 'text-emerald-300' : 'text-gray-500'}">จ่ายแล้ว ${focusedHeroes.filter(h => paidSet.has(String(h))).length}/${focusedHeroes.length}${allPaid ? ' ✅' : ''}</div>
+                            <div class="text-xs font-bold text-gray-400 flex items-center gap-1">⚔️ ไม้ <b class="text-white">${used === null ? '…' : used.length}</b>/${PO_WAR_QUOTA} <span class="text-[10px] text-gray-500">${open ? '▴' : '▾'}</span></div></div>
                         </div>
                         <div class="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 flex-1 min-w-0 pt-2 border-t border-gray-800 sm:pt-0 sm:border-t-0 sm:border-l-2 sm:border-gray-700 sm:pl-4 sm:self-stretch sm:items-center">${heroChips}</div>
                     </div>
+                    ${usedBody}
                 </div>`;
             }).join('') : '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่พบลูกกิลตามตัวกรอง</div>';
             return `${filterBar}${countBar}<div class="space-y-2">${listHTML}</div>`;
