@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.40.9';
+        const APP_VERSION = '1.41.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -16367,7 +16367,8 @@
             const tabBtn = (key, label) => `<button onclick="ccViewerSetTab('${key}')" class="flex-1 min-w-0 sm:flex-none px-1.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap overflow-hidden text-ellipsis ${ccViewTab === key
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
 
-            const bodyHTML = ccViewTab === 'used' ? ccUsedHTML() : ccViewTab === 'stats' ? ccStatsHTML() : ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
+            if (ccViewTab === 'used') ccViewTab = 'table';   // 📒 รายการตี ย้ายไปหน้า Attack Plan แล้ว
+            const bodyHTML = ccViewTab === 'stats' ? ccStatsHTML() : ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
             box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">${head}
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                 <!-- 🖱️ ส่วนที่กดได้: แท็บมุมมอง + เลือกตัวละคร -->
@@ -16376,7 +16377,6 @@
                         ${tabBtn('table', '<span class="hidden sm:inline">📊 </span>ตาราง')}
                         ${tabBtn('comp', '<span class="hidden sm:inline">⚔️ </span>คอมพ์')}
                         ${tabBtn('castle', '<span class="hidden sm:inline">🏰 </span><span class="sm:hidden">รายปราสาท</span><span class="hidden sm:inline">แยกรายปราสาท</span>')}
-                        ${tabBtn('used', '<span class="hidden sm:inline">📒 </span>รายการตี')}
                         ${tabBtn('stats', '<span class="hidden sm:inline">📊 </span>สถิติ')}
                     </div>
                 </div>
@@ -16438,6 +16438,7 @@
             const s = (typeof ccViewSeasons !== 'undefined' && Array.isArray(ccViewSeasons) ? ccViewSeasons : []).find(x => x.id === sid);
             return s ? String(s.label || '') : '';
         }
+        function ccUsedOnScreen() { return typeof ccHubPage !== 'undefined' && ccHubPage === 'mai' && typeof maiTab !== 'undefined' && maiTab === 'used'; }
         function ccUsedPickWar(id) { ccUsed.warId = String(id || ''); ccUsed.data = null; ccUsedLoad(true); }
         async function ccUsedLoad(force) {
             const g = ccUsedGuildKey();
@@ -16445,7 +16446,7 @@
             const ss = ccUsed.warId ? '' : ccUsedSeasonLabel(), key = g + '|' + (ccUsed.warId || '') + '|' + ss;
             if (ccUsed.loading || (!force && ccUsed.key === key && ccUsed.data && Date.now() - ccUsed.at < 60000)) return;
             ccUsed.loading = true; ccUsed.err = '';
-            if (ccViewTab === 'used') ccViewerRender();
+            if (ccUsedOnScreen()) ccViewerRender();
             try {
                 const q = { action: 'getWarUsagePublic', guild: g };
                 if (ccUsed.warId) q.war_id = ccUsed.warId; else if (ss) q.war_label = ss;
@@ -16455,7 +16456,7 @@
                 ccUsed.data = r; ccUsed.key = key; ccUsed.at = Date.now();
             } catch (e) { ccUsed.err = e.message || String(e); }
             ccUsed.loading = false;
-            if (ccViewTab === 'used') ccViewerRender();
+            if (ccUsedOnScreen()) ccViewerRender();
             if (ccUsedDlg) ccUsedDlgRender();
         }
         function ccUsedRingRank(y) {
@@ -17247,8 +17248,8 @@
         const MAI_MAX = 5;
         const MAI_SHOW_RING = false;   // 💍 ปิดรูปแหวนใต้ตัวละคร (ตามคำขอ) — เปลี่ยนเป็น true ถ้าจะเปิดกลับ
         var maiSetIdx = 0;   // 📑 เซ็ตที่เปิดดูอยู่ (0 = เซ็ตที่ 1)
-        var maiTab = 'plan';   // 'plan' | 'payout' | 'payoutlist'
-        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t !== 'plan') setTimeout(() => poLoad(false), 0); }
+        var maiTab = 'plan';   // 'plan' | 'payout' | 'payoutlist' | 'used'
+        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t === 'payout' || t === 'payoutlist') setTimeout(() => poLoad(false), 0); }
         function maiSetSet(i) { maiSetIdx = i; ccRerenderKeepScroll(); }
         // ✏️ จัดเอง — เก็บลายเซ็นทีม (id ฮีโร่) ที่เลือกไว้ในเครื่อง แยกตามกิลด์ของลิงก์
         function maiCustomKey() { return '7k_mai_custom_' + String(decodeGuildParam(appUrlParams().get('g')) || 'all').toLowerCase(); }
@@ -17311,9 +17312,17 @@
                     </div>
                     ${maiGalleryTabHTML(true)}
                 </div>`;
+            const payCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on === 'pay' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : on === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : on === 'used' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
+            const payBox = `<div class="flex flex-wrap w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex">
+                <button onclick="maiSetTab('payout')" class="${payCls(maiTab === 'payout' ? 'pay' : '')}">💸 จ่ายไม้</button>
+                <button onclick="maiSetTab('payoutlist')" class="${payCls(maiTab === 'payoutlist' ? 'list' : '')}">📋 รายการ</button>
+                <button onclick="maiSetTab('used')" class="${payCls(maiTab === 'used' ? 'used' : '')}">📒 รายการตี</button>
+            </div>`;
+            const tabBody = () => maiTab === 'payout' ? renderPayoutPay() : maiTab === 'payoutlist' ? renderPayoutList() : maiTab === 'used' ? `<div class="pb-20">${ccUsedHTML()}</div>` : '';
             const teams = ccViewTeams.slice();
             if (!teams.length) {
-                return `<div class="max-w-[100vw] p-4 md:p-6">${head}
+                if (maiTab !== 'plan') return `<div class="max-w-[100vw] p-4 md:p-6">${head}<div class="flex flex-wrap items-center gap-3 mb-4"><button onclick="maiSetTab('plan')" class="px-4 py-2 rounded-xl text-xs font-black bg-[#0d1117] border border-gray-800 text-gray-400 hover:text-white">⚔️ แผนบุก</button>${payBox}</div>${tabBody()}</div>`;
+                return `<div class="max-w-[100vw] p-4 md:p-6">${head}<div class="mb-4">${payBox}</div>
                     <div class="text-center text-gray-500 py-20 border border-dashed border-gray-800 rounded-3xl">
                         <div class="text-5xl mb-3 opacity-40">⚔️</div>
                         <div class="text-sm">${ccViewHeroLoad === 'loading' ? 'กำลังโหลด…' : 'ยังไม่มีทีมชน — ตั้งทีมบุกที่ผูกเป้าหมาย (TARGET) แล้วแชร์ในหน้า 3v3 ก่อน'}</div>
@@ -17448,11 +17457,6 @@
             // 📑 แท็บเซ็ต (แบบเดียวกับแท็บในหน้าคอมพ์ปราสาท) + ✏️ จัดเอง ขวาสุด
             const tabCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
             const nCustom = custom ? main.length : maiCustomLoad().length;
-            const payCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on === 'pay' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : on === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
-            const payBox = `<div class="flex flex-wrap w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex">
-                <button onclick="maiSetTab('payout')" class="${payCls(maiTab === 'payout' ? 'pay' : '')}">💸 จ่ายไม้</button>
-                <button onclick="maiSetTab('payoutlist')" class="${payCls(maiTab === 'payoutlist' ? 'list' : '')}">📋 รายการ</button>
-            </div>`;
             const setTabs = `<div class="flex flex-wrap items-center gap-3 mb-4">
                 <div class="flex flex-wrap w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex">
                     ${sets.map((s, i) => `<button onclick="maiSetSet(${i});maiSetTab('plan')" title="${i ? 'ไม้ 1 = ' + ccEsc([...new Set(groups[s[0]].teams.map(t => t.name || 'ทีมชน'))].join(' / ')) : 'ชุดที่จัดได้ดีที่สุด'}"
@@ -17462,9 +17466,8 @@
                 ${payBox}
                 ${custom && main.length && maiTab === 'plan' ? `<button onclick="maiCustomClear()" class="text-[11px] text-gray-500 hover:text-white underline">ล้างที่เลือก</button>` : ''}
             </div>`;
-            // 💸 / 📋 ครอบคลุมหน้า Attack Plan → return เนื้อหา payout (ยังคง head + setTabs)
-            if (maiTab === 'payout') return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}${renderPayoutPay()}</div>`;
-            if (maiTab === 'payoutlist') return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}${renderPayoutList()}</div>`;
+            // 💸 / 📋 / 📒 ครอบคลุมหน้า Attack Plan → return เนื้อหาแท็บนั้น (ยังคง head + setTabs)
+            if (maiTab !== 'plan') return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}${tabBody()}</div>`;
             const emptyPick = `<div class="text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-2xl px-4 py-8 text-center">ยังไม่ได้เลือก — กด <b class="text-emerald-400 not-italic">+ เลือก</b> ที่ทีมด้านล่าง (สูงสุด ${MAI_MAX} ไม้ ห้ามตัวซ้ำ)</div>`;
             return `<div class="max-w-[100vw] p-4 md:p-6">${head}${setTabs}
                 ${section(custom ? 'ไม้ที่เลือก' : 'ไม้หลัก', main.length + '/' + MAI_MAX + ' ไม้', 'bg-red-500', 'text-red-400', 'from-red-500/50', main.length ? grid(main.map((g, i) => card(g, i + 1)).join('')) : emptyPick)}
