@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.43.2';
+        const APP_VERSION = '1.44.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15118,7 +15118,7 @@
             if (wsErr) return `<div class="text-center py-16 text-amber-300 text-sm">⚠️ ${ccEsc(wsErr)} <button onclick="wsLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
             if (!wsData || wsData._auth !== auth) return `<div class="text-center py-16 text-sm text-gray-400">⏳ กำลังโหลดสถิติ…</div>`;
             const canAll = !!wsData.officer;
-            if (!canAll) wsView = 'me';
+            if (!canAll && wsView === 'members') wsView = 'me';
             const meId = String(wsData.me || (memberSession && memberSession.memberId) || '');
 
             const wars = wsData.wars || [], stats = wsData.stats || {};
@@ -15174,9 +15174,9 @@
                 total = mems.reduce((s, x) => s + x.total, 0); win = mems.reduce((s, x) => s + x.win, 0); lose = mems.reduce((s, x) => s + x.lose, 0);
             }
             const rate = total ? Math.round((win / total) * 1000) / 10 : 0;
-            const viewTabs = canAll ? `<div class="flex w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex mb-1">
-                ${[['me', '👤 สถิติของฉัน'], ['members', '👥 สมาชิก']].map(([k, l]) => `<button onclick="wsSetView('${k}')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap ${wsView === k ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${l}</button>`).join('')}
-            </div>` : '';
+            const viewTabs = `<div class="flex w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex mb-1">
+                ${[['me', '👤 สถิติของฉัน'], ['def', '🛡️ กันบ้าน']].concat(canAll ? [['members', '👥 สมาชิก']] : []).map(([k, l]) => `<button onclick="wsSetView('${k}')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl text-xs font-black transition whitespace-nowrap ${wsView === k ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${l}</button>`).join('')}
+            </div>`;
 
             const ssBtn = (key, label, n) => `<button onclick="wsSs='${ccEsc(String(key).replace(/'/g, '&#39;'))}';wsWarId='__all';ccViewerRender()" class="px-3 py-1.5 rounded-xl text-xs font-black border transition ${wsSs === key ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">${label} <span class="opacity-70 font-normal">(${n})</span></button>`;
             const ssBar = `<div class="flex flex-wrap gap-2 mb-4">
@@ -15258,9 +15258,109 @@
             } else if (wsView !== 'me') wsInlineKey = '';
             return `<div class="space-y-3">
                 ${viewTabs}
-                <div class="flex flex-wrap items-center gap-2 text-xs"><span class="text-gray-200 font-black text-sm">${wsView === 'me' ? '👤 สถิติของฉัน' : '👥 สถิติสมาชิก'}</span><button onclick="wsLoad(true)" class="ml-auto px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${wsLoading ? 'opacity-50' : ''}">${wsLoading ? '⏳' : '🔄'} รีเฟรช</button></div>
+                <div class="flex flex-wrap items-center gap-2 text-xs"><span class="text-gray-200 font-black text-sm">${wsView === 'me' ? '👤 สถิติของฉัน' : wsView === 'def' ? (canAll ? '🛡️ สถิติกันบ้านของกิลด์' : '🛡️ สถิติกันบ้านของฉัน') : '👥 สถิติสมาชิก'}</span><button onclick="wsLoad(true)" class="ml-auto px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${wsLoading ? 'opacity-50' : ''}">${wsLoading ? '⏳' : '🔄'} รีเฟรช</button></div>
                 <h2 class="text-xs text-gray-500 font-black uppercase tracking-wider">📚 เลือก SS</h2>
-                ${ssBar}${warSel}${aggCard}${memBlock}
+                ${ssBar}${warSel}${wsView === 'def' ? wsDefenseHTML(activeWars, canAll, meId) : aggCard + memBlock}
+            </div>`;
+        }
+        // 🛡️ สถิติกันบ้าน — ศัตรูเอาใครมาตีบ้านเรา · ผลแยกบ้าน · คอมพ์รับของเรา · ลูกกิลแต่ละคน
+        let wsDefMember = '';   // ผู้ช่วย/แอดมิน: กดชื่อในตาราง = ดูเฉพาะบ้านของคนนั้น
+        function wsDefSetMember(k) { wsDefMember = wsDefMember === k ? '' : k; ccRerenderKeepScroll(); }
+        function wsDefenseHTML(activeWars, canAll, meId) {
+            if (!Array.isArray(wsData.defense)) return '<div class="rounded-2xl border border-amber-800/60 bg-amber-950/20 p-6 text-sm text-amber-200 text-center">⚠️ ยังไม่มีข้อมูลกันบ้าน — แอดมินต้อง deploy Apps Script ใหม่ (8.17.0 ขึ้นไป)</div>';
+            const ids = new Set(activeWars.map(w => w.id));
+            let rows = wsData.defense.filter(r => ids.has(r.war_id));
+            if (!canAll) rows = rows.filter(r => !meId || String(r.member_id) === meId);
+            const memKey = r => r.member_id ? String(r.member_id) : 'g:' + (r.game_name || r.name || '?');
+            const memAgg = new Map();
+            rows.forEach(r => {
+                const k = memKey(r), x = memAgg.get(k) || { key: k, name: r.name || r.game_name || '', avatar: r.avatar || '', total: 0, held: 0, broke: 0 };
+                x.total++; if (r.result === 'win') x.held++; else if (r.result === 'lose') x.broke++;
+                memAgg.set(k, x);
+            });
+            if (!canAll || !memAgg.has(wsDefMember)) wsDefMember = '';
+            const selMem = wsDefMember ? memAgg.get(wsDefMember) : null;
+            if (selMem) rows = rows.filter(r => memKey(r) === wsDefMember);
+            if (!rows.length) return `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-6 text-sm text-gray-500 text-center">${canAll ? 'ยังไม่มีไม้กันบ้านในช่วงที่เลือก' : 'บ้านคุณยังไม่มีไม้กันบ้านที่บันทึกในช่วงที่เลือก'}<div class="text-[11px] text-gray-600 mt-1">บันทึกได้จากหน้า 🎥 อ่านผลวอ → โหมด 🛡️ กันบ้าน</div></div>`;
+            const total = rows.length, held = rows.filter(r => r.result === 'win').length, broke = rows.filter(r => r.result === 'lose').length;
+            const pct = (a, b) => b ? Math.round((a / b) * 1000) / 10 : 0;
+            const heroOf = id => (heroesDB || []).find(h => String(h.id) === String(id));
+            const sec = (title, cls, inner) => `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] overflow-hidden"><div class="px-4 py-2 border-b border-gray-800 ${cls} text-xs font-black uppercase tracking-wider">${title}</div>${inner}</div>`;
+            const heldBar = (h, t) => `<div class="h-1.5 rounded-full bg-red-900/60 overflow-hidden"><div class="h-full bg-emerald-500" style="width:${pct(h, t)}%"></div></div>`;
+
+            const summary = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-[#161b22] border border-gray-700 rounded-2xl p-4"><div class="text-[10px] text-gray-500 font-black uppercase">โดนตี</div><div class="text-2xl font-black text-amber-300">${total}</div></div>
+                <div class="bg-[#161b22] border border-emerald-800/60 rounded-2xl p-4"><div class="text-[10px] text-emerald-400 font-black uppercase">กันได้</div><div class="text-2xl font-black text-emerald-300">${held}</div></div>
+                <div class="bg-[#161b22] border border-red-800/60 rounded-2xl p-4"><div class="text-[10px] text-red-400 font-black uppercase">บ้านแตก</div><div class="text-2xl font-black text-red-300">${broke}</div></div>
+                <div class="bg-[#161b22] border border-sky-800/60 rounded-2xl p-4"><div class="text-[10px] text-sky-400 font-black uppercase">% กันได้</div><div class="text-2xl font-black text-sky-300">${pct(held, total)}%</div></div>
+            </div>`;
+
+            // ⚔️ ตัวละครที่ศัตรูเอามาตี (นับต่อไม้)
+            const heroAgg = new Map();
+            rows.forEach(r => (r.enemy_heroes || []).forEach(h => {
+                const k = String(h.id), x = heroAgg.get(k) || { id: k, aw: false, n: 0, beat: 0 };
+                x.n++; if (r.result === 'lose') x.beat++; if (h.aw) x.aw = true;
+                heroAgg.set(k, x);
+            }));
+            const heroList = [...heroAgg.values()].sort((a, b) => b.n - a.n || b.beat - a.beat);
+            const heroTiles = heroList.length ? `<div class="p-3 grid gap-2" style="grid-template-columns:repeat(auto-fill,minmax(92px,1fr))">${heroList.map(x => {
+                const hh = heroOf(x.id), img = hh ? (x.aw && hh.img2 ? hh.img2 : hh.img) : '';
+                return `<div class="flex flex-col items-center gap-1 p-2 rounded-xl border border-gray-800 bg-[#0d1117]" title="${ccEsc(hh ? hh.name : x.id)} · มา ${x.n} ครั้ง · ชนะเรา ${x.beat}">
+                    ${img ? `<img src="${img}" class="w-14 h-14 rounded-lg object-cover border ${x.aw ? 'border-purple-500' : 'border-gray-700'}" alt="">` : '<div class="w-14 h-14 rounded-lg bg-gray-800"></div>'}
+                    <div class="text-[10px] font-bold text-gray-200 truncate w-full text-center">${ccEsc(hh ? hh.name : x.id)}</div>
+                    <div class="text-sm font-black text-amber-300 leading-none">${x.n}<span class="text-[10px] text-gray-500 font-bold"> ครั้ง</span></div>
+                    <div class="text-[10px] font-bold ${x.beat ? 'text-red-300' : 'text-gray-600'}">ชนะเรา ${x.beat}</div>
+                </div>`;
+            }).join('')}</div>` : '<div class="p-4 text-sm text-gray-500 text-center">ไม่มีข้อมูลทีมศัตรู</div>';
+
+            // 🏰 ผลกันบ้านแยกตามบ้าน
+            const order = typeof WC_CASTLES !== 'undefined' ? WC_CASTLES : [];
+            const castleAgg = new Map();
+            rows.forEach(r => { const k = r.castle || ''; const x = castleAgg.get(k) || { k, total: 0, held: 0, broke: 0 }; x.total++; if (r.result === 'win') x.held++; else if (r.result === 'lose') x.broke++; castleAgg.set(k, x); });
+            const oi = k => { const i = order.indexOf(k); return i < 0 ? 999 : i; };
+            const castleRows = [...castleAgg.values()].sort((a, b) => oi(a.k) - oi(b.k) || b.total - a.total).map(x => `<div class="flex items-center gap-3 px-4 py-2 border-b border-gray-800/70 last:border-b-0">
+                <span class="w-24 shrink-0 text-sm font-black ${x.k ? 'text-rose-200' : 'text-gray-500'}">🏰 ${ccEsc(x.k || 'ไม่ระบุ')}</span>
+                <div class="flex-1 min-w-0">${heldBar(x.held, x.total)}</div>
+                <span class="text-[11px] shrink-0 w-40 text-right"><b class="text-white">${x.total}</b><span class="text-gray-500"> ไม้ · </span><span class="text-emerald-300">กัน ${x.held}</span><span class="text-gray-600"> / </span><span class="text-red-300">แตก ${x.broke}</span></span>
+            </div>`).join('');
+
+            // 🛡️ คอมพ์รับของเรา
+            const compAgg = new Map();
+            rows.forEach(r => {
+                const hs = (r.heroes || []).filter(h => h && h.id);
+                const k = r.team_id ? 'T:' + r.team_id : 'H:' + hs.map(h => String(h.id)).sort().join(',');
+                const x = compAgg.get(k) || { name: r.team_name || '', heroes: hs, total: 0, held: 0, broke: 0 };
+                x.total++; if (r.result === 'win') x.held++; else if (r.result === 'lose') x.broke++;
+                compAgg.set(k, x);
+            });
+            const compRows = [...compAgg.values()].sort((a, b) => b.total - a.total || pct(b.held, b.total) - pct(a.held, a.total)).map(c => `<div class="p-2.5 border-b border-gray-800/70 last:border-b-0 flex items-center gap-3 flex-wrap">
+                <div class="flex gap-1">${typeof wuHeroThumbs === 'function' ? wuHeroThumbs(c.heroes, 36) : ''}</div>
+                <div class="min-w-0 flex-1"><div class="text-xs font-bold ${c.name ? 'text-sky-200' : 'text-gray-400'} truncate">${ccEsc(c.name || 'ไม่ตรงคอมพ์ที่แชร์')}</div><div class="mt-1 max-w-[220px]">${heldBar(c.held, c.total)}</div></div>
+                <div class="text-right shrink-0 text-[11px]"><b class="text-white">${c.total}</b><span class="text-gray-500"> ไม้ · </span><span class="text-emerald-300">${c.held}</span><span class="text-gray-600">/</span><span class="text-red-300">${c.broke}</span><span class="text-gray-500"> · </span><span class="text-sky-300 font-bold">${pct(c.held, c.total)}%</span></div>
+            </div>`).join('');
+
+            // 👥 ลูกกิลแต่ละคน (ผู้ช่วย/แอดมิน) — กดเพื่อกรองดูบ้านของคนนั้น
+            const memRows = canAll ? [...memAgg.values()].sort((a, b) => b.total - a.total || b.held - a.held).map(x => {
+                const av = typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(x.avatar) : '';
+                const on = wsDefMember === x.key;
+                return `<button type="button" onclick="wsDefSetMember('${ccEsc(String(x.key).replace(/'/g, '&#39;'))}')" class="w-full text-left flex items-center gap-3 px-3 py-2 border-b border-gray-800/70 last:border-b-0 transition ${on ? 'bg-sky-900/30' : 'hover:bg-white/5'}">
+                    ${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full object-cover border border-sky-500/40 shrink-0" alt="">` : '<span class="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xs shrink-0">👤</span>'}
+                    <span class="min-w-0 flex-1 text-sm font-bold text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</span>
+                    <span class="w-12 text-right text-sm font-black text-amber-300 shrink-0">${x.total}</span>
+                    <span class="w-12 text-right text-sm font-black text-emerald-300 shrink-0">${x.held}</span>
+                    <span class="w-12 text-right text-sm font-black text-red-300 shrink-0">${x.broke}</span>
+                    <span class="w-16 text-right text-sm font-black text-sky-300 shrink-0">${pct(x.held, x.total)}%</span>
+                </button>`;
+            }).join('') : '';
+            const memHead = `<div class="flex items-center gap-3 px-3 py-2 border-b border-gray-800 text-[10px] text-gray-500 font-black uppercase"><span class="w-8 shrink-0"></span><span class="flex-1">ลูกกิล (${memAgg.size} คน)</span><span class="w-12 text-right">โดนตี</span><span class="w-12 text-right">กันได้</span><span class="w-12 text-right">แตก</span><span class="w-16 text-right">% กัน</span></div>`;
+
+            return `<div class="space-y-4">
+                ${selMem ? `<div class="flex items-center gap-2 text-sm text-sky-200 font-bold">🔎 กำลังดูบ้านของ ${ccEsc(selMem.name || '?')} <button onclick="wsDefSetMember('${ccEsc(String(selMem.key).replace(/'/g, '&#39;'))}')" class="ml-1 px-2 py-0.5 rounded-lg border border-gray-700 text-xs text-gray-300 hover:text-white">✕ ดูทั้งกิลด์</button></div>` : ''}
+                ${summary}
+                ${sec(`⚔️ ตัวละครที่ศัตรูเอามาตีบ้าน${selMem ? '' : (canAll ? 'เรา' : 'คุณ')} · ${heroList.length} ตัว`, 'bg-red-900/10 text-red-200', heroTiles)}
+                ${sec('🏰 ผลกันบ้านแยกตามบ้าน', 'bg-rose-900/10 text-rose-200', castleRows)}
+                ${sec(`🛡️ คอมพ์รับของ${canAll && !selMem ? 'กิลด์' : (selMem ? 'คนนี้' : 'คุณ')} · ${compAgg.size} แบบ`, 'bg-sky-900/10 text-sky-200', compRows)}
+                ${canAll ? sec('👥 ลูกกิลแต่ละคน · กดชื่อเพื่อดูเฉพาะบ้านของคนนั้น', 'bg-indigo-900/10 text-indigo-200', memHead + memRows) : ''}
             </div>`;
         }
 
@@ -19934,6 +20034,11 @@
     let wcPopupOn = false, wcStableKey = '', wcStableN = 0, wcLastKey = '';
     let wcCalFrame = null;         // canvas ของเฟรมที่ใช้ตั้งกรอบ
     let wcPick = null;             // { bi, ri, si, kind } ช่องที่กำลังเลือกแก้
+    // ⚔️ atk = ไม้โจมตี (ลูกกิลเรา = แถวบน) · 🛡️ def = ไม้กันบ้าน (ศัตรูบุก = แถวบน · ลูกกิลเรา = แถวล่าง)
+    let wcSide = (function () { try { return localStorage.getItem('7k_warcap_side') === 'def' ? 'def' : 'atk'; } catch (e) { return 'atk'; } })();
+    function wcSetSide(s) { wcSide = s === 'def' ? 'def' : 'atk'; try { localStorage.setItem('7k_warcap_side', wcSide); } catch (e) {} wcRender(); }
+    function wcSideOf(b) { return b && b.side === 'def' ? 'def' : 'atk'; }
+    function wcToggleBattleSide(bi) { const b = wcBattles[bi]; if (!b) return; b.side = wcSideOf(b) === 'def' ? 'atk' : 'def'; wcRender(); }
 
     function wcRefsLoad() { try { return JSON.parse(localStorage.getItem(WC_REFS_KEY)) || []; } catch (e) { return []; } }
     function wcRefsSave(list) { try { localStorage.setItem(WC_REFS_KEY, JSON.stringify(list.slice(-600))); } catch (e) { console.warn('warcap: เก็บรูปอ้างอิงไม่ได้', e); } }
@@ -20246,6 +20351,18 @@
         let changed = 0;
         wcBattles.forEach(b => {
             const lockW = b.winner !== null && !b.winnerAuto;   // เลือกผลเองแล้ว = ไม่ทับผล (แต่ยังเติมปราสาทได้)
+            if (wcSideOf(b) === 'def') {
+                // 🛡️ หน้า "สถิติการป้องกัน": WIN = เรากันได้ (ฝ่ายรับชนะ) · ชื่อในรายการอาจอยู่ฝั่งไหนก็ได้ → ต้องตรงทั้ง 2 ชื่อ
+                const ours = [b.rows[1].nameRaw, b.rows[1].name], foe = [b.rows[0].nameRaw, b.rows[0].name];
+                const m = (s, list) => s && list.some(n => wcNameClose(s, n));
+                const pool = wcListRes.filter(x => (m(x.atk, ours) && m(x.def, foe)) || (m(x.atk, foe) && m(x.def, ours)));
+                const cs = pool.map(x => x.castle).filter(Boolean); if (!b.rows[1].castle && !b.rows[1].castleEdited && cs.length && cs.every(x => x === cs[0])) { b.rows[1].castle = cs[0]; changed++; }
+                const kinds = [...new Set(pool.map(x => x.res))];
+                if (lockW || kinds.length !== 1) return;
+                const w = kinds[0] === 'win' ? 1 : 0;
+                if (b.winner !== w) { b.winner = w; b.winnerAuto = true; changed++; }
+                return;
+            }
             const an = [b.rows[0].nameRaw, b.rows[0].name], dn = [b.rows[1].nameRaw, b.rows[1].name];
             const hits = wcListRes.filter(x => an.some(n => wcNameClose(x.atk, n)));
             const both = hits.filter(x => x.def && dn.some(n => wcNameClose(x.def, n)));
@@ -20348,7 +20465,7 @@
         if (!rd.ok) return false;
         const t = document.createElement('canvas'); t.width = 360; t.height = Math.round(360 * wcCal.h / wcCal.w);
         t.getContext('2d').drawImage(cv, wcCal.x, wcCal.y, wcCal.w, wcCal.h, 0, 0, t.width, t.height);
-        const nb = { id: 'B' + Date.now() + Math.random().toString(36).slice(2, 6), rows: rd.rows, winner: null, thumb: t.toDataURL('image/jpeg', 0.6) };
+        const nb = { id: 'B' + Date.now() + Math.random().toString(36).slice(2, 6), rows: rd.rows, winner: null, side: wcSide, thumb: t.toDataURL('image/jpeg', 0.6) };
         wcBattles.push(nb);
         wcRender({ added: true });
         wcOcrBattle(nb, cv);   // 🔤 ชื่อผู้เล่น + ปราสาท (ทำเบื้องหลัง)
@@ -21115,6 +21232,7 @@
                 return `<div id="wc-card-${bi}" class="bg-[#0d1117] border ${b.winner === null ? 'border-gray-700' : 'border-emerald-700/60'} rounded-xl p-2.5 flex flex-col sm:flex-row gap-2.5 transition">
                     <div class="flex sm:flex-col items-center gap-2 sm:w-28 flex-shrink-0">
                         <span class="text-xs font-black text-gray-400">#${bi + 1}</span>
+                        <button onclick="wcToggleBattleSide(${bi})" title="กดสลับ ไม้โจมตี ↔ ไม้กันบ้าน" class="text-[10px] font-black px-1.5 py-0.5 rounded border ${wcSideOf(b) === 'def' ? 'bg-sky-500/20 text-sky-200 border-sky-500/50' : 'bg-red-500/15 text-red-200 border-red-500/40'}">${wcSideOf(b) === 'def' ? '🛡️ กันบ้าน' : '⚔️ โจมตี'}</button>
                         <img src="${b.thumb}" class="hidden sm:block w-full rounded border border-gray-800" alt="">
                         <button onclick="wcRemove(${bi})" class="ml-auto sm:ml-0 text-[10px] text-red-400 hover:text-red-300">🗑️ ลบ</button>
                     </div>
@@ -21160,6 +21278,10 @@
                 <div class="p-3 sm:p-4 pr-14 sm:pr-16 border-b border-gray-800 flex flex-wrap items-center gap-2">
                     <h3 class="text-white font-black whitespace-nowrap">🎥 อ่านผลวอจากหน้าจอ</h3>
                     <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-600/40 rounded px-1.5 py-0.5 font-bold">ต้นแบบ</span>
+                    <div class="flex rounded-lg border border-gray-700 overflow-hidden text-xs font-black" title="ไม้ที่อ่านต่อจากนี้เป็นแบบไหน (สลับทีละไม้ได้ที่ป้ายในการ์ด)">
+                        <button onclick="wcSetSide('atk')" class="px-3 py-1.5 ${wcSide === 'atk' ? 'bg-red-600 text-white' : 'bg-[#0d1117] text-gray-400 hover:text-white'}">⚔️ โจมตี</button>
+                        <button onclick="wcSetSide('def')" class="px-3 py-1.5 ${wcSide === 'def' ? 'bg-sky-600 text-white' : 'bg-[#0d1117] text-gray-400 hover:text-white'}">🛡️ กันบ้าน</button>
+                    </div>
                     <button onclick="wcToggleFull()" class="ml-auto mr-1 bg-[#1f2937] hover:bg-[#2d3748] text-gray-300 border border-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold" title="${wcFull ? 'ย่อเป็นหน้าต่าง' : 'ขยายเต็มจอ'}">${wcFull ? '⤡ ย่อ' : '⛶ เต็มจอ'}</button>
                     <button onclick="wcClose()" class="absolute top-2 right-2 sm:top-3 sm:right-3 w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
                 </div>
@@ -21175,7 +21297,7 @@
                     </div>
                 </div>
                 <div id="wc-body" class="p-3 sm:p-4 overflow-y-auto min-h-0 flex-1 flex flex-col gap-2">${body}</div>
-                <div class="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">กรอบสีเหลือง = ระบบไม่แน่ใจ แตะเพื่อเลือกให้ถูก · 🏁 ผลแพ้ชนะ: ให้หน้ารายการ "สถิติการโจมตี" (ป้าย WIN/LOSE) โชว์บนจอสักครู่ ระบบใส่ผลให้เอง (เลื่อนรายการให้เห็นครบ) · ไม้ไหนไม่ได้ผล กด "บนชนะ/ล่างชนะ" เอง · 📒 บันทึกการใช้ของลูกกิล / 📥 ส่งเข้าบันทึก</div>
+                <div class="px-4 py-2 border-t border-gray-800 text-[10px] text-gray-500">กรอบสีเหลือง = ระบบไม่แน่ใจ แตะเพื่อเลือกให้ถูก · 🏁 ผลแพ้ชนะ: ให้หน้ารายการ "สถิติการโจมตี" (ป้าย WIN/LOSE) โชว์บนจอสักครู่ ระบบใส่ผลให้เอง (เลื่อนรายการให้เห็นครบ) · ไม้ไหนไม่ได้ผล กด "บนชนะ/ล่างชนะ" เอง · 🛡️ โหมดกันบ้าน: เปิดหน้า "สถิติการป้องกัน" แล้วกด ▶ ทีละไม้ (แถวบน = ศัตรูที่บุก · แถวล่าง = ลูกกิลเรา) · 📒 บันทึกการใช้ของลูกกิล / 📥 ส่งเข้าบันทึก</div>
             </div>${pickHTML}`;
         if (wcCalFrame) { const c = document.getElementById('wc-cal-canvas'); if (c) c.getContext('2d').drawImage(wcCalFrame, 0, 0); }
         const nb = document.getElementById('wc-body');
@@ -41837,7 +41959,7 @@
     function wuMemGuildId(mem) { const g = (guildsDB || []).find(x => (x.members || []).includes(mem)); return g ? String(g.id) : ''; }
     function wuSet(gid, r) {
         if (!r || r.status !== 'success') return;
-        warUse[gid] = { war: r.war, current: r.current || r.war, wars: r.wars || [], rows: r.rows || [], at: Date.now() };
+        warUse[gid] = { war: r.war, current: r.current || r.war, wars: r.wars || [], rows: r.rows || [], defKeys: r.def_keys || [], at: Date.now() };
         warUseVer++;
     }
     /** โหลดบันทึกวอปัจจุบันของกิลด์ (แคช 60 วิ) · warId = ดูวอเก่า */
@@ -42002,7 +42124,7 @@
         try { await Promise.all([warUseLoad(gid, { force: true }), warUseLoadNames(gid, true)]); } finally { hideLoading(); }
         // ส่งชื่อที่สแกนได้ขึ้น server — ลูกกิลจะเลือกชื่อตัวเองได้ในหน้าลงทะเบียน
         const cnt = new Map();
-        wcBattles.forEach(b => { const n = wuRowName(b.rows[0]); if (n) cnt.set(n, (cnt.get(n) || 0) + 1); });   // ฝั่งซ้าย = ลูกกิลเราเท่านั้น
+        wcBattles.forEach(b => { const n = wuRowName(b.rows[wcSideOf(b) === 'def' ? 1 : 0]); if (n) cnt.set(n, (cnt.get(n) || 0) + 1); });   // ลูกกิลเราเท่านั้น (โจมตี = แถวบน · กันบ้าน = แถวล่าง)
         const fresh = [...cnt].filter(([n]) => !(warUseGN[gid] || []).some(x => x.name.toLowerCase() === n.toLowerCase()));
         if (fresh.length) postJson({ action: 'addGameNamesSeen', guild_id: gid, names: fresh.map(([name, count]) => ({ name, count })) }, { timeout: 30000, retries: 1 })
             .then(r => { if (r && r.status === 'success') { warUseGN[gid] = r.names || []; warUseVer++; wuRvBuild(); wuRvRender(); } }).catch(() => {});
@@ -42012,22 +42134,27 @@
     /** แต่ละไม้: ลูกกิลเราอยู่แถวไหน (บน = บุก) · ทีม 3v3 ที่ตรง · แหวน */
     function wuRvBuild() {
         const gid = String(guildsDB[wuRv.gi].id);
-        const saved = new Set(((warUse[gid] || {}).rows || []).map(r => r.battle_key));
+        const saved = new Set(((warUse[gid] || {}).rows || []).map(r => r.battle_key)), savedDef = new Set((warUse[gid] || {}).defKeys || []);
         const prev = new Map((wuRv.items || []).map(x => [x.key, x]));
         const seenKey = new Set(), seenB = [];
-        const hid = b => (b.rows[0].slots || []).filter(s => s && s.id).map(s => String(s.id));
+        const riOf = b => wcSideOf(b) === 'def' ? 1 : 0;   // 🛡️ ไม้กันบ้าน: ลูกกิลเรา = แถวล่าง
+        const hid = b => (b.rows[riOf(b)].slots || []).filter(s => s && s.id).map(s => String(s.id));
         wuRv.items = wcBattles.map(b => {
-            const key = wuBattleKey(b), p = prev.get(key);
-            const H = hid(b), dup = seenKey.has(key) || seenB.some(o => wcNameClose(o.rows[0].name, b.rows[0].name) && hid(o).filter(x => H.includes(x)).length >= 2);
+            const key = wuBattleKey(b), p = prev.get(key), ri = riOf(b), isDef = ri === 1;
+            // ซ้ำ = คนเดียวกัน + ตัวละครตรง ≥ 2 · ไม้กันบ้านต้องศัตรูคนเดียวกันด้วย (โดนตีด้วยทีมรับเดิมได้หลายไม้)
+            const H = hid(b), dup = seenKey.has(key) || seenB.some(o => riOf(o) === ri && wcNameClose(o.rows[ri].name, b.rows[ri].name) && hid(o).filter(x => H.includes(x)).length >= 2 && (!isDef || wcNameClose(o.rows[0].name, b.rows[0].name)));
             seenKey.add(key); seenB.push(b);
-            const ri = 0, mem = wuMemberOfName(gid, wuRowName(b.rows[0]));   // ฝั่งซ้าย/บน = ลูกกิลเรา · ขวา/ล่าง = ศัตรู
+            const mem = wuMemberOfName(gid, wuRowName(b.rows[ri]));
             const heroes = (b.rows[ri].slots || []).filter(s => s && s.id).map(s => ({ id: String(s.id), aw: !!s.aw }));
-            const teams = wuTeamsForHeroes(mem, heroes.map(x => x.id));
+            let teams = wuTeamsForHeroes(mem, heroes.map(x => x.id));
+            if (isDef) teams = teams.slice().sort((a, c) => (c.teamType === 'Defense') - (a.teamType === 'Defense'));
             const teamId = p && p.teamTouched ? p.teamId : (teams[0] ? String(teams[0].id) : '');
-            return { b, key, ri, mem, heroes, teams, teamId, teamTouched: !!(p && p.teamTouched), saved: saved.has(key), dup, inc: dup ? false : (p && p.mem === mem && (p.mem || p.touched)) ? p.inc : (heroes.length > 0 && !saved.has(key)), touched: !!(p && p.mem === mem && p.touched), defense: dup };   // เพิ่งจับคู่ชื่อได้ = ติ๊กให้ใหม่
+            const isSaved = isDef ? savedDef.has(key) : saved.has(key);
+            return { b, key, ri, isDef, mem, heroes, teams, teamId, teamTouched: !!(p && p.teamTouched), saved: isSaved, dup, inc: dup ? false : (p && p.mem === mem && (p.mem || p.touched)) ? p.inc : (heroes.length > 0 && !isSaved), touched: !!(p && p.mem === mem && p.touched), defense: dup };   // เพิ่งจับคู่ชื่อได้ = ติ๊กให้ใหม่
         });
     }
     function wuRvItemRings(it) {
+        if (it.isDef) return { needs: [], miss: [] };   // 🛡️ ทีมรับไม่หักแหวน
         const t = it.teamId ? (teams3v3DB || []).find(x => String(x.id) === it.teamId && wuTeamShared(x)) : null;
         const needs = wuTeamRingNeeds(t);
         if (!it.mem) return { needs, miss: [] };
@@ -42048,12 +42175,12 @@
         const memOpts = sel => '<option value="">— ยังไม่ได้เลือก —</option>' + mems.map(m => `<option value="${wuEsc(m.id)}" ${sel && String(sel) === String(m.id) ? 'selected' : ''}>${wuEsc(m.name)}${m.discordName && m.discordName !== m.name ? ' (' + wuEsc(m.discordName) + ')' : ''}</option>`).join('');
         // 👤 ชื่อในเกมที่สแกนได้ (ไม่ซ้ำ)
         const names = new Map();
-        wcBattles.forEach(b => { const n = wuRowName(b.rows[0]); if (!n) return; const x = names.get(n) || { n, cnt: 0, atk: 0, def: 0 }; x.cnt++; x.atk++; names.set(n, x); });   // ฝั่งซ้าย = ลูกกิลเราเท่านั้น (ฝั่งขวา = ศัตรู ไม่ต้องจับคู่)
+        wcBattles.forEach(b => { const d = wcSideOf(b) === 'def', n = wuRowName(b.rows[d ? 1 : 0]); if (!n) return; const x = names.get(n) || { n, cnt: 0, atk: 0, def: 0 }; x.cnt++; if (d) x.def++; else x.atk++; names.set(n, x); });   // ลูกกิลเราเท่านั้น (ศัตรู ไม่ต้องจับคู่)
         const nameRows = [...names.values()].sort((a, b) => b.cnt - a.cnt).map(x => {
             const m = wuMemberOfName(gid, x.n);
             const stored = (warUseGN[gid] || []).find(y => y.name.toLowerCase() === x.n.toLowerCase() && y.member_id);
             return `<div class="flex items-center gap-2 p-2 rounded-lg border ${m ? 'border-emerald-800/60 bg-emerald-950/20' : 'border-gray-800 bg-[#0d1117]'}">
-                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">🎮 ${wuEsc(x.n)}</div><div class="text-[10px] text-gray-500">ตี ${x.cnt} ไม้${m && !stored ? ' · เดาจากชื่อ' : ''}</div></div>
+                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">🎮 ${wuEsc(x.n)}</div><div class="text-[10px] text-gray-500">${x.atk ? 'ตี ' + x.atk + ' ไม้' : ''}${x.atk && x.def ? ' · ' : ''}${x.def ? 'กันบ้าน ' + x.def + ' ไม้' : ''}${m && !stored ? ' · เดาจากชื่อ' : ''}</div></div>
                 <select onchange="wuRvSetName('${wuEsc(x.n).replace(/'/g, '&#39;')}', this.value)" style="color-scheme:dark" class="max-w-[48%] bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1.5 text-xs">${memOpts(m && m.id)}</select>
             </div>`;
         }).join('') || '<div class="text-xs text-gray-500">อ่านชื่อในไม้ไม่ได้เลย</div>';
@@ -42061,7 +42188,7 @@
         const nInc = wuRv.items.filter(x => x.inc && !x.defense).length;
         const cards = wuRv.items.map((it, i) => {
             const b = it.b, rg = wuRvItemRings(it);
-            const res = b.winner === 0 ? '<span class="text-emerald-300">ชนะ</span>' : b.winner === 1 ? '<span class="text-red-300">แพ้</span>' : '<span class="text-gray-500">ยังไม่เลือกผล</span>';
+            const res = b.winner == null ? '<span class="text-gray-500">ยังไม่เลือกผล</span>' : b.winner === it.ri ? `<span class="text-emerald-300">${it.isDef ? 'กันได้' : 'ชนะ'}</span>` : `<span class="text-red-300">${it.isDef ? 'บ้านแตก' : 'แพ้'}</span>`;
             const castle = b.rows[1].castle || b.rows[0].castle || '';
             const teamSel = `<select onchange="wuRvSetTeam(${i}, this.value)" style="color-scheme:dark" class="max-w-full bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2 py-1 text-[11px]">
                 ${it.teams.map(t => `<option value="${wuEsc(t.id)}" ${String(t.id) === it.teamId ? 'selected' : ''}>${wuEsc(t.name || 'ทีม')}${t.teamType === 'Defense' ? ' (รับ)' : ''}</option>`).join('')}
@@ -42077,7 +42204,7 @@
                     <input type="checkbox" ${it.inc && !it.defense ? 'checked' : ''} ${it.defense ? 'disabled' : ''} onchange="wuRvToggle(${i}, this.checked)" class="w-4 h-4 accent-indigo-500 shrink-0">
                     ${it.mem ? memberAvatarHTML(it.mem, 26) : ''}
                     <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${it.mem ? wuEsc(it.mem.name) : '—'} <span class="text-[10px] text-gray-500 font-normal">🎮 ${wuEsc(wuRowName(b.rows[it.ri]) || '?')} → ${wuEsc(wuRowName(b.rows[1 - it.ri]) || '?')}</span></div>
-                    <div class="text-[10px] text-gray-500">${castle ? '🏰 ' + wuEsc(castle) + ' · ' : ''}${res}</div></div>
+                    <div class="text-[10px] text-gray-500">${it.isDef ? '<span class="text-sky-300 font-bold">🛡️ กันบ้าน</span> · ' : ''}${castle ? '🏰 ' + wuEsc(castle) + ' · ' : ''}${res}</div></div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 pl-6">
                     <span class="flex gap-1">${wuHeroThumbs(it.heroes, 30)}</span>
@@ -42159,10 +42286,21 @@
             return { battle_key: it.key, member_id: it.mem ? String(it.mem.id) : '', member_name: it.mem ? (it.mem.name || '') : '', game_name: wuRowName(b.rows[it.ri]), heroes: it.heroes, enemy_heroes: (b.rows[1 - it.ri].slots || []).filter(s => s && s.id).map(s => ({ id: String(s.id), aw: !!s.aw })), rings: rg.needs, ring_miss: rg.miss, team_id: it.teamId,
                 castle: b.rows[1].castle || b.rows[0].castle || '', result: b.winner === it.ri ? 'win' : (b.winner == null ? '' : 'lose'), enemy: wuRowName(b.rows[1 - it.ri]) };
         });
+        // ⚔️ ไม้โจมตี → บันทึกวอ (รายการตี) · 🛡️ ไม้กันบ้าน → สถิติกันบ้าน (แยกชีต ไม่นับเป็นไม้ที่ตี/จ่ายไม้)
+        const isDefKey = new Set(list.filter(it => it.isDef).map(it => it.key));
+        const atkItems = items.filter(x => !isDefKey.has(x.battle_key)), defItems = items.filter(x => isDefKey.has(x.battle_key));
         showLoading('📒 กำลังบันทึก ' + items.length + ' ไม้...');
         try {
-            const r = await postJson({ action: 'saveWarUsage', guild_id: gid, war_id: (W.current || {}).id || '', items }, { timeout: 90000, retries: 0 });
-            if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            let r = null;
+            const wid = (W.current || {}).id || '';
+            if (atkItems.length) {
+                r = await postJson({ action: 'saveWarUsage', guild_id: gid, war_id: wid, items: atkItems }, { timeout: 90000, retries: 0 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ไม่สำเร็จ');
+            }
+            if (defItems.length) {
+                r = await postJson({ action: 'saveWarDefense', guild_id: gid, war_id: wid, items: defItems }, { timeout: 90000, retries: 0 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'บันทึกไม้กันบ้านไม่สำเร็จ — แอดมินต้อง deploy Apps Script ใหม่ (8.17.0 ขึ้นไป)');
+            }
             wuSet(gid, r);
             let histMsg = '';
             try { const nh = await warUseToHistory(list.map(it => it.b), (r.current || r.war || {})); if (nh > 0) histMsg = '\n📜 ประวัติการต่อสู้ +' + nh + ' ไม้'; }
