@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.45.0';
+        const APP_VERSION = '1.45.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15514,7 +15514,7 @@
                 const usedBody = !open ? '' : `<div onclick="event.stopPropagation()" class="mt-3 pt-3 border-t border-gray-800 space-y-2 cursor-default">
                     <div class="text-xs font-black text-gray-400">⚔️ คอมพ์ที่ใช้ในวอนี้${poData.war && poData.war.label ? ' · ' + ccEsc(poData.war.label) : ''}</div>
                     ${used === null ? '<div class="p-4 text-center text-sm text-gray-400">⏳ กำลังโหลดไม้...</div>'
-                        : used.length ? used.slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0)).map((r, i) => ccUsedGameRow(r, m, i + 1, true)).join('')
+                        : used.length ? `<div class="flex flex-wrap gap-2">${used.slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0)).map((r, i) => `<div class="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-800 bg-[#0d1117]"><span class="text-[11px] font-black text-gray-500 w-6">#${i + 1}</span><span class="flex gap-1.5">${ccUsedHeroThumbs(r, 56)}</span></div>`).join('')}</div>`
                         : '<div class="p-4 text-center text-sm text-gray-500">ยังไม่มีไม้ที่บันทึกในวอนี้</div>'}
                 </div>`;
                 return `<div onclick="poWhoToggle('${ccEsc(String(m.id).replace(/'/g, '&#39;'))}')" title="กดเพื่อดูคอมพ์ที่ใช้" class="p-3 rounded-2xl border cursor-pointer transition hover:brightness-125 ${allPaid ? 'border-emerald-600/60 bg-emerald-900/10' : paidSet.size ? 'border-emerald-700/30 bg-emerald-900/5' : 'border-gray-800 bg-[#0d1117]'}">
