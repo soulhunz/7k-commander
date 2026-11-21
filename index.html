@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.43.0';
+        const APP_VERSION = '1.43.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -14950,6 +14950,7 @@
             if (wsMemBattlesKey === key) wsRenderMemberModal(x);
         }
         function wsMemSetWarTab(t) {
+            if (wsInlineKey && wsInlineKey === wsMemBattlesKey && ccHubPage === 'stats') { wsMemWarTab = t; ccRerenderKeepScroll(); return; }
             // 🪄 คงตำแหน่งเลื่อนของ modal ไว้ — ไม่ให้เด้งกลับขึ้นบน
             const m = document.getElementById('ws-mem-dlg');
             const sc = m && m.querySelector('.overflow-y-auto');
@@ -14963,10 +14964,13 @@
         /** modal ของลูกกิล: กราฟ 5 แกน + tab วอ + รายการคอมพ์ที่ตี */
         function wsOpenMember(key) {
             const x = wsMembers.get(key); if (!x) return;
+            wsInlineKey = '';
             wsRenderMemberModal(x);
             wsLoadMemberBattles(x);
         }
+        let wsInlineKey = '';   // 👤 สถิติของฉัน = วาดรายละเอียดบนหน้าเลย (ไม่เปิด modal)
         function wsRenderMemberModal(x) {
+            if (wsInlineKey && String(x.key) === wsInlineKey && ccHubPage === 'stats') { ccRerenderKeepScroll(); return; }
             let m = document.getElementById('ws-mem-dlg');
             if (!m) {
                 m = document.createElement('div');
@@ -14975,6 +14979,11 @@
                 m.onclick = e => { if (e.target === m) m.style.display = 'none'; };
                 document.body.appendChild(m);
             }
+            m.innerHTML = wsMemberCardHTML(x, false);
+            m.style.display = 'flex';
+        }
+        /** การ์ดรายละเอียดลูกกิล — modal (inline=false) หรือวางบนหน้าสถิติของฉัน (inline=true) */
+        function wsMemberCardHTML(x, inline) {
             const avUrl = x.avatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(x.avatar) : '';
             const cr = x.total ? (x.on_comp || 0) / x.total : 0, b = wsRankBadge(cr);
             const thumbs = heroes => (heroes || []).map(h => {
@@ -15041,7 +15050,7 @@
                     battlesBody = `<div class="p-3 overflow-y-auto custom-scroll space-y-2" style="max-height:min(520px,60vh)">${sorted.map((r, i) => (typeof ccUsedGameRow === 'function' ? ccUsedGameRow(r, mLocal, i + 1, true) : '')).join('')}</div>`;
                 }
             }
-            m.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl">
+            return `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full ${inline ? '' : 'max-w-4xl max-h-[92vh]'} flex flex-col shadow-2xl">
                 <div class="p-4 border-b border-gray-800 flex items-center gap-3 shrink-0">
                     ${avUrl ? `<img src="${avUrl}" referrerpolicy="no-referrer" class="w-12 h-12 rounded-full border-2 border-indigo-500/60" alt="">` : '<div class="w-12 h-12 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xl">👤</div>'}
                     <div class="min-w-0 flex-1"><div class="text-lg font-black text-white truncate">${ccEsc(x.name || '(ไม่ระบุชื่อ)')}</div>
@@ -15053,9 +15062,9 @@
                             <span class="text-red-300 font-bold">❌ ${x.lose}</span>
                         </div>
                     </div>
-                    <button onclick="document.getElementById('ws-mem-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+                    ${inline ? '' : `<button onclick="document.getElementById('ws-mem-dlg').style.display='none'" class="w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>`}
                 </div>
-                <div class="overflow-y-auto flex-1 min-h-0">
+                <div class="${inline ? '' : 'overflow-y-auto flex-1 min-h-0'}">
                     <div class="p-4 border-b border-gray-800">
                         <div class="text-xs font-black text-gray-400 uppercase tracking-wider mb-2 text-center">📊 โปรไฟล์การตี</div>
                         ${wsRadarSVG(axes, [vBat, vFull, vOn, vOff, vWin])}
@@ -15069,7 +15078,6 @@
                     ${offList.length ? offList.map(c => compRow(c, true)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ตีตรงคอมพ์ทั้งหมด</div>'}
                 </div>
             </div>`;
-            m.style.display = 'flex';
         }
         function wsGuild() { try { return decodeGuildParam(appUrlParams().get('g')) || ''; } catch (e) { return ''; } }
         /** 🔐 ยืนยันตัวลูกกิล (Discord) — server ส่งสถิติเฉพาะของตัวเอง · ผู้ช่วย/แอดมินได้ทุกคน */
@@ -15241,6 +15249,13 @@
                 </div>`;
             }
 
+            // 👤 สถิติของฉัน = รายละเอียดเต็ม (กราฟ · ไม้แยกวอ · คอมพ์) แทนตาราง
+            if (wsView === 'me' && mems.length) {
+                const mine = mems[0], mk = String(mine.key);
+                wsInlineKey = mk;
+                if (wsMemBattlesKey !== mk) setTimeout(() => wsLoadMemberBattles(mine), 0);
+                memBlock = wsMemberCardHTML(mine, true);
+            } else if (wsView !== 'me') wsInlineKey = '';
             return `<div class="space-y-3">
                 ${viewTabs}
                 <div class="flex flex-wrap items-center gap-2 text-xs"><span class="text-gray-200 font-black text-sm">${wsView === 'me' ? '👤 สถิติของฉัน' : '👥 สถิติสมาชิก'}</span><button onclick="wsLoad(true)" class="ml-auto px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${wsLoading ? 'opacity-50' : ''}">${wsLoading ? '⏳' : '🔄'} รีเฟรช</button></div>
