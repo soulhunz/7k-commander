@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.43.1';
+        const APP_VERSION = '1.43.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15047,7 +15047,7 @@
                 else {
                     const mLocal = (guildsDB || []).flatMap(g => g.members || []).find(mm => String(mm.id) === String(x.member_id)) || { name: x.name, discordAvatar: x.avatar };
                     // 🧢 กรอบไม้: ~5 ไม้แรกอยู่ในจอ · เกิน → สกอข้างในกรอบ (ไม่ดันหน้าต่างให้เลื่อนทั้งก้อน)
-                    battlesBody = `<div class="p-3 overflow-y-auto custom-scroll space-y-2" style="max-height:min(520px,60vh)">${sorted.map((r, i) => (typeof ccUsedGameRow === 'function' ? ccUsedGameRow(r, mLocal, i + 1, true) : '')).join('')}</div>`;
+                    battlesBody = `<div class="p-3 space-y-2 ${inline ? '' : 'overflow-y-auto custom-scroll'}" ${inline ? '' : 'style="max-height:min(520px,60vh)"'}>${sorted.map((r, i) => (typeof ccUsedGameRow === 'function' ? ccUsedGameRow(r, mLocal, i + 1, true) : '')).join('')}</div>`;
                 }
             }
             return `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full ${inline ? '' : 'max-w-4xl max-h-[92vh]'} flex flex-col shadow-2xl">
@@ -15072,10 +15072,10 @@
                     <div class="px-4 py-2 border-b border-gray-800 bg-indigo-900/10 text-xs font-black text-indigo-200 uppercase tracking-wider">🗓️ ไม้ที่ตี · แยกวอ</div>
                     ${warTabs}
                     ${battlesBody}
-                    <div class="px-4 py-2 border-b border-gray-800 bg-emerald-900/10 text-xs font-black text-emerald-200 uppercase tracking-wider">✅ ตีตามคอมพ์ · ${x.on_comp || 0} ไม้ (${onList.length} คอมพ์)</div>
+                    ${inline ? '' : `<div class="px-4 py-2 border-b border-gray-800 bg-emerald-900/10 text-xs font-black text-emerald-200 uppercase tracking-wider">✅ ตีตามคอมพ์ · ${x.on_comp || 0} ไม้ (${onList.length} คอมพ์)</div>
                     ${onList.length ? onList.map(c => compRow(c, false)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ยังไม่มีไม้ที่ตีตามคอมพ์ที่แชร์ไว้</div>'}
                     <div class="px-4 py-2 border-b border-gray-800 bg-red-900/10 text-xs font-black text-red-200 uppercase tracking-wider">❓ ไม่ตรงคอมพ์ · ${x.off_comp || 0} ไม้ (${offList.length} รูปแบบ)</div>
-                    ${offList.length ? offList.map(c => compRow(c, true)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ตีตรงคอมพ์ทั้งหมด</div>'}
+                    ${offList.length ? offList.map(c => compRow(c, true)).join('') : '<div class="p-3 text-sm text-gray-500 text-center">ตีตรงคอมพ์ทั้งหมด</div>'}`}
                 </div>
             </div>`;
         }
