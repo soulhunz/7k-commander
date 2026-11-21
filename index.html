@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.41.3';
+        const APP_VERSION = '1.41.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15307,19 +15307,23 @@
             rows.forEach(m => { const ps = paidByMem.get(m.id) || new Set(); m._n = focusedHeroes.filter(h => ps.has(String(h))).length; });
             rows.sort((a, b) => b._n - a._n || String(a.name).localeCompare(String(b.name), 'th'));
             // สถานะกรอง: นับจาก focused heroes
-            const filtered = rows.filter(m => {
-                if (poListStatus === 'all') return true;
-                const allPaidFocused = focusedHeroes.every(h => (paidByMem.get(m.id) || new Set()).has(String(h)));
-                return poListStatus === 'paid' ? allPaidFocused : !allPaidFocused;
-            });
+            // จ่ายแล้ว = คนที่จ่ายอย่างน้อย 1 ตัว (โชว์เฉพาะตัวที่จ่าย) · ยังไม่จ่าย = คนที่ยังค้างอย่างน้อย 1 ตัว (โชว์เฉพาะตัวที่ค้าง)
+            const shownHeroes = m => {
+                if (poListStatus === 'all') return focusedHeroes;
+                const ps = paidByMem.get(m.id) || new Set();
+                return focusedHeroes.filter(h => ps.has(String(h)) === (poListStatus === 'paid'));
+            };
+            const filtered = rows.filter(m => poListStatus === 'all' || shownHeroes(m).length);
             const avatar = m => { const av = m.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : ''; if (av) return `<img src="${av}" referrerpolicy="no-referrer" alt="" class="w-9 h-9 rounded-full object-cover border border-indigo-500/40 shrink-0">`; return `<span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0 text-xs text-gray-400">${ccEsc(String(m.name || '?').trim().charAt(0).toUpperCase())}</span>`; };
             const countBar = `<div class="mb-3 text-xs text-gray-500">แสดง <b class="text-white">${filtered.length}</b>/${rows.length} คน${poListHeroFilter.size ? ` · กรองฮีโร่ ${poListHeroFilter.size} ตัว` : ''}</div>`;
             const listHTML = filtered.length ? filtered.map(m => {
                 const paidSet = paidByMem.get(m.id) || new Set();
                 const allPaid = focusedHeroes.every(hid => paidSet.has(String(hid)));
-                const heroChips = focusedHeroes.map(hid => {
+                const heroChips = shownHeroes(m).map(hid => {
                     const h = (heroesDB || []).find(x => String(x.id) === String(hid));
                     const paid = paidSet.has(String(hid));
+                    if (poListStatus === 'paid') return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-emerald-500/60 bg-emerald-900/30" title="${ccEsc(h ? h.name : hid)} — จ่ายแล้ว">
+                        ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover" alt="">` : ''}<span class="text-xs font-bold text-emerald-100">${ccEsc(h ? h.name : hid)}</span><span class="text-[10px] font-black text-emerald-300 ml-1">✅</span></span>`;
                     return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${paid ? 'border-gray-700 bg-gray-800/60 opacity-60' : 'border-emerald-700/50 bg-emerald-900/10'}" title="${ccEsc(h ? h.name : hid)}${paid ? ' — จ่ายแล้ว' : ''}">
                         ${h && h.img ? `<img src="${h.img}" class="w-7 h-7 rounded object-cover ${paid ? 'grayscale' : ''}" alt="">` : ''}
                         <span class="text-xs font-bold ${paid ? 'text-gray-400 line-through' : 'text-emerald-200'}">${ccEsc(h ? h.name : hid)}</span>
