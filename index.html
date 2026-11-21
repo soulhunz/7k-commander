@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.41.6';
+        const APP_VERSION = '1.42.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -6297,7 +6297,7 @@
             if (appUrlParams().get('mode') === 'mai-view') { ccHubPage = 'mai'; ccViewerBoot(); return; }
             // 🔨 หน้าดูบิ้วตัวละครที่เผยแพร่ — ไม่ต้อง login
             if (appUrlParams().get('mode') === 'builds-view') { hbvBoot(); return; }
-            if (appUrlParams().get('mode') === 'stats-view') { ccViewTab = 'stats'; ccViewerBoot(); return; }
+            if (appUrlParams().get('mode') === 'stats-view') { ccHubPage = 'stats'; ccViewerBoot(); return; }
 
             // 🔗 ลิงก์แชร์ (k= / mode=apply) แต่ไม่รู้ URL server = ลิงก์ไม่ครบ (โดนตัดท้าย / ลิงก์รุ่นเก่าไม่มี s=)
             //    คนทั่วไปไม่มีทางรู้ URL server — อย่าถาม ให้บอกว่าต้องขอลิงก์ใหม่
@@ -14816,10 +14816,10 @@
             if (!isPublicView) return '';
             if (active === 'mai') active = 'gallery';   // ⚔️ ไม้ชน อยู่ใต้แกลเลอรีทีม (แท็บข้าง Targets/Defense)
             const btn = (key, icon, label) => `<button onclick="switchPublicHub('${key}')" class="flex-1 min-w-0 sm:flex-none px-2 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap overflow-hidden ${active === key
-                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'mai' ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
+                ? (key === 'castle' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : key === 'mai' ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40' : key === 'builds' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : key === 'stats' ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/40')
                 : 'text-gray-400 hover:text-white hover:bg-white/5'}"><span class="hidden sm:inline">${icon}</span>${label}</button>`;
             return `<div class="flex w-full sm:w-auto sm:self-start gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl">
-                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}
+                    ${btn('gallery', '🌍', 'แกลเลอรีทีม')}${btn('castle', '🏰', 'คอมพ์ปราสาท')}${btn('builds', '🔨', 'บิ้วตัวละคร')}${btn('stats', '📊', 'สถิติ')}
                 </div>`;
         }
         /** ชื่อกิลด์ของลิงก์ (มุมขวาบน) — หน้าสาธารณะเท่านั้น */
@@ -14846,8 +14846,6 @@
             const q = galleryShareQuery(); // k / g / s เดิม
             const hbv = document.getElementById('hb-viewer');
             if (hbv) hbv.style.display = 'none';
-            // 📊 สถิติย้ายไปเป็นแท็บย่อยในหน้าคอมพ์ปราสาทแล้ว — ลิงก์เก่า ?mode=stats-view = เปิดคอมพ์ปราสาทแท็บสถิติ
-            if (target === 'stats') { ccViewTab = 'stats'; target = 'castle'; }
             // 💸 จ่ายไม้ / 📋 รายการจ่ายไม้ = แท็บใน Community Gallery
             if (target === 'payout') { currentGalleryTab = 'Payout'; target = 'gallery'; }
             if (target === 'payoutlist') { currentGalleryTab = 'PayoutList'; target = 'gallery'; }
@@ -14858,13 +14856,13 @@
                 ccViewDetailOpen = false;
                 if (hbv) { hbv.style.display = ''; hbvRender(); if (Date.now() - (hbvSync.at || 0) >= GALLERY_POLL_MS - 1000) hbvSyncData(); }
                 else hbvBoot();
-            } else if (target === 'castle' || target === 'mai') {
-                ccHubPage = target;   // ⚔️ ไม้ชน ใช้กล่อง/ข้อมูลชุดเดียวกับคอมพ์ปราสาท
+            } else if (target === 'castle' || target === 'mai' || target === 'stats') {
+                ccHubPage = target;   // ⚔️ ไม้ชน / 📊 สถิติ ใช้กล่อง cc-viewer เดียวกับคอมพ์ปราสาท
                 if (target === 'mai') {
                     if (galleryCacheDB && galleryCacheDB.length) ccViewTeams = ccViewerAttackTeams(galleryCacheDB, decodeGuildParam(appUrlParams().get('g')) || 'all');
                     if (Date.now() - (maiSync.at || 0) >= GALLERY_POLL_MS - 1000) setTimeout(maiSyncTeams, 0);
                 }
-                try { window.history.replaceState({}, '', window.location.pathname + (target === 'mai' ? '?mode=mai-view' : '?mode=castle-view') + q); } catch (e) {}
+                try { window.history.replaceState({}, '', window.location.pathname + (target === 'mai' ? '?mode=mai-view' : target === 'stats' ? '?mode=stats-view' : '?mode=castle-view') + q); } catch (e) {}
                 const main = document.getElementById('main-content');
                 if (main) main.style.display = 'none';
                 const box = document.getElementById('cc-viewer');
@@ -15076,17 +15074,17 @@
         function wsGuild() { try { return decodeGuildParam(appUrlParams().get('g')) || ''; } catch (e) { return ''; } }
         async function wsLoad(force) {
             const g = wsGuild();
-            if (!g) { wsErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; if (ccViewTab === 'stats') ccViewerRender(); return; }
+            if (!g) { wsErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; if (ccHubPage === 'stats') ccViewerRender(); return; }
             if (wsLoading || (!force && wsData && wsData._guild === g && Date.now() - wsData._at < 60000)) return;
             wsLoading = true; wsErr = '';
-            if (ccViewTab === 'stats') ccViewerRender();
+            if (ccHubPage === 'stats') ccViewerRender();
             try {
                 const r = await postJson({ action: 'getWarStatsPublic', guild: g }, { timeout: 45000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
                 wsData = Object.assign(r, { _guild: g, _at: Date.now() });
             } catch (e) { wsErr = e.message || String(e); }
             wsLoading = false;
-            if (ccViewTab === 'stats') ccViewerRender();
+            if (ccHubPage === 'stats') ccViewerRender();
         }
         function ccStatsHTML() {
             if (!wsData && !wsLoading && !wsErr) setTimeout(() => wsLoad(), 0);
@@ -16319,6 +16317,19 @@
             if (!box) return;
             if (ccPendingComp) setTimeout(ccViewerTryOpenPending, 0);
             if (ccHubPage === 'mai') { box.innerHTML = maiPageHTML(); return; }
+            if (ccHubPage === 'stats') {
+                box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">
+                    <div class="flex flex-col lg:flex-row items-start justify-between gap-4 mb-5">
+                        <div class="flex flex-col gap-3">
+                            <h1 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter">War <span class="text-violet-400">Stats</span></h1>
+                            ${publicHubNavHTML('stats')}
+                        </div>
+                        <div class="flex flex-wrap items-center lg:justify-end gap-3">${publicHubGuildHTML()}</div>
+                    </div>
+                    ${ccStatsHTML()}
+                </div>`;
+                return;
+            }
 
             // ⏳ กำลังโหลด = ไม่ต้องบอก (มีป้าย "กำลังเช็คตารางใหม่…" มุมขวาอยู่แล้ว) · บอกเฉพาะตอนโหลดไม่ได้
             const heroNote = (ccViewHeroLoad === 'fail' && !heroesDB.length) ? '<span class="text-amber-300">⚠️ โหลดรูปฮีโร่ไม่ได้ — แสดงเป็นชื่อแทน</span>' : '';
@@ -16379,8 +16390,8 @@
             const tabBtn = (key, label) => `<button onclick="ccViewerSetTab('${key}')" class="flex-1 min-w-0 sm:flex-none px-1.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap overflow-hidden text-ellipsis ${ccViewTab === key
                 ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}">${label}</button>`;
 
-            if (ccViewTab === 'used') ccViewTab = 'table';   // 📒 รายการตี ย้ายไปหน้า Attack Plan แล้ว
-            const bodyHTML = ccViewTab === 'stats' ? ccStatsHTML() : ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
+            if (ccViewTab === 'used' || ccViewTab === 'stats') ccViewTab = 'table';   // 📒 รายการตี → Attack Plan · 📊 สถิติ → เมนูใหญ่
+            const bodyHTML = ccViewTab === 'castle' ? ccViewerCastleCards(cnt) : ccViewTab === 'comp' ? ccViewerCompCards(cnt, colTotal) : ccViewerSheet(cnt, colTotal, grand);
             box.innerHTML = `<div class="max-w-[100vw] p-4 md:p-6">${head}
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                 <!-- 🖱️ ส่วนที่กดได้: แท็บมุมมอง + เลือกตัวละคร -->
@@ -16389,7 +16400,6 @@
                         ${tabBtn('table', '<span class="hidden sm:inline">📊 </span>ตาราง')}
                         ${tabBtn('comp', '<span class="hidden sm:inline">⚔️ </span>คอมพ์')}
                         ${tabBtn('castle', '<span class="hidden sm:inline">🏰 </span><span class="sm:hidden">รายปราสาท</span><span class="hidden sm:inline">แยกรายปราสาท</span>')}
-                        ${tabBtn('stats', '<span class="hidden sm:inline">📊 </span>สถิติ')}
                     </div>
                 </div>
                 <!-- 📊 สรุปตัวเลข: ตัวหนังสือล้วน ไม่มีกรอบแบบปุ่ม — มือถือขึ้นแถวของตัวเอง · แท็บตาราง = สรุปละเอียด -->
