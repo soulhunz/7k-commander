@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.6';
+        const APP_VERSION = '1.46.7';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15461,9 +15461,7 @@
         function poNotifyRows() { return poNotifyCtx.rows.filter(r => !r.extra).map(r => Object.assign({}, r, { owe: poNotifyOwe(r) })); }
         function poNotifyShown() { const q = poNotify.q.trim().toLowerCase(); return poNotifyRows().filter(r => (!poNotify.onlyOwe || r.owe.length) && (!q || String(r.name || '').toLowerCase().includes(q))); }
         function poNotifyDefaultMsg() {
-            let hs = poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h));
-            const one = poNotify.forId && poNotifyCtx.rows.find(x => String(x.id) === String(poNotify.forId));
-            if (one) { const owe = poNotifyOwe(one); if (owe.length) hs = owe; }
+            const hs = poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h));
             return `ยังไม่ได้จ่ายไม้${hs.length ? ' ' + poNotifyHeroNames(hs) : ''}\nรบกวนจ่ายด้วยคับ`;
         }
         function poNotifyOpen() {
@@ -15475,7 +15473,9 @@
         function poNotifyOpenFor(id) {
             if (!poNotifyCtx) return;
             const r = poNotifyCtx.rows.find(x => String(x.id) === String(id)); if (!r) return;
-            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: true, forId: r.id };
+            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: true };
+            const owe = poNotifyOwe(r);
+            if (owe.length) poNotify.heroes = new Set(owe);
             poNotify.msg = poNotifyDefaultMsg();
             poNotifyRender();
         }
