@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.2';
+        const APP_VERSION = '1.46.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15465,6 +15465,14 @@
             poNotify.msg = poNotifyDefaultMsg();
             poNotifyPick('owe');
         }
+        function poNotifyOpenFor(id) {
+            if (!poNotifyCtx) return;
+            const r = poNotifyCtx.rows.find(x => String(x.id) === String(id)); if (!r) return;
+            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: false };
+            const owe = poNotifyOwe(r);
+            poNotify.msg = owe.length ? `⏳ ยังไม่ได้จ่ายไม้ ${poNotifyHeroNames(owe)}${poData.war && poData.war.label ? ' (' + poData.war.label + ')' : ''}\nรบกวนจ่ายด้วยนะครับ 🙏` : poNotifyDefaultMsg();
+            poNotifyRender();
+        }
         function poNotifyClose() { poNotify = null; const d = document.getElementById('po-notify-dlg'); if (d) d.remove(); }
         function poNotifyToggleHero(h) {
             poNotify.heroes.has(h) ? poNotify.heroes.delete(h) : poNotify.heroes.add(h);
@@ -15653,6 +15661,7 @@
                             <div class="text-xs font-bold text-gray-400 flex items-center gap-1">⚔️ ไม้ <b class="text-white">${used === null ? '…' : used.length}</b>/${PO_WAR_QUOTA} <span class="text-[10px] text-gray-500">${open ? '▴' : '▾'}</span></div></div>
                         </div>
                         <div class="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 flex-1 min-w-0 pt-2 border-t border-gray-800 sm:pt-0 sm:border-t-0 sm:border-l-2 sm:border-gray-700 sm:pl-4 sm:self-stretch sm:items-center">${heroChips}</div>
+                        ${canNotify && !m.extra ? `<button type="button" onclick="event.stopPropagation();poNotifyOpenFor('${ccEsc(String(m.id).replace(/'/g, '&#39;'))}')" title="แจ้งเตือน ${ccEsc(m.name || '')} ทาง Discord" class="self-end sm:self-center sm:ml-3 shrink-0 w-10 h-10 rounded-xl text-lg text-white shadow hover:brightness-125 transition" style="background:#5865F2">🔔</button>` : ''}
                     </div>
                     ${usedBody}
                 </div>`;
