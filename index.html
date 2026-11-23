@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.1';
+        const APP_VERSION = '1.46.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15487,6 +15487,7 @@
             if (!poNotify || !poNotifyCtx) return;
             let d = document.getElementById('po-notify-dlg');
             const keepTop = d && d.querySelector('#po-notify-list') ? d.querySelector('#po-notify-list').scrollTop : 0;
+            const keepBody = d && d.querySelector('#po-notify-body') ? d.querySelector('#po-notify-body').scrollTop : 0;
             if (!d) { d = document.createElement('div'); d.id = 'po-notify-dlg'; d.className = 'fixed inset-0 z-[720] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3'; d.onclick = e => { if (e.target === d) poNotifyClose(); }; document.body.appendChild(d); }
             const rows = poNotifyRows(), shown = poNotifyShown();
             const heroChips = poNotifyCtx.heroes.map(hid => {
@@ -15513,7 +15514,7 @@
                     <span class="text-[11px] text-gray-500">ส่งเข้าห้องแจ้งเตือนของกิลด์ · คนที่เชื่อม Discord แล้วจะถูกแท็ก @</span>
                     <button onclick="poNotifyClose()" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
                 </div>
-                <div class="p-4 space-y-3 overflow-y-auto min-h-0 flex-1">
+                <div id="po-notify-body" class="p-4 space-y-3 overflow-y-auto min-h-0 flex-1">
                     <div><div class="text-xs font-black text-gray-400 mb-1.5">✍️ ข้อความ</div>
                         <textarea id="po-notify-msg" oninput="poNotify.msg=this.value;poNotify.msgAuto=false;document.getElementById('po-notify-len').textContent=this.value.length" maxlength="1500" rows="4" class="w-full bg-[#0d1117] border border-gray-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 resize-y">${ccEsc(poNotify.msg)}</textarea>
                         <div class="text-[10px] text-gray-500 text-right"><span id="po-notify-len">${poNotify.msg.length}</span>/1500</div></div>
@@ -15542,6 +15543,7 @@
                 </div>
             </div>`;
             const l = d.querySelector('#po-notify-list'); if (l) l.scrollTop = keepTop;
+            const b = d.querySelector('#po-notify-body'); if (b) b.scrollTop = keepBody;
         }
         async function poNotifySend() {
             if (!poNotify || poNotify.sending) return;
