@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.8';
+        const APP_VERSION = '1.46.9';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15468,7 +15468,7 @@
             if (!poNotifyCtx) return;
             poNotify = { heroes: new Set(), onlyOwe: true, sel: new Set(), q: '', sending: false, msgAuto: true };
             poNotify.msg = poNotifyDefaultMsg();
-            poNotifyPick('owe');
+            poNotifyRender();
         }
         function poNotifyOpenFor(id) {
             if (!poNotifyCtx) return;
