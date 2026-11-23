@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.5';
+        const APP_VERSION = '1.46.6';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15461,7 +15461,9 @@
         function poNotifyRows() { return poNotifyCtx.rows.filter(r => !r.extra).map(r => Object.assign({}, r, { owe: poNotifyOwe(r) })); }
         function poNotifyShown() { const q = poNotify.q.trim().toLowerCase(); return poNotifyRows().filter(r => (!poNotify.onlyOwe || r.owe.length) && (!q || String(r.name || '').toLowerCase().includes(q))); }
         function poNotifyDefaultMsg() {
-            const hs = poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h));
+            let hs = poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h));
+            const one = poNotify.forId && poNotifyCtx.rows.find(x => String(x.id) === String(poNotify.forId));
+            if (one) { const owe = poNotifyOwe(one); if (owe.length) hs = owe; }
             return `ยังไม่ได้จ่ายไม้${hs.length ? ' ' + poNotifyHeroNames(hs) : ''}\nรบกวนจ่ายด้วยคับ`;
         }
         function poNotifyOpen() {
@@ -15473,15 +15475,15 @@
         function poNotifyOpenFor(id) {
             if (!poNotifyCtx) return;
             const r = poNotifyCtx.rows.find(x => String(x.id) === String(id)); if (!r) return;
-            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: false };
-            const owe = poNotifyOwe(r);
-            poNotify.msg = owe.length ? `ยังไม่ได้จ่ายไม้ ${poNotifyHeroNames(owe)}\nรบกวนจ่ายด้วยคับ` : poNotifyDefaultMsg();
+            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: true, forId: r.id };
+            poNotify.msg = poNotifyDefaultMsg();
             poNotifyRender();
         }
         function poNotifyClose() { poNotify = null; const d = document.getElementById('po-notify-dlg'); if (d) d.remove(); }
         function poNotifyToggleHero(h) {
             poNotify.heroes.has(h) ? poNotify.heroes.delete(h) : poNotify.heroes.add(h);
             if (poNotify.msgAuto) poNotify.msg = poNotifyDefaultMsg();
+            else if (/^ยังไม่ได้จ่ายไม้/.test(poNotify.msg)) poNotify.msg = poNotifyDefaultMsg().split('\n')[0] + poNotify.msg.replace(/^[^\n]*/, '');
             const owing = new Set(poNotifyRows().filter(r => r.owe.length).map(r => r.id));
             poNotify.sel = new Set([...poNotify.sel].filter(id => owing.has(id) || !poNotify.onlyOwe));
             poNotifyRender();
