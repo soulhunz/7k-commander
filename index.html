@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.45.1';
+        const APP_VERSION = '1.45.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -42885,7 +42885,6 @@
                 const paid = log.filter(x => x.hero_id === String(hid));
                 const paidSelf = curMember && paid.some(p => p.member_id === curMember.member_id);
                 const canClickSelf = !!curMember && mode === 'member';
-                const names = paid.map(p => `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-900/40 border border-indigo-600/50 text-indigo-100 text-xs font-bold" title="${p.at ? new Date(+p.at).toLocaleString('th-TH') : ''}">👤 ${ccEsc(p.member_name || p.member_id)}${isAdmin ? `<button onclick="poToggle('${ccEsc(String(hid))}', {member_id:'${ccEsc(p.member_id)}',member_name:'${ccEsc(p.member_name || '')}'})" class="text-red-300 hover:text-red-100 ml-1" title="ยกเลิก">✕</button>` : ''}</span>`).join('');
                 return `<div class="p-3 rounded-2xl border ${paid.length ? 'border-emerald-700/50 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'}">
                     <div class="flex items-center gap-3">
                         ${h && h.img ? `<img src="${h.img}" class="w-14 h-14 rounded-xl object-cover border-2 border-gray-700 shrink-0" alt="">` : '<div class="w-14 h-14 rounded-xl bg-gray-800 shrink-0"></div>'}
@@ -42895,7 +42894,6 @@
                         <button onclick="poOpenSub('paid', '${ccEsc(String(hid))}')" title="ดูรายชื่อคนที่จ่าย" class="h-9 px-3 rounded-lg border border-gray-700 bg-[#0d1117] text-gray-300 hover:text-white hover:border-emerald-500 text-xs font-bold shrink-0">👥 ดูรายชื่อ${paid.length ? ' (' + paid.length + ')' : ''}</button>
                         ${isAdmin ? `<button onclick="poAdminPickMember('${ccEsc(String(hid))}')" title="เลือกลูกกิลที่จ่าย" class="w-9 h-9 rounded-lg border border-gray-700 bg-[#0d1117] text-gray-300 hover:text-white hover:border-indigo-500 text-sm shrink-0">➕</button>` : ''}
                     </div>
-                    ${names ? `<div class="flex flex-wrap gap-1.5 mt-2 pl-[68px]">${names}</div>` : ''}
                 </div>`;
             }).join('');
             body = `<div class="p-4 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>`;
