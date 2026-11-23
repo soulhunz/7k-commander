@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.3';
+        const APP_VERSION = '1.46.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15023,14 +15023,19 @@
             };
             // 🗓️ แท็บวอ + ไม้แบบในเกม (reuse ccUsedGameRow)
             //    เรียงเก่า → ใหม่ แล้วเลขวอต่อ SS (1 SS = 18 รอบ) · ไม่มี SS = นับรวมกลุ่มเดียว
-            const perWar = x.perWar.slice().sort((a, b) => (Number(a.startedAt) || 0) - (Number(b.startedAt) || 0));
-            const ssCount = {};
-            perWar.forEach(w => { const k = w.ss || ''; ssCount[k] = (ssCount[k] || 0) + 1; w._num = ssCount[k]; });
+            //    เลขวอนับจากวอทั้งหมดของกิลด์ (ไม่ใช่เฉพาะวอที่คนนี้ตี) · วอที่ไม่ได้ตีก็แสดงเป็น (0)
+            const byStart = (a, b) => (Number(a.startedAt) || 0) - (Number(b.startedAt) || 0);
+            const mineById = new Map(x.perWar.map(w => [String(w.id), w]));
+            const allWars = ((wsData && wsData.wars) || []).slice().sort(byStart);
+            const ssCount = {}, numOf = {};
+            allWars.forEach(w => { const k = w.ss || ''; ssCount[k] = (ssCount[k] || 0) + 1; numOf[w.id] = ssCount[k]; });
+            const perWar = (allWars.length ? allWars.map(w => Object.assign({}, w, { total: (mineById.get(String(w.id)) || {}).total || 0 })) : x.perWar.slice().sort(byStart))
+                .map((w, i) => Object.assign(w, { _num: numOf[w.id] || i + 1 }));
             const warTabs = `<div class="flex flex-wrap gap-1.5 p-2 border-b border-gray-800 bg-[#0d1117]/60">
                 <button onclick="wsMemSetWarTab('__all')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition ${wsMemWarTab === '__all' ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}">🌐 ทุกวอ <span class="opacity-70 font-normal">(${x.total})</span></button>
-                ${perWar.map(w => `<button onclick="wsMemSetWarTab('${ccEsc(w.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition flex flex-col items-center leading-tight ${wsMemWarTab === w.id ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] text-gray-300 border-gray-700 hover:border-indigo-500'}" title="${ccEsc(w.label || w.id)}${w.ss ? ' · 📚 ' + ccEsc(w.ss) : ''} · รอบ ${w._num}/18">
+                ${perWar.map(w => `<button onclick="wsMemSetWarTab('${ccEsc(w.id)}')" class="px-3 py-1.5 rounded-lg text-xs font-black border transition flex flex-col items-center leading-tight ${wsMemWarTab === w.id ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-[#0d1117] border-gray-700 hover:border-indigo-500 ' + (w.total ? 'text-gray-300' : 'text-gray-600')}" title="${ccEsc(w.label || w.id)}${w.ss ? ' · 📚 ' + ccEsc(w.ss) : ''}">
                     <span>วอ-${w._num} <span class="opacity-70 font-normal">(${w.total})</span></span>
-                    <span class="text-[9px] font-normal opacity-60 mt-0.5">รอบ ${w._num}/18</span>
+                    <span class="text-[9px] font-normal opacity-60 mt-0.5 max-w-[120px] truncate">${ccEsc(w.label || 'รอบ ' + w._num + '/18')}</span>
                 </button>`).join('')}
             </div>`;
             // เนื้อหาตามแท็บ — ใช้ข้อมูลไม้จริง (lazy fetch) · ยังไม่โหลดเสร็จ = ขึ้นสัญลักษณ์กำลังโหลด
