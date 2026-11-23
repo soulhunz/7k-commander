@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.0';
+        const APP_VERSION = '1.46.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -16764,7 +16764,7 @@
         // =========================================================
         // 📒 แท็บ "ที่ตี + แหวน" — ไม้ที่ลูกกิลตีในวอนี้ + แหวนที่ยังเหลือ (ทุกคนที่มีลิงก์ดูได้)
         // =========================================================
-        let ccUsed = { mode: (function () { try { return localStorage.getItem('7k_ccused_mode') || 'member'; } catch (e) { return 'member'; } })(), key: '', at: 0, data: null, loading: false, err: '', q: '', open: new Set(), heroSel: [], heroQ: '', onlyFree: false };
+        let ccUsed = { mode: (function () { try { return localStorage.getItem('7k_ccused_mode') || 'member'; } catch (e) { return 'member'; } })(), key: '', at: 0, data: null, loading: false, err: '', q: '', open: new Set(), heroSel: [], heroQ: '', onlyFree: false, ordRes: 'all', ordHeroes: [], ordHeroOpen: false };
         function ccUsedGuildKey() {
             if (typeof isPublicView !== 'undefined' && isPublicView) return decodeGuildParam(appUrlParams().get('g')) || '';
             const g = (typeof guildsDB !== 'undefined' && guildsDB[activeGuildIndex]) || null;
@@ -17064,9 +17064,13 @@
         function ccUsedOrderHTML(M, modeBar) {
             const rows = (ccUsed.data && ccUsed.data.rows) || [], who = new Map();
             M.list.forEach(x => x.rows.forEach(r => who.set(r, x.m)));
-            const q = ccUsed.q.trim().toLowerCase();
-            const items = rows.map((r, i) => ({ r, n: i + 1, m: who.get(r) || null }))
-                .filter(z => !q || [z.m && z.m.name, z.m && z.m.discordName, z.r.game_name, z.r.enemy].some(v => String(v || '').toLowerCase().includes(q)));
+            const q = ccUsed.q.trim().toLowerCase(), RS = ccUsed.ordRes, OH = ccUsed.ordHeroes;
+            const ids = r => new Set((r.heroes || []).map(y => String(y.id)));
+            const base = rows.map((r, i) => ({ r, n: i + 1, m: who.get(r) || null }))
+                .filter(z => !q || [z.m && z.m.name, z.m && z.m.discordName, z.r.game_name, z.r.enemy].some(v => String(v || '').toLowerCase().includes(q)))
+                .filter(z => { if (!OH.length) return true; const s = ids(z.r); return OH.every(id => s.has(id)); });
+            const nWin = base.filter(z => z.r.result === 'win').length, nLose = base.filter(z => z.r.result === 'lose').length;
+            const items = base.filter(z => RS === 'all' || z.r.result === RS);
             const desc = ccUsedOrderDesc();
             if (desc) items.reverse();
             const line = z => ccUsedGameRow(z.r, z.m, z.n);
@@ -17080,8 +17084,40 @@
                     <input type="search" value="${ccEsc(ccUsed.q)}" id="cc-used-q" oninput="ccUsed.q=this.value;clearTimeout(window.__ccuT);window.__ccuT=setTimeout(()=>{ccViewerRender();const i=document.getElementById('cc-used-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},300)" placeholder="🔍 ค้นหาชื่อ" class="order-last sm:order-none w-full sm:w-48 sm:ml-auto bg-[#0d1117] border border-gray-700 text-white rounded-lg px-2.5 py-1.5 text-xs">
                     <button onclick="ccUsedLoad(true)" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white ${ccUsed.loading ? 'opacity-50' : ''}">${ccUsed.loading ? '⏳' : '🔄'} รีเฟรช</button>
                 </div>
-                <div class="space-y-2">${items.map(line).join('') || `<div class="text-sm text-gray-500 p-4">${q ? 'ไม่พบชื่อที่ค้นหา' : 'ยังไม่มีไม้ที่บันทึกในวอนี้'}</div>`}</div>
+                ${rows.length ? ccUsedOrderFilterHTML(rows, base.length, nWin, nLose) : ''}
+                <div class="space-y-2">${items.map(line).join('') || `<div class="text-sm text-gray-500 p-4">${q ? 'ไม่พบชื่อที่ค้นหา' : rows.length ? 'ไม่มีไม้ที่ตรงกับตัวกรอง' : 'ยังไม่มีไม้ที่บันทึกในวอนี้'}</div>`}</div>
             </div>`;
+        }
+        /** 🎛️ ตามลำดับที่บันทึก: กรอง WIN/LOSE + ตัวละครฝั่งเรา (เลือกหลายตัว = ทีมต้องมีครบทุกตัว) */
+        function ccUsedOrderFilterHTML(rows, nAll, nWin, nLose) {
+            const HDB = (typeof heroesDB !== 'undefined' ? heroesDB : []) || [], OH = ccUsed.ordHeroes, RS = ccUsed.ordRes;
+            const stat = new Map();
+            rows.forEach(r => new Set((r.heroes || []).map(y => String(y.id))).forEach(id => { const s = stat.get(id) || { n: 0, w: 0 }; s.n++; if (r.result === 'win') s.w++; stat.set(id, s); }));
+            const heroes = [...stat].map(([id, s]) => ({ id, s, h: HDB.find(z => String(z.id) === id) })).sort((a, b) => b.s.n - a.s.n || String(a.h ? a.h.name : a.id).localeCompare(String(b.h ? b.h.name : b.id), 'th'));
+            const shown = ccUsed.ordHeroOpen ? heroes : heroes.filter(x => OH.includes(x.id));
+            const js = s => ccEsc(JSON.stringify(String(s)));
+            const resBtn = (k, label, cls) => `<button type="button" onclick="ccUsed.ordRes='${k}';ccViewerRender()" class="px-3 py-1.5 rounded-lg text-xs font-black whitespace-nowrap ${RS === k ? cls : 'text-gray-400 hover:text-white'}">${label}</button>`;
+            const chip = x => { const on = OH.includes(x.id), pct = Math.round(x.s.w * 100 / x.s.n);
+                return `<button type="button" onclick="ccUsedOrdHero(${js(x.id)})" title="${ccEsc(x.h ? x.h.name : x.id)} — ใช้ ${x.s.n} ไม้ · ชนะ ${x.s.w}" class="inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-lg border-2 text-xs font-bold transition ${on ? 'border-amber-400 bg-amber-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-300 hover:border-gray-500'}">
+                    ${x.h && x.h.img ? `<img src="${x.h.img}" alt="" class="w-7 h-7 rounded object-cover">` : ''}<span class="max-w-[110px] truncate">${ccEsc(x.h ? x.h.name : x.id)}</span>
+                    <span class="text-[10px] font-normal ${on ? 'text-amber-200' : 'text-gray-500'}">${x.s.n} ไม้ · ชนะ ${pct}%</span>${on ? '<span class="text-red-300 ml-0.5">✕</span>' : ''}</button>`; };
+            return `<div class="rounded-2xl border border-gray-800 bg-[#0f131a] p-2.5 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex gap-0.5 p-1 rounded-xl bg-[#0d1117] border border-gray-800">
+                        ${resBtn('all', `ทั้งหมด ${nAll}`, 'bg-amber-600 text-white')}${resBtn('win', `🏆 WIN ${nWin}`, 'bg-yellow-600 text-white')}${resBtn('lose', `💀 LOSE ${nLose}`, 'bg-purple-700 text-white')}
+                    </div>
+                    ${nAll ? `<span class="text-xs text-gray-400">ชนะ <b class="text-amber-300">${Math.round(nWin * 100 / nAll)}%</b></span>` : ''}
+                    <button type="button" onclick="ccUsed.ordHeroOpen=!ccUsed.ordHeroOpen;ccViewerRender()" class="sm:ml-auto px-3 py-1.5 rounded-lg border text-xs font-bold ${ccUsed.ordHeroOpen || OH.length ? 'border-amber-500 text-amber-200' : 'border-gray-700 text-gray-300 hover:text-white'}">🦸 เลือกตัวละคร${OH.length ? ` (${OH.length})` : ''} ${ccUsed.ordHeroOpen ? '▲' : '▼'}</button>
+                    ${OH.length || RS !== 'all' ? `<button type="button" onclick="ccUsed.ordHeroes=[];ccUsed.ordRes='all';ccViewerRender()" class="text-xs text-gray-400 hover:text-white underline">ดูทั้งหมด</button>` : ''}
+                </div>
+                ${ccUsed.ordHeroOpen ? '<div class="text-[11px] text-gray-500">กดเลือกตัวละครฝั่งเรา — เลือกหลายตัว = แสดงเฉพาะไม้ที่ทีมมีครบทุกตัว</div>' : ''}
+                ${shown.length ? `<div class="flex flex-wrap gap-1.5 ${ccUsed.ordHeroOpen ? 'max-h-[240px] overflow-y-auto pr-1' : ''}">${shown.map(chip).join('')}</div>` : ''}
+            </div>`;
+        }
+        function ccUsedOrdHero(id) {
+            id = String(id); const i = ccUsed.ordHeroes.indexOf(id);
+            if (i >= 0) ccUsed.ordHeroes.splice(i, 1); else ccUsed.ordHeroes.push(id);
+            ccViewerRender();
         }
         /** 🦸 แถบกรองตัวละคร — พิมพ์ชื่อ → กดเลือก (หลายตัวได้) */
         function ccUsedHeroBarHTML(M, list) {
