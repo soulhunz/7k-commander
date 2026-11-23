@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.45.4';
+        const APP_VERSION = '1.46.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15449,6 +15449,117 @@
             });
             return map;
         }
+        // 🔔 แจ้งเตือนลูกกิลทาง Discord (หัวหน้า/ผู้ช่วย) — พิมพ์ข้อความเอง + เลือกคนที่จะแท็ก
+        let poNotifyCtx = null, poNotify = null;   // poNotify = { heroes:Set, onlyOwe, sel:Set, msg, msgAuto, q, sending }
+        function poNotifyHeroNames(ids) { return ids.map(id => { const h = (heroesDB || []).find(x => String(x.id) === String(id)); return h ? h.name : id; }).join(', '); }
+        function poNotifyOwe(r) { return poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h) && !r.paidSet.includes(h)); }
+        function poNotifyRows() { return poNotifyCtx.rows.filter(r => !r.extra).map(r => Object.assign({}, r, { owe: poNotifyOwe(r) })); }
+        function poNotifyShown() { const q = poNotify.q.trim().toLowerCase(); return poNotifyRows().filter(r => (!poNotify.onlyOwe || r.owe.length) && (!q || String(r.name || '').toLowerCase().includes(q))); }
+        function poNotifyDefaultMsg() {
+            const hs = poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h));
+            return `⏳ ยังไม่ได้จ่ายไม้${hs.length && hs.length <= 4 ? ' ' + poNotifyHeroNames(hs) : ''}${poData.war && poData.war.label ? ' (' + poData.war.label + ')' : ''}\nรบกวนจ่ายให้ครบด้วยนะครับ 🙏`;
+        }
+        function poNotifyOpen() {
+            if (!poNotifyCtx) return;
+            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: true, sel: new Set(), q: '', sending: false, msgAuto: true };
+            poNotify.msg = poNotifyDefaultMsg();
+            poNotifyPick('owe');
+        }
+        function poNotifyClose() { poNotify = null; const d = document.getElementById('po-notify-dlg'); if (d) d.remove(); }
+        function poNotifyToggleHero(h) {
+            poNotify.heroes.has(h) ? poNotify.heroes.delete(h) : poNotify.heroes.add(h);
+            if (poNotify.msgAuto) poNotify.msg = poNotifyDefaultMsg();
+            const owing = new Set(poNotifyRows().filter(r => r.owe.length).map(r => r.id));
+            poNotify.sel = new Set([...poNotify.sel].filter(id => owing.has(id) || !poNotify.onlyOwe));
+            poNotifyRender();
+        }
+        function poNotifySetOnlyOwe(v) { poNotify.onlyOwe = v; poNotifyRender(); }
+        function poNotifyPick(kind) {
+            const shown = poNotifyShown();
+            const pick = kind === 'owe' ? shown.filter(r => r.owe.length && (r.used === null || r.used < PO_WAR_QUOTA))
+                : kind === 'zero' ? shown.filter(r => r.owe.length && r.used === 0)
+                : kind === 'shown' ? shown : [];
+            poNotify.sel = new Set(pick.map(r => r.id));
+            poNotifyRender();
+        }
+        function poNotifyToggle(id) { poNotify.sel.has(id) ? poNotify.sel.delete(id) : poNotify.sel.add(id); poNotifyRender(); }
+        function poNotifyRender() {
+            if (!poNotify || !poNotifyCtx) return;
+            let d = document.getElementById('po-notify-dlg');
+            const keepTop = d && d.querySelector('#po-notify-list') ? d.querySelector('#po-notify-list').scrollTop : 0;
+            if (!d) { d = document.createElement('div'); d.id = 'po-notify-dlg'; d.className = 'fixed inset-0 z-[720] flex items-center justify-center bg-black/80 backdrop-blur-sm p-3'; d.onclick = e => { if (e.target === d) poNotifyClose(); }; document.body.appendChild(d); }
+            const rows = poNotifyRows(), shown = poNotifyShown();
+            const heroChips = poNotifyCtx.heroes.map(hid => {
+                const h = (heroesDB || []).find(x => String(x.id) === hid), on = poNotify.heroes.has(hid);
+                return `<button onclick="poNotifyToggleHero('${ccEsc(hid)}')" class="flex items-center gap-1.5 p-1 pr-2.5 rounded-xl border-2 text-xs font-bold transition ${on ? 'border-emerald-400 bg-emerald-900/40 text-white' : 'border-gray-700 bg-[#0d1117] text-gray-400 hover:border-gray-500'}">
+                    ${h && h.img ? `<img src="${h.img}" class="w-8 h-8 rounded-lg object-cover shrink-0 ${on ? '' : 'opacity-50'}" alt="">` : ''}<span>${on ? '☑' : '☐'} ${ccEsc(h ? h.name : hid)}</span></button>`;
+            }).join('');
+            const av = r => { const u = r.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(r.discordAvatar) : ''; return u ? `<img src="${u}" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full object-cover shrink-0" alt="">` : `<span class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs text-gray-400 shrink-0">${ccEsc(String(r.name || '?').trim().charAt(0).toUpperCase())}</span>`; };
+            const list = shown.map(r => {
+                const on = poNotify.sel.has(r.id), done = r.used !== null && r.used >= PO_WAR_QUOTA;
+                const st = !r.owe.length ? '<span class="text-emerald-300">✅ จ่ายครบ</span>' : `<span class="text-amber-300">⏳ ค้าง ${ccEsc(poNotifyHeroNames(r.owe))}</span>`;
+                return `<label class="flex items-center gap-2.5 px-3 py-2 rounded-xl border cursor-pointer transition ${on ? 'border-indigo-500 bg-indigo-900/25' : 'border-gray-800 bg-[#0d1117] hover:border-gray-600'} ${done && !on ? 'opacity-60' : ''}">
+                    <input type="checkbox" ${on ? 'checked' : ''} onchange="poNotifyToggle('${ccEsc(String(r.id).replace(/'/g, '&#39;'))}')" class="w-4 h-4 accent-indigo-500 shrink-0">
+                    ${av(r)}
+                    <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(r.name || r.id)}</div><div class="text-[11px] truncate">${st}<span class="text-gray-500"> · ⚔️ ไม้ ${r.used === null ? '…' : r.used}/${PO_WAR_QUOTA}</span></div></div>
+                </label>`;
+            }).join('') || `<div class="text-center text-sm text-gray-500 py-6">${poNotify.onlyOwe && !poNotify.q.trim() ? 'ทุกคนจ่ายฮีโร่ที่เลือกครบแล้ว 🎉' : 'ไม่พบชื่อ'}</div>`;
+            const zeroN = shown.filter(r => r.owe.length && r.used === 0).length;
+            const n = poNotify.sel.size, pickBtn = (k, l) => `<button onclick="poNotifyPick('${k}')" class="px-2.5 py-1 rounded-lg border border-gray-700 bg-[#0d1117] text-[11px] font-bold text-gray-300 hover:text-white hover:border-indigo-500">${l}</button>`;
+            const selNames = rows.filter(r => poNotify.sel.has(r.id)).map(r => '@' + (r.name || r.id));
+            d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+                <div class="p-4 border-b border-gray-800 flex items-center gap-2 shrink-0">
+                    <h3 class="text-white font-black">🔔 แจ้งเตือนทาง Discord</h3>
+                    <span class="text-[11px] text-gray-500">ส่งเข้าห้องแจ้งเตือนของกิลด์ · คนที่เชื่อม Discord แล้วจะถูกแท็ก @</span>
+                    <button onclick="poNotifyClose()" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl shrink-0">✕</button>
+                </div>
+                <div class="p-4 space-y-3 overflow-y-auto min-h-0 flex-1">
+                    <div><div class="text-xs font-black text-gray-400 mb-1.5">✍️ ข้อความ</div>
+                        <textarea id="po-notify-msg" oninput="poNotify.msg=this.value;poNotify.msgAuto=false;document.getElementById('po-notify-len').textContent=this.value.length" maxlength="1500" rows="4" class="w-full bg-[#0d1117] border border-gray-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 resize-y">${ccEsc(poNotify.msg)}</textarea>
+                        <div class="text-[10px] text-gray-500 text-right"><span id="po-notify-len">${poNotify.msg.length}</span>/1500</div></div>
+                    <div class="rounded-xl border border-gray-800 bg-[#0d1117] p-2.5 space-y-2">
+                        <div class="flex flex-wrap items-center gap-1.5"><span class="text-xs font-black text-gray-400 mr-1">🦸 ฮีโร่ที่ต้องจ่าย</span>${heroChips}</div>
+                        <div class="flex flex-wrap items-center gap-1.5"><span class="text-xs font-black text-gray-400 mr-1">🎛️ แสดง</span>
+                            <button onclick="poNotifySetOnlyOwe(true)" class="px-2.5 py-1 rounded-lg text-[11px] font-black border ${poNotify.onlyOwe ? 'bg-indigo-600 text-white border-indigo-400' : 'border-gray-700 text-gray-300'}">⏳ เฉพาะคนที่ยังไม่จ่าย</button>
+                            <button onclick="poNotifySetOnlyOwe(false)" class="px-2.5 py-1 rounded-lg text-[11px] font-black border ${!poNotify.onlyOwe ? 'bg-indigo-600 text-white border-indigo-400' : 'border-gray-700 text-gray-300'}">ทุกคน</button>
+                            <span class="text-[11px] text-gray-500">${shown.length} คน</span></div>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-1.5 mb-2"><span class="text-xs font-black text-gray-400 mr-1">👥 แท็กใคร (${n})</span>
+                            ${pickBtn('owe', '⏳ ยังไม่จ่าย + ไม้เหลือ')}${pickBtn('zero', `⚔️ ยังไม่จ่าย · ไม้ 0/${PO_WAR_QUOTA} (${zeroN})`)}${pickBtn('shown', 'เลือกทั้งหมดในรายการ')}${pickBtn('none', 'ล้าง')}</div>
+                        <input value="${ccEsc(poNotify.q)}" oninput="poNotify.q=this.value;poNotifyRender();const i=document.getElementById('po-notify-q');i.focus();i.setSelectionRange(i.value.length,i.value.length)" id="po-notify-q" placeholder="🔍 ค้นหาชื่อ..." class="w-full mb-2 bg-[#0d1117] border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500">
+                        <div id="po-notify-list" class="grid gap-1.5 overflow-y-auto pr-1" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));max-height:min(40vh,360px)">${list}</div>
+                    </div>
+                    <div class="rounded-xl border border-gray-800 bg-[#313338] p-3">
+                        <div class="text-[10px] font-black text-gray-400 mb-1">👀 ตัวอย่างใน Discord</div>
+                        <div class="text-sm text-gray-100 whitespace-pre-wrap break-words"><b>🔔 แจ้งเตือนจากหัวหน้ากิลด์</b>\n${ccEsc(poNotify.msg)}${selNames.length ? '\n' + selNames.map(s => `<span class="px-1 rounded bg-indigo-500/30 text-indigo-200">${ccEsc(s)}</span>`).join(' ') : ''}</div>
+                    </div>
+                </div>
+                <div class="p-3 border-t border-gray-800 flex items-center gap-2 shrink-0">
+                    <span class="text-[11px] text-gray-400">${n ? 'จะแท็ก ' + n + ' คน' : 'ไม่แท็กใคร (ส่งแค่ข้อความ)'}</span>
+                    <button onclick="poNotifyClose()" class="ml-auto px-4 py-2 rounded-xl text-xs font-bold bg-[#0d1117] border border-gray-700 text-gray-300">ยกเลิก</button>
+                    <button onclick="poNotifySend()" ${poNotify.sending ? 'disabled' : ''} class="px-5 py-2 rounded-xl text-sm font-black text-white ${poNotify.sending ? 'opacity-50' : 'hover:brightness-110'}" style="background:#5865F2">${poNotify.sending ? '⏳ กำลังส่ง...' : '📤 ส่งไป Discord'}</button>
+                </div>
+            </div>`;
+            const l = d.querySelector('#po-notify-list'); if (l) l.scrollTop = keepTop;
+        }
+        async function poNotifySend() {
+            if (!poNotify || poNotify.sending) return;
+            const msg = String(poNotify.msg || '').trim();
+            if (!msg) return alert('พิมพ์ข้อความก่อน');
+            poNotify.sending = true; poNotifyRender();
+            try {
+                const req = { action: 'notifyPayout', guild: poGuildKey_(), guild_id: poData.guild_id || '', message: msg, member_ids: [...poNotify.sel] };
+                if (!(CURRENT_USER && CURRENT_USER.token) && typeof memberSession !== 'undefined' && memberSession && memberSession.code) req.accessCode = memberSession.code;
+                const r = await postJson(req, { timeout: 45000, retries: 0 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ส่งไม่สำเร็จ');
+                poNotifyClose();
+                if (typeof showToast === 'function') showToast('🔔 ส่งแจ้งเตือนแล้ว' + (r.tagged ? ' · แท็ก @ ' + r.tagged + ' คน' : ''), 'success');
+            } catch (e) {
+                poNotify.sending = false; poNotifyRender();
+                alert('❌ ส่งแจ้งเตือนไม่สำเร็จ\n\n' + (e.message || e) + (/notifyPayout|ไม่รู้จัก|unknown/i.test(String(e.message || e)) ? '\n\nแอดมินต้อง deploy Apps Script ใหม่ (8.18.0 ขึ้นไป)' : ''));
+            }
+        }
         function poWhoToggle(id) { if (poWhoOpen.has(id)) poWhoOpen.delete(id); else poWhoOpen.add(id); poRender(); }
         function poPageWhoHTML() {
             if (!poData) return `<div class="space-y-2">${Array.from({ length: 5 }).map(() => '<div class="p-3 rounded-2xl border border-gray-800 bg-[#0d1117] animate-pulse"><div class="flex items-center gap-3 mb-2"><div class="w-9 h-9 rounded-full bg-gray-800"></div><div class="h-3 w-32 rounded bg-gray-800"></div></div><div class="h-4 w-full rounded bg-gray-800 ml-12"></div></div>').join('')}</div>`;
@@ -15480,7 +15591,8 @@
             const rows = members.map(m => ({ id: String(m.id), name: m.name, discordAvatar: m.discordAvatar })).concat(extras);
             // เรียง: จ่ายมากสุดก่อน (เทียบจาก focused heroes)
             rows.forEach(m => { const ps = paidByMem.get(m.id) || new Set(); m._n = focusedHeroes.filter(h => ps.has(String(h))).length; });
-            rows.sort((a, b) => b._n - a._n || String(a.name).localeCompare(String(b.name), 'th'));
+            const fullOf = m => focusedHeroes.length > 0 && m._n === focusedHeroes.length;   // จ่ายครบแล้ว = ท้ายสุด
+            rows.sort((a, b) => (fullOf(a) - fullOf(b)) || b._n - a._n || String(a.name).localeCompare(String(b.name), 'th'));
             // สถานะกรอง: นับจาก focused heroes
             // จ่ายแล้ว = คนที่จ่ายอย่างน้อย 1 ตัว (โชว์เฉพาะตัวที่จ่าย) · ยังไม่จ่าย = คนที่ยังค้างอย่างน้อย 1 ตัว (โชว์เฉพาะตัวที่ค้าง)
             const shownHeroes = m => {
@@ -15497,7 +15609,13 @@
             const doneOf = m => poListStatus !== 'all' && !!usedBy && usedN(m) >= PO_WAR_QUOTA;
             if (poListStatus !== 'all' && usedBy) filtered.sort((a, b) => doneOf(a) - doneOf(b));
             const nDone = filtered.filter(doneOf).length;
-            const countBar = `<div class="mb-3 text-xs text-gray-500">แสดง <b class="text-white">${filtered.length}</b>/${rows.length} คน${poListHeroFilter.size ? ` · กรองฮีโร่ ${poListHeroFilter.size} ตัว` : ''}${nDone ? ` · ยังมีไม้เหลือ <b class="text-white">${filtered.length - nDone}</b> คน · ตีครบแล้ว ${nDone} คน (อยู่ท้ายรายการ)` : ''}</div>`;
+            // 🔔 แจ้งเตือน Discord — จำรายชื่อ/สถานะล่าสุดไว้ให้ dialog ใช้
+            poNotifyCtx = {
+                heroes: heroes.map(String), focused: focusedHeroes.map(String),
+                rows: rows.map(m => { const ps = paidByMem.get(m.id) || new Set(), n = usedN(m); return { id: m.id, name: m.name, discordAvatar: m.discordAvatar, extra: !!m.extra, paidSet: [...ps].map(String), used: usedBy ? n : null }; })
+            };
+            const canNotify = !!((typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) || poData.assist);
+            const countBar = `<div class="mb-3 flex flex-wrap items-center gap-2 text-xs text-gray-500"><span>แสดง <b class="text-white">${filtered.length}</b>/${rows.length} คน${poListHeroFilter.size ? ` · กรองฮีโร่ ${poListHeroFilter.size} ตัว` : ''}${nDone ? ` · ยังมีไม้เหลือ <b class="text-white">${filtered.length - nDone}</b> คน · ตีครบแล้ว ${nDone} คน (อยู่ท้ายรายการ)` : ''}</span>${canNotify ? `<button onclick="poNotifyOpen()" class="ml-auto px-3 py-1.5 rounded-lg text-xs font-black text-white shadow hover:brightness-110 transition" style="background:#5865F2">🔔 แจ้งเตือน Discord</button>` : ''}</div>`;
             const listHTML = filtered.length ? filtered.map(m => {
                 const paidSet = paidByMem.get(m.id) || new Set();
                 const allPaid = focusedHeroes.every(hid => paidSet.has(String(hid)));
