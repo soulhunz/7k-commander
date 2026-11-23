@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.7';
+        const APP_VERSION = '1.46.8';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15457,7 +15457,7 @@
         // 🔔 แจ้งเตือนลูกกิลทาง Discord (หัวหน้า/ผู้ช่วย) — พิมพ์ข้อความเอง + เลือกคนที่จะแท็ก
         let poNotifyCtx = null, poNotify = null;   // poNotify = { heroes:Set, onlyOwe, sel:Set, msg, msgAuto, q, sending }
         function poNotifyHeroNames(ids) { return ids.map(id => { const h = (heroesDB || []).find(x => String(x.id) === String(id)); return h ? h.name : id; }).join(', '); }
-        function poNotifyOwe(r) { return poNotifyCtx.heroes.filter(h => poNotify.heroes.has(h) && !r.paidSet.includes(h)); }
+        function poNotifyOwe(r) { const any = poNotify.heroes.size > 0; return poNotifyCtx.heroes.filter(h => (!any || poNotify.heroes.has(h)) && !r.paidSet.includes(h)); }   // ยังไม่ติ๊ก = นับทุกตัว
         function poNotifyRows() { return poNotifyCtx.rows.filter(r => !r.extra).map(r => Object.assign({}, r, { owe: poNotifyOwe(r) })); }
         function poNotifyShown() { const q = poNotify.q.trim().toLowerCase(); return poNotifyRows().filter(r => (!poNotify.onlyOwe || r.owe.length) && (!q || String(r.name || '').toLowerCase().includes(q))); }
         function poNotifyDefaultMsg() {
@@ -15466,16 +15466,14 @@
         }
         function poNotifyOpen() {
             if (!poNotifyCtx) return;
-            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: true, sel: new Set(), q: '', sending: false, msgAuto: true };
+            poNotify = { heroes: new Set(), onlyOwe: true, sel: new Set(), q: '', sending: false, msgAuto: true };
             poNotify.msg = poNotifyDefaultMsg();
             poNotifyPick('owe');
         }
         function poNotifyOpenFor(id) {
             if (!poNotifyCtx) return;
             const r = poNotifyCtx.rows.find(x => String(x.id) === String(id)); if (!r) return;
-            poNotify = { heroes: new Set(poNotifyCtx.focused), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: true };
-            const owe = poNotifyOwe(r);
-            if (owe.length) poNotify.heroes = new Set(owe);
+            poNotify = { heroes: new Set(), onlyOwe: false, sel: new Set([r.id]), q: r.name || '', sending: false, msgAuto: true };
             poNotify.msg = poNotifyDefaultMsg();
             poNotifyRender();
         }
