@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.0';
+        const APP_VERSION = '1.47.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -33874,15 +33874,27 @@
                 </div>`;
             }).join('');
             const av = s && s.avatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(s.avatar) : '';
+            // 📁 พับ/กางไว้ — จำสถานะในเครื่อง · ค่าเริ่มต้น = พับไว้ (เลื่อนดู "ทีมรับของกิลด์" ด้านล่างได้ง่าย)
+            let collapsed = true;
+            try { const v = localStorage.getItem('7k_mytm_collapsed'); if (v === '0') collapsed = false; } catch (e) {}
             return `<div class="w-full mb-6 bg-[#111827] border border-blue-800/50 rounded-2xl p-4 shadow-xl">
-                <div class="flex flex-wrap items-center gap-3 mb-4">
+                <button type="button" onclick="galleryMyTeamToggle()" class="w-full flex flex-wrap items-center gap-3 ${collapsed ? '' : 'mb-4'} text-left hover:bg-white/5 rounded-xl -m-1 p-1 transition">
+                    <span class="w-6 h-6 rounded-lg bg-[#1f2937] text-gray-300 flex items-center justify-center text-sm font-black shrink-0">${collapsed ? '▸' : '▾'}</span>
                     ${av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full border-2 border-indigo-500/60" alt="">` : ''}
-                    <div class="min-w-0"><div class="text-base font-black text-white">🛡️ ทีมที่หัวหน้ากิลด์ตั้งให้ ${mlEsc(s.name || '')}</div>
-                    <div class="text-[11px] text-gray-500">${list.length} ทีม · ตัวที่ยังไม่มีเป็นสีเทา · กดการ์ดดูสแตทและแหวน${s.syncedAt ? ' · ข้อมูลเมื่อ ' + new Date(s.syncedAt).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div></div>
-                    <button onclick="galleryMemberRefresh()" title="ดึงทีม / ตัวละคร / แหวนล่าสุด" class="ml-auto bg-[#1f2937] hover:bg-blue-600 text-gray-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700">↻ อัปเดต</button>
-                </div>
-                ${cards ? `<div class="gallery-card-grid">${cards}</div>` : '<div class="text-center text-gray-500 text-sm py-10 border border-dashed border-gray-800 rounded-xl">หัวหน้ากิลด์ยังไม่ได้ตั้งทีมให้</div>'}
+                    <div class="min-w-0 flex-1"><div class="text-base font-black text-white">🛡️ ทีมที่หัวหน้ากิลด์ตั้งให้ ${mlEsc(s.name || '')}</div>
+                    <div class="text-[11px] text-gray-500">${list.length} ทีม${collapsed ? ' · กดเพื่อดู' : ' · ตัวที่ยังไม่มีเป็นสีเทา · กดการ์ดดูสแตทและแหวน'}${s.syncedAt ? ' · ข้อมูลเมื่อ ' + new Date(s.syncedAt).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div></div>
+                    <span onclick="event.stopPropagation(); galleryMemberRefresh()" title="ดึงทีม / ตัวละคร / แหวนล่าสุด" class="ml-auto bg-[#1f2937] hover:bg-blue-600 text-gray-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-700 cursor-pointer">↻ อัปเดต</span>
+                </button>
+                ${collapsed ? '' : (cards ? `<div class="gallery-card-grid">${cards}</div>` : '<div class="text-center text-gray-500 text-sm py-10 border border-dashed border-gray-800 rounded-xl">หัวหน้ากิลด์ยังไม่ได้ตั้งทีมให้</div>')}
             </div>`;
+        }
+        function galleryMyTeamToggle() {
+            try {
+                const cur = localStorage.getItem('7k_mytm_collapsed');
+                const nowCollapsed = cur !== '0';   // เดิมพับ → กาง · เดิมกาง → พับ
+                localStorage.setItem('7k_mytm_collapsed', nowCollapsed ? '0' : '1');
+            } catch (e) {}
+            if (typeof rerenderGallery === 'function') rerenderGallery();
         }
         function galleryOpenMyTeam(i) {
             const x = memberSession && (memberSession.guildTeams || [])[i];
