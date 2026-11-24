@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.13';
+        const APP_VERSION = '1.47.14';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15790,11 +15790,11 @@
                 else if (myList.length >= 5) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ คุณใช้ครบ 5 ไม้แล้ว</button>`;
                 else if (conflict) btn = `<button disabled title="ตัวละครซ้ำกับไม้ที่คุณเลือกแล้ว — ยกเลิกไม้เก่าก่อน" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-red-900/40 text-red-300 border border-red-700/50 cursor-not-allowed">⛔ ซ้ำกับไม้ที่เลือก · ยกเลิกไม้เก่าก่อน</button>`;
                 else btn = `<button onclick="dpClaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white">➕ เลือกไม้นี้ (ตั้งที่บ้าน)</button>`;
-                // 🖼️ รูปตัวละคร — ใหญ่ขึ้น (w-20 h-20) และกรอบขาวหนาขึ้น
-                const heroStrip = t && t.data && Array.isArray(t.data.slots) ? t.data.slots.filter(s => s && s.id).slice(0, 5).map(s => {
+                // 🖼️ รูปตัวละคร — แถวเดียว 3 ตัว (ไม่ขึ้นบรรทัดใหม่) · responsive ตามความกว้างการ์ด
+                const heroStrip = t && t.data && Array.isArray(t.data.slots) ? t.data.slots.filter(s => s && s.id).slice(0, 3).map(s => {
                     const h = (heroesDB || []).find(x => String(x.id) === String(s.id));
                     const img = s.awakened && h && h.img2 ? h.img2 : (h && h.img);
-                    return img ? `<img src="${img}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-blue-500'} shadow-md" alt="${ccEsc((h && h.name) || '')}" title="${ccEsc((h && h.name) || '')}">` : '<div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gray-800"></div>';
+                    return img ? `<img src="${img}" class="w-full aspect-square rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-blue-500'} shadow-md" alt="${ccEsc((h && h.name) || '')}" title="${ccEsc((h && h.name) || '')}">` : '<div class="w-full aspect-square rounded-xl bg-gray-800"></div>';
                 }).join('') : '';
                 // 🚫 Card สีเทา + กดไม่ได้ ถ้าตัวซ้ำกับไม้ที่เลือกแล้ว (ไม่ใช่ไม้ตัวเอง)
                 const cardStyle = conflict
@@ -15808,7 +15808,7 @@
                     <div class="mb-2">
                         <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
                     </div>
-                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full flex flex-wrap gap-3 mb-3 px-4 py-4 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition justify-center items-center">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
+                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full grid grid-cols-3 gap-2 mb-3 px-3 py-3 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition">${heroStrip || '<span class="col-span-3 text-xs text-gray-500 text-center">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
                     <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
                         <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
                         ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
