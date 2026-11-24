@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.48.0';
+        const APP_VERSION = '1.48.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15690,7 +15690,7 @@
         // =========================================================
         // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
         // =========================================================
-        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null;
+        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null;
         const dpPending = new Set();   // 🕐 team_id ที่กำลังรอ server ตอบ (claim/unclaim) — ปุ่มขึ้นสปินเนอร์
         // 🔁 Auto-refresh ทุก 20 วิ ขณะเปิดอยู่ · ซ่อนหน้าแท็บ/สลับไป tab อื่น = หยุด
         function dpStartPolling() {
@@ -15771,8 +15771,18 @@
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
             </div>`;
             if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน' : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
-            // 🏷️ จัดกลุ่มตามหมวด (กาย/เวท/สมดุล) — กลุ่มที่ไม่มีทีม = ไม่แสดง
-            const planByCategory = DP_CATEGORIES.map(c => ({ cat: c, teams: plan.filter(p => (p.category || '') === c.key) })).filter(g => g.teams.length);
+            // 🏷️ แถบกรองหมวด (ทั้งหมด / กาย / เวท / สมดุล / ไม่ระบุ) — เหมือน TARGETS type filter
+            const catCounts = {};
+            plan.forEach(p => { const k = p.category || ''; catCounts[k] = (catCounts[k] || 0) + 1; });
+            const availCats = DP_CATEGORIES.filter(c => catCounts[c.key] > 0);
+            const offCls = 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500';
+            const onCls = 'bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-900/40';
+            const filterBar = availCats.length > 1 ? `<div class="flex flex-wrap items-center gap-2 mb-4">
+                <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">🏷️ หมวด</span>
+                <button onclick="dpSetCatFilter(null)" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpCatFilter == null ? 'bg-white text-black border-white' : offCls}">ทั้งหมด <span class="opacity-60">(${plan.length})</span></button>
+                ${availCats.map(c => `<button onclick="dpSetCatFilter('${ccEsc(c.key)}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpCatFilter === c.key ? onCls : offCls}"><span>${c.icon}</span>${c.label} <span class="opacity-60">(${catCounts[c.key]})</span></button>`).join('')}
+            </div>` : '';
+            const filteredPlan = dpCatFilter == null ? plan : plan.filter(p => (p.category || '') === dpCatFilter);
             const renderOneCard = p => {
                 const t = teamById.get(String(p.team_id));
                 const claims = dpClaimsOfTeam(p.team_id);
@@ -15820,16 +15830,11 @@
                     ${nameListBtn}
                 </div>`;
             };
-            const groups = planByCategory.map(g => `<div class="mb-5">
-                <div class="flex items-center gap-2 mb-2 pb-1 border-b border-gray-800">
-                    <span class="text-base">${g.cat.icon}</span>
-                    <h4 class="text-sm font-black text-indigo-300 uppercase tracking-wide">${g.cat.label}</h4>
-                    <span class="text-[11px] text-gray-500">${g.teams.length} ทีม</span>
-                </div>
-                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${g.teams.map(renderOneCard).join('')}</div>
-            </div>`).join('');
-            return `${head}${groups}`;
+            const grid = `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${filteredPlan.map(renderOneCard).join('')}</div>`;
+            const empty = !filteredPlan.length ? '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่มีทีมในหมวดนี้</div>' : '';
+            return `${head}${filterBar}${filteredPlan.length ? grid : empty}`;
         }
+        function dpSetCatFilter(k) { dpCatFilter = (dpCatFilter === k) ? null : k; dpRender(); }
         // ⚡ Optimistic UI + spinner ตามจริง — ติ๊กทันที แต่ปุ่มขึ้น "กำลังบันทึก..." ระหว่างรอ server
         async function dpClaim(tid) {
             if (!memberSession || !memberSession.memberId) return alert('เข้าสู่ระบบด้วย Discord ก่อน');
