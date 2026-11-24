@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.15';
+        const APP_VERSION = '1.48.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15771,7 +15771,9 @@
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
             </div>`;
             if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน' : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
-            const cards = plan.map(p => {
+            // 🏷️ จัดกลุ่มตามหมวด (กาย/เวท/สมดุล) — กลุ่มที่ไม่มีทีม = ไม่แสดง
+            const planByCategory = DP_CATEGORIES.map(c => ({ cat: c, teams: plan.filter(p => (p.category || '') === c.key) })).filter(g => g.teams.length);
+            const renderOneCard = p => {
                 const t = teamById.get(String(p.team_id));
                 const claims = dpClaimsOfTeam(p.team_id);
                 const full = claims.length >= p.quota;
@@ -15817,8 +15819,16 @@
                     ${btn}
                     ${nameListBtn}
                 </div>`;
-            }).join('');
-            return `${head}<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${cards}</div>`;
+            };
+            const groups = planByCategory.map(g => `<div class="mb-5">
+                <div class="flex items-center gap-2 mb-2 pb-1 border-b border-gray-800">
+                    <span class="text-base">${g.cat.icon}</span>
+                    <h4 class="text-sm font-black text-indigo-300 uppercase tracking-wide">${g.cat.label}</h4>
+                    <span class="text-[11px] text-gray-500">${g.teams.length} ทีม</span>
+                </div>
+                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${g.teams.map(renderOneCard).join('')}</div>
+            </div>`).join('');
+            return `${head}${groups}`;
         }
         // ⚡ Optimistic UI + spinner ตามจริง — ติ๊กทันที แต่ปุ่มขึ้น "กำลังบันทึก..." ระหว่างรอ server
         async function dpClaim(tid) {
@@ -15902,30 +15912,47 @@
                 <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
             </div>`;
         }
+        // 🏷️ หมวดทีมรับ (กาย/เวท/สมดุล) — หัวหน้า/ผู้ช่วยกำหนดในหน้า ⚙️ ตั้งค่าแผน
+        const DP_CATEGORIES = [
+            { key: '', label: 'ไม่ระบุ', icon: '⚪' },
+            { key: 'phys', label: 'กาย', icon: '⚔️' },
+            { key: 'magic', label: 'เวท', icon: '🔮' },
+            { key: 'balanced', label: 'สมดุล', icon: '⚖️' },
+        ];
+        function dpCatLabel(k) { const c = DP_CATEGORIES.find(x => x.key === (k || '')); return c ? c.label : 'ไม่ระบุ'; }
+        function dpCatIcon(k) { const c = DP_CATEGORIES.find(x => x.key === (k || '')); return c ? c.icon : '⚪'; }
         let dpCfg = null;
         function dpOpenConfig() {
             if (!dpIsOfficer()) return;
             const plan = (dpData && dpData.plan) || [];
-            dpCfg = { picks: new Map(plan.map(p => [String(p.team_id), p.quota])) };
+            // picks: Map<tid, { quota, category }>
+            dpCfg = { picks: new Map(plan.map(p => [String(p.team_id), { quota: p.quota, category: p.category || '' }])) };
             let d = document.getElementById('dp-cfg-dlg');
             if (!d) { d = document.createElement('div'); d.id = 'dp-cfg-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
             d.style.display = 'flex';
             dpRenderConfig();
         }
-        function dpToggleTeam(tid) { tid = String(tid); if (dpCfg.picks.has(tid)) dpCfg.picks.delete(tid); else dpCfg.picks.set(tid, 1); dpRenderConfig(); }
-        function dpSetQuota(tid, q) { tid = String(tid); const n = Math.max(1, Math.min(100, parseInt(q, 10) || 1)); dpCfg.picks.set(tid, n); dpRenderConfig(); }
+        function dpToggleTeam(tid) { tid = String(tid); if (dpCfg.picks.has(tid)) dpCfg.picks.delete(tid); else dpCfg.picks.set(tid, { quota: 1, category: '' }); dpRenderConfig(); }
+        function dpSetQuota(tid, q) { tid = String(tid); const cur = dpCfg.picks.get(tid) || { quota: 1, category: '' }; cur.quota = Math.max(1, Math.min(100, parseInt(q, 10) || 1)); dpCfg.picks.set(tid, cur); dpRenderConfig(); }
+        function dpSetCategory(tid, cat) { tid = String(tid); const cur = dpCfg.picks.get(tid) || { quota: 1, category: '' }; cur.category = String(cat || '').trim(); dpCfg.picks.set(tid, cur); dpRenderConfig(); }
         function dpRenderConfig() {
             const d = document.getElementById('dp-cfg-dlg'); if (!d) return;
             const teams = dpSharedDefenseTeams();
             const rows = teams.length ? teams.map(t => {
-                const on = dpCfg.picks.has(String(t.id));
-                const q = on ? dpCfg.picks.get(String(t.id)) : 1;
+                const cur = dpCfg.picks.get(String(t.id));
+                const on = !!cur;
+                const q = on ? cur.quota : 1;
+                const cat = on ? cur.category : '';
                 const img = (t.data && Array.isArray(t.data.slots)) ? t.data.slots.filter(s => s && s.id).slice(0, 3).map(s => { const h = (heroesDB || []).find(x => String(x.id) === String(s.id)); return h && h.img ? `<img src="${h.img}" class="w-8 h-8 rounded object-cover" alt="">` : ''; }).join('') : '';
-                return `<div class="flex items-center gap-3 p-3 rounded-xl border ${on ? 'border-emerald-500/60 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'}">
-                    <button onclick="dpToggleTeam('${ccEsc(String(t.id))}')" class="w-6 h-6 rounded border-2 ${on ? 'border-emerald-400 bg-emerald-500 text-black' : 'border-gray-600'} flex items-center justify-center text-sm font-black">${on ? '✓' : ''}</button>
-                    <div class="flex gap-1 shrink-0">${img}</div>
-                    <span class="text-white font-bold truncate flex-1">${ccEsc(t.name || 'ทีม')}</span>
-                    ${on ? `<label class="flex items-center gap-1 text-xs text-gray-300">ขอ <input type="number" min="1" max="100" value="${q}" onchange="dpSetQuota('${ccEsc(String(t.id))}', this.value)" class="w-16 bg-[#0b0e14] border border-gray-700 rounded px-2 py-1 text-white text-center" /> ไม้</label>` : '<span class="text-[11px] text-gray-600">กดเพื่อเพิ่มในแผน</span>'}
+                const catOptions = DP_CATEGORIES.map(c => `<option value="${c.key}"${c.key === cat ? ' selected' : ''}>${c.icon} ${c.label}</option>`).join('');
+                return `<div class="p-3 rounded-xl border ${on ? 'border-emerald-500/60 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'}">
+                    <div class="flex items-center gap-3">
+                        <button onclick="dpToggleTeam('${ccEsc(String(t.id))}')" class="w-6 h-6 rounded border-2 ${on ? 'border-emerald-400 bg-emerald-500 text-black' : 'border-gray-600'} flex items-center justify-center text-sm font-black">${on ? '✓' : ''}</button>
+                        <div class="flex gap-1 shrink-0">${img}</div>
+                        <span class="text-white font-bold truncate flex-1">${ccEsc(t.name || 'ทีม')}</span>
+                        ${on ? `<label class="flex items-center gap-1 text-xs text-gray-300">ขอ <input type="number" min="1" max="100" value="${q}" onchange="dpSetQuota('${ccEsc(String(t.id))}', this.value)" class="w-16 bg-[#0b0e14] border border-gray-700 rounded px-2 py-1 text-white text-center" /> ไม้</label>` : '<span class="text-[11px] text-gray-600">กดเพื่อเพิ่มในแผน</span>'}
+                    </div>
+                    ${on ? `<div class="flex items-center gap-2 mt-2 pl-9"><span class="text-[11px] text-gray-400">🏷️ หมวด:</span><select onchange="dpSetCategory('${ccEsc(String(t.id))}', this.value)" class="text-xs bg-[#0b0e14] border border-gray-700 rounded px-2 py-1 text-white outline-none">${catOptions}</select></div>` : ''}
                 </div>`;
             }).join('') : '<div class="text-center text-gray-500 py-10">ยังไม่มีทีมรับที่แชร์ไว้ในกิลด์นี้ — สร้าง/แชร์ทีมรับก่อน</div>';
             d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
@@ -15939,7 +15966,7 @@
             </div>`;
         }
         async function dpSaveConfig() {
-            const items = [...dpCfg.picks.entries()].map(([team_id, quota]) => ({ team_id, quota }));
+            const items = [...dpCfg.picks.entries()].map(([team_id, v]) => ({ team_id, quota: v.quota, category: v.category || '' }));
             if (typeof showLoading === 'function') showLoading('💾 กำลังบันทึกแผน...');
             try {
                 const code = (typeof memberSession !== 'undefined' && memberSession && memberSession.code) ? memberSession.code : '';
