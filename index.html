@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.2';
+        const APP_VERSION = '1.47.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -34387,8 +34387,8 @@
             }
 
             container.innerHTML = `
-                <div class="w-full h-full flex flex-col overflow-hidden bg-[#0b0e14]">
-                    <div class="w-full h-full flex flex-col overflow-y-auto custom-scroll p-4 md:p-6">
+                <div class="w-full flex flex-col bg-[#0b0e14]">
+                    <div class="w-full flex flex-col p-4 md:p-6">
                         <div class="flex flex-col lg:flex-row justify-between items-start mb-6 gap-4 shrink-0 w-full">
                             <!-- ซ้าย: หัวข้อ (บน) · เมนูสลับหน้า (ล่าง) -->
                             <div class="flex flex-col gap-3">
