@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.48.9';
+        const APP_VERSION = '1.48.10';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15710,14 +15710,22 @@
         async function dpLoad(force) {
             const g = dpGuildKey_();
             if (!g) { dpErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; dpRender(); return; }
+            // 🔑 force = ข้าม cache + ข้าม dpLoading กัน stuck · clear dpPending ที่ค้าง
+            if (force) { dpLoading = false; dpPending.clear(); }
             if (dpLoading || (!force && dpData && dpGuildKey === g && Date.now() - (dpData._at || 0) < 60000)) return;
             dpLoading = true; dpErr = ''; dpGuildKey = g; dpRender();
             try {
                 const code = (typeof memberSession !== 'undefined' && memberSession && memberSession.code) ? memberSession.code : '';
-                const r = await postJson({ action: 'getDefensePlan', guild: g, accessCode: code }, { timeout: 30000, retries: 2 });
+                // ⚡ _nocache ส่งไปด้วย (server ไม่ใช้ แต่กัน request dedup โดย browser)
+                const r = await postJson({ action: 'getDefensePlan', guild: g, accessCode: code, _t: Date.now() }, { timeout: 30000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
                 dpData = Object.assign(r, { _at: Date.now() });
                 if (currentGalleryTab === 'Defense') dpStartPolling();   // 🔁 เริ่มอัปเดตตัวเองเมื่อโหลดสำเร็จครั้งแรก
+                // 🔄 ถ้าเปิด dialog รายชื่ออยู่ → re-render ด้วย data ล่าสุด
+                const openList = document.getElementById('dp-list-dlg');
+                if (openList && openList.style.display !== 'none' && openList.dataset.tid) dpOpenClaimList(openList.dataset.tid);
+                const openPick = document.getElementById('dp-pick-dlg');
+                if (openPick && openPick.style.display !== 'none' && openPick.dataset.tid) dpOpenPickMember(openPick.dataset.tid);
             } catch (e) { dpErr = e.message || String(e); }
             dpLoading = false; dpRender();
         }
@@ -15770,10 +15778,13 @@
             const myHeroes = new Set();
             myList.forEach(c => dpTeamHeroIds(c.team_id).forEach(h => myHeroes.add(h)));
             const loggedIn = !!(memberSession && memberSession.memberId);
+            const lastSec = dpData && dpData._at ? Math.floor((Date.now() - dpData._at) / 1000) : null;
+            const timeAgo = lastSec == null ? '' : lastSec < 60 ? `${lastSec} วิ.ก่อน` : `${Math.floor(lastSec / 60)} นาทีก่อน`;
             const head = `<div class="flex items-center flex-wrap gap-2 mb-4">
                 <h3 class="text-white font-bold text-lg">🛡️ แผนตั้งรับของกิลด์</h3>
                 ${officer ? '<button onclick="dpOpenConfig()" class="px-2.5 py-1 rounded-lg border border-indigo-600/60 bg-indigo-900/30 text-indigo-200 text-xs font-bold hover:bg-indigo-800/50">⚙️ ตั้งค่าแผน</button>' : ''}
-                <button onclick="dpLoad(true)" class="px-2.5 py-1 rounded-lg border border-gray-700 text-gray-300 hover:text-white text-xs">${dpLoading ? '⏳' : '🔄'}</button>
+                <button onclick="dpLoad(true)" ${dpLoading ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg border ${dpLoading ? 'border-emerald-600 bg-emerald-900/30 text-emerald-300' : 'border-gray-700 text-gray-300 hover:text-white'} text-xs flex items-center gap-1.5" title="โหลดข้อมูลใหม่จาก server">${dpLoading ? '<span class="inline-block w-3 h-3 rounded-full border-2 border-emerald-400/40 border-t-emerald-300 animate-spin"></span> กำลังโหลด' : '🔄 โหลดใหม่'}</button>
+                ${timeAgo ? `<span class="text-[10px] text-gray-500">อัปเดต ${timeAgo}</span>` : ''}
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
             </div>`;
             if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน' : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
@@ -15934,6 +15945,7 @@
             ((dpData && dpData.claims) || []).forEach(c => { const k = String(c.member_id); usedByMember.set(k, (usedByMember.get(k) || 0) + 1); });
             let d = document.getElementById('dp-pick-dlg');
             if (!d) { d = document.createElement('div'); d.id = 'dp-pick-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
+            d.dataset.tid = String(tid);
             d.style.display = 'flex';
             if (!allMembers.length) { d.innerHTML = '<div class="bg-[#161b22] border border-gray-700 rounded-2xl p-6 text-gray-400">ยังโหลดรายชื่อลูกกิลไม่เสร็จ</div>'; return; }
             // สร้าง card ของแต่ละลูกกิล — เลือก = call dpClaimForMember · หรือ unclaim ถ้าเลือกไว้แล้ว
@@ -16020,6 +16032,7 @@
             const memberById = new Map(((dpData && dpData.members) || []).map(m => [String(m.id), m]));
             let d = document.getElementById('dp-list-dlg');
             if (!d) { d = document.createElement('div'); d.id = 'dp-list-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
+            d.dataset.tid = String(tid);   // 🔖 เก็บ tid ไว้ให้ dpLoad re-render ได้ตอน data เปลี่ยน
             d.style.display = 'flex';
             const rows = claims.length ? claims.map(c => {
                 const mem = memberById.get(String(c.member_id)) || {};
