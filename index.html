@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.7';
+        const APP_VERSION = '1.47.8';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15802,29 +15802,45 @@
             }).join('');
             return `${head}<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${cards}</div>`;
         }
+        // ⚡ Optimistic UI — กดแล้วติ๊กในหน้าทันที ไม่ต้องรอ server · ถ้าผิดค่อย revert
         async function dpClaim(tid) {
             if (!memberSession || !memberSession.memberId) return alert('เข้าสู่ระบบด้วย Discord ก่อน');
-            if (typeof showLoading === 'function') showLoading('🛡️ กำลังเลือกไม้...');
+            if (!dpData) return;
+            tid = String(tid);
+            const mid = String(memberSession.memberId), mname = memberSession.name || '';
+            const snapshot = (dpData.claims || []).slice();
+            dpData.claims = snapshot.concat([{ team_id: tid, member_id: mid, member_name: mname, at: String(Date.now()) }]);
+            dpRender();
             try {
-                const r = await postJson({ action: 'claimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: String(tid), accessCode: memberSession.code || '', member_id: memberSession.memberId, member_name: memberSession.name || '' }, { timeout: 30000, retries: 2 });
-                if (typeof hideLoading === 'function') hideLoading();
-                if (!r || r.status !== 'success') return alert('❌ ' + ((r && r.message) || 'เลือกไม่สำเร็จ'));
-                if (dpData) dpData.claims = r.claims || [];
+                const r = await postJson({ action: 'claimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: tid, accessCode: memberSession.code || '', member_id: mid, member_name: mname }, { timeout: 30000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'เลือกไม่สำเร็จ');
+                dpData.claims = r.claims || dpData.claims;
                 dpRender();
                 if (typeof showToast === 'function') showToast('✅ เลือกไม้นี้แล้ว', 'success');
-            } catch (e) { if (typeof hideLoading === 'function') hideLoading(); alert('❌ ' + (e.message || e)); }
+            } catch (e) {
+                dpData.claims = snapshot;
+                dpRender();
+                alert('❌ ' + (e.message || e));
+            }
         }
         async function dpUnclaim(tid) {
-            if (!memberSession || !memberSession.memberId) return;
-            if (typeof showLoading === 'function') showLoading('🛡️ กำลังยกเลิก...');
+            if (!memberSession || !memberSession.memberId || !dpData) return;
+            tid = String(tid);
+            const mid = String(memberSession.memberId);
+            const snapshot = (dpData.claims || []).slice();
+            dpData.claims = snapshot.filter(c => !(String(c.team_id) === tid && String(c.member_id) === mid));
+            dpRender();
             try {
-                const r = await postJson({ action: 'unclaimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: String(tid), accessCode: memberSession.code || '', member_id: memberSession.memberId, member_name: memberSession.name || '' }, { timeout: 30000, retries: 2 });
-                if (typeof hideLoading === 'function') hideLoading();
-                if (!r || r.status !== 'success') return alert('❌ ' + ((r && r.message) || 'ยกเลิกไม่สำเร็จ'));
-                if (dpData) dpData.claims = r.claims || [];
+                const r = await postJson({ action: 'unclaimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: tid, accessCode: memberSession.code || '', member_id: mid, member_name: memberSession.name || '' }, { timeout: 30000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ยกเลิกไม่สำเร็จ');
+                dpData.claims = r.claims || dpData.claims;
                 dpRender();
                 if (typeof showToast === 'function') showToast('ยกเลิกแล้ว', 'success');
-            } catch (e) { if (typeof hideLoading === 'function') hideLoading(); alert('❌ ' + (e.message || e)); }
+            } catch (e) {
+                dpData.claims = snapshot;
+                dpRender();
+                alert('❌ ' + (e.message || e));
+            }
         }
         // 👥 รายชื่อลูกกิลที่เลือกทีมนี้ (เฉพาะแอดมิน/ผู้ช่วย)
         function dpOpenClaimList(tid) {
