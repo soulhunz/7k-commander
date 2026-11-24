@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.12';
+        const APP_VERSION = '1.47.13';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15808,7 +15808,7 @@
                     <div class="mb-2">
                         <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
                     </div>
-                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full flex gap-2 mb-3 p-2 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition justify-center">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
+                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full flex flex-wrap gap-3 mb-3 px-4 py-4 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition justify-center items-center">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
                     <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
                         <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
                         ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
