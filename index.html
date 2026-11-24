@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.14';
+        const APP_VERSION = '1.47.15';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15802,8 +15802,8 @@
                     : full ? 'border-emerald-700/50 bg-emerald-900/10'
                     : mine ? 'border-indigo-600/60 bg-indigo-900/10'
                     : 'border-gray-800 bg-[#0d1117]';
-                // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อ ลูกกิลธรรมดาไม่เห็น (และไม่เห็น chip ชื่อใต้การ์ดด้วย)
-                const nameListBtn = officer && claims.length ? `<button onclick="dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button>` : '';
+                // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อเสมอ (แม้ 0 คน) · ลูกกิลธรรมดาไม่เห็น
+                const nameListBtn = officer ? `<button onclick="dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button>` : '';
                 return `<div class="p-4 rounded-2xl border ${cardStyle}">
                     <div class="mb-2">
                         <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
