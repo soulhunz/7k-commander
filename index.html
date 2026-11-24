@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.48.1';
+        const APP_VERSION = '1.48.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15771,18 +15771,16 @@
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
             </div>`;
             if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน' : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
-            // 🏷️ แถบกรองหมวด (ทั้งหมด / กาย / เวท / สมดุล / ไม่ระบุ) — เหมือน TARGETS type filter
+            // 🏷️ แถบกรองหมวด (ทั้งหมด / กายภาพ / เวทมนตร์ / สมดุล) — เหมือน TARGETS type filter
             const catCounts = {};
             plan.forEach(p => { const k = p.category || ''; catCounts[k] = (catCounts[k] || 0) + 1; });
             const availCats = DP_CATEGORIES.filter(c => catCounts[c.key] > 0);
             const offCls = 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500';
-            const onCls = 'bg-sky-600 text-white border-sky-400 shadow-lg shadow-sky-900/40';
             const filterBar = availCats.length > 1 ? `<div class="flex flex-wrap items-center gap-2 mb-4">
-                <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">🏷️ หมวด</span>
+                <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider mr-1">🏷️ Type</span>
                 <button onclick="dpSetCatFilter(null)" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpCatFilter == null ? 'bg-white text-black border-white' : offCls}">ทั้งหมด <span class="opacity-60">(${plan.length})</span></button>
-                ${availCats.map(c => `<button onclick="dpSetCatFilter('${ccEsc(c.key)}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpCatFilter === c.key ? onCls : offCls}"><span>${c.icon}</span>${c.label} <span class="opacity-60">(${catCounts[c.key]})</span></button>`).join('')}
+                ${availCats.map(c => `<button onclick="dpSetCatFilter('${ccEsc(c.key)}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpCatFilter === c.key ? 'bg-' + c.dot.replace('bg-', '').replace('-500', '-600') + ' text-white border-' + c.dot.replace('bg-', '').replace('-500', '-400') + ' shadow-lg' : offCls}"><span class="w-2 h-2 rounded-full ${c.dot}"></span>${c.label} <span class="opacity-60">(${catCounts[c.key]})</span></button>`).join('')}
             </div>` : '';
-            const filteredPlan = dpCatFilter == null ? plan : plan.filter(p => (p.category || '') === dpCatFilter);
             const renderOneCard = p => {
                 const t = teamById.get(String(p.team_id));
                 const claims = dpClaimsOfTeam(p.team_id);
@@ -15830,9 +15828,23 @@
                     ${nameListBtn}
                 </div>`;
             };
-            const grid = `<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${filteredPlan.map(renderOneCard).join('')}</div>`;
-            const empty = !filteredPlan.length ? '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่มีทีมในหมวดนี้</div>' : '';
-            return `${head}${filterBar}${filteredPlan.length ? grid : empty}`;
+            // 📑 แสดงเป็น "กลุ่มตามหมวด" พร้อมหัวข้อสี เหมือน TARGETS · filter = กรองว่ากลุ่มไหนแสดง
+            const groupsToShow = (dpCatFilter == null ? availCats : availCats.filter(c => c.key === dpCatFilter));
+            const sections = groupsToShow.map(c => {
+                const teams = plan.filter(p => (p.category || '') === c.key);
+                if (!teams.length) return '';
+                return `<div class="mb-6">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-3 h-3 rounded-full ${c.dot}"></div>
+                        <h2 class="text-lg font-bold ${c.text} uppercase tracking-wider">${c.label}</h2>
+                        <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-1 rounded-full">${teams.length} ทีม</span>
+                        <div class="flex-1 h-px bg-gradient-to-r ${c.line} to-transparent"></div>
+                    </div>
+                    <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${teams.map(renderOneCard).join('')}</div>
+                </div>`;
+            }).join('');
+            const empty = !sections ? '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่มีทีมในหมวดนี้</div>' : '';
+            return `${head}${filterBar}${sections || empty}`;
         }
         function dpSetCatFilter(k) { dpCatFilter = (dpCatFilter === k) ? null : k; dpRender(); }
         // ⚡ Optimistic UI + spinner ตามจริง — ติ๊กทันที แต่ปุ่มขึ้น "กำลังบันทึก..." ระหว่างรอ server
@@ -15917,15 +15929,14 @@
                 <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
             </div>`;
         }
-        // 🏷️ หมวดทีมรับ (กาย/เวท/สมดุล) — หัวหน้า/ผู้ช่วยกำหนดในหน้า ⚙️ ตั้งค่าแผน
+        // 🏷️ หมวดทีมรับ (กายภาพ/เวทมนตร์/สมดุล) — หัวหน้า/ผู้ช่วยกำหนดในหน้า ⚙️ ตั้งค่าแผน
         const DP_CATEGORIES = [
-            { key: '', label: 'ไม่ระบุ', icon: '⚪' },
-            { key: 'phys', label: 'กาย', icon: '⚔️' },
-            { key: 'magic', label: 'เวท', icon: '🔮' },
-            { key: 'balanced', label: 'สมดุล', icon: '⚖️' },
+            { key: 'phys', label: 'กายภาพ', dot: 'bg-red-500', text: 'text-red-400', line: 'from-red-500/50' },
+            { key: 'magic', label: 'เวทมนตร์', dot: 'bg-sky-500', text: 'text-sky-400', line: 'from-sky-500/50' },
+            { key: 'balanced', label: 'สมดุล', dot: 'bg-purple-500', text: 'text-purple-400', line: 'from-purple-500/50' },
+            { key: '', label: 'ไม่ระบุ', dot: 'bg-gray-500', text: 'text-gray-400', line: 'from-gray-500/50' },
         ];
         function dpCatLabel(k) { const c = DP_CATEGORIES.find(x => x.key === (k || '')); return c ? c.label : 'ไม่ระบุ'; }
-        function dpCatIcon(k) { const c = DP_CATEGORIES.find(x => x.key === (k || '')); return c ? c.icon : '⚪'; }
         let dpCfg = null;
         function dpOpenConfig() {
             if (!dpIsOfficer()) return;
@@ -15949,7 +15960,7 @@
                 const q = on ? cur.quota : 1;
                 const cat = on ? cur.category : '';
                 const img = (t.data && Array.isArray(t.data.slots)) ? t.data.slots.filter(s => s && s.id).slice(0, 3).map(s => { const h = (heroesDB || []).find(x => String(x.id) === String(s.id)); return h && h.img ? `<img src="${h.img}" class="w-8 h-8 rounded object-cover" alt="">` : ''; }).join('') : '';
-                const catOptions = DP_CATEGORIES.map(c => `<option value="${c.key}"${c.key === cat ? ' selected' : ''}>${c.icon} ${c.label}</option>`).join('');
+                const catOptions = DP_CATEGORIES.map(c => `<option value="${c.key}"${c.key === cat ? ' selected' : ''}>${c.label}</option>`).join('');
                 return `<div class="p-3 rounded-xl border ${on ? 'border-emerald-500/60 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'}">
                     <div class="flex items-center gap-3">
                         <button onclick="dpToggleTeam('${ccEsc(String(t.id))}')" class="w-6 h-6 rounded border-2 ${on ? 'border-emerald-400 bg-emerald-500 text-black' : 'border-gray-600'} flex items-center justify-center text-sm font-black">${on ? '✓' : ''}</button>
