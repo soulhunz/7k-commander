@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.49.1';
+        const APP_VERSION = '1.49.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15690,7 +15690,7 @@
         // =========================================================
         // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
         // =========================================================
-        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null, dpDetailOpen = false;
+        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null;
         const dpPending = new Set();   // 🕐 team_id ที่กำลังรอ server ตอบ (claim/unclaim) — ปุ่มขึ้นสปินเนอร์
         // 🔁 Auto-refresh ทุก 20 วิ ขณะเปิดอยู่ · ซ่อนหน้าแท็บ/สลับไป tab อื่น = หยุด
         function dpStartPolling() {
@@ -15730,14 +15730,12 @@
             dpLoading = false; dpRender();
         }
         function dpRender() {
-            // 🚫 กำลังเปิดหน้ารายละเอียดเต็มอยู่ = อย่าทับหน้าจอ (polling update ก็ไม่เด้งกลับ)
-            //    เช็คจาก DOM ด้วย — ถ้า gallery ถูกวาดใหม่แล้ว (เช่น กดปุ่ม ❮ กลับมา) = clear flag
-            if (dpDetailOpen) {
-                if (document.querySelector('.gallery-card-grid')) dpDetailOpen = false;
-                else return;
-            }
-            if (maiTab === 'defplan' && typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') { ccViewerRender(); return; }
-            if (currentGalleryTab === 'Defense' && typeof rerenderGallery === 'function') rerenderGallery();
+            // 🚫 วาดใหม่เฉพาะตอนผู้ใช้อยู่บน "หน้ารวมแกลเลอรี" จริงๆ — ไม่ใช่หน้ารายละเอียดทีม / หน้าอื่น
+            //    ใช้ #gallery-sync-status เป็นตัวชี้วัด (มีเฉพาะใน gallery UI header · หายทันทีเมื่อ
+            //    renderPublicTeamDisplay เขียนทับ #main-content) — เช็คเดียวกับ galleryMemberRerender
+            if (currentGalleryTab !== 'Defense') return;
+            if (!document.getElementById('gallery-sync-status')) return;   // อยู่หน้ารายละเอียด/หน้าอื่น — polling update อย่าดึงกลับ
+            if (typeof rerenderGallery === 'function') rerenderGallery();
         }
         /** ทีมรับที่แชร์ไว้แล้วในกิลด์นี้ (filter จาก galleryCacheDB) */
         function dpSharedDefenseTeams() {
@@ -15935,8 +15933,7 @@
             const t = dpSharedDefenseTeams().find(x => String(x.id) === String(tid));
             if (!t) return;
             if (typeof renderPublicTeamDisplay !== 'function') { if (typeof teamStatsOpenById === 'function') teamStatsOpenById(tid); return; }
-            dpDetailOpen = true;   // 🔒 ระหว่างดูรายละเอียด · polling 20 วิ อย่า rerender ทับ
-            renderPublicTeamDisplay(t, [t], t.name || 'ทีมรับ');
+            renderPublicTeamDisplay(t, [t], t.name || 'ทีมรับ');   // 🔒 เขียนทับ #main-content → #gallery-sync-status หาย → polling จะไม่วาด gallery ทับ
             const main = document.getElementById('main-content');
             if (main) main.scrollTop = 0;
             window.scrollTo(0, 0);
