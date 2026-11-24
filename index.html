@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.11';
+        const APP_VERSION = '1.47.12';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15690,8 +15690,22 @@
         // =========================================================
         // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
         // =========================================================
-        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '';
+        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null;
         const dpPending = new Set();   // 🕐 team_id ที่กำลังรอ server ตอบ (claim/unclaim) — ปุ่มขึ้นสปินเนอร์
+        // 🔁 Auto-refresh ทุก 20 วิ ขณะเปิดอยู่ · ซ่อนหน้าแท็บ/สลับไป tab อื่น = หยุด
+        function dpStartPolling() {
+            if (dpPollTimer) return;
+            dpPollTimer = setInterval(() => {
+                // ไม่ได้อยู่ Defense tab หรือกล่อง cc-viewer ซ่อน + gallery ไม่อยู่หน้า Defense = หยุด
+                const onDefense = (currentGalleryTab === 'Defense');
+                if (!onDefense) { clearInterval(dpPollTimer); dpPollTimer = null; return; }
+                if (document.visibilityState !== 'visible') return;
+                // อย่า refresh ขณะมี pending (กัน race condition กับ optimistic)
+                if (dpPending.size) return;
+                dpLoad(true);
+            }, 20000);
+        }
+        function dpStopPolling() { if (dpPollTimer) { clearInterval(dpPollTimer); dpPollTimer = null; } }
         function dpGuildKey_() { if (typeof isPublicView !== 'undefined' && isPublicView) return decodeGuildParam(appUrlParams().get('g')) || ''; const g = guildsDB[activeGuildIndex]; return g ? String(g.id) : ''; }
         async function dpLoad(force) {
             const g = dpGuildKey_();
@@ -15703,6 +15717,7 @@
                 const r = await postJson({ action: 'getDefensePlan', guild: g, accessCode: code }, { timeout: 30000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
                 dpData = Object.assign(r, { _at: Date.now() });
+                if (currentGalleryTab === 'Defense') dpStartPolling();   // 🔁 เริ่มอัปเดตตัวเองเมื่อโหลดสำเร็จครั้งแรก
             } catch (e) { dpErr = e.message || String(e); }
             dpLoading = false; dpRender();
         }
@@ -15859,13 +15874,26 @@
             const teams = dpSharedDefenseTeams();
             const t = teams.find(x => String(x.id) === String(tid));
             const claims = dpClaimsOfTeam(tid);
+            const memberById = new Map(((dpData && dpData.members) || []).map(m => [String(m.id), m]));
             let d = document.getElementById('dp-list-dlg');
             if (!d) { d = document.createElement('div'); d.id = 'dp-list-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
             d.style.display = 'flex';
-            const rows = claims.length ? claims.map(c => `<div class="flex items-center gap-3 p-3 rounded-xl border border-gray-800 bg-[#0d1117]">
-                <span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xs text-gray-400 shrink-0">${ccEsc(String(c.member_name || '?').trim().charAt(0).toUpperCase())}</span>
-                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(c.member_name || c.member_id)}</div>${c.at ? `<div class="text-[11px] text-gray-500">${new Date(+c.at).toLocaleString('th-TH')}</div>` : ''}</div>
-            </div>`).join('') : '<div class="text-center text-gray-500 py-10">ยังไม่มีคนเลือก</div>';
+            const rows = claims.length ? claims.map(c => {
+                const mem = memberById.get(String(c.member_id)) || {};
+                const av = mem.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(mem.discordAvatar) : '';
+                const avatarHTML = av
+                    ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full border-2 border-indigo-500/40 object-cover shrink-0" alt="">`
+                    : `<span class="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-sm text-gray-400 shrink-0">${ccEsc(String(c.member_name || mem.name || '?').trim().charAt(0).toUpperCase())}</span>`;
+                const gameName = mem.gameName ? `<div class="text-[11px] text-emerald-300 font-bold truncate">🎮 ${ccEsc(mem.gameName)}</div>` : '';
+                return `<div class="flex items-center gap-3 p-3 rounded-xl border border-gray-800 bg-[#0d1117]">
+                    ${avatarHTML}
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-bold text-white truncate">${ccEsc(c.member_name || mem.name || c.member_id)}</div>
+                        ${gameName}
+                        ${c.at ? `<div class="text-[10px] text-gray-500">${new Date(+c.at).toLocaleString('th-TH')}</div>` : ''}
+                    </div>
+                </div>`;
+            }).join('') : '<div class="text-center text-gray-500 py-10">ยังไม่มีคนเลือก</div>';
             d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl">
                 <div class="p-4 border-b border-gray-800 flex items-center gap-2">
                     <h3 class="text-white font-bold truncate">👥 รายชื่อ · ${ccEsc(t ? t.name : tid)} <span class="text-emerald-300">(${claims.length})</span></h3>
@@ -36202,8 +36230,9 @@
         // 🗡️ ฟีเจอร์ "วนไม้" ถูกปิดอยู่ — ถ้ามีการเรียกเข้ามา ให้ตกไปแท็บ Targets แทน
         if (!GALLERY_ROTATION_ENABLED && tabName === 'Rotation') tabName = 'Attack';
         currentGalleryTab = tabName;
-        // 🛡️ แผนรับของกิลด์ — โหลดเมื่อเข้ามาที่ Defense (แคช 60 วิในตัว)
-        if (tabName === 'Defense' && typeof dpLoad === 'function') setTimeout(() => dpLoad(false), 0);
+        // 🛡️ แผนรับของกิลด์ — โหลดเมื่อเข้ามาที่ Defense + เริ่ม polling 20 วิ · ออก Defense = หยุด polling
+        if (tabName === 'Defense' && typeof dpLoad === 'function') { setTimeout(() => dpLoad(false), 0); if (typeof dpStartPolling === 'function') dpStartPolling(); }
+        else if (typeof dpStopPolling === 'function') dpStopPolling();
         // เรียกวาดหน้าจอใหม่โดยใช้ข้อมูลเดิมจาก Cache
         if (galleryCacheDB) {
             // 🟢 ดึง guild จาก URL (ถ้ามี) เพื่อส่งต่อให้ renderGalleryUI
