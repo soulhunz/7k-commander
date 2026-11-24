@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.3';
+        const APP_VERSION = '1.47.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15698,7 +15698,8 @@
             if (dpLoading || (!force && dpData && dpGuildKey === g && Date.now() - (dpData._at || 0) < 60000)) return;
             dpLoading = true; dpErr = ''; dpGuildKey = g; dpRender();
             try {
-                const r = await postJson({ action: 'getDefensePlan', guild: g }, { timeout: 30000, retries: 2 });
+                const code = (typeof memberSession !== 'undefined' && memberSession && memberSession.code) ? memberSession.code : '';
+                const r = await postJson({ action: 'getDefensePlan', guild: g, accessCode: code }, { timeout: 30000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
                 dpData = Object.assign(r, { _at: Date.now() });
             } catch (e) { dpErr = e.message || String(e); }
@@ -15732,7 +15733,8 @@
         }
         function dpIsOfficer() {
             if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) return true;
-            return !!(memberSession && memberSession.officer);
+            // 🛡️ server บอก assist=true เมื่อลูกกิลคนนั้นเป็น officer ที่อนุมัติแล้ว
+            return !!(dpData && dpData.assist);
         }
         function renderDefensePlan() {
             if (dpErr) return `<div class="mb-4 text-amber-300 text-sm">⚠️ ${ccEsc(dpErr)} <button onclick="dpLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
@@ -15858,7 +15860,8 @@
             const items = [...dpCfg.picks.entries()].map(([team_id, quota]) => ({ team_id, quota }));
             if (typeof showLoading === 'function') showLoading('💾 กำลังบันทึกแผน...');
             try {
-                const r = await postJson({ action: 'setDefensePlan', guild_id: dpGuildKey_(), items }, { timeout: 30000, retries: 2 });
+                const code = (typeof memberSession !== 'undefined' && memberSession && memberSession.code) ? memberSession.code : '';
+                const r = await postJson({ action: 'setDefensePlan', guild_id: dpGuildKey_(), items, accessCode: code }, { timeout: 30000, retries: 2 });
                 if (typeof hideLoading === 'function') hideLoading();
                 if (!r || r.status !== 'success') return alert('❌ ' + ((r && r.message) || 'บันทึกไม่สำเร็จ'));
                 if (dpData) { dpData.plan = r.plan || []; dpData._at = Date.now(); }
