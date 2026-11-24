@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.46.9';
+        const APP_VERSION = '1.47.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15687,6 +15687,186 @@
             };
         }, 0);
 
+        // =========================================================
+        // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
+        // =========================================================
+        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '';
+        function dpGuildKey_() { if (typeof isPublicView !== 'undefined' && isPublicView) return decodeGuildParam(appUrlParams().get('g')) || ''; const g = guildsDB[activeGuildIndex]; return g ? String(g.id) : ''; }
+        async function dpLoad(force) {
+            const g = dpGuildKey_();
+            if (!g) { dpErr = 'ลิงก์นี้ไม่ได้ระบุกิลด์'; dpRender(); return; }
+            if (dpLoading || (!force && dpData && dpGuildKey === g && Date.now() - (dpData._at || 0) < 60000)) return;
+            dpLoading = true; dpErr = ''; dpGuildKey = g; dpRender();
+            try {
+                const r = await postJson({ action: 'getDefensePlan', guild: g }, { timeout: 30000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'โหลดไม่สำเร็จ');
+                dpData = Object.assign(r, { _at: Date.now() });
+            } catch (e) { dpErr = e.message || String(e); }
+            dpLoading = false; dpRender();
+        }
+        function dpRender() {
+            if (maiTab === 'defplan' && typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') ccViewerRender();
+        }
+        /** ทีมรับที่แชร์ไว้แล้วในกิลด์นี้ (filter จาก galleryCacheDB) */
+        function dpSharedDefenseTeams() {
+            const gk = (decodeGuildParam(appUrlParams().get('g')) || '').toLowerCase();
+            const list = (typeof galleryCacheDB !== 'undefined' && Array.isArray(galleryCacheDB)) ? galleryCacheDB : [];
+            return list.filter(t => {
+                if (!t || !t.data || t.data.teamType !== 'Defense') return false;
+                if (!gk || gk === 'all') return true;
+                const tg = String(t.guild_name || t.guildId || 'all').toLowerCase();
+                return tg === gk || tg === 'all';
+            });
+        }
+        /** ฮีโร่ของทีม (จาก slots) — เช็คตัวซ้ำข้ามไม้ของตัวเอง */
+        function dpTeamHeroIds(tid) {
+            const t = dpSharedDefenseTeams().find(x => String(x.id) === String(tid));
+            if (!t || !t.data || !Array.isArray(t.data.slots)) return [];
+            return t.data.slots.map(s => s && s.id ? String(s.id) : '').filter(Boolean);
+        }
+        function dpClaimsOfTeam(tid) { return ((dpData && dpData.claims) || []).filter(c => String(c.team_id) === String(tid)); }
+        function dpMyClaims() {
+            const me = memberSession && memberSession.memberId ? String(memberSession.memberId) : '';
+            return me ? ((dpData && dpData.claims) || []).filter(c => String(c.member_id) === me) : [];
+        }
+        function dpIsOfficer() {
+            if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.token) return true;
+            return !!(memberSession && memberSession.officer);
+        }
+        function renderDefensePlan() {
+            if (dpErr) return `<div class="mb-4 text-amber-300 text-sm">⚠️ ${ccEsc(dpErr)} <button onclick="dpLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
+            if (!dpData && dpLoading) return `<div class="text-center text-sm text-emerald-300 font-bold py-6">⏳ กำลังโหลดแผนทีมรับ...</div>`;
+            if (!dpData) return '';
+            const plan = dpData.plan || [];
+            const teams = dpSharedDefenseTeams();
+            const teamById = new Map(teams.map(t => [String(t.id), t]));
+            const officer = dpIsOfficer();
+            const myList = dpMyClaims();
+            const myHeroes = new Set();
+            myList.forEach(c => dpTeamHeroIds(c.team_id).forEach(h => myHeroes.add(h)));
+            const loggedIn = !!(memberSession && memberSession.memberId);
+            const head = `<div class="flex items-center flex-wrap gap-2 mb-4">
+                <h3 class="text-white font-bold text-lg">🛡️ แผนตั้งรับของกิลด์</h3>
+                ${officer ? '<button onclick="dpOpenConfig()" class="px-2.5 py-1 rounded-lg border border-indigo-600/60 bg-indigo-900/30 text-indigo-200 text-xs font-bold hover:bg-indigo-800/50">⚙️ ตั้งค่าแผน</button>' : ''}
+                <button onclick="dpLoad(true)" class="px-2.5 py-1 rounded-lg border border-gray-700 text-gray-300 hover:text-white text-xs">${dpLoading ? '⏳' : '🔄'}</button>
+                ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
+            </div>`;
+            if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน' : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
+            const cards = plan.map(p => {
+                const t = teamById.get(String(p.team_id));
+                const claims = dpClaimsOfTeam(p.team_id);
+                const full = claims.length >= p.quota;
+                const mine = loggedIn && claims.some(c => String(c.member_id) === String(memberSession.memberId));
+                const pct = Math.min(100, Math.round((claims.length / Math.max(1, p.quota)) * 100));
+                const barColor = full ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
+                let btn = '';
+                if (!loggedIn) btn = `<button onclick="galleryDiscordStart&&galleryDiscordStart()" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-900/40 border border-indigo-600/50 text-indigo-200 hover:bg-indigo-800/50">🎮 เข้าสู่ระบบ Discord เพื่อเลือก</button>`;
+                else if (mine) btn = `<button onclick="dpUnclaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white">✅ ฉันเลือกแล้ว (กดเพื่อยกเลิก)</button>`;
+                else if (full) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ เต็มโควตา</button>`;
+                else if (myList.length >= 5) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ คุณใช้ครบ 5 ไม้แล้ว</button>`;
+                else {
+                    const heroes = dpTeamHeroIds(p.team_id);
+                    const conflict = heroes.find(h => myHeroes.has(h));
+                    if (conflict) btn = `<button disabled title="ตัวละครซ้ำกับไม้ที่คุณเลือกแล้ว" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-red-900/40 text-red-300 border border-red-700/50 cursor-not-allowed">⛔ ตัวซ้ำกับไม้อื่นของคุณ</button>`;
+                    else btn = `<button onclick="dpClaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white">➕ เลือกไม้นี้ (ตั้งที่บ้าน)</button>`;
+                }
+                const heroStrip = t && t.data && Array.isArray(t.data.slots) ? t.data.slots.filter(s => s && s.id).slice(0, 5).map(s => {
+                    const h = (heroesDB || []).find(x => String(x.id) === String(s.id));
+                    const img = s.awakened && h && h.img2 ? h.img2 : (h && h.img);
+                    return img ? `<img src="${img}" class="w-10 h-10 rounded-lg object-cover border ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" alt="${ccEsc((h && h.name) || '')}" title="${ccEsc((h && h.name) || '')}">` : '<div class="w-10 h-10 rounded-lg bg-gray-800"></div>';
+                }).join('') : '';
+                const claimedNames = claims.map(c => `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-900/40 border border-indigo-600/50 text-indigo-100 text-[10px] font-bold">👤 ${ccEsc(c.member_name || c.member_id)}</span>`).join('');
+                return `<div class="p-4 rounded-2xl border ${full ? 'border-emerald-700/50 bg-emerald-900/10' : mine ? 'border-indigo-600/60 bg-indigo-900/10' : 'border-gray-800 bg-[#0d1117]'}">
+                    <div class="flex items-center gap-2 mb-2 min-w-0">
+                        <span class="text-white font-black truncate flex-1">${ccEsc(t ? t.name : p.team_id)}</span>
+                        <span class="text-[10px] text-gray-500 shrink-0">🛡️ ทีมรับ</span>
+                    </div>
+                    ${t ? `<button onclick="teamStatsOpenById('${ccEsc(String(p.team_id))}')" class="w-full flex gap-1 mb-2 p-1 rounded-xl bg-black/30 hover:bg-black/50 transition">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
+                    <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
+                        <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
+                        ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-gray-800 overflow-hidden"><div class="h-full ${barColor} transition-all" style="width:${pct}%"></div></div>
+                    ${claimedNames ? `<div class="flex flex-wrap gap-1 mt-2">${claimedNames}</div>` : ''}
+                    ${btn}
+                </div>`;
+            }).join('');
+            return `${head}<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${cards}</div>`;
+        }
+        async function dpClaim(tid) {
+            if (!memberSession || !memberSession.memberId) return alert('เข้าสู่ระบบด้วย Discord ก่อน');
+            if (typeof showLoading === 'function') showLoading('🛡️ กำลังเลือกไม้...');
+            try {
+                const r = await postJson({ action: 'claimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: String(tid), accessCode: memberSession.code || '', member_id: memberSession.memberId, member_name: memberSession.name || '' }, { timeout: 30000, retries: 2 });
+                if (typeof hideLoading === 'function') hideLoading();
+                if (!r || r.status !== 'success') return alert('❌ ' + ((r && r.message) || 'เลือกไม่สำเร็จ'));
+                if (dpData) dpData.claims = r.claims || [];
+                dpRender();
+                if (typeof showToast === 'function') showToast('✅ เลือกไม้นี้แล้ว', 'success');
+            } catch (e) { if (typeof hideLoading === 'function') hideLoading(); alert('❌ ' + (e.message || e)); }
+        }
+        async function dpUnclaim(tid) {
+            if (!memberSession || !memberSession.memberId) return;
+            if (typeof showLoading === 'function') showLoading('🛡️ กำลังยกเลิก...');
+            try {
+                const r = await postJson({ action: 'unclaimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: String(tid), accessCode: memberSession.code || '', member_id: memberSession.memberId, member_name: memberSession.name || '' }, { timeout: 30000, retries: 2 });
+                if (typeof hideLoading === 'function') hideLoading();
+                if (!r || r.status !== 'success') return alert('❌ ' + ((r && r.message) || 'ยกเลิกไม่สำเร็จ'));
+                if (dpData) dpData.claims = r.claims || [];
+                dpRender();
+                if (typeof showToast === 'function') showToast('ยกเลิกแล้ว', 'success');
+            } catch (e) { if (typeof hideLoading === 'function') hideLoading(); alert('❌ ' + (e.message || e)); }
+        }
+        let dpCfg = null;
+        function dpOpenConfig() {
+            if (!dpIsOfficer()) return;
+            const plan = (dpData && dpData.plan) || [];
+            dpCfg = { picks: new Map(plan.map(p => [String(p.team_id), p.quota])) };
+            let d = document.getElementById('dp-cfg-dlg');
+            if (!d) { d = document.createElement('div'); d.id = 'dp-cfg-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
+            d.style.display = 'flex';
+            dpRenderConfig();
+        }
+        function dpToggleTeam(tid) { tid = String(tid); if (dpCfg.picks.has(tid)) dpCfg.picks.delete(tid); else dpCfg.picks.set(tid, 1); dpRenderConfig(); }
+        function dpSetQuota(tid, q) { tid = String(tid); const n = Math.max(1, Math.min(100, parseInt(q, 10) || 1)); dpCfg.picks.set(tid, n); dpRenderConfig(); }
+        function dpRenderConfig() {
+            const d = document.getElementById('dp-cfg-dlg'); if (!d) return;
+            const teams = dpSharedDefenseTeams();
+            const rows = teams.length ? teams.map(t => {
+                const on = dpCfg.picks.has(String(t.id));
+                const q = on ? dpCfg.picks.get(String(t.id)) : 1;
+                const img = (t.data && Array.isArray(t.data.slots)) ? t.data.slots.filter(s => s && s.id).slice(0, 3).map(s => { const h = (heroesDB || []).find(x => String(x.id) === String(s.id)); return h && h.img ? `<img src="${h.img}" class="w-8 h-8 rounded object-cover" alt="">` : ''; }).join('') : '';
+                return `<div class="flex items-center gap-3 p-3 rounded-xl border ${on ? 'border-emerald-500/60 bg-emerald-900/10' : 'border-gray-800 bg-[#0d1117]'}">
+                    <button onclick="dpToggleTeam('${ccEsc(String(t.id))}')" class="w-6 h-6 rounded border-2 ${on ? 'border-emerald-400 bg-emerald-500 text-black' : 'border-gray-600'} flex items-center justify-center text-sm font-black">${on ? '✓' : ''}</button>
+                    <div class="flex gap-1 shrink-0">${img}</div>
+                    <span class="text-white font-bold truncate flex-1">${ccEsc(t.name || 'ทีม')}</span>
+                    ${on ? `<label class="flex items-center gap-1 text-xs text-gray-300">ขอ <input type="number" min="1" max="100" value="${q}" onchange="dpSetQuota('${ccEsc(String(t.id))}', this.value)" class="w-16 bg-[#0b0e14] border border-gray-700 rounded px-2 py-1 text-white text-center" /> ไม้</label>` : '<span class="text-[11px] text-gray-600">กดเพื่อเพิ่มในแผน</span>'}
+                </div>`;
+            }).join('') : '<div class="text-center text-gray-500 py-10">ยังไม่มีทีมรับที่แชร์ไว้ในกิลด์นี้ — สร้าง/แชร์ทีมรับก่อน</div>';
+            d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
+                <div class="p-4 border-b border-gray-800 flex items-center gap-2">
+                    <h3 class="text-white font-bold">⚙️ ตั้งแผนทีมรับกิลด์ <span class="text-emerald-300">(${dpCfg.picks.size} ทีม)</span></h3>
+                    <button onclick="document.getElementById('dp-cfg-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
+                </div>
+                <div class="p-3 border-b border-gray-800 text-[11px] text-gray-400">เลือกทีมรับที่อยากให้ลูกกิลช่วยกันตั้ง · ระบุจำนวนไม้ที่ต้องการต่อทีม · ลูกกิลคนหนึ่งเลือกได้ 5 ไม้ (ตัวละครห้ามซ้ำข้ามไม้)</div>
+                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
+                <div class="p-3 border-t border-gray-800 flex gap-2"><button onclick="document.getElementById('dp-cfg-dlg').style.display='none'" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white text-xs">ยกเลิก</button><button onclick="dpSaveConfig()" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black">💾 บันทึกแผน</button></div>
+            </div>`;
+        }
+        async function dpSaveConfig() {
+            const items = [...dpCfg.picks.entries()].map(([team_id, quota]) => ({ team_id, quota }));
+            if (typeof showLoading === 'function') showLoading('💾 กำลังบันทึกแผน...');
+            try {
+                const r = await postJson({ action: 'setDefensePlan', guild_id: dpGuildKey_(), items }, { timeout: 30000, retries: 2 });
+                if (typeof hideLoading === 'function') hideLoading();
+                if (!r || r.status !== 'success') return alert('❌ ' + ((r && r.message) || 'บันทึกไม่สำเร็จ'));
+                if (dpData) { dpData.plan = r.plan || []; dpData._at = Date.now(); }
+                document.getElementById('dp-cfg-dlg').style.display = 'none';
+                dpRender();
+                if (typeof showToast === 'function') showToast('✅ บันทึกแผนแล้ว', 'success');
+            } catch (e) { if (typeof hideLoading === 'function') hideLoading(); alert('❌ ' + (e.message || e)); }
+        }
+
         function hbvBoot() {
             isPublicView = true;
             ['login-screen', 'main-sidebar', 'main-content', 'cc-viewer'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -17645,7 +17825,7 @@
         const MAI_SHOW_RING = false;   // 💍 ปิดรูปแหวนใต้ตัวละคร (ตามคำขอ) — เปลี่ยนเป็น true ถ้าจะเปิดกลับ
         var maiSetIdx = 0;   // 📑 เซ็ตที่เปิดดูอยู่ (0 = เซ็ตที่ 1)
         var maiTab = 'plan';   // 'plan' | 'payout' | 'payoutlist' | 'used'
-        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t === 'payout' || t === 'payoutlist') setTimeout(() => poLoad(false), 0); }
+        function maiSetTab(t) { maiTab = t; const box = document.getElementById('cc-viewer'); if (box && typeof ccViewerRender === 'function') ccViewerRender(); if (t === 'payout' || t === 'payoutlist') setTimeout(() => poLoad(false), 0); if (t === 'defplan') setTimeout(() => dpLoad(false), 0); }
         function maiSetSet(i) { maiSetIdx = i; ccRerenderKeepScroll(); }
         // ✏️ จัดเอง — เก็บลายเซ็นทีม (id ฮีโร่) ที่เลือกไว้ในเครื่อง แยกตามกิลด์ของลิงก์
         function maiCustomKey() { return '7k_mai_custom_' + String(decodeGuildParam(appUrlParams().get('g')) || 'all').toLowerCase(); }
@@ -17708,13 +17888,14 @@
                     </div>
                     ${maiGalleryTabHTML(true)}
                 </div>`;
-            const payCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on === 'pay' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : on === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : on === 'used' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
+            const payCls = on => `flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-black transition whitespace-nowrap ${on === 'pay' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : on === 'list' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : on === 'used' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/40' : on === 'def' ? 'bg-sky-600 text-white shadow-lg shadow-sky-900/40' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
             const payBox = `<div class="flex flex-wrap w-full sm:w-auto gap-1 p-1 rounded-2xl bg-[#0d1117] border border-gray-800 shadow-xl sm:inline-flex">
                 <button onclick="maiSetTab('payout')" class="${payCls(maiTab === 'payout' ? 'pay' : '')}">💸 จ่ายไม้</button>
                 <button onclick="maiSetTab('payoutlist')" class="${payCls(maiTab === 'payoutlist' ? 'list' : '')}">📋 รายการ</button>
                 <button onclick="maiSetTab('used')" class="${payCls(maiTab === 'used' ? 'used' : '')}">📒 รายการตี</button>
+                <button onclick="maiSetTab('defplan')" class="${payCls(maiTab === 'defplan' ? 'def' : '')}" title="แผนทีมรับที่กิลด์ให้ช่วยกันตั้งที่บ้าน">🛡️ แผนรับ</button>
             </div>`;
-            const tabBody = () => maiTab === 'payout' ? renderPayoutPay() : maiTab === 'payoutlist' ? renderPayoutList() : maiTab === 'used' ? `<div class="pb-20">${ccUsedHTML()}</div>` : '';
+            const tabBody = () => maiTab === 'payout' ? renderPayoutPay() : maiTab === 'payoutlist' ? renderPayoutList() : maiTab === 'used' ? `<div class="pb-20">${ccUsedHTML()}</div>` : maiTab === 'defplan' ? `<div class="pb-20">${renderDefensePlan()}</div>` : '';
             const teams = ccViewTeams.slice();
             if (!teams.length) {
                 if (maiTab !== 'plan') return `<div class="max-w-[100vw] p-4 md:p-6">${head}<div class="flex flex-wrap items-center gap-3 mb-4"><button onclick="maiSetTab('plan')" class="px-4 py-2 rounded-xl text-xs font-black bg-[#0d1117] border border-gray-800 text-gray-400 hover:text-white">⚔️ แผนบุก</button>${payBox}</div>${tabBody()}</div>`;
