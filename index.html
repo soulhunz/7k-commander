@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.8';
+        const APP_VERSION = '1.47.9';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -38653,24 +38653,47 @@
             '</div></div>';
     }
 
+    // \uD83D\uDCF1 Long-press \u0E1A\u0E19\u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D (500ms) \u2192 \u0E40\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39\u0E40\u0E14\u0E35\u0E22\u0E27\u0E01\u0E31\u0E1A\u0E04\u0E25\u0E34\u0E01\u0E02\u0E27\u0E32 (\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19/\u0E41\u0E2B\u0E27\u0E19\u0E0B\u0E49\u0E2D\u0E19/\u0E25\u0E1A\u0E0B\u0E49\u0E2D\u0E19)
+    var _t3v3RingLP = null, _t3v3RingLPFired = false;
+    function t3v3RingTouchStart(e, slotIdx, ringIdx) {
+        if (_t3v3RingLP) clearTimeout(_t3v3RingLP);
+        _t3v3RingLPFired = false;
+        const touch = e.touches && e.touches[0]; if (!touch) return;
+        const cx = touch.clientX, cy = touch.clientY;
+        _t3v3RingLP = setTimeout(function () {
+            _t3v3RingLPFired = true;
+            open3v3RingContextMenu({ preventDefault: function () {}, stopPropagation: function () {}, clientX: cx, clientY: cy }, slotIdx, ringIdx);
+        }, 500);
+    }
+    function t3v3RingTouchEnd(e) {
+        if (_t3v3RingLP) { clearTimeout(_t3v3RingLP); _t3v3RingLP = null; }
+        if (_t3v3RingLPFired) { _t3v3RingLPFired = false; e.preventDefault(); e.stopPropagation(); return false; }
+    }
+    function t3v3RingTouchMove(e) { if (_t3v3RingLP) { clearTimeout(_t3v3RingLP); _t3v3RingLP = null; } }
+
     function render3v3RingSlot(slotIdx, ringIdx, ringId, stackId) {
         const r = ringId ? (ringsDB.find(x => String(x.id) === String(ringId)) || accessoriesDB.find(x => String(x.id) === String(ringId))) : null;
         const hasStack = !!(stackId && ringsDB.find(x => String(x.id) === String(stackId)));
         const stackOverlay = hasStack ? render3v3RingStackOverlay(stackId) : '';
-        const ctx = ' oncontextmenu="open3v3RingContextMenu(event, ' + slotIdx + ', ' + ringIdx + '); return false;"';
+        const ctx = ' oncontextmenu="open3v3RingContextMenu(event, ' + slotIdx + ', ' + ringIdx + '); return false;"' +
+            ' ontouchstart="t3v3RingTouchStart(event, ' + slotIdx + ', ' + ringIdx + ')"' +
+            ' ontouchend="return t3v3RingTouchEnd(event)"' +
+            ' ontouchmove="t3v3RingTouchMove(event)"' +
+            ' ontouchcancel="t3v3RingTouchMove(event)"';
         const isPrimary = ringIdx === 0;
         const primaryClass = isPrimary ? ' t3v3-ring-primary' : '';
         const primaryBadge = isPrimary ? '<span class="t3v3-ring-primary-badge" title="\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01 \u2014 \u0E40\u0E0A\u0E47\u0E04\u0E25\u0E39\u0E01\u0E01\u0E34\u0E25\u0E40\u0E2D\u0E32\u0E27\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19 \u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E04\u0E48\u0E2D\u0E22\u0E25\u0E2D\u0E07\u0E25\u0E33\u0E14\u0E31\u0E1A\u0E16\u0E31\u0E14\u0E44\u0E1B">\u2B50 \u0E2B\u0E25\u0E31\u0E01</span>' : '';
+        const tipMobile = ' \u00B7 \u0E21\u0E37\u0E2D\u0E16\u0E37\u0E2D\u0E41\u0E15\u0E30\u0E04\u0E49\u0E32\u0E07\u0E44\u0E27\u0E49 \u2192 \u0E40\u0E21\u0E19\u0E39\u0E41\u0E2B\u0E27\u0E19\u0E0B\u0E49\u0E2D\u0E19/\u0E25\u0E1A';
         if (r) {
             return '<div class="t3v3-item-slot t3v3-ring-slot filled grade-' + (r.grade || 6) + (hasStack ? ' has-stack' : '') + primaryClass + '"' +
                 ' onclick="event.stopPropagation(); open3v3RingSelector(' + slotIdx + ', ' + ringIdx + ')"' + ctx +
-                ' title="' + (r.name || '') + (isPrimary ? ' (\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01)' : '') + '">' +
+                ' title="' + (r.name || '') + (isPrimary ? ' (\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01)' : '') + tipMobile + '">' +
                 '<img src="' + r.img + '" alt="">' + stackOverlay + primaryBadge + '</div>';
         }
         const label = isPrimary ? '\u0E2B\u0E25\u0E31\u0E01' : 'RING';
         return '<div class="t3v3-item-slot t3v3-ring-slot' + primaryClass + '"' +
             ' onclick="event.stopPropagation(); open3v3RingSelector(' + slotIdx + ', ' + ringIdx + ')"' + ctx +
-            (isPrimary ? ' title="\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01 (\u0E41\u0E2B\u0E27\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E15\u0E31\u0E27) \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E40\u0E0A\u0E47\u0E04\u0E25\u0E39\u0E01\u0E01\u0E34\u0E25\u0E14\u0E49\u0E27\u0E22\u0E27\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19"' : '') + '>' +
+            ' title="' + (isPrimary ? '\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E41\u0E2B\u0E27\u0E19\u0E2B\u0E25\u0E31\u0E01 (\u0E41\u0E2B\u0E27\u0E19\u0E1B\u0E23\u0E30\u0E08\u0E33\u0E15\u0E31\u0E27) \u2014 \u0E23\u0E30\u0E1A\u0E1A\u0E08\u0E30\u0E40\u0E0A\u0E47\u0E04\u0E25\u0E39\u0E01\u0E01\u0E34\u0E25\u0E14\u0E49\u0E27\u0E22\u0E27\u0E07\u0E19\u0E35\u0E49\u0E01\u0E48\u0E2D\u0E19' : '') + tipMobile + '">' +
             '<span class="t3v3-slot-icon">\uD83D\uDC8D</span><span class="t3v3-slot-label">' + label + '</span>' + primaryBadge + '</div>';
     }
 
