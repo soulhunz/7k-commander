@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.48.4';
+        const APP_VERSION = '1.48.5';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15690,7 +15690,7 @@
         // =========================================================
         // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
         // =========================================================
-        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null;
+        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null, dpDetailOpen = false;
         const dpPending = new Set();   // 🕐 team_id ที่กำลังรอ server ตอบ (claim/unclaim) — ปุ่มขึ้นสปินเนอร์
         // 🔁 Auto-refresh ทุก 20 วิ ขณะเปิดอยู่ · ซ่อนหน้าแท็บ/สลับไป tab อื่น = หยุด
         function dpStartPolling() {
@@ -15722,6 +15722,12 @@
             dpLoading = false; dpRender();
         }
         function dpRender() {
+            // 🚫 กำลังเปิดหน้ารายละเอียดเต็มอยู่ = อย่าทับหน้าจอ (polling update ก็ไม่เด้งกลับ)
+            //    เช็คจาก DOM ด้วย — ถ้า gallery ถูกวาดใหม่แล้ว (เช่น กดปุ่ม ❮ กลับมา) = clear flag
+            if (dpDetailOpen) {
+                if (document.querySelector('.gallery-card-grid')) dpDetailOpen = false;
+                else return;
+            }
             if (maiTab === 'defplan' && typeof ccViewerRender === 'function' && document.getElementById('cc-viewer') && document.getElementById('cc-viewer').style.display !== 'none') { ccViewerRender(); return; }
             if (currentGalleryTab === 'Defense' && typeof rerenderGallery === 'function') rerenderGallery();
         }
@@ -15813,8 +15819,11 @@
                     : mine ? 'border-indigo-600/60 bg-indigo-900/10'
                     : 'border-gray-800 bg-[#0d1117]';
                 // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อเสมอ (แม้ 0 คน + แม้ตัวซ้ำ · ไม่ disable) · ลูกกิลธรรมดาไม่เห็น
-                //    ครอบด้วย div ที่ reset opacity/grayscale → ปุ่มเด่นชัดแม้การ์ดเทาจากตัวซ้ำ
-                const nameListBtn = officer ? `<div class="opacity-100" style="filter:none"><button onclick="event.stopPropagation(); dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button></div>` : '';
+                //    + ปุ่ม ➕ "เลือกให้คนอื่น" — ให้ผู้ช่วยกดเลือกแทนลูกกิลที่ลืม
+                const nameListBtn = officer ? `<div class="opacity-100 grid grid-cols-2 gap-1.5" style="filter:none">
+                    <button onclick="event.stopPropagation(); dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 รายชื่อ (${claims.length})</button>
+                    <button onclick="event.stopPropagation(); dpOpenPickMember('${ccEsc(String(p.team_id))}')" ${full ? 'disabled' : ''} class="py-1.5 rounded-lg text-[11px] font-bold ${full ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed' : 'bg-indigo-900/40 border border-indigo-600/50 text-indigo-200 hover:bg-indigo-800/50 border'}">➕ ให้คนอื่น</button>
+                </div>` : '';
                 return `<div class="p-4 rounded-2xl border ${cardStyle}">
                     <div class="mb-2">
                         <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
@@ -15901,10 +15910,100 @@
             const t = dpSharedDefenseTeams().find(x => String(x.id) === String(tid));
             if (!t) return;
             if (typeof renderPublicTeamDisplay !== 'function') { if (typeof teamStatsOpenById === 'function') teamStatsOpenById(tid); return; }
+            dpDetailOpen = true;   // 🔒 ระหว่างดูรายละเอียด · polling 20 วิ อย่า rerender ทับ
             renderPublicTeamDisplay(t, [t], t.name || 'ทีมรับ');
             const main = document.getElementById('main-content');
             if (main) main.scrollTop = 0;
             window.scrollTo(0, 0);
+        }
+        // ➕ เปิดรายชื่อลูกกิลให้ officer เลือก "ให้คนอื่น" claim ทีมนี้ (เหมือน payout's poAdminPickMember)
+        function dpOpenPickMember(tid) {
+            if (!dpIsOfficer()) return;
+            const teams = dpSharedDefenseTeams();
+            const t = teams.find(x => String(x.id) === String(tid));
+            const allMembers = (dpData && dpData.members) || [];
+            const alreadyClaimed = new Set(dpClaimsOfTeam(tid).map(c => String(c.member_id)));
+            // นับไม้คงเหลือของแต่ละคน
+            const usedByMember = new Map();
+            ((dpData && dpData.claims) || []).forEach(c => { const k = String(c.member_id); usedByMember.set(k, (usedByMember.get(k) || 0) + 1); });
+            let d = document.getElementById('dp-pick-dlg');
+            if (!d) { d = document.createElement('div'); d.id = 'dp-pick-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
+            d.style.display = 'flex';
+            if (!allMembers.length) { d.innerHTML = '<div class="bg-[#161b22] border border-gray-700 rounded-2xl p-6 text-gray-400">ยังโหลดรายชื่อลูกกิลไม่เสร็จ</div>'; return; }
+            // สร้าง card ของแต่ละลูกกิล — เลือก = call dpClaimForMember · หรือ unclaim ถ้าเลือกไว้แล้ว
+            const rows = allMembers.map(m => {
+                const mid = String(m.id);
+                const used = usedByMember.get(mid) || 0;
+                const claimedHere = alreadyClaimed.has(mid);
+                const full = !claimedHere && used >= 5;
+                const av = m.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(m.discordAvatar) : '';
+                const avatarHTML = av ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full border-2 border-indigo-500/40 object-cover shrink-0" alt="">` : `<span class="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-sm text-gray-400 shrink-0">${ccEsc(String(m.name || '?').trim().charAt(0).toUpperCase())}</span>`;
+                const gameName = m.gameName ? `<span class="text-[11px] text-emerald-300 font-bold">🎮 ${ccEsc(m.gameName)}</span>` : '';
+                const status = claimedHere
+                    ? `<button onclick="dpUnclaimForMember('${ccEsc(String(tid))}','${ccEsc(mid)}','${ccEsc(m.name || '')}')" class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white">✅ เลือกแล้ว (ยกเลิก)</button>`
+                    : full ? `<span class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-black bg-gray-800 text-gray-500">⛔ ใช้ครบ 5 ไม้</span>`
+                    : `<button onclick="dpClaimForMember('${ccEsc(String(tid))}','${ccEsc(mid)}','${ccEsc(m.name || '')}')" class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white">➕ เลือกให้</button>`;
+                return `<div class="flex items-center gap-3 p-3 rounded-xl border border-gray-800 bg-[#0d1117]">
+                    ${avatarHTML}
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-bold text-white truncate">${ccEsc(m.name || mid)}</div>
+                        <div class="flex items-center gap-2">${gameName}<span class="text-[10px] text-gray-500">ไม้ใช้ไป ${used}/5</span></div>
+                    </div>
+                    ${status}
+                </div>`;
+            }).join('');
+            d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col shadow-2xl">
+                <div class="p-4 border-b border-gray-800 flex items-center gap-2">
+                    <h3 class="text-white font-bold truncate">➕ เลือกให้ลูกกิล · ${ccEsc(t ? t.name : tid)}</h3>
+                    <button onclick="document.getElementById('dp-pick-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
+                </div>
+                <div class="p-3 border-b border-gray-800 text-[11px] text-gray-400">ลูกกิลที่ลืมกด / ให้ผู้ช่วยกดให้แทนได้ · ระบบจะเช็คตัวซ้ำข้ามไม้อัตโนมัติ</div>
+                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
+            </div>`;
+        }
+        async function dpClaimForMember(tid, targetMid, targetMname) {
+            if (!dpIsOfficer() || !memberSession || !dpData) return;
+            tid = String(tid); targetMid = String(targetMid);
+            if (dpPending.has(tid + ':' + targetMid)) return;
+            const snapshot = (dpData.claims || []).slice();
+            dpData.claims = snapshot.concat([{ team_id: tid, member_id: targetMid, member_name: targetMname || '', at: String(Date.now()) }]);
+            dpPending.add(tid + ':' + targetMid);
+            dpRender(); dpOpenPickMember(tid);   // refresh dialog
+            try {
+                const r = await postJson({ action: 'claimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: tid, accessCode: memberSession.code || '', target_member_id: targetMid, target_member_name: targetMname || '' }, { timeout: 30000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'เลือกไม่สำเร็จ');
+                if (r.claims) dpData.claims = r.claims;
+                dpPending.delete(tid + ':' + targetMid);
+                dpRender(); dpOpenPickMember(tid);
+                if (typeof showToast === 'function') showToast('✅ เลือกให้ ' + (targetMname || targetMid) + ' แล้ว', 'success');
+            } catch (e) {
+                dpData.claims = snapshot;
+                dpPending.delete(tid + ':' + targetMid);
+                dpRender(); dpOpenPickMember(tid);
+                alert('❌ ' + (e.message || e));
+            }
+        }
+        async function dpUnclaimForMember(tid, targetMid, targetMname) {
+            if (!dpIsOfficer() || !memberSession || !dpData) return;
+            tid = String(tid); targetMid = String(targetMid);
+            if (dpPending.has(tid + ':' + targetMid)) return;
+            const snapshot = (dpData.claims || []).slice();
+            dpData.claims = snapshot.filter(c => !(String(c.team_id) === tid && String(c.member_id) === targetMid));
+            dpPending.add(tid + ':' + targetMid);
+            dpRender(); dpOpenPickMember(tid);
+            try {
+                const r = await postJson({ action: 'unclaimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: tid, accessCode: memberSession.code || '', target_member_id: targetMid, target_member_name: targetMname || '' }, { timeout: 30000, retries: 2 });
+                if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ยกเลิกไม่สำเร็จ');
+                if (r.claims) dpData.claims = r.claims;
+                dpPending.delete(tid + ':' + targetMid);
+                dpRender(); dpOpenPickMember(tid);
+                if (typeof showToast === 'function') showToast('ยกเลิกแล้ว', 'success');
+            } catch (e) {
+                dpData.claims = snapshot;
+                dpPending.delete(tid + ':' + targetMid);
+                dpRender(); dpOpenPickMember(tid);
+                alert('❌ ' + (e.message || e));
+            }
         }
         // 👥 รายชื่อลูกกิลที่เลือกทีมนี้ (เฉพาะแอดมิน/ผู้ช่วย)
         function dpOpenClaimList(tid) {
