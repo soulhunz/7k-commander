@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.49.0';
+        const APP_VERSION = '1.49.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15827,12 +15827,13 @@
                     const img = s.awakened && h && h.img2 ? h.img2 : (h && h.img);
                     return img ? `<img src="${img}" class="w-full aspect-square rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-blue-500'} shadow-md" alt="${ccEsc((h && h.name) || '')}" title="${ccEsc((h && h.name) || '')}">` : '<div class="w-full aspect-square rounded-xl bg-gray-800"></div>';
                 }).join('') : '';
-                // 🚫 Card สีเทา + กดไม่ได้ ถ้าตัวซ้ำกับไม้ที่เลือกแล้ว (เฉพาะลูกกิล · หัวหน้า/ผู้ช่วยยังกดได้ตลอด)
-                const cardStyle = (conflict && !officer)
-                    ? 'border-gray-800 bg-black/40 opacity-50 grayscale'
+                // 🚫 การ์ดเทา (grayscale) ถ้าตัวซ้ำ · แต่ "ปุ่ม officer" ด้านล่างยังคมชัดอยู่ (ถูกวางนอกชั้น grayscale)
+                const borderStyle = conflict
+                    ? 'border-gray-800 bg-black/40'
                     : full ? 'border-emerald-700/50 bg-emerald-900/10'
                     : mine ? 'border-indigo-600/60 bg-indigo-900/10'
                     : 'border-gray-800 bg-[#0d1117]';
+                const innerDimStyle = conflict ? 'opacity-50 grayscale' : '';
                 // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อเสมอ (แม้ 0 คน + แม้ตัวซ้ำ · ไม่ disable) · ลูกกิลธรรมดาไม่เห็น
                 //    + ปุ่ม ➕ "เลือกให้คนอื่น" — ให้ผู้ช่วยกดเลือกแทนลูกกิลที่ลืม
                 // 🧑‍⚖️ ปุ่ม officer — บังคับให้เด่นชัดเสมอ (opacity/grayscale reset) · ไม่โดน disable ตามการ์ดหลัก
@@ -15840,22 +15841,24 @@
                     <button onclick="event.stopPropagation(); dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="py-2 rounded-lg text-[11px] font-black bg-slate-700 border-2 border-slate-500 text-white hover:bg-slate-600 hover:border-indigo-400 transition shadow">👥 รายชื่อ (${claims.length})</button>
                     <button onclick="event.stopPropagation(); dpOpenPickMember('${ccEsc(String(p.team_id))}')" class="py-2 rounded-lg text-[11px] font-black bg-indigo-600 border-2 border-indigo-400 text-white hover:bg-indigo-500 transition shadow">➕ ให้คนอื่น</button>
                 </div>` : '';
-                return `<div class="p-4 rounded-2xl border ${cardStyle}">
-                    <div class="mb-2">
-                        <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
-                    </div>
-                    ${t ? `<button onclick="dpOpenTeamDetail('${ccEsc(String(p.team_id))}')" title="กดเพื่อดูรายละเอียดเต็ม (ตัวละคร · แหวน · สกิล · สนาม)" class="relative overflow-hidden group w-full grid grid-cols-3 gap-2 mb-3 px-3 py-3 rounded-xl bg-black/30 hover:bg-black/50 transition cursor-pointer">
-                        ${heroStrip || '<span class="col-span-3 text-xs text-gray-500 text-center">ไม่มีทีมที่แชร์ไว้</span>'}
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm z-30 pointer-events-none">
-                            <span class="text-white font-bold border border-white/30 px-4 py-2 rounded-full bg-white/10 shadow-xl transform scale-90 group-hover:scale-100 transition text-xs">🔍 View Detail</span>
+                return `<div class="p-4 rounded-2xl border ${borderStyle}">
+                    <div class="${innerDimStyle}">
+                        <div class="mb-2">
+                            <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
                         </div>
-                    </button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
-                    <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
-                        <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
-                        ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
+                        ${t ? `<button onclick="dpOpenTeamDetail('${ccEsc(String(p.team_id))}')" title="กดเพื่อดูรายละเอียดเต็ม (ตัวละคร · แหวน · สกิล · สนาม)" class="relative overflow-hidden group w-full grid grid-cols-3 gap-2 mb-3 px-3 py-3 rounded-xl bg-black/30 hover:bg-black/50 transition cursor-pointer">
+                            ${heroStrip || '<span class="col-span-3 text-xs text-gray-500 text-center">ไม่มีทีมที่แชร์ไว้</span>'}
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 backdrop-blur-sm z-30 pointer-events-none">
+                                <span class="text-white font-bold border border-white/30 px-4 py-2 rounded-full bg-white/10 shadow-xl transform scale-90 group-hover:scale-100 transition text-xs">🔍 View Detail</span>
+                            </div>
+                        </button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
+                        <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
+                            <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
+                            ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-gray-800 overflow-hidden"><div class="h-full ${barColor} transition-all" style="width:${pct}%"></div></div>
+                        ${btn}
                     </div>
-                    <div class="w-full h-2 rounded-full bg-gray-800 overflow-hidden"><div class="h-full ${barColor} transition-all" style="width:${pct}%"></div></div>
-                    ${btn}
                     ${nameListBtn}
                 </div>`;
             };
