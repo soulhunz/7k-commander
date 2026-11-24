@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.4';
+        const APP_VERSION = '1.47.5';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -34336,11 +34336,11 @@
                 });
                 
                 contentHTML = sectionsHTML || '<div class="text-gray-500 text-center py-20">ไม่มีข้อมูล</div>';
+            } else if (currentGalleryTab === 'Defense') {
+                // 🛡️ แท็บ DEFENSE: แสดงเฉพาะ "แผนตั้งรับของกิลด์" (ที่แอดมินตั้งค่า) — ซ่อน grid ทีมรับทั้งหมด
+                contentHTML = '';
             } else {
-                // 🟢 Normal Mode: แสดงทั้งหมดแบบ grid ธรรมดา (ลูกกิลเข้าแล้ว — ทีมของตัวเองอยู่ด้านบน ส่วนนี้ = ทีมรับของกิลด์)
-                const defHead = currentGalleryTab === 'Defense' && memberSession && displayItems.length
-                    ? `<div class="flex items-center gap-3 mb-4 border-b-2 border-gray-800 pb-2"><h2 class="text-sm font-black text-blue-300 uppercase tracking-wider">🛡️ ทีมรับของกิลด์</h2><span class="text-xs text-gray-500">${displayItems.length} ทีม</span></div>` : '';
-                contentHTML = `${defHead}<div class="pb-20 w-full overflow-x-auto">
+                contentHTML = `<div class="pb-20 w-full overflow-x-auto">
                     <div class="gallery-card-grid">
                         ${displayItems.map(item => renderCard(item)).join('')}
                     </div>
@@ -34421,11 +34421,11 @@
                         ${currentGalleryTab === 'Defense' && memberSession ? galleryMyTeamsHTML() : ''}
                         ${currentGalleryTab === 'Defense' ? `<div class="w-full mb-6 bg-[#0d1117] border border-sky-800/50 rounded-2xl p-4 shadow-xl">${renderDefensePlan()}</div>` : ''}
                         ${memberTeamsPanelHTML}
-                        <!-- แถวเดียว: TYPE (ซ้าย) · ค้นหา + กรองจากฮีโร่ (ขวา) -->
-                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 w-full">
+                        <!-- แถวเดียว: TYPE (ซ้าย) · ค้นหา + กรองจากฮีโร่ (ขวา) · Defense ซ่อนตัวกรอง (แสดงเฉพาะแผนที่ตั้งไว้) -->
+                        ${currentGalleryTab !== 'Defense' ? `<div class="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 w-full">
                             ${currentGalleryTab === 'Attack' ? galleryTypeFilterBarHTML(typeBarItems, true) : '<span></span>'}
                             ${(currentGalleryTab !== 'MyHeroes' && currentGalleryTab !== 'Rotation') ? galleryHeroFilterBarHTML(displayItems.length, true) : ''}
-                        </div>
+                        </div>` : ''}
                         ${contentHTML}
                     </div>
                 </div>`;
