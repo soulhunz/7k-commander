@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.48.3';
+        const APP_VERSION = '1.48.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15812,13 +15812,14 @@
                     : full ? 'border-emerald-700/50 bg-emerald-900/10'
                     : mine ? 'border-indigo-600/60 bg-indigo-900/10'
                     : 'border-gray-800 bg-[#0d1117]';
-                // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อเสมอ (แม้ 0 คน) · ลูกกิลธรรมดาไม่เห็น
-                const nameListBtn = officer ? `<button onclick="dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button>` : '';
+                // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อเสมอ (แม้ 0 คน + แม้ตัวซ้ำ · ไม่ disable) · ลูกกิลธรรมดาไม่เห็น
+                //    ครอบด้วย div ที่ reset opacity/grayscale → ปุ่มเด่นชัดแม้การ์ดเทาจากตัวซ้ำ
+                const nameListBtn = officer ? `<div class="opacity-100" style="filter:none"><button onclick="event.stopPropagation(); dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button></div>` : '';
                 return `<div class="p-4 rounded-2xl border ${cardStyle}">
                     <div class="mb-2">
                         <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
                     </div>
-                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full grid grid-cols-3 gap-2 mb-3 px-3 py-3 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition">${heroStrip || '<span class="col-span-3 text-xs text-gray-500 text-center">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
+                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `dpOpenTeamDetail('${ccEsc(String(p.team_id))}')`}" title="กดเพื่อดูรายละเอียดเต็ม (ตัวละคร · แหวน · สกิล · สนาม)" class="relative w-full grid grid-cols-3 gap-2 mb-3 px-3 py-3 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50 group'} transition">${heroStrip || '<span class="col-span-3 text-xs text-gray-500 text-center">ไม่มีทีมที่แชร์ไว้</span>'}${conflict ? '' : '<span class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/80 border border-gray-600 flex items-center justify-center text-[11px] text-gray-200 group-hover:bg-indigo-600 group-hover:border-indigo-400 group-hover:text-white transition shadow">🔍</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
                     <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
                         <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
                         ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
@@ -15894,6 +15895,16 @@
                 dpRender();
                 alert('❌ ' + (e.message || e));
             }
+        }
+        // 🔍 เปิดหน้ารายละเอียดทีมเต็ม (แบบเดียวกับ TARGET ENEMY — มีสเตท/แหวน/สกิล/สนาม/วิดีโอ)
+        function dpOpenTeamDetail(tid) {
+            const t = dpSharedDefenseTeams().find(x => String(x.id) === String(tid));
+            if (!t) return;
+            if (typeof renderPublicTeamDisplay !== 'function') { if (typeof teamStatsOpenById === 'function') teamStatsOpenById(tid); return; }
+            renderPublicTeamDisplay(t, [t], t.name || 'ทีมรับ');
+            const main = document.getElementById('main-content');
+            if (main) main.scrollTop = 0;
+            window.scrollTo(0, 0);
         }
         // 👥 รายชื่อลูกกิลที่เลือกทีมนี้ (เฉพาะแอดมิน/ผู้ช่วย)
         function dpOpenClaimList(tid) {
