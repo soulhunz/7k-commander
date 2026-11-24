@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.6';
+        const APP_VERSION = '1.47.7';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15762,36 +15762,42 @@
                 const mine = loggedIn && claims.some(c => String(c.member_id) === String(memberSession.memberId));
                 const pct = Math.min(100, Math.round((claims.length / Math.max(1, p.quota)) * 100));
                 const barColor = full ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
+                const heroes = dpTeamHeroIds(p.team_id);
+                const conflict = !mine && heroes.some(h => myHeroes.has(h));
                 let btn = '';
                 if (!loggedIn) btn = `<button onclick="galleryDiscordStart&&galleryDiscordStart()" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-900/40 border border-indigo-600/50 text-indigo-200 hover:bg-indigo-800/50">🎮 เข้าสู่ระบบ Discord เพื่อเลือก</button>`;
                 else if (mine) btn = `<button onclick="dpUnclaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white">✅ ฉันเลือกแล้ว (กดเพื่อยกเลิก)</button>`;
                 else if (full) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ เต็มโควตา</button>`;
                 else if (myList.length >= 5) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ คุณใช้ครบ 5 ไม้แล้ว</button>`;
-                else {
-                    const heroes = dpTeamHeroIds(p.team_id);
-                    const conflict = heroes.find(h => myHeroes.has(h));
-                    if (conflict) btn = `<button disabled title="ตัวละครซ้ำกับไม้ที่คุณเลือกแล้ว" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-red-900/40 text-red-300 border border-red-700/50 cursor-not-allowed">⛔ ตัวซ้ำกับไม้อื่นของคุณ</button>`;
-                    else btn = `<button onclick="dpClaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white">➕ เลือกไม้นี้ (ตั้งที่บ้าน)</button>`;
-                }
+                else if (conflict) btn = `<button disabled title="ตัวละครซ้ำกับไม้ที่คุณเลือกแล้ว — ยกเลิกไม้เก่าก่อน" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-red-900/40 text-red-300 border border-red-700/50 cursor-not-allowed">⛔ ซ้ำกับไม้ที่เลือก · ยกเลิกไม้เก่าก่อน</button>`;
+                else btn = `<button onclick="dpClaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white">➕ เลือกไม้นี้ (ตั้งที่บ้าน)</button>`;
+                // 🖼️ รูปตัวละคร — ใหญ่ขึ้น (w-20 h-20) และกรอบขาวหนาขึ้น
                 const heroStrip = t && t.data && Array.isArray(t.data.slots) ? t.data.slots.filter(s => s && s.id).slice(0, 5).map(s => {
                     const h = (heroesDB || []).find(x => String(x.id) === String(s.id));
                     const img = s.awakened && h && h.img2 ? h.img2 : (h && h.img);
-                    return img ? `<img src="${img}" class="w-10 h-10 rounded-lg object-cover border ${s.awakened ? 'border-purple-500' : 'border-gray-700'}" alt="${ccEsc((h && h.name) || '')}" title="${ccEsc((h && h.name) || '')}">` : '<div class="w-10 h-10 rounded-lg bg-gray-800"></div>';
+                    return img ? `<img src="${img}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border-2 ${s.awakened ? 'border-purple-500' : 'border-blue-500'} shadow-md" alt="${ccEsc((h && h.name) || '')}" title="${ccEsc((h && h.name) || '')}">` : '<div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gray-800"></div>';
                 }).join('') : '';
-                const claimedNames = claims.map(c => `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-900/40 border border-indigo-600/50 text-indigo-100 text-[10px] font-bold">👤 ${ccEsc(c.member_name || c.member_id)}</span>`).join('');
-                return `<div class="p-4 rounded-2xl border ${full ? 'border-emerald-700/50 bg-emerald-900/10' : mine ? 'border-indigo-600/60 bg-indigo-900/10' : 'border-gray-800 bg-[#0d1117]'}">
+                // 🚫 Card สีเทา + กดไม่ได้ ถ้าตัวซ้ำกับไม้ที่เลือกแล้ว (ไม่ใช่ไม้ตัวเอง)
+                const cardStyle = conflict
+                    ? 'border-gray-800 bg-black/40 opacity-50 grayscale'
+                    : full ? 'border-emerald-700/50 bg-emerald-900/10'
+                    : mine ? 'border-indigo-600/60 bg-indigo-900/10'
+                    : 'border-gray-800 bg-[#0d1117]';
+                // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อ ลูกกิลธรรมดาไม่เห็น (และไม่เห็น chip ชื่อใต้การ์ดด้วย)
+                const nameListBtn = officer && claims.length ? `<button onclick="dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button>` : '';
+                return `<div class="p-4 rounded-2xl border ${cardStyle}">
                     <div class="flex items-center gap-2 mb-2 min-w-0">
                         <span class="text-white font-black truncate flex-1">${ccEsc(t ? t.name : p.team_id)}</span>
                         <span class="text-[10px] text-gray-500 shrink-0">🛡️ ทีมรับ</span>
                     </div>
-                    ${t ? `<button onclick="teamStatsOpenById('${ccEsc(String(p.team_id))}')" class="w-full flex gap-1 mb-2 p-1 rounded-xl bg-black/30 hover:bg-black/50 transition">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
+                    ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full flex gap-2 mb-3 p-2 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition justify-center">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
                     <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
                         <span>มีคนตั้งแล้ว ${claims.length}/${p.quota}</span>
                         ${full ? '<span>✅ เต็ม</span>' : `<span class="text-gray-500">ขาดอีก ${p.quota - claims.length}</span>`}
                     </div>
                     <div class="w-full h-2 rounded-full bg-gray-800 overflow-hidden"><div class="h-full ${barColor} transition-all" style="width:${pct}%"></div></div>
-                    ${claimedNames ? `<div class="flex flex-wrap gap-1 mt-2">${claimedNames}</div>` : ''}
                     ${btn}
+                    ${nameListBtn}
                 </div>`;
             }).join('');
             return `${head}<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${cards}</div>`;
@@ -15819,6 +15825,27 @@
                 dpRender();
                 if (typeof showToast === 'function') showToast('ยกเลิกแล้ว', 'success');
             } catch (e) { if (typeof hideLoading === 'function') hideLoading(); alert('❌ ' + (e.message || e)); }
+        }
+        // 👥 รายชื่อลูกกิลที่เลือกทีมนี้ (เฉพาะแอดมิน/ผู้ช่วย)
+        function dpOpenClaimList(tid) {
+            if (!dpIsOfficer()) return;
+            const teams = dpSharedDefenseTeams();
+            const t = teams.find(x => String(x.id) === String(tid));
+            const claims = dpClaimsOfTeam(tid);
+            let d = document.getElementById('dp-list-dlg');
+            if (!d) { d = document.createElement('div'); d.id = 'dp-list-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
+            d.style.display = 'flex';
+            const rows = claims.length ? claims.map(c => `<div class="flex items-center gap-3 p-3 rounded-xl border border-gray-800 bg-[#0d1117]">
+                <span class="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-xs text-gray-400 shrink-0">${ccEsc(String(c.member_name || '?').trim().charAt(0).toUpperCase())}</span>
+                <div class="min-w-0 flex-1"><div class="text-sm font-bold text-white truncate">${ccEsc(c.member_name || c.member_id)}</div>${c.at ? `<div class="text-[11px] text-gray-500">${new Date(+c.at).toLocaleString('th-TH')}</div>` : ''}</div>
+            </div>`).join('') : '<div class="text-center text-gray-500 py-10">ยังไม่มีคนเลือก</div>';
+            d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl">
+                <div class="p-4 border-b border-gray-800 flex items-center gap-2">
+                    <h3 class="text-white font-bold truncate">👥 รายชื่อ · ${ccEsc(t ? t.name : tid)} <span class="text-emerald-300">(${claims.length})</span></h3>
+                    <button onclick="document.getElementById('dp-list-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
+                </div>
+                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
+            </div>`;
         }
         let dpCfg = null;
         function dpOpenConfig() {
