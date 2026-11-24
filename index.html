@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.47.10';
+        const APP_VERSION = '1.47.11';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15691,6 +15691,7 @@
         // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
         // =========================================================
         let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '';
+        const dpPending = new Set();   // 🕐 team_id ที่กำลังรอ server ตอบ (claim/unclaim) — ปุ่มขึ้นสปินเนอร์
         function dpGuildKey_() { if (typeof isPublicView !== 'undefined' && isPublicView) return decodeGuildParam(appUrlParams().get('g')) || ''; const g = guildsDB[activeGuildIndex]; return g ? String(g.id) : ''; }
         async function dpLoad(force) {
             const g = dpGuildKey_();
@@ -15764,8 +15765,11 @@
                 const barColor = full ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-indigo-500';
                 const heroes = dpTeamHeroIds(p.team_id);
                 const conflict = !mine && heroes.some(h => myHeroes.has(h));
+                const pending = dpPending.has(String(p.team_id));   // 🕐 ปุ่มของทีมนี้กำลังรอ server
                 let btn = '';
                 if (!loggedIn) btn = `<button onclick="galleryDiscordStart&&galleryDiscordStart()" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-900/40 border border-indigo-600/50 text-indigo-200 hover:bg-indigo-800/50">🎮 เข้าสู่ระบบ Discord เพื่อเลือก</button>`;
+                else if (pending && mine) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-emerald-700/70 text-white cursor-wait flex items-center justify-center gap-2"><span class="inline-block w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"></span> กำลังบันทึก...</button>`;
+                else if (pending) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-indigo-700/70 text-white cursor-wait flex items-center justify-center gap-2"><span class="inline-block w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"></span> กำลังบันทึก...</button>`;
                 else if (mine) btn = `<button onclick="dpUnclaim('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white">✅ ฉันเลือกแล้ว (กดเพื่อยกเลิก)</button>`;
                 else if (full) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ เต็มโควตา</button>`;
                 else if (myList.length >= 5) btn = `<button disabled class="w-full mt-2 py-2 rounded-xl text-xs font-black bg-gray-800 text-gray-500 cursor-not-allowed">⛔ คุณใช้ครบ 5 ไม้แล้ว</button>`;
@@ -15786,9 +15790,8 @@
                 // 👥 แอดมิน/ผู้ช่วย เห็นปุ่มดูรายชื่อ ลูกกิลธรรมดาไม่เห็น (และไม่เห็น chip ชื่อใต้การ์ดด้วย)
                 const nameListBtn = officer && claims.length ? `<button onclick="dpOpenClaimList('${ccEsc(String(p.team_id))}')" class="w-full mt-2 py-1.5 rounded-lg text-[11px] font-bold bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-indigo-500">👥 ดูรายชื่อ (${claims.length})</button>` : '';
                 return `<div class="p-4 rounded-2xl border ${cardStyle}">
-                    <div class="flex items-center gap-2 mb-2 min-w-0">
-                        <span class="text-white font-black truncate flex-1">${ccEsc(t ? t.name : p.team_id)}</span>
-                        <span class="text-[10px] text-gray-500 shrink-0">🛡️ ทีมรับ</span>
+                    <div class="mb-2">
+                        <span class="text-white font-black text-sm leading-tight block">${ccEsc(t ? t.name : p.team_id)}</span>
                     </div>
                     ${t ? `<button ${conflict ? 'disabled' : ''} onclick="${conflict ? '' : `teamStatsOpenById('${ccEsc(String(p.team_id))}')`}" class="w-full flex gap-2 mb-3 p-2 rounded-xl bg-black/30 ${conflict ? 'cursor-not-allowed' : 'hover:bg-black/50'} transition justify-center">${heroStrip || '<span class="text-xs text-gray-500">ไม่มีทีมที่แชร์ไว้</span>'}</button>` : '<div class="text-xs text-amber-300 mb-2">⚠️ ทีมนี้ไม่พบในแกลเลอรี</div>'}
                     <div class="mb-1 flex justify-between text-[11px] font-bold ${full ? 'text-emerald-300' : 'text-gray-300'}">
@@ -15802,23 +15805,27 @@
             }).join('');
             return `${head}<div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))">${cards}</div>`;
         }
-        // ⚡ Optimistic UI — กดแล้วติ๊กในหน้าทันที ไม่ต้องรอ server · ถ้าผิดค่อย revert
+        // ⚡ Optimistic UI + spinner ตามจริง — ติ๊กทันที แต่ปุ่มขึ้น "กำลังบันทึก..." ระหว่างรอ server
         async function dpClaim(tid) {
             if (!memberSession || !memberSession.memberId) return alert('เข้าสู่ระบบด้วย Discord ก่อน');
             if (!dpData) return;
             tid = String(tid);
+            if (dpPending.has(tid)) return;
             const mid = String(memberSession.memberId), mname = memberSession.name || '';
             const snapshot = (dpData.claims || []).slice();
             dpData.claims = snapshot.concat([{ team_id: tid, member_id: mid, member_name: mname, at: String(Date.now()) }]);
+            dpPending.add(tid);
             dpRender();
             try {
                 const r = await postJson({ action: 'claimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: tid, accessCode: memberSession.code || '', member_id: mid, member_name: mname }, { timeout: 30000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'เลือกไม่สำเร็จ');
-                dpData.claims = r.claims || dpData.claims;
+                if (r.claims) dpData.claims = r.claims;   // ถ้า server ส่ง claims มา → sync จริง (ไม่งั้นเก็บ optimistic)
+                dpPending.delete(tid);
                 dpRender();
-                if (typeof showToast === 'function') showToast('✅ เลือกไม้นี้แล้ว', 'success');
+                if (typeof showToast === 'function') showToast('✅ บันทึกแล้ว', 'success');
             } catch (e) {
                 dpData.claims = snapshot;
+                dpPending.delete(tid);
                 dpRender();
                 alert('❌ ' + (e.message || e));
             }
@@ -15826,18 +15833,22 @@
         async function dpUnclaim(tid) {
             if (!memberSession || !memberSession.memberId || !dpData) return;
             tid = String(tid);
+            if (dpPending.has(tid)) return;
             const mid = String(memberSession.memberId);
             const snapshot = (dpData.claims || []).slice();
             dpData.claims = snapshot.filter(c => !(String(c.team_id) === tid && String(c.member_id) === mid));
+            dpPending.add(tid);
             dpRender();
             try {
                 const r = await postJson({ action: 'unclaimDefenseTeam', guild: dpGuildKey_(), guild_id: dpGuildKey_(), team_id: tid, accessCode: memberSession.code || '', member_id: mid, member_name: memberSession.name || '' }, { timeout: 30000, retries: 2 });
                 if (!r || r.status !== 'success') throw new Error((r && r.message) || 'ยกเลิกไม่สำเร็จ');
-                dpData.claims = r.claims || dpData.claims;
+                if (r.claims) dpData.claims = r.claims;
+                dpPending.delete(tid);
                 dpRender();
                 if (typeof showToast === 'function') showToast('ยกเลิกแล้ว', 'success');
             } catch (e) {
                 dpData.claims = snapshot;
+                dpPending.delete(tid);
                 dpRender();
                 alert('❌ ' + (e.message || e));
             }
