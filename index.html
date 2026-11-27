@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.49.2';
+        const APP_VERSION = '1.49.3';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15768,9 +15768,13 @@
             if (dpErr) return `<div class="mb-4 text-amber-300 text-sm">⚠️ ${ccEsc(dpErr)} <button onclick="dpLoad(true)" class="underline ml-2 text-gray-300">ลองใหม่</button></div>`;
             if (!dpData && dpLoading) return `<div class="text-center text-sm text-emerald-300 font-bold py-6">⏳ กำลังโหลดแผนทีมรับ...</div>`;
             if (!dpData) return '';
-            const plan = dpData.plan || [];
             const teams = dpSharedDefenseTeams();
             const teamById = new Map(teams.map(t => [String(t.id), t]));
+            // 🧹 กรองทีมที่หัวหน้า "ปิดแชร์" ใน 3v3 ทิ้ง — plan ฝั่ง server ยังค้างไว้ก็ไม่เป็นไร · ลูกกิลไม่ต้องเห็น/โหวด
+            //    (หัวหน้าเข้า ⚙️ ตั้งค่าแผน จะเห็น list เต็มเพื่อลบออกได้)
+            const planAll = dpData.plan || [];
+            const plan = planAll.filter(p => teamById.has(String(p.team_id)));
+            const orphanCount = planAll.length - plan.length;
             const officer = dpIsOfficer();
             const myList = dpMyClaims();
             const myHeroes = new Set();
@@ -15784,8 +15788,9 @@
                 <button onclick="dpLoad(true)" class="relative px-2.5 py-1 rounded-lg border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 text-xs flex items-center gap-1.5 transition" title="โหลดข้อมูลใหม่จาก server">🔄 โหลดใหม่${dpLoading ? '<span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 animate-pulse" title="กำลังอัปเดต..."></span>' : ''}</button>
                 ${timeAgo ? `<span class="text-[10px] text-gray-500">อัปเดต ${timeAgo}</span>` : ''}
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
-            </div>`;
-            if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน' : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
+            </div>
+            ${officer && orphanCount > 0 ? `<div class="mb-4 px-3 py-2 rounded-xl border border-amber-700/50 bg-amber-900/20 text-amber-200 text-xs flex items-center gap-2">⚠️ มี ${orphanCount} ทีมในแผนที่ถูกปิดแชร์ใน 3v3 แล้ว · ลูกกิลไม่เห็นแล้ว — กด <b>⚙️ ตั้งค่าแผน</b> เพื่อลบออก</div>` : ''}`;
+            if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? (orphanCount > 0 ? 'ทีมในแผนทั้งหมดถูกปิดแชร์ใน 3v3 แล้ว — กด ⚙️ ตั้งค่าแผน เพื่อจัดการ' : 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน') : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
             // 🏷️ แถบกรอง Type — auto จากตัวละคร (เหมือน TARGETS) · ลำดับคงที่ตาม TEAM_TYPE_ORDER
             const typeCounts = {};
             plan.forEach(p => { const t = dpAutoType(p.team_id); typeCounts[t] = (typeCounts[t] || 0) + 1; p._autoType = t; });
@@ -16073,8 +16078,9 @@
         function dpOpenConfig() {
             if (!dpIsOfficer()) return;
             const plan = (dpData && dpData.plan) || [];
-            // picks: Map<tid, { quota, category }>
-            dpCfg = { picks: new Map(plan.map(p => [String(p.team_id), { quota: p.quota, category: p.category || '' }])) };
+            // 🧹 เปิดครั้งนี้ = ล้างทีมที่ถูก "ปิดแชร์" ใน 3v3 ออกจาก picks อัตโนมัติ — กด 💾 บันทึก แล้วหายจาก server
+            const sharedIds = new Set(dpSharedDefenseTeams().map(t => String(t.id)));
+            dpCfg = { picks: new Map(plan.filter(p => sharedIds.has(String(p.team_id))).map(p => [String(p.team_id), { quota: p.quota, category: p.category || '' }])) };
             let d = document.getElementById('dp-cfg-dlg');
             if (!d) { d = document.createElement('div'); d.id = 'dp-cfg-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
             d.style.display = 'flex';
