@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.49.3';
+        const APP_VERSION = '1.49.4';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -16080,7 +16080,11 @@
             const plan = (dpData && dpData.plan) || [];
             // 🧹 เปิดครั้งนี้ = ล้างทีมที่ถูก "ปิดแชร์" ใน 3v3 ออกจาก picks อัตโนมัติ — กด 💾 บันทึก แล้วหายจาก server
             const sharedIds = new Set(dpSharedDefenseTeams().map(t => String(t.id)));
-            dpCfg = { picks: new Map(plan.filter(p => sharedIds.has(String(p.team_id))).map(p => [String(p.team_id), { quota: p.quota, category: p.category || '' }])) };
+            const orphans = plan.filter(p => !sharedIds.has(String(p.team_id)));
+            dpCfg = {
+                picks: new Map(plan.filter(p => sharedIds.has(String(p.team_id))).map(p => [String(p.team_id), { quota: p.quota, category: p.category || '' }])),
+                orphans   // 📌 เก็บไว้โชว์ใน dialog + ให้ปุ่มบันทึกรู้ว่ามีอะไรจะโดนลบ
+            };
             let d = document.getElementById('dp-cfg-dlg');
             if (!d) { d = document.createElement('div'); d.id = 'dp-cfg-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
             d.style.display = 'flex';
@@ -16091,6 +16095,12 @@
         function dpRenderConfig() {
             const d = document.getElementById('dp-cfg-dlg'); if (!d) return;
             const teams = dpSharedDefenseTeams();
+            const orphans = (dpCfg && Array.isArray(dpCfg.orphans)) ? dpCfg.orphans : [];
+            // 🗑️ แถว "ทีมที่ถูกปิดแชร์แล้ว" — โชว์ให้ officer ทราบว่าจะโดนล้างออกจาก server เมื่อกดบันทึก
+            const orphanBanner = orphans.length ? `<div class="p-3 rounded-xl border border-amber-700/50 bg-amber-900/20">
+                <div class="text-amber-200 text-xs font-bold mb-2">⚠️ มี ${orphans.length} ทีมที่เคยอยู่ในแผน · ถูกปิดแชร์ใน 3v3 แล้ว · <span class="text-amber-100">กด 💾 บันทึกแผน เพื่อล้างออกจาก server</span></div>
+                <div class="flex flex-wrap gap-1">${orphans.map(o => `<span class="text-[10px] px-2 py-0.5 rounded bg-black/30 border border-amber-700/40 text-amber-300 font-mono">${ccEsc(String(o.team_id))}</span>`).join('')}</div>
+            </div>` : '';
             // แยกทีมเป็นกลุ่ม auto-type เพื่อดูชัด (เหมือนในหน้าแสดงผล)
             const rows = teams.length ? teams.map(t => {
                 const cur = dpCfg.picks.get(String(t.id));
@@ -16114,8 +16124,8 @@
                     <button onclick="document.getElementById('dp-cfg-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
                 </div>
                 <div class="p-3 border-b border-gray-800 text-[11px] text-gray-400">เลือกทีมรับที่อยากให้ลูกกิลช่วยกันตั้ง · ระบุจำนวนไม้ที่ต้องการต่อทีม · ลูกกิลคนหนึ่งเลือกได้ 5 ไม้ · หมวด (กายภาพ/เวทมนตร์/สมดุล) ระบบแยกเองจากตัวละคร</div>
-                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
-                <div class="p-3 border-t border-gray-800 flex gap-2"><button onclick="document.getElementById('dp-cfg-dlg').style.display='none'" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white text-xs">ยกเลิก</button><button onclick="dpSaveConfig()" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black">💾 บันทึกแผน</button></div>
+                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${orphanBanner}${rows}</div>
+                <div class="p-3 border-t border-gray-800 flex gap-2"><button onclick="document.getElementById('dp-cfg-dlg').style.display='none'" class="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-300 hover:text-white text-xs">ยกเลิก</button><button onclick="dpSaveConfig()" class="ml-auto bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-sm font-black">${orphans.length && !dpCfg.picks.size ? `🗑️ ล้างแผน (${orphans.length} ทีม)` : '💾 บันทึกแผน'}</button></div>
             </div>`;
         }
         async function dpSaveConfig() {
