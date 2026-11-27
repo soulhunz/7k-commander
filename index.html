@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.50.1';
+        const APP_VERSION = '1.50.2';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -16093,7 +16093,15 @@
                 let row = byMember.get(k);
                 if (!row) { row = { mem: { id: k, name: c.member_name || '' }, claims: [] }; byMember.set(k, row); }
                 const t = teamById.get(String(c.team_id));
-                row.claims.push({ tid: String(c.team_id), name: t ? (t.name || c.team_id) : String(c.team_id), orphan: !t });
+                // 🖼️ รูปฮีโร่ 3 ตัวแรก (เหมือนการ์ดในแท็บเลือกทีม) · awakened ใช้ img2
+                const heroImgs = (t && t.data && Array.isArray(t.data.slots))
+                    ? t.data.slots.filter(s => s && s.id).slice(0, 3).map(s => {
+                        const h = (heroesDB || []).find(x => String(x.id) === String(s.id));
+                        const img = (s.awakened && h && h.img2) ? h.img2 : (h && h.img);
+                        return { img: img || '', awk: !!s.awakened };
+                    })
+                    : [];
+                row.claims.push({ tid: String(c.team_id), name: t ? (t.name || c.team_id) : String(c.team_id), orphan: !t, heroImgs });
             });
             let rows = Array.from(byMember.values());
             // 🔢 สถิติรวม
@@ -16107,9 +16115,22 @@
             else if (dpSumFilter === 'partial') rows = rows.filter(r => r.claims.length > 0 && r.claims.length < 5);
             else if (dpSumFilter === 'none') rows = rows.filter(r => r.claims.length === 0);
             rows.sort((a, b) => (a.claims.length - b.claims.length) || String(a.mem.name || '').localeCompare(String(b.mem.name || '')));
-            const chipCls = c => c.orphan
-                ? 'bg-amber-900/30 text-amber-300 border-amber-700/40 line-through'
-                : 'bg-indigo-900/30 text-indigo-200 border-indigo-700/40';
+            // 🎴 Mini team card — รูปฮีโร่ 3 ตัว + ชื่อทีม · กดเข้าไปดูรายละเอียดเต็มได้
+            const teamCard = c => {
+                const imgs = (c.heroImgs || []).map(x => x.img
+                    ? `<img src="${x.img}" class="w-8 h-8 rounded-md object-cover border ${x.awk ? 'border-purple-500' : 'border-blue-500/60'}" alt="">`
+                    : '<div class="w-8 h-8 rounded-md bg-gray-800 border border-gray-700"></div>'
+                ).join('');
+                const wrapCls = c.orphan
+                    ? 'border-amber-700/40 bg-amber-900/10 opacity-60'
+                    : 'border-indigo-700/40 bg-indigo-900/15 hover:border-indigo-500 hover:bg-indigo-900/30';
+                const label = c.orphan ? `<span class="line-through">${ccEsc(c.name)}</span> <span class="text-[9px]">(ปิดแชร์แล้ว)</span>` : ccEsc(c.name);
+                const onclick = c.orphan ? '' : `onclick="dpOpenTeamDetail('${ccEsc(c.tid)}')"`;
+                return `<div ${onclick} class="flex items-center gap-2 p-2 rounded-lg border ${wrapCls} transition ${c.orphan ? '' : 'cursor-pointer'}">
+                    <div class="flex gap-1 shrink-0">${imgs || '<div class="w-8 h-8 rounded-md bg-gray-800"></div>'}</div>
+                    <span class="text-[11px] font-bold text-white truncate min-w-0">${label}</span>
+                </div>`;
+            };
             const memberRows = rows.length ? rows.map(r => {
                 const mem = r.mem;
                 const av = mem.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(mem.discordAvatar) : '';
@@ -16124,7 +16145,7 @@
                         : `<span class="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-900/30 border border-amber-700/50 text-amber-300">${n}/5</span>`;
                 const gameName = mem.gameName ? `<span class="text-[10px] text-emerald-300 font-bold">🎮 ${ccEsc(mem.gameName)}</span>` : '';
                 const chips = r.claims.length
-                    ? `<div class="flex flex-wrap gap-1 mt-2">${r.claims.map(c => `<span class="text-[10px] px-2 py-0.5 rounded border ${chipCls(c)}" title="${ccEsc(c.tid)}">${ccEsc(c.name)}</span>`).join('')}</div>`
+                    ? `<div class="grid gap-1.5 mt-3" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr))">${r.claims.map(teamCard).join('')}</div>`
                     : '';
                 return `<div class="p-3 rounded-xl border ${n === 0 ? 'border-red-800/60 bg-red-950/10' : n >= 5 ? 'border-emerald-800/50 bg-emerald-950/10' : 'border-gray-800 bg-[#0d1117]'}">
                     <div class="flex items-center gap-3">
