@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.49.4';
+        const APP_VERSION = '1.50.0';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15726,6 +15726,8 @@
                 if (openList && openList.style.display !== 'none' && openList.dataset.tid) dpOpenClaimList(openList.dataset.tid);
                 const openPick = document.getElementById('dp-pick-dlg');
                 if (openPick && openPick.style.display !== 'none' && openPick.dataset.tid) dpOpenPickMember(openPick.dataset.tid);
+                const openSum = document.getElementById('dp-sum-dlg');
+                if (openSum && openSum.style.display !== 'none') dpRenderSummary();
             } catch (e) { dpErr = e.message || String(e); }
             dpLoading = false; dpRender();
         }
@@ -15785,6 +15787,7 @@
             const head = `<div class="flex items-center flex-wrap gap-2 mb-4">
                 <h3 class="text-white font-bold text-lg">🛡️ แผนตั้งรับของกิลด์</h3>
                 ${officer ? '<button onclick="dpOpenConfig()" class="px-2.5 py-1 rounded-lg border border-indigo-600/60 bg-indigo-900/30 text-indigo-200 text-xs font-bold hover:bg-indigo-800/50">⚙️ ตั้งค่าแผน</button>' : ''}
+                <button onclick="dpOpenSummary()" class="px-2.5 py-1 rounded-lg border border-emerald-600/60 bg-emerald-900/30 text-emerald-200 text-xs font-bold hover:bg-emerald-800/50" title="ดูสรุป: ใครเลือกไม้ไหนบ้าง · ใครยังไม่เลือก">📊 สรุป</button>
                 <button onclick="dpLoad(true)" class="relative px-2.5 py-1 rounded-lg border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 text-xs flex items-center gap-1.5 transition" title="โหลดข้อมูลใหม่จาก server">🔄 โหลดใหม่${dpLoading ? '<span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 animate-pulse" title="กำลังอัปเดต..."></span>' : ''}</button>
                 ${timeAgo ? `<span class="text-[10px] text-gray-500">อัปเดต ${timeAgo}</span>` : ''}
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
@@ -16066,6 +16069,89 @@
                     <button onclick="document.getElementById('dp-list-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
                 </div>
                 <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
+            </div>`;
+        }
+        // 📊 สรุป: ใครเลือกไม้ไหนบ้าง · ใครยังไม่เลือก — member-centric view (ตรงข้ามกับ "รายชื่อ" ต่อทีม)
+        let dpSumFilter = 'all';   // 'all' | 'full' (5/5) | 'partial' (1-4) | 'none' (0)
+        function dpSetSumFilter(k) { dpSumFilter = k; dpRenderSummary(); }
+        function dpOpenSummary() {
+            let d = document.getElementById('dp-sum-dlg');
+            if (!d) { d = document.createElement('div'); d.id = 'dp-sum-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
+            d.style.display = 'flex';
+            dpRenderSummary();
+        }
+        function dpRenderSummary() {
+            const d = document.getElementById('dp-sum-dlg'); if (!d || d.style.display === 'none') return;
+            const members = ((dpData && dpData.members) || []).slice();
+            const claims = (dpData && dpData.claims) || [];
+            const teamById = new Map(dpSharedDefenseTeams().map(t => [String(t.id), t]));
+            // รวม claim ของแต่ละคน
+            const byMember = new Map();   // mid -> { mem, claims: [{tid, name}] }
+            members.forEach(m => byMember.set(String(m.id), { mem: m, claims: [] }));
+            claims.forEach(c => {
+                const k = String(c.member_id);
+                let row = byMember.get(k);
+                if (!row) { row = { mem: { id: k, name: c.member_name || '' }, claims: [] }; byMember.set(k, row); }
+                const t = teamById.get(String(c.team_id));
+                row.claims.push({ tid: String(c.team_id), name: t ? (t.name || c.team_id) : String(c.team_id), orphan: !t });
+            });
+            let rows = Array.from(byMember.values());
+            // 🔢 สถิติรวม
+            const total = rows.length;
+            const fullN = rows.filter(r => r.claims.length >= 5).length;
+            const partN = rows.filter(r => r.claims.length > 0 && r.claims.length < 5).length;
+            const noneN = rows.filter(r => r.claims.length === 0).length;
+            const sumSticks = rows.reduce((a, r) => a + r.claims.length, 0);
+            // 🎯 filter + sort — คนที่ไม่เลือก/เลือกน้อย มาก่อน (เตือน) · ภายใน bucket ตามชื่อ
+            if (dpSumFilter === 'full') rows = rows.filter(r => r.claims.length >= 5);
+            else if (dpSumFilter === 'partial') rows = rows.filter(r => r.claims.length > 0 && r.claims.length < 5);
+            else if (dpSumFilter === 'none') rows = rows.filter(r => r.claims.length === 0);
+            rows.sort((a, b) => (a.claims.length - b.claims.length) || String(a.mem.name || '').localeCompare(String(b.mem.name || '')));
+            const chipCls = c => c.orphan
+                ? 'bg-amber-900/30 text-amber-300 border-amber-700/40 line-through'
+                : 'bg-indigo-900/30 text-indigo-200 border-indigo-700/40';
+            const memberRows = rows.length ? rows.map(r => {
+                const mem = r.mem;
+                const av = mem.discordAvatar && typeof rosterDiscordAvatarSafe === 'function' ? rosterDiscordAvatarSafe(mem.discordAvatar) : '';
+                const avatarHTML = av
+                    ? `<img src="${av}" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full border-2 border-indigo-500/40 object-cover shrink-0" alt="">`
+                    : `<span class="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center text-sm text-gray-400 shrink-0">${ccEsc(String(mem.name || mem.id || '?').trim().charAt(0).toUpperCase())}</span>`;
+                const n = r.claims.length;
+                const countBadge = n === 0
+                    ? '<span class="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-black bg-red-900/40 border border-red-700/50 text-red-300">0/5 · ยังไม่เลือก</span>'
+                    : n >= 5
+                        ? `<span class="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-900/40 border border-emerald-700/50 text-emerald-300">${n}/5 ✅</span>`
+                        : `<span class="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-900/30 border border-amber-700/50 text-amber-300">${n}/5</span>`;
+                const gameName = mem.gameName ? `<span class="text-[10px] text-emerald-300 font-bold">🎮 ${ccEsc(mem.gameName)}</span>` : '';
+                const chips = r.claims.length
+                    ? `<div class="flex flex-wrap gap-1 mt-2">${r.claims.map(c => `<span class="text-[10px] px-2 py-0.5 rounded border ${chipCls(c)}" title="${ccEsc(c.tid)}">${ccEsc(c.name)}</span>`).join('')}</div>`
+                    : '';
+                return `<div class="p-3 rounded-xl border ${n === 0 ? 'border-red-800/60 bg-red-950/10' : n >= 5 ? 'border-emerald-800/50 bg-emerald-950/10' : 'border-gray-800 bg-[#0d1117]'}">
+                    <div class="flex items-center gap-3">
+                        ${avatarHTML}
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-bold text-white truncate">${ccEsc(mem.name || mem.id || '?')}</div>
+                            ${gameName}
+                        </div>
+                        ${countBadge}
+                    </div>
+                    ${chips}
+                </div>`;
+            }).join('') : '<div class="text-center text-gray-500 py-10 text-sm">ไม่มีลูกกิลในหมวดนี้</div>';
+            const btnCls = k => `px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpSumFilter === k ? 'bg-white text-black border-white' : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'}`;
+            d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
+                <div class="p-4 border-b border-gray-800 flex items-center gap-2">
+                    <h3 class="text-white font-bold">📊 สรุปการเลือกไม้</h3>
+                    <span class="text-[11px] text-gray-500">รวม ${sumSticks} ไม้ · ${total} คน</span>
+                    <button onclick="document.getElementById('dp-sum-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
+                </div>
+                <div class="p-3 border-b border-gray-800 flex flex-wrap items-center gap-2">
+                    <button onclick="dpSetSumFilter('all')" class="${btnCls('all')}">ทั้งหมด (${total})</button>
+                    <button onclick="dpSetSumFilter('none')" class="${btnCls('none')}">🔴 ยังไม่เลือก (${noneN})</button>
+                    <button onclick="dpSetSumFilter('partial')" class="${btnCls('partial')}">🟡 ไม่ครบ 5 (${partN})</button>
+                    <button onclick="dpSetSumFilter('full')" class="${btnCls('full')}">🟢 ครบ 5 (${fullN})</button>
+                </div>
+                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${memberRows}</div>
             </div>`;
         }
         // 🏷️ หมวดทีมรับ — ตรวจอัตโนมัติจากองค์ประกอบตัวละคร (เหมือน TARGETS) · ไม่ต้องตั้งค่า
