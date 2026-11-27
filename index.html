@@ -4715,7 +4715,7 @@
         // =========================================================
         // 🏷️ เวอร์ชันโปรแกรม — เปลี่ยนทุกครั้งที่แก้แล้วขึ้นเว็บ (MAJOR.MINOR.PATCH: แก้บั๊ก/ปรับเล็ก = PATCH +1 · ฟีเจอร์ใหม่ = MINOR +1)
         // =========================================================
-        const APP_VERSION = '1.50.0';
+        const APP_VERSION = '1.50.1';
         function appVersionLabel() { return 'v' + APP_VERSION; }
         function appFillVersionLabels() {
             document.querySelectorAll('.app-version-label').forEach(el => { el.textContent = appVersionLabel(); });
@@ -15690,7 +15690,7 @@
         // =========================================================
         // 🛡️ Defense Plan — หัวหน้าตั้งทีมรับให้ลูกกิลช่วยกันตั้ง (quota ต่อทีม) · ลูกกิล Discord กดเลือก (1 คน 5 ไม้)
         // =========================================================
-        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null;
+        let dpData = null, dpLoading = false, dpErr = '', dpGuildKey = '', dpPollTimer = null, dpCatFilter = null, dpSubTab = 'pick';   // 'pick' | 'summary'
         const dpPending = new Set();   // 🕐 team_id ที่กำลังรอ server ตอบ (claim/unclaim) — ปุ่มขึ้นสปินเนอร์
         // 🔁 Auto-refresh ทุก 20 วิ ขณะเปิดอยู่ · ซ่อนหน้าแท็บ/สลับไป tab อื่น = หยุด
         function dpStartPolling() {
@@ -15726,8 +15726,6 @@
                 if (openList && openList.style.display !== 'none' && openList.dataset.tid) dpOpenClaimList(openList.dataset.tid);
                 const openPick = document.getElementById('dp-pick-dlg');
                 if (openPick && openPick.style.display !== 'none' && openPick.dataset.tid) dpOpenPickMember(openPick.dataset.tid);
-                const openSum = document.getElementById('dp-sum-dlg');
-                if (openSum && openSum.style.display !== 'none') dpRenderSummary();
             } catch (e) { dpErr = e.message || String(e); }
             dpLoading = false; dpRender();
         }
@@ -15787,13 +15785,21 @@
             const head = `<div class="flex items-center flex-wrap gap-2 mb-4">
                 <h3 class="text-white font-bold text-lg">🛡️ แผนตั้งรับของกิลด์</h3>
                 ${officer ? '<button onclick="dpOpenConfig()" class="px-2.5 py-1 rounded-lg border border-indigo-600/60 bg-indigo-900/30 text-indigo-200 text-xs font-bold hover:bg-indigo-800/50">⚙️ ตั้งค่าแผน</button>' : ''}
-                <button onclick="dpOpenSummary()" class="px-2.5 py-1 rounded-lg border border-emerald-600/60 bg-emerald-900/30 text-emerald-200 text-xs font-bold hover:bg-emerald-800/50" title="ดูสรุป: ใครเลือกไม้ไหนบ้าง · ใครยังไม่เลือก">📊 สรุป</button>
                 <button onclick="dpLoad(true)" class="relative px-2.5 py-1 rounded-lg border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 text-xs flex items-center gap-1.5 transition" title="โหลดข้อมูลใหม่จาก server">🔄 โหลดใหม่${dpLoading ? '<span class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 animate-pulse" title="กำลังอัปเดต..."></span>' : ''}</button>
                 ${timeAgo ? `<span class="text-[10px] text-gray-500">อัปเดต ${timeAgo}</span>` : ''}
                 ${loggedIn ? `<span class="ml-auto text-xs text-gray-400">ไม้ของคุณ: <b class="text-white">${myList.length}/5</b></span>` : '<span class="ml-auto text-[11px] text-amber-300">🎮 เข้าสู่ระบบด้วย Discord เพื่อเลือกตั้งรับ</span>'}
-            </div>
-            ${officer && orphanCount > 0 ? `<div class="mb-4 px-3 py-2 rounded-xl border border-amber-700/50 bg-amber-900/20 text-amber-200 text-xs flex items-center gap-2">⚠️ มี ${orphanCount} ทีมในแผนที่ถูกปิดแชร์ใน 3v3 แล้ว · ลูกกิลไม่เห็นแล้ว — กด <b>⚙️ ตั้งค่าแผน</b> เพื่อลบออก</div>` : ''}`;
-            if (!plan.length) return `${head}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? (orphanCount > 0 ? 'ทีมในแผนทั้งหมดถูกปิดแชร์ใน 3v3 แล้ว — กด ⚙️ ตั้งค่าแผน เพื่อจัดการ' : 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน') : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
+            </div>`;
+            // 🗂️ Sub-tabs ใน DEFENSE: เลือกทีม / สรุป
+            const totalClaims = ((dpData && dpData.claims) || []).length;
+            const tabBtn = (k, label) => `<button onclick="dpSetSubTab('${k}')" class="px-4 py-2 rounded-xl text-xs font-black border-2 transition ${dpSubTab === k ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg' : 'bg-[#0d1117] border-gray-700 text-gray-400 hover:text-white hover:border-gray-500'}">${label}</button>`;
+            const subTabBar = `<div class="flex items-center gap-2 mb-4 pb-3 border-b border-gray-800">
+                ${tabBtn('pick', `🎯 เลือกทีม <span class="opacity-70 ml-1">(${plan.length})</span>`)}
+                ${tabBtn('summary', `📊 สรุป <span class="opacity-70 ml-1">(${totalClaims})</span>`)}
+            </div>`;
+            const orphanBanner = officer && orphanCount > 0 ? `<div class="mb-4 px-3 py-2 rounded-xl border border-amber-700/50 bg-amber-900/20 text-amber-200 text-xs flex items-center gap-2">⚠️ มี ${orphanCount} ทีมในแผนที่ถูกปิดแชร์ใน 3v3 แล้ว · ลูกกิลไม่เห็นแล้ว — กด <b>⚙️ ตั้งค่าแผน</b> เพื่อลบออก</div>` : '';
+            // 📊 Summary tab — render inline (ย้ายมาจาก dialog เดิม)
+            if (dpSubTab === 'summary') return `${head}${subTabBar}${orphanBanner}${dpSummaryHTML(teamById, loggedIn, myList)}`;
+            if (!plan.length) return `${head}${subTabBar}${orphanBanner}<div class="text-center text-sm text-gray-500 py-16 border border-dashed border-gray-800 rounded-2xl">${officer ? (orphanCount > 0 ? 'ทีมในแผนทั้งหมดถูกปิดแชร์ใน 3v3 แล้ว — กด ⚙️ ตั้งค่าแผน เพื่อจัดการ' : 'ยังไม่ได้ตั้งแผนทีมรับ — กด ⚙️ ตั้งค่าแผน') : 'หัวหน้ากิลด์ยังไม่ได้ตั้งแผนทีมรับ'}</div>`;
             // 🏷️ แถบกรอง Type — auto จากตัวละคร (เหมือน TARGETS) · ลำดับคงที่ตาม TEAM_TYPE_ORDER
             const typeCounts = {};
             plan.forEach(p => { const t = dpAutoType(p.team_id); typeCounts[t] = (typeCounts[t] || 0) + 1; p._autoType = t; });
@@ -15885,9 +15891,10 @@
                 </div>`;
             }).join('');
             const empty = !sections ? '<div class="text-center text-sm text-gray-500 py-10 border border-dashed border-gray-800 rounded-2xl">ไม่มีทีมในหมวดนี้</div>' : '';
-            return `${head}${filterBar}${sections || empty}`;
+            return `${head}${subTabBar}${orphanBanner}${filterBar}${sections || empty}`;
         }
         function dpSetCatFilter(k) { dpCatFilter = (dpCatFilter === k) ? null : k; dpRender(); }
+        function dpSetSubTab(k) { dpSubTab = k; dpRender(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
         // ⚡ Optimistic UI + spinner ตามจริง — ติ๊กทันที แต่ปุ่มขึ้น "กำลังบันทึก..." ระหว่างรอ server
         async function dpClaim(tid) {
             if (!memberSession || !memberSession.memberId) return alert('เข้าสู่ระบบด้วย Discord ก่อน');
@@ -16071,22 +16078,15 @@
                 <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${rows}</div>
             </div>`;
         }
-        // 📊 สรุป: ใครเลือกไม้ไหนบ้าง · ใครยังไม่เลือก — member-centric view (ตรงข้ามกับ "รายชื่อ" ต่อทีม)
+        // 📊 สรุป: ใครเลือกไม้ไหนบ้าง · ใครยังไม่เลือก — member-centric view (ตรงข้ามกับ 👥 รายชื่อ ต่อทีม)
+        //    แสดง inline เป็น sub-tab ของ DEFENSE (ไม่ใช่ dialog แล้ว)
         let dpSumFilter = 'all';   // 'all' | 'full' (5/5) | 'partial' (1-4) | 'none' (0)
-        function dpSetSumFilter(k) { dpSumFilter = k; dpRenderSummary(); }
-        function dpOpenSummary() {
-            let d = document.getElementById('dp-sum-dlg');
-            if (!d) { d = document.createElement('div'); d.id = 'dp-sum-dlg'; d.className = 'fixed inset-0 z-[700] flex items-center justify-center bg-black/80 p-3'; d.onclick = e => { if (e.target === d) d.style.display = 'none'; }; document.body.appendChild(d); }
-            d.style.display = 'flex';
-            dpRenderSummary();
-        }
-        function dpRenderSummary() {
-            const d = document.getElementById('dp-sum-dlg'); if (!d || d.style.display === 'none') return;
+        function dpSetSumFilter(k) { dpSumFilter = k; dpRender(); }
+        function dpSummaryHTML(teamById) {
             const members = ((dpData && dpData.members) || []).slice();
             const claims = (dpData && dpData.claims) || [];
-            const teamById = new Map(dpSharedDefenseTeams().map(t => [String(t.id), t]));
             // รวม claim ของแต่ละคน
-            const byMember = new Map();   // mid -> { mem, claims: [{tid, name}] }
+            const byMember = new Map();   // mid -> { mem, claims: [{tid, name, orphan}] }
             members.forEach(m => byMember.set(String(m.id), { mem: m, claims: [] }));
             claims.forEach(c => {
                 const k = String(c.member_id);
@@ -16139,20 +16139,14 @@
                 </div>`;
             }).join('') : '<div class="text-center text-gray-500 py-10 text-sm">ไม่มีลูกกิลในหมวดนี้</div>';
             const btnCls = k => `px-3 py-1.5 rounded-xl text-xs font-bold border transition ${dpSumFilter === k ? 'bg-white text-black border-white' : 'bg-[#0d1117] text-gray-400 border-gray-700 hover:text-white hover:border-gray-500'}`;
-            d.innerHTML = `<div class="bg-[#161b22] border border-gray-700 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl">
-                <div class="p-4 border-b border-gray-800 flex items-center gap-2">
-                    <h3 class="text-white font-bold">📊 สรุปการเลือกไม้</h3>
-                    <span class="text-[11px] text-gray-500">รวม ${sumSticks} ไม้ · ${total} คน</span>
-                    <button onclick="document.getElementById('dp-sum-dlg').style.display='none'" class="ml-auto w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/10 text-xl">✕</button>
-                </div>
-                <div class="p-3 border-b border-gray-800 flex flex-wrap items-center gap-2">
+            return `<div class="mb-3 text-[11px] text-gray-500">รวม ${sumSticks} ไม้ · ${total} คน</div>
+                <div class="mb-4 flex flex-wrap items-center gap-2">
                     <button onclick="dpSetSumFilter('all')" class="${btnCls('all')}">ทั้งหมด (${total})</button>
                     <button onclick="dpSetSumFilter('none')" class="${btnCls('none')}">🔴 ยังไม่เลือก (${noneN})</button>
                     <button onclick="dpSetSumFilter('partial')" class="${btnCls('partial')}">🟡 ไม่ครบ 5 (${partN})</button>
                     <button onclick="dpSetSumFilter('full')" class="${btnCls('full')}">🟢 ครบ 5 (${fullN})</button>
                 </div>
-                <div class="p-3 overflow-y-auto flex-1 min-h-0 space-y-2">${memberRows}</div>
-            </div>`;
+                <div class="space-y-2">${memberRows}</div>`;
         }
         // 🏷️ หมวดทีมรับ — ตรวจอัตโนมัติจากองค์ประกอบตัวละคร (เหมือน TARGETS) · ไม่ต้องตั้งค่า
         //    ใช้ TEAM_TYPE_ORDER + heroIdsMainType + teamTypeStyle (มีอยู่แล้ว) เพื่อให้สีกับชื่อตรงกับหน้าอื่น
